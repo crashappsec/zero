@@ -121,6 +121,153 @@ We don't have a CODEOWNERS file. Generate one based on the last 90 days of git h
 Use team-based ownership where it makes sense.
 ```
 
+### With Automation Scripts
+
+The skill includes bash scripts for offline analysis and CI/CD integration:
+
+#### ownership-analyzer.sh
+
+Basic ownership analysis using git commands without AI enhancement.
+
+**Features:**
+- Analyze git history for contribution patterns
+- Calculate ownership statistics by author
+- Generate reports in multiple formats (text, JSON, CSV)
+- Validate CODEOWNERS file syntax
+- Export data for dashboards and tools
+
+**Usage:**
+```bash
+# Analyze current directory (last 90 days)
+./ownership-analyzer.sh .
+
+# Analyze specific time period
+./ownership-analyzer.sh --days 180 /path/to/repo
+
+# Generate JSON output
+./ownership-analyzer.sh --format json --output ownership.json .
+
+# Validate CODEOWNERS file
+./ownership-analyzer.sh --validate --codeowners .github/CODEOWNERS .
+```
+
+**Requirements:**
+- git
+- jq: `brew install jq`
+- bc: `brew install bc`
+
+#### ownership-analyzer-claude.sh
+
+AI-enhanced analysis with Claude integration for intelligent insights.
+
+**Features:**
+- All features from basic analyzer
+- Executive summaries with health assessment
+- Risk analysis and bus factor calculation
+- CODEOWNERS accuracy validation
+- Prioritized recommendations with effort/impact
+- Knowledge transfer planning guidance
+- Actionable improvement roadmaps
+
+**Usage:**
+```bash
+# Set API key
+export ANTHROPIC_API_KEY=sk-ant-xxx
+
+# Analyze with AI insights
+./ownership-analyzer-claude.sh .
+
+# Specify time period and API key
+./ownership-analyzer-claude.sh --days 90 --api-key sk-ant-xxx /path/to/repo
+```
+
+**Output Includes:**
+1. **Executive Summary** - Overall health, key findings, critical actions
+2. **Ownership Analysis** - Coverage, distribution, SPOFs
+3. **Risk Assessment** - Critical risks prioritized by impact
+4. **CODEOWNERS Assessment** - Validation with specific recommendations
+5. **Recommendations** - Priority 1/2/3 actions with effort/impact estimates
+
+**Requirements:**
+- Same as basic analyzer
+- Anthropic API key
+
+#### compare-analyzers.sh
+
+Comparison tool showing value-add of AI enhancement.
+
+**Features:**
+- Runs both analyzers side-by-side
+- Compares capabilities and outputs
+- Demonstrates AI value-add
+- Use case recommendations
+
+**Usage:**
+```bash
+# Compare basic vs Claude analysis
+./compare-analyzers.sh /path/to/repo
+
+# Specify time period
+./compare-analyzers.sh --days 180 --api-key sk-ant-xxx .
+```
+
+**Output:**
+- Side-by-side capability comparison
+- Value-add summary
+- Use case recommendations for each tool
+
+### CI/CD Integration
+
+**GitHub Actions Example:**
+```yaml
+name: Code Ownership Audit
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'  # Monthly on 1st
+  workflow_dispatch:
+
+jobs:
+  ownership_audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Full history needed
+
+      - name: Basic Analysis
+        run: |
+          ./skills/code-ownership/ownership-analyzer.sh \
+            --format json --output ownership-metrics.json .
+
+      - name: AI-Enhanced Analysis (monthly)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          ./skills/code-ownership/ownership-analyzer-claude.sh . \
+            > ownership-report.md
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: ownership-analysis
+          path: |
+            ownership-metrics.json
+            ownership-report.md
+```
+
+**GitLab CI Example:**
+```yaml
+ownership_audit:
+  script:
+    - ./skills/code-ownership/ownership-analyzer.sh --format json .
+  artifacts:
+    reports:
+      metrics: ownership-metrics.json
+  only:
+    - schedules
+```
+
 ## Analysis Workflow
 
 The skill follows a systematic approach:
