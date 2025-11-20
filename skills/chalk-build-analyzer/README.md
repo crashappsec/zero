@@ -246,14 +246,172 @@ Export metrics for visualization:
 - **Reduce waste** through efficiency tracking
 - **Scale smartly** with capacity planning
 
+## 🔧 Automation Scripts
+
+The Chalk Build Analyzer includes command-line automation scripts for CI/CD integration and rapid analysis:
+
+### chalk-build-analyzer.sh
+
+Basic Chalk build report analysis without AI enhancement.
+
+**Features:**
+- Analyze Chalk build reports (JSON)
+- Compare two builds for regression detection
+- Stage-by-stage breakdown
+- Cache effectiveness metrics
+- Resource utilization analysis
+- Performance categorization (GOOD/MODERATE/HIGH)
+- JSON export capability
+
+**Usage:**
+```bash
+# Analyze a single build
+./chalk-build-analyzer.sh build-report.json
+
+# Compare two builds
+./chalk-build-analyzer.sh --compare baseline.json current.json
+
+# Export to JSON
+./chalk-build-analyzer.sh --format json --output analysis.json build.json
+```
+
+**Output Includes:**
+- Build summary (ID, status, duration, platform, branch)
+- Stage breakdown (if available)
+- Cache hit rate
+- Resource utilization
+- Basic performance assessment
+- Regression detection (in compare mode)
+
+**Requirements:**
+- jq: `brew install jq`
+
+### chalk-build-analyzer-claude.sh
+
+AI-enhanced Chalk build analysis with Claude integration for intelligent performance insights.
+
+**Features:**
+- All features from basic analyzer
+- Executive summaries with build health scores
+- Performance bottleneck identification
+- Engineering velocity metrics (DORA)
+- Actionable recommendations with effort/impact
+- Cost & efficiency analysis
+- Root cause analysis (in compare mode)
+
+**Usage:**
+```bash
+# Set API key
+export ANTHROPIC_API_KEY=sk-ant-xxx
+
+# Analyze with AI insights
+./chalk-build-analyzer-claude.sh build-report.json
+
+# Compare with regression analysis
+./chalk-build-analyzer-claude.sh --compare baseline.json current.json
+
+# Specify API key directly
+./chalk-build-analyzer-claude.sh --api-key sk-ant-xxx build.json
+```
+
+**Single Build Output Includes:**
+1. **Executive Summary** - Build health, key metrics, efficiency score
+2. **Performance Analysis** - Bottlenecks, queue time, resource issues
+3. **Engineering Velocity** - DORA metrics, team productivity
+4. **Bottleneck Identification** - Specific slow stages with solutions
+5. **Actionable Recommendations** - Prioritized by impact and effort
+6. **Cost & Efficiency** - Resource waste, potential savings, ROI
+
+**Comparison Output Includes:**
+1. **Comparison Summary** - Build IDs, time gap, environment check
+2. **Regression Detection** - Duration changes, stage-by-stage analysis
+3. **Root Cause Analysis** - What changed and why
+4. **Impact Assessment** - Severity rating, team velocity impact
+5. **Recommendations** - Should build be blocked? What to fix?
+6. **Efficiency Comparison** - Cache, resources, parallelization trends
+
+**Requirements:**
+- Same as basic analyzer
+- Anthropic API key
+
+### compare-analyzers.sh
+
+Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrate value-add.
+
+**Features:**
+- Runs both analyzers (single or compare mode)
+- Compares outputs and capabilities
+- Shows AI value-add with specific examples
+- Generates comprehensive comparison report
+- Optional output file preservation
+
+**Usage:**
+```bash
+# Compare basic vs Claude analysis
+./compare-analyzers.sh build-report.json
+
+# Compare regression detection capabilities
+./compare-analyzers.sh --compare baseline.json current.json
+
+# Keep output files for review
+./compare-analyzers.sh --keep-outputs build.json
+```
+
+**Output:**
+- Side-by-side capability comparison
+- Value-add summary for build analysis
+- Engineering velocity insights
+- Use case recommendations
+- Detailed output files (if --keep-outputs)
+
+### CI/CD Integration
+
+**GitHub Actions Example:**
+```yaml
+- name: Extract Chalk Report
+  run: chalk extract > build-report.json
+
+- name: Basic Build Analysis
+  run: ./chalk-build-analyzer.sh build-report.json
+
+- name: Regression Check
+  run: |
+    ./chalk-build-analyzer.sh --compare baseline.json build-report.json
+    if grep -q "REGRESSION DETECTED" output.txt; then
+      echo "Build performance regression detected!"
+      exit 1
+    fi
+
+- name: AI Analysis (on main)
+  if: github.ref == 'refs/heads/main'
+  env:
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  run: |
+    ./chalk-build-analyzer-claude.sh build-report.json > analysis-report.txt
+```
+
+**GitLab CI Example:**
+```yaml
+build_analysis:
+  script:
+    - chalk extract > build-report.json
+    - ./chalk-build-analyzer.sh build-report.json
+  artifacts:
+    reports:
+      metrics: build-report.json
+```
+
 ## 📚 What's Included
 
 - `SKILL.md` - Complete documentation
-- `scripts/analyze_build.py` - Single build analyzer
-- `scripts/compare_builds.py` - Comparison tool
+- `scripts/analyze_build.py` - Single build analyzer (Python)
+- `scripts/compare_builds.py` - Comparison tool (Python)
 - `scripts/demo.sh` - Interactive demonstration
 - `references/build_metrics.md` - Metrics guide
 - `assets/` - Example reports
+- `chalk-build-analyzer.sh` - Basic CLI analyzer
+- `chalk-build-analyzer-claude.sh` - AI-enhanced CLI analyzer
+- `compare-analyzers.sh` - Analyzer comparison tool
 
 ## 🤝 Perfect For
 
