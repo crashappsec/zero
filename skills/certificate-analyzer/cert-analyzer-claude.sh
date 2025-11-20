@@ -14,6 +14,13 @@
 
 set -euo pipefail
 
+# Load environment variables from .env file if it exists
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+if [ -f "$REPO_ROOT/.env" ]; then
+    source "$REPO_ROOT/.env"
+fi
+
 # Colors for output
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
