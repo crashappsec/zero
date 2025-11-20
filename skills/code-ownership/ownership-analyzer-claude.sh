@@ -123,6 +123,56 @@ cleanup() {
     fi
 }
 
+# Function to look up GitHub profile by email
+lookup_github_profile() {
+    local email="$1"
+    local name="$2"
+
+    # Extract username from email if it's a github.com email or noreply email
+    local github_user=""
+
+    if [[ "$email" =~ ^([^@]+)@users\.noreply\.github\.com$ ]]; then
+        # Extract from noreply email: username@users.noreply.github.com or 12345+username@...
+        github_user=$(echo "$email" | sed -E 's/^([0-9]+\+)?([^@]+)@.*/\2/')
+    elif [[ "$email" =~ ^([^@]+)@github\.com$ ]]; then
+        github_user="${BASH_REMATCH[1]}"
+    else
+        # Try to query GitHub API search (public API, no auth needed but rate limited)
+        local api_response=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/search/users?q=$email+in:email" 2>/dev/null)
+
+        if [[ $(echo "$api_response" | jq -r '.total_count // 0' 2>/dev/null) -gt 0 ]]; then
+            github_user=$(echo "$api_response" | jq -r '.items[0].login // ""' 2>/dev/null)
+        fi
+    fi
+
+    if [[ -n "$github_user" ]]; then
+        echo "$github_user|https://github.com/$github_user"
+    else
+        echo "|"
+    fi
+}
+
+# Cache for GitHub profile lookups
+declare -A GITHUB_PROFILE_CACHE
+
+# Function to get GitHub profile with caching
+get_github_profile() {
+    local email="$1"
+    local name="$2"
+
+    # Check cache first
+    if [[ -n "${GITHUB_PROFILE_CACHE[$email]}" ]]; then
+        echo "${GITHUB_PROFILE_CACHE[$email]}"
+        return
+    fi
+
+    # Look up profile
+    local result=$(lookup_github_profile "$email" "$name")
+    GITHUB_PROFILE_CACHE[$email]="$result"
+    echo "$result"
+}
+
 collect_repository_data() {
     local repo_path="$1"
     local days="$2"
@@ -197,11 +247,19 @@ collect_repository_data() {
             top_contributors: $top_contributors
         }')
 
+    # Get author emails for GitHub profile lookup
+    git log --since="$since_date" --format="%an|%ae" | sort -u > /tmp/author_emails_$$.tmp
+
     # Add contributor details
     local contributors_json="["
     local first=true
     while IFS='|' read author files; do
         local last_activity=$(grep "^$author|" "$contributor_activity" | cut -d'|' -f2)
+        local email=$(grep "^$author|" /tmp/author_emails_$$.tmp | head -1 | cut -d'|' -f2)
+        local github_info=$(get_github_profile "$email" "$author")
+        local github_user=$(echo "$github_info" | cut -d'|' -f1)
+        local github_url=$(echo "$github_info" | cut -d'|' -f2)
+
         if [[ "$first" == "true" ]]; then
             first=false
         else
@@ -211,9 +269,13 @@ collect_repository_data() {
             --arg author "$author" \
             --arg files "$files" \
             --arg last_activity "${last_activity:-unknown}" \
-            '{author: $author, files: ($files | tonumber), last_activity: $last_activity}')
+            --arg github_user "$github_user" \
+            --arg github_url "$github_url" \
+            '{author: $author, files: ($files | tonumber), last_activity: $last_activity, github_username: $github_user, github_profile: $github_url}')
     done < "$contributor_files"
     contributors_json+="]"
+
+    rm -f /tmp/author_emails_$$.tmp
 
     data=$(echo "$data" | jq --argjson contributors "$contributors_json" '. + {contributors: $contributors}')
 
