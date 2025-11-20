@@ -24,7 +24,7 @@ Validate the syntax and accuracy of a CODEOWNERS file against actual repository 
 Validate our CODEOWNERS file.
 
 File Location: [.github/CODEOWNERS or path]
-Repository: [repository-name]
+Repository: [repository-name, path, or Git URL]
 Analysis Period: Last [90|180] days
 
 Please check:
@@ -39,11 +39,13 @@ Please check:
    - Which patterns are accurate (>70% match)?
    - Which patterns are incorrect?
    - Calculate overall accuracy percentage
+   - Map git commit authors to GitHub usernames for validation
 
 3. **Inactive Owners**
    - Any listed owners inactive >90 days?
    - Non-existent users or teams referenced?
    - Owners who left the organization?
+   - Verify GitHub usernames exist and are active
 
 4. **Missing Coverage**
    - Directories/files without CODEOWNERS entries
@@ -205,6 +207,8 @@ Other 4 changes look good.
 - **Regular Validation**: Validate quarterly minimum
 - **After Team Changes**: Validate within 1 week of joins/leaves
 - **CI/CD Integration**: Automate validation on CODEOWNERS changes
+- **Git URL Support**: CLI scripts accept GitHub/GitLab/Bitbucket URLs directly
+- **GitHub Profile Mapping**: Scripts automatically map git emails to GitHub usernames for accurate validation
 - **Track Accuracy**: Monitor accuracy % over time as a metric
 - **Confidence Scores**: Pay attention to confidence for suggestions
   - High (>80%): Likely correct, safe to apply
@@ -212,6 +216,7 @@ Other 4 changes look good.
   - Low (<60%): Manual investigation needed
 - **Backup Files**: Always backup before applying generated changes
 - **Incremental Updates**: Fix issues in batches, don't change everything at once
+- **Full Clone Required**: Validation requires complete commit history (never use --depth 1)
 
 ## Automation
 

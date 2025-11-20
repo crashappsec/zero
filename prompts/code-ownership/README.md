@@ -142,14 +142,51 @@ Code review process optimization and reviewer recommendations.
 - Code Ownership Analysis skill loaded in Crash Override
 - Repository access (for git history analysis)
 - Optional: CODEOWNERS file (for validation)
+- Optional: Anthropic API key (for CLI scripts) - configure via `.env` file in repository root
+
+## Configuration
+
+The CLI scripts (`ownership-analyzer.sh` and `ownership-analyzer-claude.sh`) support centralized configuration:
+
+1. **API Key Setup**:
+   ```bash
+   # Create .env file in repository root
+   cp .env.example .env
+   # Edit .env and add: ANTHROPIC_API_KEY=sk-ant-xxx
+   ```
+
+2. **Script Permissions**:
+   ```bash
+   # Make all scripts executable at once
+   chmod +x bootstrap.sh
+   ./bootstrap.sh
+   ```
+
+3. **Repository Analysis**:
+   ```bash
+   # Analyze local repository
+   ./skills/code-ownership/ownership-analyzer-claude.sh .
+
+   # Analyze remote repository (automatically clones)
+   ./skills/code-ownership/ownership-analyzer-claude.sh https://github.com/org/repo
+   ```
+
+**Important**: CLI scripts always use full clone (not shallow clone) to ensure accurate ownership analysis based on complete commit history.
 
 ## Data Sources
 
 Prompts leverage git repository data:
 - Commit history (authors, dates, files changed)
+- GitHub profile mapping (automatically maps git emails to GitHub usernames)
 - PR and review data (if available via API)
 - CODEOWNERS file (if present)
 - Branch and merge patterns
+
+**GitHub Profile Mapping**: The CLI scripts automatically identify GitHub usernames from git commit emails using pattern recognition:
+- Noreply emails: `username@users.noreply.github.com` → `@username`
+- Numbered noreply: `12345+username@users.noreply.github.com` → `@username`
+- GitHub emails: `username@github.com` → `@username`
+- Other emails: GitHub API search (rate-limited)
 
 ## Output Formats
 
