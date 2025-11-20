@@ -105,9 +105,9 @@ clone_repository() {
     local repo_url="$1"
     TEMP_DIR=$(mktemp -d)
 
-    echo -e "${BLUE}Cloning repository...${NC}"
-    if git clone --depth 1 "$repo_url" "$TEMP_DIR"; then
-        echo -e "${GREEN}✓ Repository cloned${NC}"
+    echo -e "${BLUE}Cloning repository (full history for ownership analysis)...${NC}"
+    if git clone "$repo_url" "$TEMP_DIR"; then
+        echo -e "${GREEN}✓ Repository cloned with full history${NC}"
         return 0
     else
         echo -e "${RED}✗ Failed to clone repository${NC}"
