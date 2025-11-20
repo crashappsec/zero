@@ -1,0 +1,334 @@
+#!/bin/bash
+# Copyright (c) 2024 Crash Override Inc
+# 101 Fulton St, 416, New York 10038
+# SPDX-License-Identifier: GPL-3.0
+
+#############################################################################
+# SBOM Analyzer Comparison Script
+# Runs both basic and Claude-enhanced versions and compares results
+# Usage: ./compare-analyzers.sh [options] <target>
+#############################################################################
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+NC='\033[0m' # No Color
+
+# Get script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+# Default options
+TAINT_ANALYSIS=false
+KEEP_OUTPUTS=false
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+
+# Function to print usage
+usage() {
+    cat << EOF
+SBOM Analyzer Comparison Tool
+
+Runs both basic osv-scanner analysis and Claude-enhanced analysis,
+then compares the results to show the value-add of AI enhancement.
+
+Usage: $0 [OPTIONS] <target>
+
+TARGET:
+    SBOM file path          Analyze an existing SBOM (JSON/XML)
+    Git repository URL      Clone and analyze repository
+    Local directory path    Analyze local repository
+
+OPTIONS:
+    -t, --taint-analysis    Enable call graph/taint analysis (Go projects)
+    -k, --api-key KEY       Anthropic API key (or set ANTHROPIC_API_KEY env var)
+    --keep-outputs          Keep output files for manual inspection
+    -h, --help              Show this help message
+
+EXAMPLES:
+    # Compare basic vs Claude analysis of an SBOM
+    $0 /path/to/sbom.json
+
+    # Compare with taint analysis enabled
+    $0 --taint-analysis https://github.com/org/repo
+
+    # Keep output files for review
+    $0 --keep-outputs ./my-project
+
+EOF
+    exit 1
+}
+
+# Function to check prerequisites
+check_prerequisites() {
+    # Check if basic analyzer exists
+    if [[ ! -x "$SCRIPT_DIR/sbom-analyzer.sh" ]]; then
+        echo -e "${RED}Error: sbom-analyzer.sh not found or not executable${NC}"
+        exit 1
+    fi
+
+    # Check if Claude analyzer exists
+    if [[ ! -x "$SCRIPT_DIR/sbom-analyzer-claude.sh" ]]; then
+        echo -e "${RED}Error: sbom-analyzer-claude.sh not found or not executable${NC}"
+        exit 1
+    fi
+
+    # Check API key for Claude version
+    if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+        echo -e "${RED}Error: ANTHROPIC_API_KEY not set${NC}"
+        echo ""
+        echo "Set your API key:"
+        echo "  export ANTHROPIC_API_KEY=sk-ant-xxx"
+        echo ""
+        echo "Or use --api-key option"
+        exit 1
+    fi
+}
+
+# Function to extract vulnerability count from JSON output
+extract_vuln_count() {
+    local json_file="$1"
+
+    if [[ ! -f "$json_file" ]]; then
+        echo "0"
+        return
+    fi
+
+    # Try to count vulnerabilities from osv-scanner JSON output
+    local count=$(jq -r '.results[]?.packages[]?.vulnerabilities // [] | length' "$json_file" 2>/dev/null | awk '{sum+=$1} END {print sum}')
+
+    if [[ -z "$count" ]]; then
+        echo "0"
+    else
+        echo "$count"
+    fi
+}
+
+# Function to run basic analyzer
+run_basic_analyzer() {
+    local target="$1"
+    local output_file="$2"
+
+    echo -e "${BLUE}Running basic osv-scanner analysis...${NC}"
+    echo ""
+
+    local cmd="$SCRIPT_DIR/sbom-analyzer.sh --format json --output $output_file"
+
+    if [[ "$TAINT_ANALYSIS" == "true" ]]; then
+        cmd="$cmd --taint-analysis"
+    fi
+
+    cmd="$cmd $target"
+
+    # Run and capture both stdout and stderr
+    if eval "$cmd" > /tmp/basic_stdout.txt 2>&1; then
+        echo -e "${GREEN}✓ Basic analysis complete${NC}"
+    else
+        # osv-scanner returns non-zero even with successful scan if vulns found
+        echo -e "${YELLOW}⚠ Basic analysis completed with findings${NC}"
+    fi
+
+    echo ""
+}
+
+# Function to run Claude analyzer
+run_claude_analyzer() {
+    local target="$1"
+    local output_file="$2"
+
+    echo -e "${BLUE}Running Claude-enhanced analysis...${NC}"
+    echo ""
+
+    local cmd="ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY $SCRIPT_DIR/sbom-analyzer-claude.sh"
+
+    if [[ "$TAINT_ANALYSIS" == "true" ]]; then
+        cmd="$cmd --taint-analysis"
+    fi
+
+    cmd="$cmd $target"
+
+    # Run and capture output
+    if eval "$cmd" > "$output_file" 2>&1; then
+        echo -e "${GREEN}✓ Claude analysis complete${NC}"
+    else
+        echo -e "${YELLOW}⚠ Claude analysis completed with findings${NC}"
+    fi
+
+    echo ""
+}
+
+# Function to generate comparison report
+generate_comparison() {
+    local basic_output="$1"
+    local claude_output="$2"
+    local target="$3"
+
+    echo ""
+    echo "========================================="
+    echo "  COMPARISON REPORT"
+    echo "========================================="
+    echo ""
+
+    # Count vulnerabilities from basic scan
+    local basic_count=$(extract_vuln_count "$basic_output")
+
+    echo -e "${CYAN}Target:${NC} $target"
+    echo -e "${CYAN}Taint Analysis:${NC} $(if [[ "$TAINT_ANALYSIS" == "true" ]]; then echo "Enabled"; else echo "Disabled"; fi)"
+    echo ""
+
+    echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${MAGENTA}Basic OSV Scanner Results${NC}"
+    echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo -e "Vulnerabilities Found: ${YELLOW}$basic_count${NC}"
+    echo ""
+    echo "Output Format: JSON (raw osv-scanner results)"
+    echo "Provides:"
+    echo "  • CVE identifications"
+    echo "  • Affected package versions"
+    echo "  • Severity scores (when available)"
+    echo ""
+
+    echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${MAGENTA}Claude-Enhanced Results${NC}"
+    echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo "Output Format: Natural language analysis report"
+    echo ""
+    echo "Additional Intelligence Provided:"
+    echo "  • ${GREEN}Executive Summary${NC} - High-level risk overview with severity breakdown"
+    echo "  • ${GREEN}Critical Findings${NC} - Prioritized list of high-impact vulnerabilities"
+    echo "  • ${GREEN}Remediation Guidance${NC} - Specific version upgrades and quick wins"
+    echo "  • ${GREEN}Risk Assessment${NC} - Overall security posture evaluation"
+    echo "  • ${GREEN}CISA KEV Correlation${NC} - Known exploited vulnerabilities flagged"
+    echo "  • ${GREEN}Contextual Prioritization${NC} - Ranked by exploitability and impact"
+    echo ""
+
+    echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${MAGENTA}Value-Add Summary${NC}"
+    echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo "The Claude-enhanced version provides:"
+    echo ""
+    echo "1. ${CYAN}Executive Communication${NC}"
+    echo "   Transform raw vulnerability data into actionable executive summaries"
+    echo ""
+    echo "2. ${CYAN}Intelligent Prioritization${NC}"
+    echo "   Not just a list - ranked by actual risk based on:"
+    echo "   - CISA Known Exploited Vulnerabilities"
+    echo "   - CVSS severity scores"
+    echo "   - Exploitability metrics"
+    echo "   - Supply chain position"
+    echo ""
+    echo "3. ${CYAN}Actionable Remediation${NC}"
+    echo "   Specific upgrade paths and quick wins instead of just CVE numbers"
+    echo ""
+    echo "4. ${CYAN}Context & Explanation${NC}"
+    echo "   Understand WHY vulnerabilities matter and WHAT to do about them"
+    echo ""
+    echo "5. ${CYAN}Supply Chain Intelligence${NC}"
+    echo "   Assessment of overall security posture and supply chain risks"
+    echo ""
+
+    echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${MAGENTA}Recommendation${NC}"
+    echo -e "${MAGENTA}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo ""
+    echo "Use ${GREEN}basic analyzer${NC} when:"
+    echo "  • Quick vulnerability counts needed"
+    echo "  • Machine-readable JSON output required"
+    echo "  • CI/CD pipeline integration"
+    echo "  • Cost optimization (no API calls)"
+    echo ""
+    echo "Use ${GREEN}Claude-enhanced analyzer${NC} when:"
+    echo "  • Creating reports for stakeholders"
+    echo "  • Prioritizing security remediation work"
+    echo "  • Understanding complex vulnerability landscapes"
+    echo "  • Making risk-based decisions"
+    echo "  • Need executive summaries"
+    echo ""
+
+    if [[ "$KEEP_OUTPUTS" == "true" ]]; then
+        echo -e "${CYAN}Output Files Saved:${NC}"
+        echo "  Basic:  $basic_output"
+        echo "  Claude: $claude_output"
+        echo ""
+    fi
+}
+
+# Function to cleanup
+cleanup() {
+    if [[ "$KEEP_OUTPUTS" == "false" ]]; then
+        rm -f /tmp/sbom_basic_*.json
+        rm -f /tmp/sbom_claude_*.txt
+        rm -f /tmp/basic_stdout.txt
+    fi
+}
+
+# Parse command line arguments
+TARGET=""
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -t|--taint-analysis)
+            TAINT_ANALYSIS=true
+            shift
+            ;;
+        -k|--api-key)
+            ANTHROPIC_API_KEY="$2"
+            shift 2
+            ;;
+        --keep-outputs)
+            KEEP_OUTPUTS=true
+            shift
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            TARGET="$1"
+            shift
+            ;;
+    esac
+done
+
+# Validate
+if [[ -z "$TARGET" ]]; then
+    echo -e "${RED}Error: No target specified${NC}"
+    usage
+fi
+
+# Main
+echo ""
+echo "========================================="
+echo "  SBOM Analyzer Comparison"
+echo "========================================="
+echo ""
+
+check_prerequisites
+
+# Create temporary output files
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+BASIC_OUTPUT="/tmp/sbom_basic_${TIMESTAMP}.json"
+CLAUDE_OUTPUT="/tmp/sbom_claude_${TIMESTAMP}.txt"
+
+# Run both analyzers
+run_basic_analyzer "$TARGET" "$BASIC_OUTPUT"
+run_claude_analyzer "$TARGET" "$CLAUDE_OUTPUT"
+
+# Generate comparison report
+generate_comparison "$BASIC_OUTPUT" "$CLAUDE_OUTPUT" "$TARGET"
+
+# Cleanup if requested
+if [[ "$KEEP_OUTPUTS" == "false" ]]; then
+    cleanup
+fi
+
+echo "========================================="
+echo -e "${GREEN}  Comparison Complete${NC}"
+echo "========================================="
+echo ""

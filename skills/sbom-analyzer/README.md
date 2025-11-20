@@ -374,6 +374,130 @@ Check:
 ### "Incomplete dependency graph"
 The SBOM may only include direct dependencies. Regenerate with a tool that captures transitive dependencies.
 
+## Automation Scripts
+
+The SBOM Analyzer includes command-line automation scripts for CI/CD integration and rapid analysis:
+
+### sbom-analyzer.sh
+
+Basic SBOM vulnerability scanning using osv-scanner without AI enhancement.
+
+**Features:**
+- Analyze SBOM files (JSON/XML)
+- Scan Git repositories (auto-cloning)
+- Scan local directories
+- Taint analysis for Go projects (call graph/reachability)
+- Multiple output formats (table, JSON, markdown, SARIF)
+
+**Usage:**
+```bash
+# Analyze an SBOM file
+./sbom-analyzer.sh /path/to/sbom.json
+
+# Analyze repository with taint analysis
+./sbom-analyzer.sh --taint-analysis https://github.com/org/repo
+
+# JSON output to file
+./sbom-analyzer.sh --format json --output results.json ./my-project
+```
+
+**Requirements:**
+- osv-scanner: `go install github.com/google/osv-scanner/cmd/osv-scanner@latest`
+- jq: `brew install jq`
+
+### sbom-analyzer-claude.sh
+
+AI-enhanced SBOM analysis with Claude integration for intelligent vulnerability assessment.
+
+**Features:**
+- All features from basic analyzer
+- Executive summaries with risk assessment
+- Critical findings prioritization
+- Remediation guidance with specific version upgrades
+- CISA KEV correlation and exploitation context
+- Supply chain risk assessment
+- Actionable recommendations
+
+**Usage:**
+```bash
+# Set API key
+export ANTHROPIC_API_KEY=sk-ant-xxx
+
+# Analyze with AI insights
+./sbom-analyzer-claude.sh /path/to/sbom.json
+
+# Analyze repository with taint analysis
+./sbom-analyzer-claude.sh --taint-analysis https://github.com/org/repo
+
+# Specify API key directly
+./sbom-analyzer-claude.sh --api-key sk-ant-xxx sbom.json
+```
+
+**Output Includes:**
+1. **Executive Summary** - Total vulnerabilities, severity breakdown, key risks
+2. **Critical Findings** - CVE IDs, CVSS scores, CISA KEV matches
+3. **Prioritized Remediation** - Ranked by priority with version upgrades
+4. **Risk Assessment** - Security posture, supply chain risks, actions
+
+**Requirements:**
+- Same as basic analyzer
+- Anthropic API key
+
+### compare-analyzers.sh
+
+Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrate value-add.
+
+**Features:**
+- Runs both analyzers in parallel
+- Compares outputs and capabilities
+- Shows AI value-add with specific examples
+- Generates comprehensive comparison report
+- Optional output file preservation
+
+**Usage:**
+```bash
+# Compare basic vs Claude analysis
+./compare-analyzers.sh /path/to/sbom.json
+
+# With taint analysis
+./compare-analyzers.sh --taint-analysis sbom.json
+
+# Keep output files for review
+./compare-analyzers.sh --keep-outputs sbom.json
+```
+
+**Output:**
+- Side-by-side capability comparison
+- Value-add summary
+- Use case recommendations
+- Detailed output files (if --keep-outputs)
+
+### CI/CD Integration
+
+**GitHub Actions Example:**
+```yaml
+- name: SBOM Analysis
+  run: |
+    ./sbom-analyzer.sh --format json --output scan.json sbom.json
+
+- name: AI-Enhanced Analysis (on main)
+  if: github.ref == 'refs/heads/main'
+  env:
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+  run: |
+    ./sbom-analyzer-claude.sh sbom.json > analysis-report.txt
+```
+
+**GitLab CI Example:**
+```yaml
+sbom_scan:
+  script:
+    - ./sbom-analyzer.sh --format json --output scan.json sbom.json
+  artifacts:
+    reports:
+      dependency_scanning: scan.json
+```
+
 ## Resources
 
 ### Documentation
@@ -387,6 +511,7 @@ The SBOM may only include direct dependencies. Regenerate with a tool that captu
 - **SBOM Generators**: Syft, CycloneDX CLI, SPDX tools
 - **Vulnerability Scanners**: OSV-Scanner, Grype, Trivy
 - **API Clients**: curl, Postman, custom scripts
+- **Automation Scripts**: sbom-analyzer.sh, sbom-analyzer-claude.sh, compare-analyzers.sh
 
 ### Related Skills
 - [Certificate Analyzer](../certificate-analyzer/) - TLS/SSL certificate analysis
