@@ -153,23 +153,26 @@ lookup_github_profile() {
     fi
 }
 
-# Cache for GitHub profile lookups
-declare -A GITHUB_PROFILE_CACHE
+# Cache file for GitHub profile lookups
+GITHUB_CACHE_FILE="/tmp/github_profile_cache_$$.tmp"
 
 # Function to get GitHub profile with caching
 get_github_profile() {
     local email="$1"
     local name="$2"
 
-    # Check cache first
-    if [[ -n "${GITHUB_PROFILE_CACHE[$email]}" ]]; then
-        echo "${GITHUB_PROFILE_CACHE[$email]}"
-        return
+    # Check cache first (file-based for bash 3.x compatibility)
+    if [[ -f "$GITHUB_CACHE_FILE" ]]; then
+        local cached=$(grep "^$email|" "$GITHUB_CACHE_FILE" 2>/dev/null | cut -d'|' -f2-)
+        if [[ -n "$cached" ]]; then
+            echo "$cached"
+            return
+        fi
     fi
 
     # Look up profile
     local result=$(lookup_github_profile "$email" "$name")
-    GITHUB_PROFILE_CACHE[$email]="$result"
+    echo "$email|$result" >> "$GITHUB_CACHE_FILE"
     echo "$result"
 }
 
