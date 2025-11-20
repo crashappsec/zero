@@ -299,30 +299,36 @@ Data:
 $data
 \`\`\`
 
-Please provide a comprehensive code ownership analysis with:
+Please provide a purely objective code ownership analysis with:
 
 1. **Executive Summary**
    - Overall ownership health assessment
-   - Key findings and concerns
-   - Critical actions needed
+   - Key findings and observations
+   - Critical risks identified
 
 2. **Ownership Analysis**
    - Coverage assessment (files with clear owners)
    - Distribution analysis (concentration vs balance)
-   - Top contributors and their impact
+   - Top contributors and their impact (include github_username if available)
    - Single points of failure (SPOFs)
 
 3. **Risk Assessment**
    - Identify critical risks (high concentration, inactive owners, knowledge gaps)
    - Calculate estimated bus factor
-   - Prioritize risks by impact
+   - Risk severity ratings
 
 4. **CODEOWNERS File Assessment**
-   - If file exists: validate accuracy and completeness
-   - If missing: assess whether one should be created
-   - Note any discrepancies between file and actual contributions
+   - If file exists: accuracy analysis and discrepancies
+   - If missing: note the absence
+   - Gap analysis between file and actual contributions
 
-Be specific and data-driven. Focus on objective analysis of ownership patterns and risks."
+IMPORTANT: Provide ONLY factual analysis and observations. Do NOT include:
+- Recommendations or action items
+- Implementation priorities or timelines
+- Suggested fixes or improvements
+- \"Should\" or \"must\" statements
+
+Be specific and data-driven. Focus exclusively on what IS, not what should be done about it."
 
     local response=$(curl -s https://api.anthropic.com/v1/messages \
         -H "content-type: application/json" \
