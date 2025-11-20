@@ -167,34 +167,49 @@ analyze_with_claude() {
     local prompt="I need you to analyze these SBOM vulnerability scan results from osv-scanner.
 
 Target: $target_desc
+Taint Analysis: $TAINT_ANALYSIS
 
 Scan Results:
 \`\`\`json
 $results_content
 \`\`\`
 
-Please provide:
-1. Executive Summary
+Please provide a purely objective vulnerability analysis with:
+
+1. **Executive Summary**
    - Total vulnerabilities found
    - Breakdown by severity (Critical, High, Medium, Low)
-   - Key risk indicators
+   - Key risk indicators identified
 
-2. Critical Findings
+2. **Critical Findings**
    - List critical and high severity vulnerabilities
    - Include CVE IDs, affected packages, and CVSS scores
    - Note any CISA KEV matches if applicable
+   - If taint analysis enabled: indicate reachability status (CALLED, NOT CALLED, UNKNOWN)
 
-3. Prioritized Remediation
-   - Rank vulnerabilities by priority
-   - Provide specific version upgrades
-   - Highlight quick wins
+3. **Taint Analysis Results** (if enabled)
+   - Vulnerabilities that are CALLED (actually reachable from code)
+   - Vulnerabilities that are NOT CALLED (present but not used)
+   - Vulnerabilities with UNKNOWN reachability
+   - Impact of reachability on actual risk
 
-4. Risk Assessment
-   - Overall security posture
-   - Supply chain risks
-   - Recommended actions
+4. **Vulnerability Distribution**
+   - Breakdown by package/dependency
+   - Direct vs. transitive dependencies
+   - Severity distribution across components
 
-Please be concise and actionable."
+5. **Risk Assessment**
+   - Overall security posture based on findings
+   - Supply chain risks identified
+   - Known exploitation (CISA KEV) presence
+
+IMPORTANT: Provide ONLY factual analysis and observations. Do NOT include:
+- Recommendations or action items
+- Remediation priorities or timelines
+- Suggested version upgrades or fixes
+- \"Should\" or \"must\" statements
+
+Be specific and data-driven. Focus exclusively on what IS, not what should be done about it."
 
     # Call Claude API
     local response=$(curl -s https://api.anthropic.com/v1/messages \
