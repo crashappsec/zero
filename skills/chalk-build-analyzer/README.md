@@ -299,18 +299,26 @@ AI-enhanced Chalk build analysis with Claude integration for intelligent perform
 - Cost & efficiency analysis
 - Root cause analysis (in compare mode)
 
+**Setup:**
+```bash
+# Option 1: Use .env file (recommended)
+# Copy .env.example to .env and add your API key
+cp ../../.env.example ../../.env
+# Edit .env and set ANTHROPIC_API_KEY=sk-ant-xxx
+
+# Option 2: Export environment variable
+export ANTHROPIC_API_KEY=sk-ant-xxx
+```
+
 **Usage:**
 ```bash
-# Set API key
-export ANTHROPIC_API_KEY=sk-ant-xxx
-
-# Analyze with AI insights
+# Analyze with AI insights (uses .env file or environment variable)
 ./chalk-build-analyzer-claude.sh build-report.json
 
 # Compare with regression analysis
 ./chalk-build-analyzer-claude.sh --compare baseline.json current.json
 
-# Specify API key directly
+# Or specify API key directly (overrides .env)
 ./chalk-build-analyzer-claude.sh --api-key sk-ant-xxx build.json
 ```
 

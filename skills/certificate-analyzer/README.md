@@ -95,7 +95,16 @@ The Claude-enhanced analysis requires an Anthropic API key.
 
 ### Setting the API Key
 
-**Option A: Environment Variable** (Recommended)
+**Option A: .env File** (Recommended)
+```bash
+# Copy .env.example to .env and add your API key
+cp ../../.env.example ../../.env
+# Edit .env and set ANTHROPIC_API_KEY=sk-ant-xxx
+```
+
+The script will automatically load the API key from the .env file when run.
+
+**Option B: Environment Variable**
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-api03-..."
 ```
@@ -105,12 +114,12 @@ Add to your `~/.bashrc` or `~/.zshrc` for persistence:
 echo 'export ANTHROPIC_API_KEY="sk-ant-..."' >> ~/.bashrc
 ```
 
-**Option B: Command Line Flag**
+**Option C: Command Line Flag**
 ```bash
 ./cert-analyzer-claude.sh --api-key sk-ant-... example.com
 ```
 
-**Option C: Skill Usage**
+**Option D: Skill Usage**
 When using the skill within Claude, the API key is automatically available.
 
 ## 📊 What You Get

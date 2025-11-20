@@ -418,18 +418,26 @@ AI-enhanced SBOM analysis with Claude integration for intelligent vulnerability 
 - Supply chain risk assessment
 - Actionable recommendations
 
+**Setup:**
+```bash
+# Option 1: Use .env file (recommended)
+# Copy .env.example to .env and add your API key
+cp ../../.env.example ../../.env
+# Edit .env and set ANTHROPIC_API_KEY=sk-ant-xxx
+
+# Option 2: Export environment variable
+export ANTHROPIC_API_KEY=sk-ant-xxx
+```
+
 **Usage:**
 ```bash
-# Set API key
-export ANTHROPIC_API_KEY=sk-ant-xxx
-
-# Analyze with AI insights
+# Analyze with AI insights (uses .env file or environment variable)
 ./sbom-analyzer-claude.sh /path/to/sbom.json
 
 # Analyze repository with taint analysis
 ./sbom-analyzer-claude.sh --taint-analysis https://github.com/org/repo
 
-# Specify API key directly
+# Or specify API key directly (overrides .env)
 ./sbom-analyzer-claude.sh --api-key sk-ant-xxx sbom.json
 ```
 
