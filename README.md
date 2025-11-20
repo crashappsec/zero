@@ -15,6 +15,7 @@ A curated collection of skills, prompts, and tools to enhance your experience wi
 - [Repository Structure](#repository-structure)
 - [Getting Started](#getting-started)
 - [Available Skills](#available-skills)
+- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [RAG Knowledge Base](#rag-knowledge-base)
 - [Community](#community)
@@ -125,6 +126,25 @@ Comprehensive TLS/SSL certificate analysis including validation, expiration chec
 Tools and techniques for crafting effective prompts, with before/after examples and conversation patterns.
 
 [View Documentation](skills/better-prompts/README.md)
+
+## Roadmap
+
+We're continuously expanding and improving this repository. Check out our [Roadmap](ROADMAP.md) to see:
+
+- **Planned Features**: Upcoming skills and enhancements
+- **Current Priorities**: What we're working on now
+- **Community Requests**: Ideas from the community
+- **How to Contribute**: Pick up a roadmap item and help build it
+
+### Upcoming Skills
+
+**Code Ownership Analysis** - Analyze git history to identify code owners, validate CODEOWNERS files, and track ownership metrics
+
+**Bus Factor Analysis** - Calculate project risk from knowledge concentration, identify critical dependencies, and recommend mitigation strategies
+
+**Security Posture Assessment** - Comprehensive security analysis combining vulnerability management, compliance frameworks, and risk scoring
+
+[View Full Roadmap](ROADMAP.md) | [Suggest a Feature](https://github.com/crashappsec/skills-and-prompts/issues/new?template=roadmap_item.md)
 
 ## Contributing
 
