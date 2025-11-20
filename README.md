@@ -122,6 +122,21 @@ Comprehensive TLS/SSL certificate analysis including validation, expiration chec
 
 [View Documentation](skills/certificate-analyzer/README.md)
 
+### Code Ownership Analysis
+Comprehensive code ownership analysis for understanding who owns what code, validating CODEOWNERS files, identifying risks, and optimizing code review processes.
+
+**Capabilities:**
+- Analyze ownership patterns from git history with weighted scoring algorithms
+- Validate and generate CODEOWNERS files (GitHub, GitLab, Bitbucket formats)
+- Calculate ownership metrics (coverage, distribution, health scores)
+- Identify single points of failure and bus factor risks
+- Plan knowledge transfers for departing team members
+- Recommend optimal PR reviewers based on ownership
+- Track owner activity and detect staleness
+- Generate actionable improvement recommendations
+
+[View Documentation](skills/code-ownership/README.md)
+
 ### Better Prompts
 Tools and techniques for crafting effective prompts, with before/after examples and conversation patterns.
 
@@ -137,8 +152,6 @@ We're continuously expanding and improving this repository. Check out our [Roadm
 - **How to Contribute**: Pick up a roadmap item and help build it
 
 ### Upcoming Skills
-
-**Code Ownership Analysis** - Analyze git history to identify code owners, validate CODEOWNERS files, and track ownership metrics
 
 **Bus Factor Analysis** - Calculate project risk from knowledge concentration, identify critical dependencies, and recommend mitigation strategies
 
