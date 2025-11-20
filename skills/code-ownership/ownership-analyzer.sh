@@ -128,6 +128,68 @@ is_git_repository() {
     fi
 }
 
+# Function to look up GitHub profile by email
+lookup_github_profile() {
+    local email="$1"
+    local name="$2"
+
+    # Try to find GitHub username from git remote URL first
+    local remote_url=$(git config --get remote.origin.url 2>/dev/null || echo "")
+    local github_org=""
+
+    if [[ "$remote_url" =~ github\.com[:/]([^/]+)/ ]]; then
+        github_org="${BASH_REMATCH[1]}"
+    fi
+
+    # Use GitHub API to search for user by email (requires authenticated API call for best results)
+    # For now, we'll extract username from email if it's a github.com email or noreply email
+    local github_user=""
+
+    if [[ "$email" =~ ^([^@]+)@users\.noreply\.github\.com$ ]]; then
+        # Extract from noreply email: username@users.noreply.github.com or 12345+username@...
+        github_user=$(echo "$email" | sed -E 's/^([0-9]+\+)?([^@]+)@.*/\2/')
+    elif [[ "$email" =~ ^([^@]+)@github\.com$ ]]; then
+        github_user="${BASH_REMATCH[1]}"
+    else
+        # Try to query GitHub API search (public API, no auth needed but rate limited)
+        local api_response=$(curl -s -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/search/users?q=$email+in:email" 2>/dev/null)
+
+        if [[ $(echo "$api_response" | jq -r '.total_count // 0' 2>/dev/null) -gt 0 ]]; then
+            github_user=$(echo "$api_response" | jq -r '.items[0].login // ""' 2>/dev/null)
+        fi
+    fi
+
+    if [[ -n "$github_user" ]]; then
+        echo "$github_user|https://github.com/$github_user"
+    else
+        echo "|"
+    fi
+}
+
+# Cache file for GitHub profile lookups
+GITHUB_CACHE_FILE="/tmp/github_profile_cache_$$.tmp"
+
+# Function to get GitHub profile with caching
+get_github_profile() {
+    local email="$1"
+    local name="$2"
+
+    # Check cache first (file-based for bash 3.x compatibility)
+    if [[ -f "$GITHUB_CACHE_FILE" ]]; then
+        local cached=$(grep "^$email|" "$GITHUB_CACHE_FILE" 2>/dev/null | cut -d'|' -f2-)
+        if [[ -n "$cached" ]]; then
+            echo "$cached"
+            return
+        fi
+    fi
+
+    # Look up profile
+    local result=$(lookup_github_profile "$email" "$name")
+    echo "$email|$result" >> "$GITHUB_CACHE_FILE"
+    echo "$result"
+}
+
 analyze_ownership() {
     local repo_path="$1"
     local days="$2"
@@ -213,9 +275,24 @@ Top Contributors (by commit count):
 -----------------------------------
 EOF
 
+    # Get email addresses for top contributors
+    git log --since="$since_date" --format="%an|%ae" | sort -u > /tmp/author_emails.tmp
+
     echo "$commit_counts" | head -10 | while read count author; do
-        printf "%-40s %5d commits\n" "$author" "$count"
+        # Look up email for this author
+        local email=$(grep "^$author|" /tmp/author_emails.tmp | head -1 | cut -d'|' -f2)
+        local github_info=$(get_github_profile "$email" "$author")
+        local github_user=$(echo "$github_info" | cut -d'|' -f1)
+        local github_url=$(echo "$github_info" | cut -d'|' -f2)
+
+        if [[ -n "$github_user" ]]; then
+            printf "%-40s %5d commits (@%s - %s)\n" "$author" "$count" "$github_user" "$github_url"
+        else
+            printf "%-40s %5d commits\n" "$author" "$count"
+        fi
     done
+
+    rm -f /tmp/author_emails.tmp
 
     echo ""
     echo "Ownership Distribution:"
