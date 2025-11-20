@@ -25,6 +25,8 @@ FORMAT="text"
 OUTPUT_FILE=""
 VALIDATE_CODEOWNERS=false
 CODEOWNERS_PATH=".github/CODEOWNERS"
+TEMP_DIR=""
+CLEANUP=true
 
 usage() {
     cat << EOF
@@ -33,7 +35,11 @@ Code Ownership Analyzer - Analyze repository ownership patterns
 Analyzes git history to identify code owners, calculate metrics, and
 optionally validate CODEOWNERS files.
 
-Usage: $0 [OPTIONS] <repository-path>
+Usage: $0 [OPTIONS] <target>
+
+TARGET:
+    Local directory path    Analyze local repository
+    Git repository URL      Clone and analyze repository
 
 OPTIONS:
     -d, --days N            Analyze last N days of history (default: 90)
@@ -41,11 +47,15 @@ OPTIONS:
     -o, --output FILE       Write output to file instead of stdout
     -v, --validate          Validate CODEOWNERS file if present
     -c, --codeowners PATH   Path to CODEOWNERS file (default: .github/CODEOWNERS)
+    --keep-clone            Keep cloned repository (don't cleanup)
     -h, --help              Show this help message
 
 EXAMPLES:
     # Analyze current directory (last 90 days)
     $0 .
+
+    # Analyze GitHub repository
+    $0 https://github.com/org/repo
 
     # Analyze specific repository (last 180 days)
     $0 --days 180 /path/to/repo
@@ -79,6 +89,34 @@ check_prerequisites() {
         echo -e "${RED}Error: bc is not installed${NC}"
         echo "Install: brew install bc  (or apt-get install bc)"
         exit 1
+    fi
+}
+
+# Function to detect if target is a Git URL
+is_git_url() {
+    [[ "$1" =~ ^(https?|git)://.*\.git$ ]] || [[ "$1" =~ ^git@.*:.*\.git$ ]] || [[ "$1" =~ github\.com|gitlab\.com|bitbucket\.org ]]
+}
+
+# Function to clone repository
+clone_repository() {
+    local repo_url="$1"
+    TEMP_DIR=$(mktemp -d)
+
+    echo -e "${BLUE}Cloning repository...${NC}"
+    if git clone --depth 1 "$repo_url" "$TEMP_DIR"; then
+        echo -e "${GREEN}✓ Repository cloned${NC}"
+        return 0
+    else
+        echo -e "${RED}✗ Failed to clone repository${NC}"
+        echo -e "${YELLOW}Note: For private repositories, ensure you have proper SSH keys or use HTTPS with credentials${NC}"
+        return 1
+    fi
+}
+
+# Function to cleanup
+cleanup() {
+    if [[ "$CLEANUP" == true ]] && [[ -n "$TEMP_DIR" ]] && [[ -d "$TEMP_DIR" ]]; then
+        rm -rf "$TEMP_DIR"
     fi
 }
 
@@ -328,6 +366,10 @@ while [[ $# -gt 0 ]]; do
             CODEOWNERS_PATH="$2"
             shift 2
             ;;
+        --keep-clone)
+            CLEANUP=false
+            shift
+            ;;
         -h|--help)
             usage
             ;;
@@ -351,20 +393,37 @@ echo "========================================="
 echo ""
 
 check_prerequisites
-is_git_repository "$REPO_PATH"
+
+# Determine target type and set REPO_PATH
+if is_git_url "$REPO_PATH"; then
+    echo -e "${GREEN}Target: Git repository${NC}"
+    if clone_repository "$REPO_PATH"; then
+        ACTUAL_REPO_PATH="$TEMP_DIR"
+    else
+        exit 1
+    fi
+else
+    echo -e "${GREEN}Target: Local directory${NC}"
+    ACTUAL_REPO_PATH="$REPO_PATH"
+fi
+
+is_git_repository "$ACTUAL_REPO_PATH"
 
 if [[ "$VALIDATE_CODEOWNERS" == "true" ]]; then
-    validate_codeowners_file "$REPO_PATH"
+    validate_codeowners_file "$ACTUAL_REPO_PATH"
 fi
 
 # Run analysis and redirect to file if specified
 if [[ -n "$OUTPUT_FILE" ]]; then
-    analyze_ownership "$REPO_PATH" "$DAYS" > "$OUTPUT_FILE"
+    analyze_ownership "$ACTUAL_REPO_PATH" "$DAYS" > "$OUTPUT_FILE"
     echo -e "${GREEN}✓ Analysis complete${NC}"
     echo -e "Output written to: $OUTPUT_FILE"
 else
-    analyze_ownership "$REPO_PATH" "$DAYS"
+    analyze_ownership "$ACTUAL_REPO_PATH" "$DAYS"
 fi
+
+# Cleanup if we cloned a repo
+cleanup
 
 echo ""
 echo "========================================="
