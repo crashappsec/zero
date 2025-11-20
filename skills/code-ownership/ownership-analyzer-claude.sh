@@ -254,21 +254,10 @@ Please provide a comprehensive code ownership analysis with:
 
 4. **CODEOWNERS File Assessment**
    - If file exists: validate accuracy and completeness
-   - If missing: recommend whether to create one
-   - Suggest improvements
+   - If missing: assess whether one should be created
+   - Note any discrepancies between file and actual contributions
 
-5. **Recommendations**
-   - **Priority 1 (This Week)**: Urgent actions
-   - **Priority 2 (This Month)**: Important improvements
-   - **Priority 3 (This Quarter)**: Strategic initiatives
-
-   For each recommendation:
-   - Specific action to take
-   - Effort required (Low/Medium/High)
-   - Impact (Low/Medium/High)
-   - Suggested assignee or approach
-
-Be specific, actionable, and data-driven. Focus on reducing bus factor risk and improving code ownership practices."
+Be specific and data-driven. Focus on objective analysis of ownership patterns and risks."
 
     local response=$(curl -s https://api.anthropic.com/v1/messages \
         -H "content-type: application/json" \
