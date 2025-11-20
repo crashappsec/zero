@@ -535,8 +535,8 @@ This skill is licensed under GPL-3.0. See [LICENSE](../../LICENSE) for details.
 ## Support
 
 For questions, issues, or feature requests:
-- Open an issue in the [GitHub repository](https://github.com/crashappsec/skills-and-prompts/issues)
-- Review existing [discussions](https://github.com/crashappsec/skills-and-prompts/discussions)
+- Open an issue in the [GitHub repository](https://github.com/crashappsec/skills-and-prompts-and-rag/issues)
+- Review existing [discussions](https://github.com/crashappsec/skills-and-prompts-and-rag/discussions)
 - Contact: mark@crashoverride.com
 
 ---

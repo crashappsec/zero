@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0
 
 # Documentation
 
-This directory contains comprehensive documentation for the skills-and-prompts repository.
+This directory contains comprehensive documentation for the skills-and-prompts-and-rag repository.
 
 ## Structure
 

@@ -176,8 +176,8 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines.
 
 For questions or issues:
 - Review [SBOM Analyzer documentation](../../skills/sbom-analyzer/README.md)
-- Check existing [discussions](https://github.com/crashappsec/skills-and-prompts/discussions)
-- Open an [issue](https://github.com/crashappsec/skills-and-prompts/issues)
+- Check existing [discussions](https://github.com/crashappsec/skills-and-prompts-and-rag/discussions)
+- Open an [issue](https://github.com/crashappsec/skills-and-prompts-and-rag/issues)
 - Contact: mark@crashoverride.com
 
 ---
