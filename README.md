@@ -44,7 +44,7 @@ Whether you're analyzing security certificates, building software, or engineerin
 ## Repository Structure
 
 ```
-skills-and-prompts/
+skills-and-prompts-and-rag/
 ├── skills/                    # Claude skills (.skill files)
 │   ├── chalk-build-analyzer/  # Analyze Chalk build artifacts
 │   ├── certificate-analyzer/  # TLS/SSL certificate analysis
@@ -77,8 +77,8 @@ skills-and-prompts/
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/skills-and-prompts.git
-   cd skills-and-prompts
+   git clone https://github.com/yourusername/skills-and-prompts-and-rag.git
+   cd skills-and-prompts-and-rag
    ```
 
 2. Browse the available skills in the `skills/` directory
@@ -144,7 +144,7 @@ We're continuously expanding and improving this repository. Check out our [Roadm
 
 **Security Posture Assessment** - Comprehensive security analysis combining vulnerability management, compliance frameworks, and risk scoring
 
-[View Full Roadmap](ROADMAP.md) | [Suggest a Feature](https://github.com/crashappsec/skills-and-prompts/issues/new?template=roadmap_item.md)
+[View Full Roadmap](ROADMAP.md) | [Suggest a Feature](https://github.com/crashappsec/skills-and-prompts-and-rag/issues/new?template=roadmap_item.md)
 
 ## Contributing
 
@@ -177,8 +177,8 @@ The organized structure makes it easy to:
 
 ### Support
 
-- **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/yourusername/skills-and-prompts/issues)
-- **Discussions**: Join conversations in [GitHub Discussions](https://github.com/yourusername/skills-and-prompts/discussions)
+- **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/yourusername/skills-and-prompts-and-rag/issues)
+- **Discussions**: Join conversations in [GitHub Discussions](https://github.com/yourusername/skills-and-prompts-and-rag/discussions)
 - **Code of Conduct**: Please read our [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ### Recognition
