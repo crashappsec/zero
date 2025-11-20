@@ -11,6 +11,21 @@ All notable changes to the SBOM/BOM Analyzer skill will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2024-11-20
+
+### Added
+- **SLSA (Supply-chain Levels for Software Artifacts) Expertise**
+  - Comprehensive knowledge of SLSA v1.0 framework
+  - All SLSA levels (0-4) with requirements and verification
+  - SLSA provenance format understanding and validation
+  - Integration with CycloneDX and SPDX for SLSA documentation
+  - SLSA verification in SBOM analysis (Level 1-3)
+  - Build platform identification and assessment
+  - Use cases: procurement, internal compliance, risk assessment, incident response
+  - Level-specific recommendations for improving security posture
+  - SLSA and vulnerability management integration
+  - Tools and standards (slsa-verifier, in-toto, SigStore, GUAC)
+
 ## [1.1.0] - 2024-11-20
 
 ### Added
