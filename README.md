@@ -1,3 +1,9 @@
+<!--
+Copyright (c) 2024 Crash Override Inc
+101 Fulton St, 416, New York 10038
+SPDX-License-Identifier: GPL-3.0
+-->
+
 # Skills and Prompts for Crash Override
 
 A curated collection of skills, prompts, and tools to enhance your experience with the Crash Override platform. This repository provides reusable components, best practices, and a growing knowledge base powered by RAG (Retrieval-Augmented Generation) to help you get the most out of Crash Override.

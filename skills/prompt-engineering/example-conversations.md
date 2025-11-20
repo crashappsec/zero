@@ -1,3 +1,9 @@
+<!--
+Copyright (c) 2024 Crash Override Inc
+101 Fulton St, 416, New York 10038
+SPDX-License-Identifier: GPL-3.0
+-->
+
 # Example Conversations: Three Modes in Action
 
 This document shows realistic conversations using the prompt engineering skill in all three modes.
