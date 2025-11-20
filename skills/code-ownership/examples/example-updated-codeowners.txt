@@ -1,0 +1,179 @@
+# Code Owners for acme/platform
+#
+# This file defines code ownership for pull request reviews.
+# Order matters: Last matching pattern takes precedence.
+#
+# Review Schedule: Quarterly (March, June, September, December)
+# Last Updated: 2024-11-20
+# Next Review: 2025-02-20
+#
+# For more information:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for any file not explicitly covered below
+* @engineering-leads
+
+#############################################################################
+# Infrastructure and DevOps
+#############################################################################
+
+/.github/** @devops-team
+/.github/workflows/** @charlie @devops-team
+/docker/** @devops-team
+/k8s/** @devops-team
+/infrastructure/** @devops-team
+/infrastructure/terraform/** @devops-team
+/.circleci/** @charlie @devops-team
+/ci-cd/** @charlie @devops-team
+/scripts/** @devops-team
+/monitoring/dashboards/** @devops-team
+
+# Configuration files
+*.yml @devops-team
+*.yaml @devops-team
+.env* @devops-team @security-team
+Dockerfile* @devops-team
+docker-compose*.yml @devops-team
+
+#############################################################################
+# Core Services (Backend)
+#############################################################################
+
+# Authentication and Authorization (Critical - Security)
+/services/auth/** @sarah @mike
+/services/auth/oauth/** @sarah
+/services/auth/saml/** @mike
+
+# Billing and Payments (Critical - Revenue)
+/services/billing/** @jennifer @mike
+/services/billing/gateway/** @jennifer @compliance-team
+
+# User Management
+/services/users/** @sarah @mike
+
+# Notifications
+/services/notifications/** @platform-team @backend-team
+
+# Analytics
+/services/analytics/** @analytics-team @david
+
+# Search
+/services/search/** @search-specialist @david
+
+# Cache Layer
+/services/cache/** @george @eve
+
+# Legacy Services (Deprecated - Consider Sunsetting)
+/services/legacy/** @charlie
+
+#############################################################################
+# API Layer
+#############################################################################
+
+# API v2 (Current)
+/api/v2/** @charlie @mike
+/api/webhooks/** @eve @charlie
+/api/graphql/** @sarah @api-team
+
+# API v1 (Legacy - Maintenance Mode)
+/api/v1/** @charlie @mike
+
+# API Documentation
+/docs/api/** @api-team @technical-writing
+
+#############################################################################
+# Frontend
+#############################################################################
+
+# Main Dashboard
+/frontend/dashboard/** @frontend-team
+
+# Mobile Application
+/frontend/mobile/** @mobile-team
+
+# Legacy Dashboard (Deprecated)
+/frontend/legacy-dashboard/** @frontend-team
+
+# Shared Frontend Components
+/frontend/components/** @frontend-team
+/frontend/hooks/** @frontend-team
+/frontend/utils/** @frontend-team
+
+# Internationalization
+/locales/** @frontend-team @product-team
+
+# Public Assets
+/public/** @frontend-team @design-team
+
+# Build Configuration
+webpack.config.js @frontend-team
+vite.config.ts @frontend-team
+package.json @frontend-team @charlie
+tsconfig.json @frontend-team
+
+#############################################################################
+# Database
+#############################################################################
+
+/database/** @jennifer @database-team
+/database/migrations/** @jennifer @database-team
+/database/seeders/** @jennifer @backend-team
+/database/stored-procedures/** @jennifer @database-team
+
+# SQL Files
+*.sql @jennifer @database-team
+
+#############################################################################
+# Shared Libraries and Utilities
+#############################################################################
+
+/lib/** @backend-team
+/lib/auth/** @mike
+/utils/** @backend-team
+
+#############################################################################
+# Security
+#############################################################################
+
+/security/** @security-lead @security-team
+/compliance/** @security-lead @compliance-team
+
+#############################################################################
+# Testing
+#############################################################################
+
+# Test Suite - Assign to Component Owners
+/tests/auth/** @sarah @mike
+/tests/api/** @charlie @mike
+/tests/services/** @backend-team
+/tests/frontend/** @frontend-team
+/tests/e2e/** @qa-team
+/tests/fixtures/** @qa-team
+/tests/integration/** @qa-team @backend-team
+
+#############################################################################
+# Documentation
+#############################################################################
+
+/docs/** @sarah @engineering
+/docs/architecture/** @engineering-leads
+/docs/api/** @api-team
+README.md @engineering-leads
+CONTRIBUTING.md @engineering-leads
+SECURITY.md @security-lead
+
+# Markdown files (general)
+*.md @engineering
+
+#############################################################################
+# Dependency Management
+#############################################################################
+
+package.json @frontend-team @charlie
+package-lock.json @frontend-team @charlie
+go.mod @backend-team
+go.sum @backend-team
+Cargo.toml @backend-team
+Cargo.lock @backend-team
+requirements.txt @backend-team
+Pipfile @backend-team
