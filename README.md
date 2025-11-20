@@ -97,6 +97,20 @@ skills-and-prompts/
 
 ## Available Skills
 
+### SBOM/BOM Analyzer
+Comprehensive SBOM/BOM management including vulnerability analysis, format conversion (CycloneDX ↔ SPDX), version upgrades, SLSA compliance assessment, and supply chain security.
+
+**Capabilities:**
+- Vulnerability detection (OSV.dev, deps.dev, CISA KEV)
+- Dependency analysis and optimization
+- License compliance checking
+- Format conversion between CycloneDX and SPDX
+- SBOM version upgrades (CycloneDX 1.7, SPDX 2.3)
+- SLSA framework assessment (Levels 0-4)
+- Supply chain security and provenance verification
+
+[View Documentation](skills/sbom-analyzer/README.md)
+
 ### Chalk Build Analyzer
 Analyze and interpret Chalk build artifacts, providing insights into software supply chain metadata.
 
@@ -107,10 +121,10 @@ Comprehensive TLS/SSL certificate analysis including validation, expiration chec
 
 [View Documentation](skills/certificate-analyzer/README.md)
 
-### Prompt Engineering
+### Better Prompts
 Tools and techniques for crafting effective prompts, with before/after examples and conversation patterns.
 
-[View Documentation](skills/prompt-engineering/README.md)
+[View Documentation](skills/better-prompts/README.md)
 
 ## Contributing
 
