@@ -28,6 +28,8 @@ NC='\033[0m'
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 DAYS=90
 CODEOWNERS_PATH=".github/CODEOWNERS"
+TEMP_DIR=""
+CLEANUP=true
 
 usage() {
     cat << EOF
@@ -39,26 +41,34 @@ Analyzes git repository ownership patterns and provides AI-powered:
 - Knowledge transfer planning
 - Succession recommendations
 
-Usage: $0 [OPTIONS] <repository-path>
+Usage: $0 [OPTIONS] <target>
+
+TARGET:
+    Local directory path    Analyze local repository
+    Git repository URL      Clone and analyze repository
 
 OPTIONS:
     -d, --days N            Analyze last N days of history (default: 90)
     -k, --api-key KEY       Anthropic API key (or set ANTHROPIC_API_KEY env var)
     -c, --codeowners PATH   Path to CODEOWNERS file (default: .github/CODEOWNERS)
+    --keep-clone            Keep cloned repository (don't cleanup)
     -h, --help              Show this help message
 
 ENVIRONMENT:
     ANTHROPIC_API_KEY       Your Anthropic API key
 
 EXAMPLES:
-    # Analyze with AI insights
+    # Analyze local repository
     $0 .
+
+    # Analyze GitHub repository
+    $0 https://github.com/org/repo
 
     # Analyze specific time period
     $0 --days 180 /path/to/repo
 
     # Specify API key directly
-    $0 --api-key sk-ant-xxx .
+    $0 --api-key sk-ant-xxx https://github.com/org/repo
 
 EOF
     exit 1
@@ -82,6 +92,33 @@ check_prerequisites() {
         echo "Set your API key:"
         echo "  export ANTHROPIC_API_KEY=sk-ant-xxx"
         exit 1
+    fi
+}
+
+# Function to detect if target is a Git URL
+is_git_url() {
+    [[ "$1" =~ ^(https?|git)://.*\.git$ ]] || [[ "$1" =~ ^git@.*:.*\.git$ ]] || [[ "$1" =~ github\.com|gitlab\.com|bitbucket\.org ]]
+}
+
+# Function to clone repository
+clone_repository() {
+    local repo_url="$1"
+    TEMP_DIR=$(mktemp -d)
+
+    echo -e "${BLUE}Cloning repository...${NC}"
+    if git clone --depth 1 "$repo_url" "$TEMP_DIR" 2>/dev/null; then
+        echo -e "${GREEN}✓ Repository cloned${NC}"
+        return 0
+    else
+        echo -e "${RED}✗ Failed to clone repository${NC}"
+        return 1
+    fi
+}
+
+# Function to cleanup
+cleanup() {
+    if [[ "$CLEANUP" == true ]] && [[ -n "$TEMP_DIR" ]] && [[ -d "$TEMP_DIR" ]]; then
+        rm -rf "$TEMP_DIR"
     fi
 }
 
@@ -280,6 +317,10 @@ while [[ $# -gt 0 ]]; do
             CODEOWNERS_PATH="$2"
             shift 2
             ;;
+        --keep-clone)
+            CLEANUP=false
+            shift
+            ;;
         -h|--help)
             usage
             ;;
@@ -304,13 +345,29 @@ echo ""
 
 check_prerequisites
 
-if [[ ! -d "$REPO_PATH/.git" ]]; then
-    echo -e "${RED}Error: $REPO_PATH is not a git repository${NC}"
+# Determine target type
+if is_git_url "$REPO_PATH"; then
+    echo -e "${GREEN}Target: Git repository${NC}"
+    if clone_repository "$REPO_PATH"; then
+        data=$(collect_repository_data "$TEMP_DIR" "$DAYS")
+        analyze_with_claude "$data"
+        cleanup
+    else
+        exit 1
+    fi
+elif [[ -d "$REPO_PATH" ]]; then
+    echo -e "${GREEN}Target: Local directory${NC}"
+    if [[ ! -d "$REPO_PATH/.git" ]]; then
+        echo -e "${RED}Error: $REPO_PATH is not a git repository${NC}"
+        exit 1
+    fi
+    data=$(collect_repository_data "$REPO_PATH" "$DAYS")
+    analyze_with_claude "$data"
+else
+    echo -e "${RED}Error: Invalid target${NC}"
+    echo "Target must be a local directory or Git repository URL"
     exit 1
 fi
-
-data=$(collect_repository_data "$REPO_PATH" "$DAYS")
-analyze_with_claude "$data"
 
 echo "========================================="
 echo -e "${GREEN}  Analysis Complete${NC}"
