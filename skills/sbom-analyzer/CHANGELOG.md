@@ -11,6 +11,57 @@ All notable changes to the SBOM/BOM Analyzer skill will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2024-11-20
+
+### Added
+- **Format Conversion Capabilities** (CycloneDX ↔ SPDX)
+  - Bidirectional conversion between CycloneDX and SPDX formats
+  - Intelligent field mapping with format-specific handling
+  - Support for all CycloneDX formats (JSON, XML, Protocol Buffers)
+  - Support for all SPDX formats (JSON, YAML, RDF/XML, Tag-Value)
+  - Preservation of metadata and provenance during conversion
+  - PURL (Package URL) maintenance across formats
+  - Vulnerability data conversion
+  - License expression translation
+  - Conversion validation and reporting
+  - Handling of format-specific features with annotations
+
+- **Version Upgrade Capabilities**
+  - CycloneDX version upgrades (1.0-1.6 → 1.7)
+    - Automated addition of new required fields
+    - Structure modernization
+    - Schema validation
+    - Backwards compatibility preservation
+  - SPDX version upgrades (2.0-2.2 → 2.3)
+    - Relationship type updates
+    - Security reference additions
+    - Enhanced metadata fields
+  - Upgrade reporting with detailed change logs
+  - Best practices enforcement
+  - Missing data handling with appropriate defaults
+  - Bidirectional conversion workflows for complex upgrades
+
+- **New Prompt Templates**
+  - `format-conversion.md`: Comprehensive format conversion guide
+  - `version-upgrade.md`: Version upgrade procedures and best practices
+  - Reorganized prompt structure by category (security/operations/compliance)
+
+### Changed
+- Expanded skill scope beyond security to include operational SBOM management
+- Reorganized prompt directory structure:
+  - `prompts/sbom/security/` - Security-focused prompts
+  - `prompts/sbom/operations/` - Operational SBOM management
+  - `prompts/sbom/compliance/` - License and compliance prompts
+- Updated skill introduction to reflect broader capabilities
+- Enhanced documentation with conversion and upgrade workflows
+
+### Migration Guide
+- Old location: `prompts/security/sbom/`
+- New locations:
+  - Security prompts: `prompts/sbom/security/`
+  - Operations prompts: `prompts/sbom/operations/`
+  - Compliance prompts: `prompts/sbom/compliance/`
+
 ## [1.0.0] - 2024-11-20
 
 ### Added
