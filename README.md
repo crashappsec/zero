@@ -112,8 +112,23 @@ Comprehensive SBOM/BOM management including vulnerability analysis, format conve
 
 [View Documentation](skills/sbom-analyzer/README.md)
 
+### DORA Metrics
+Comprehensive DORA (DevOps Research and Assessment) metrics analysis for measuring and improving software delivery performance using the four key metrics.
+
+**Capabilities:**
+- Calculate all four DORA metrics (Deployment Frequency, Lead Time, Change Failure Rate, MTTR)
+- Performance classification (Elite, High, Medium, Low)
+- Benchmark comparison against DORA research
+- Root cause analysis and trend detection
+- Team comparison and best practice identification
+- Improvement roadmaps with prioritized recommendations
+- Executive reporting and stakeholder communication
+- CI/CD integration with automation scripts
+
+[View Documentation](skills/dora-metrics/README.md)
+
 ### Chalk Build Analyzer
-Analyze and interpret Chalk build artifacts, providing insights into software supply chain metadata.
+Analyze and interpret Chalk build artifacts, providing insights into software supply chain metadata and build performance.
 
 [View Documentation](skills/chalk-build-analyzer/README.md)
 
