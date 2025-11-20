@@ -6,16 +6,30 @@ SPDX-License-Identifier: GPL-3.0
 
 # SBOM/BOM Analyzer Skill
 
-Expert analysis of Software Bill of Materials (SBOM) and Bill of Materials (BOM) documents using industry-standard formats, comprehensive vulnerability databases, and dependency intelligence tools.
+Comprehensive SBOM/BOM management including analysis, conversion, version upgrades, and supply chain security assessment using industry-standard formats, vulnerability databases, and security frameworks.
 
 ## Purpose
 
-This skill enables deep analysis of software supply chains by:
-- **Vulnerability Detection**: Identifying security risks across all components
+This skill enables complete SBOM lifecycle management and supply chain analysis:
+
+### Analysis & Security
+- **Vulnerability Detection**: Identifying security risks across all components using OSV.dev, deps.dev, and CISA KEV
 - **Dependency Analysis**: Understanding direct and transitive dependency relationships
 - **License Compliance**: Ensuring license compatibility and identifying risks
-- **Supply Chain Security**: Verifying component provenance and integrity
+- **Supply Chain Security**: Verifying component provenance, integrity, and SLSA compliance
 - **Risk Prioritization**: Focusing remediation on critical, exploited vulnerabilities
+
+### SBOM Operations
+- **Format Conversion**: Bidirectional conversion between CycloneDX and SPDX formats
+- **Version Upgrades**: Modernize SBOMs to latest specification versions (CycloneDX 1.7, SPDX 2.3)
+- **SBOM Transformation**: Merge, split, and enrich SBOMs
+- **Validation**: Schema compliance and data integrity verification
+
+### SLSA Framework
+- **SLSA Assessment**: Evaluate SLSA levels (0-4) and provenance
+- **Build Security**: Verify build platform integrity and isolation
+- **Provenance Validation**: Check signatures and attestations
+- **Compliance Recommendations**: Guidance for improving SLSA posture
 
 ## Standards and Specifications
 
@@ -64,6 +78,30 @@ Authoritative catalog of vulnerabilities with confirmed exploitation:
 - **Updates**: Continuous additions as new exploits are discovered
 - **Data**: CVE IDs, vendor info, exploitation details, remediation deadlines
 - **Access**: JSON feed, CSV, web interface
+
+## SLSA Framework Integration
+
+### SLSA (Supply-chain Levels for Software Artifacts)
+Comprehensive understanding of SLSA v1.0 for supply chain security:
+
+**SLSA Levels:**
+- **Level 0**: No guarantees (baseline)
+- **Level 1**: Provenance exists (build documentation)
+- **Level 2**: Signed provenance (tamper-resistant)
+- **Level 3**: Hardened builds (isolated, ephemeral environments)
+- **Level 4**: Two-party review + hermetic builds (aspirational)
+
+**Assessment Capabilities:**
+- Verify SLSA level compliance
+- Validate provenance signatures
+- Check build platform security
+- Assess build isolation and ephemeral environments
+- Provide recommendations for level advancement
+
+**Integration:**
+- CycloneDX: Formulation, Declarations, Attestations, Citations
+- SPDX: External References, Annotations, Package Verification
+- Tools: slsa-verifier, in-toto, SigStore, GUAC
 
 ## Prerequisites
 
@@ -133,6 +171,39 @@ Compare these two SBOMs (before/after upgrade) and show:
 - Vulnerabilities resolved
 - Dependency changes
 - License modifications
+```
+
+#### Format Conversion
+```
+Convert this CycloneDX SBOM to SPDX 2.3 format:
+- Preserve all component and dependency information
+- Maintain license data
+- Convert vulnerability information
+- Provide conversion validation report
+
+[Paste SBOM]
+```
+
+#### Version Upgrade
+```
+Upgrade this CycloneDX 1.2 SBOM to version 1.7:
+- Add new required fields
+- Modernize structure
+- Validate against 1.7 schema
+- Generate upgrade report showing changes
+
+[Paste SBOM]
+```
+
+#### SLSA Compliance Assessment
+```
+Assess the SLSA compliance level of this SBOM:
+- Identify SLSA level (0-4)
+- Verify provenance and signatures
+- Check build platform security
+- Provide recommendations for next level
+
+[Paste SBOM]
 ```
 
 ## Analysis Workflow
