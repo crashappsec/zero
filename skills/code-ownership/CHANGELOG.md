@@ -69,6 +69,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - PR reviewer recommendations
   - Trend analysis and forecasts
 
+- **Automation Scripts for Offline Analysis**
+  - `ownership-analyzer.sh` - Basic ownership analysis
+    - Analyze git history for contribution patterns
+    - Calculate ownership statistics by author
+    - Multiple output formats (text, JSON, CSV)
+    - CODEOWNERS syntax validation
+    - Automated data collection
+
+  - `ownership-analyzer-claude.sh` - AI-enhanced analysis
+    - All features from basic analyzer
+    - Claude API integration (claude-sonnet-4-20250514)
+    - Executive summaries with health assessment
+    - Risk analysis and bus factor calculation
+    - CODEOWNERS accuracy validation
+    - Prioritized recommendations (Priority 1/2/3)
+    - Knowledge transfer planning guidance
+
+  - `compare-analyzers.sh` - Comparison tool
+    - Runs both basic and Claude-enhanced analyzers
+    - Side-by-side capability comparison
+    - Value-add demonstration
+    - Use case recommendations
+
 - **Example Data**
   - `examples/example-ownership-analysis.md` - Complete repository audit (68/100 health score)
   - `examples/example-codeowners-validation.md` - Validation report with 14 issues found
