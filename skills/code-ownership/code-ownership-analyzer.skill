@@ -68,7 +68,102 @@ gh api repos/{owner}/{repo}/pulls/{pr}/reviews
 
 # List all files changed by an author
 git log --author="Name" --name-only --pretty=format: | sort -u
+
+# Clone repository for analysis (full history required)
+git clone https://github.com/org/repo.git  # NOT --depth 1
+git clone git@github.com:org/repo.git      # SSH for private repos
 ```
+
+### Repository Analysis Methods
+
+**Local vs Remote Analysis:**
+
+You can analyze repositories in multiple ways:
+
+1. **Local Repository Analysis:**
+   - Direct analysis of existing local git repository
+   - Fastest method, no cloning required
+   - Use when repo is already available locally
+
+2. **Remote Repository Analysis:**
+   - Clone from GitHub/GitLab/Bitbucket URLs
+   - Supports both HTTPS and SSH protocols
+   - Automatic cleanup after analysis
+
+**CRITICAL: Always use full clone, never shallow clone:**
+```bash
+# ✅ CORRECT - Full history
+git clone https://github.com/org/repo.git
+
+# ❌ WRONG - Shallow clone misses ownership history
+git clone --depth 1 https://github.com/org/repo.git
+```
+
+**Why Full History Matters:**
+- Ownership analysis requires complete commit history
+- Shallow clones only show most recent commits
+- Missing history leads to inaccurate ownership scores
+- Bus factor calculations need full contribution patterns
+- Historical patterns identify true long-term owners vs recent contributors
+
+**URL Detection Patterns:**
+```bash
+# Detect if input is a Git URL
+if [[ "$input" =~ github\.com|gitlab\.com|bitbucket\.org ]]; then
+    # Clone and analyze
+elif [[ -d "$input/.git" ]]; then
+    # Analyze local repository
+fi
+```
+
+### GitHub Profile Identification
+
+**Mapping Git Authors to GitHub Profiles:**
+
+Contributors in git commits may not directly map to GitHub usernames. You can identify GitHub profiles through:
+
+**Email Pattern Recognition:**
+
+1. **GitHub Noreply Emails:**
+   ```
+   username@users.noreply.github.com → @username
+   12345+username@users.noreply.github.com → @username
+   ```
+
+2. **GitHub.com Emails:**
+   ```
+   username@github.com → @username
+   ```
+
+3. **Other Emails:**
+   - Use GitHub API search: `GET /search/users?q=email:user@example.com`
+   - May require authentication for better rate limits
+   - Cache results to minimize API calls
+
+**Profile Data Structure:**
+```json
+{
+  "author": "John Doe",
+  "email": "johndoe@users.noreply.github.com",
+  "github_username": "johndoe",
+  "github_profile": "https://github.com/johndoe",
+  "commits": 42,
+  "files": 23
+}
+```
+
+**Benefits of GitHub Profile Mapping:**
+- Direct attribution to GitHub accounts
+- Links to contributor profiles for more context
+- Validates CODEOWNERS @username entries
+- Enables cross-repo contributor analysis
+- Facilitates team member identification
+
+**Caching Strategy:**
+- Cache profile lookups to avoid duplicate API calls
+- Use file-based cache for bash 3.x compatibility
+- Cache key: email address
+- Cache lifetime: per-analysis session
 
 ### CODEOWNERS File Formats
 
@@ -792,6 +887,42 @@ Review Tips:
 5. **Review Participation**: Non-owners should review owned code for knowledge sharing
 6. **Mentorship**: Explicit mentor/mentee relationships for knowledge transfer
 7. **Post-mortems**: Document ownership gaps revealed by incidents
+
+### Technical Implementation Best Practices
+
+**Repository Cloning:**
+- ✅ **Always use full clone** for ownership analysis
+- ❌ **Never use shallow clone** (`--depth 1`) - misses historical ownership patterns
+- ✅ **Support both HTTPS and SSH** for flexibility
+- ✅ **Auto-cleanup temp clones** after analysis to save disk space
+- ✅ **Allow --keep-clone option** for debugging and verification
+
+**GitHub Profile Mapping:**
+- ✅ **Extract profiles from noreply emails** (username@users.noreply.github.com)
+- ✅ **Handle numbered noreply emails** (12345+username@users.noreply.github.com)
+- ✅ **Cache profile lookups** to minimize API calls and improve performance
+- ✅ **Fallback gracefully** when profile cannot be determined
+- ✅ **Display both name and @username** for clear attribution
+
+**Script Compatibility:**
+- ✅ **Support bash 3.2+** (macOS default) - avoid associative arrays
+- ✅ **Use file-based caching** instead of hash tables for bash 3.x
+- ✅ **Test on multiple platforms** (Linux, macOS) before release
+- ✅ **Handle both BSD and GNU** date command differences
+
+**Configuration Management:**
+- ✅ **Centralize API keys** in .env file at repository root
+- ✅ **Source .env automatically** from all scripts
+- ✅ **Never commit .env** - always use .env.example template
+- ✅ **Support multiple config methods**: .env file, environment variable, CLI flag
+- ✅ **Bootstrap script** to setup all scripts at once
+
+**Analysis Output:**
+- ✅ **Provide objective analysis only** - no recommendations or action items
+- ❌ **Avoid prescriptive language** - no "should", "must", implementation priorities
+- ✅ **Focus on "what IS"** not "what should be done"
+- ✅ **Include severity ratings** for risks without suggesting fixes
+- ✅ **Present data-driven insights** that users can act on themselves
 
 ## Common Patterns and Anti-patterns
 
