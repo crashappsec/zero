@@ -169,15 +169,26 @@ AI-enhanced analysis with Claude integration for intelligent insights.
 - Knowledge transfer planning guidance
 - Actionable improvement roadmaps
 
+**Setup:**
+```bash
+# Option 1: Use .env file (recommended)
+# Copy .env.example to .env and add your API key
+cp ../../.env.example ../../.env
+# Edit .env and set ANTHROPIC_API_KEY=sk-ant-xxx
+
+# Option 2: Export environment variable
+export ANTHROPIC_API_KEY=sk-ant-xxx
+```
+
 **Usage:**
 ```bash
-# Set API key
-export ANTHROPIC_API_KEY=sk-ant-xxx
-
-# Analyze with AI insights
+# Analyze with AI insights (uses .env file or environment variable)
 ./ownership-analyzer-claude.sh .
 
-# Specify time period and API key
+# Specify time period
+./ownership-analyzer-claude.sh --days 90 /path/to/repo
+
+# Or specify API key directly (overrides .env)
 ./ownership-analyzer-claude.sh --days 90 --api-key sk-ant-xxx /path/to/repo
 ```
 

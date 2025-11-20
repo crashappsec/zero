@@ -81,9 +81,26 @@ skills-and-prompts-and-rag/
    cd skills-and-prompts-and-rag
    ```
 
-2. Browse the available skills in the `skills/` directory
+2. Make all scripts executable:
+   ```bash
+   chmod +x bootstrap.sh
+   ./bootstrap.sh
+   ```
 
-3. Each skill includes:
+3. Set up your environment:
+   ```bash
+   # Copy the environment template
+   cp .env.example .env
+
+   # Edit .env and add your Anthropic API key
+   # ANTHROPIC_API_KEY=sk-ant-xxx...
+   ```
+
+   Get your Anthropic API key from [https://console.anthropic.com/](https://console.anthropic.com/)
+
+4. Browse the available skills in the `skills/` directory
+
+5. Each skill includes:
    - `.skill` file - The skill implementation
    - `README.md` - Comprehensive documentation
    - `CHANGELOG.md` - Version history
