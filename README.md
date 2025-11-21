@@ -46,14 +46,17 @@ Whether you're analyzing security certificates, building software, or engineerin
 ```
 skills-and-prompts/
 ├── skills/                          # Claude skills and documentation only
-│   ├── supply-chain-analyzer/       # Supply chain security skill
+│   ├── supply-chain/                # Supply chain security skill
 │   ├── dora-metrics/                # DORA metrics skill
 │   ├── code-ownership/              # Code ownership skill
 │   ├── certificate-analyzer/        # Certificate analysis skill
 │   └── chalk-build-analyzer/        # Chalk build analyzer skill
 │
 ├── utils/                           # Executable scripts and utilities
-│   ├── supply-chain/                # Supply chain analysis scripts
+│   ├── supply-chain/                # Supply chain analysis (modular)
+│   │   ├── vulnerability-analysis/  # Vulnerability scanning module
+│   │   ├── config.example.json      # Configuration template
+│   │   └── supply-chain-scanner.sh  # Central orchestrator
 │   ├── dora-metrics/                # DORA metrics scripts
 │   ├── code-ownership/              # Code ownership scripts
 │   ├── certificate-analyzer/        # Certificate analyzer scripts

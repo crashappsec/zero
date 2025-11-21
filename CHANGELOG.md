@@ -24,6 +24,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Supply Chain Analyzer
 
+### [2.0.0] - 2024-11-21
+
+#### Breaking Changes
+- **Directory Restructure**: Renamed skills/supply-chain-analyzer → skills/supply-chain
+- **Script Renames**: supply-chain-analyzer → vulnerability-analyzer (moved to vulnerability-analysis subdirectory)
+- **Modular Architecture**: Scripts reorganized into single-purpose modules with central orchestrator
+
+#### Added
+- **Central Orchestrator**: supply-chain-scanner.sh for unified entry point
+  - `--setup`: Interactive configuration wizard with GitHub auth
+  - `--interactive`: Prompt for repos if not configured
+  - Module flags: `--vulnerability`, `--all` (extensible for future modules)
+  - Multi-repo support: `--org` and `--repo` flags
+- **Configuration Management**: config.json for persistent settings
+  - GitHub Personal Access Token storage
+  - Organizations and repositories lists
+  - Default modules and output directories
+  - Automatic config loading and validation
+- **Multi-Repository Scanning**: Both analyzers support organization/multi-repo scanning
+  - GitHub CLI integration for org expansion (lists all repos in org)
+  - Batch processing across multiple repositories
+  - Individual repo targeting with `--repo owner/repo` flag
+  - Config-based scanning for regular workflows
+- **Interactive Setup**: Guided configuration wizard
+  - GitHub authentication check
+  - Organization selection from user's orgs
+  - Manual repository entry
+  - PAT configuration (optional)
+
+#### Changed
+- **Modular Architecture**: utils/supply-chain/ now contains:
+  - vulnerability-analysis/ - Vulnerability scanning module (with both analyzers)
+  - config.example.json - Configuration template
+  - supply-chain-scanner.sh - Central orchestrator
+- **Script Organization**: Single-purpose scripts in feature subdirectories
+- **Script Naming**: Clearer module-specific names (supply-chain-analyzer → vulnerability-analyzer)
+- **Execution Model**: Scripts work standalone OR through central orchestrator
+- **Output Headers**: Color-coded with CYAN for multi-repo section headers
+
+#### Technical Improvements
+- Consistent error handling across multi-repo workflows
+- GitHub CLI (gh) integration for organization scanning
+- jq-based configuration parsing
+- Fallback to interactive mode when config missing
+- Improved path resolution for nested script directories
+
+#### Migration Guide
+- Old path: `utils/supply-chain/supply-chain-analyzer.sh`
+- New path: `utils/supply-chain/vulnerability-analysis/vulnerability-analyzer.sh`
+- Or use central orchestrator: `utils/supply-chain/supply-chain-scanner.sh --vulnerability`
+- Run `./utils/supply-chain/supply-chain-scanner.sh --setup` for interactive configuration
+
 ### [1.4.0] - 2024-11-21
 
 #### Added

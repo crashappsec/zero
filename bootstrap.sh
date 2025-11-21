@@ -262,9 +262,10 @@ echo ""
 echo "  2. Add your Anthropic API key to .env:"
 echo "     ANTHROPIC_API_KEY=sk-ant-xxx"
 echo ""
-echo "  3. Run any skill script:"
+echo "  3. Run any utility script:"
 echo "     ./utils/code-ownership/ownership-analyzer-claude.sh --help"
-echo "     ./utils/supply-chain/supply-chain-analyzer-claude.sh --help"
+echo "     ./utils/supply-chain/supply-chain-scanner.sh --help"
+echo "     ./utils/supply-chain/vulnerability-analysis/vulnerability-analyzer.sh --help"
 echo ""
 
 # Warning if critical tools are missing
