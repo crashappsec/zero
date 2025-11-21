@@ -8,12 +8,20 @@ set -euo pipefail
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UTILS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# Load environment variables from .env file if it exists
+if [ -f "$REPO_ROOT/.env" ]; then
+    source "$REPO_ROOT/.env"
+fi
 
 # Check for API key
 if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
     echo "Error: ANTHROPIC_API_KEY environment variable not set" >&2
     echo "Please set your Anthropic API key:" >&2
     echo "  export ANTHROPIC_API_KEY='your-api-key'" >&2
+    echo "  OR create a .env file in the repository root with:" >&2
+    echo "  ANTHROPIC_API_KEY=your-api-key" >&2
     exit 1
 fi
 
