@@ -6,13 +6,21 @@ SPDX-License-Identifier: GPL-3.0
 
 # Code Ownership Analyzer
 
-**Status**: 🚀 Production-Ready v2.5
+**Status**: 🚀 Production-Ready v3.0
 
-Enterprise-grade code ownership analysis with research-backed metrics, succession planning, and comprehensive testing.
+Enterprise-grade code ownership analysis with historical tracking, multi-format reporting, and intelligent CODEOWNERS generation.
 
-## ✨ What's New in v2.5
+## ✨ What's New in v3.0
 
-**Phase 2 Enterprise Features**:
+**Phase 3 Advanced Features**:
+- ✅ **Historical trend tracking** (time-series analysis, snapshot storage, metric change detection)
+- ✅ **Markdown reports** (GitHub-flavored, badges, tables, visualizations)
+- ✅ **CSV export** (multi-sheet, Excel/Sheets compatible, time-series data)
+- ✅ **Strategic CODEOWNERS generator** (pattern detection, intelligent rules, validation)
+- ✅ **Trend visualization** (ASCII charts, linear regression, predictions)
+- ✅ **Contributor trend analysis** (emerging, declining, churned classification)
+
+**Phase 2 Enterprise Features (v2.5)**:
 - ✅ **Hierarchical configuration system** (global, local, environment)
 - ✅ **Enhanced 5-component ownership score** (commits, lines, reviews, recency, consistency)
 - ✅ **Succession planning module** (identify successors, mentorship recommendations, risk detection)
@@ -58,6 +66,14 @@ Enterprise-grade code ownership analysis with research-backed metrics, successio
 - GitHub review metrics
 - Comprehensive test suite
 - 5 modular libraries + tests
+
+**v3.0 (Production-Ready)**:
+- Historical trend tracking
+- Markdown & CSV export
+- Strategic CODEOWNERS generation
+- Trend visualization
+- Contributor analysis
+- 9 modular libraries + tests
 
 ## Overview
 
@@ -408,6 +424,165 @@ recommend_mentorships "/path/to/repo" "2024-01-01" "mentorships.txt"
 }
 ```
 
+## Historical Trend Tracking
+
+### Overview
+
+Track ownership changes over time to identify patterns and predict future trends.
+
+### Features
+
+- **Snapshot Storage**: Automatic storage of analysis snapshots
+- **Time-Series Analysis**: Track metrics over time (coverage, health, bus factor)
+- **Contributor Trends**: Classify contributors as emerging, declining, stable, or churned
+- **Linear Regression**: Predict future trends based on historical data
+- **ASCII Visualizations**: Charts showing metric changes
+
+### Usage
+
+```bash
+# Using the trends library
+source lib/trends.sh
+
+# Store current analysis as snapshot
+store_snapshot "/path/to/repo" "$analysis_json" "2024-11-21"
+
+# Generate trend report
+generate_trend_report "/path/to/repo" "json" > trend-report.json
+
+# Analyze contributor trends
+analyze_contributor_trends "/path/to/repo" 90
+
+# Create ASCII chart for metric
+create_ascii_chart "Health Score" 65 70 75 78 82
+```
+
+### Example Output
+
+```json
+{
+  "snapshot_count": 10,
+  "trends": {
+    "coverage": {
+      "slope": 0.5,
+      "direction": "improving"
+    },
+    "health": {
+      "slope": 1.2,
+      "direction": "improving"
+    }
+  },
+  "contributor_trends": [
+    {
+      "email": "alice@example.com",
+      "trend": "emerging",
+      "file_delta": 15
+    }
+  ]
+}
+```
+
+## Report Formats
+
+### Markdown Reports
+
+Generate human-readable GitHub-flavored markdown reports with tables, badges, and visualizations.
+
+```bash
+# Using the markdown library
+source lib/markdown.sh
+
+# Generate full markdown report
+generate_markdown_report "$analysis_json" > report.md
+
+# Generate comparison report
+generate_comparison_report "$snapshot1" "$snapshot2" > comparison.md
+```
+
+**Markdown Features**:
+- Executive summary with health badges
+- Repository metrics tables
+- Top contributors table
+- SPOF table with risk indicators
+- Distribution visualization
+- Recommendations section
+- Collapsible detailed metrics
+
+### CSV Export
+
+Export analysis data to CSV for Excel, Google Sheets, or data analysis tools.
+
+```bash
+# Using the CSV library
+source lib/csv.sh
+
+# Export all data (creates multiple CSV files)
+export_all_csv "$analysis_json" "report" "/path/to/repo"
+
+# Individual exports
+export_ownership_csv "$analysis_json" "ownership.csv"
+export_metrics_csv "$analysis_json" "metrics.csv"
+export_spof_csv "$analysis_json" "spofs.csv"
+export_timeseries_csv "/path/to/repo" "timeseries.csv"
+```
+
+**CSV Outputs**:
+- `*_ownership.csv`: Contributor ownership percentages
+- `*_metrics.csv`: Key metrics and status
+- `*_spofs.csv`: Single points of failure analysis
+- `*_contributors_detailed.csv`: Detailed contributor stats
+- `*_timeseries.csv`: Historical metric data
+- `*_files.csv`: File-level ownership details
+
+## Strategic CODEOWNERS Generation
+
+### Overview
+
+Intelligently generate CODEOWNERS files based on actual ownership patterns detected in your repository.
+
+### Features
+
+- **Pattern Detection**: Automatically detect directory and file extension patterns
+- **Ownership Analysis**: Identify primary owners for each pattern
+- **GitHub Username Mapping**: Convert emails to @mentions
+- **Validation**: Check generated CODEOWNERS for common issues
+- **Best Practices**: Follow GitHub CODEOWNERS conventions
+
+### Usage
+
+```bash
+# Using the CODEOWNERS generator
+source lib/codeowners-generator.sh
+
+# Generate strategic CODEOWNERS
+generate_strategic_codeowners "/path/to/repo" ".github/CODEOWNERS"
+
+# With custom ownership threshold (default 60%)
+generate_strategic_codeowners "/path/to/repo" ".github/CODEOWNERS" "2024-01-01" 75
+
+# Validate generated file
+validate_generated_codeowners ".github/CODEOWNERS"
+```
+
+**Example Output**:
+```
+# CODEOWNERS
+# Auto-generated by Code Ownership Analyzer
+
+# Global Owners
+* @alice @bob @charlie
+
+# Pattern-Based Ownership
+*.js                @alice        # 85.2% ownership
+*.py                @bob          # 92.1% ownership
+*.md                @charlie      # 78.5% ownership
+
+# Directory-Based Ownership
+/src/frontend/      @alice        # 89.3% ownership
+/src/backend/       @bob          # 91.7% ownership
+/docs/              @charlie      # 95.2% ownership
+```
+
 ## Testing
 
 ### Running Tests
@@ -477,12 +652,18 @@ jobs:
 - ~~**Email-Based Only**~~ → ✅ GitHub username mapping implemented
 - ~~**No Succession Planning**~~ → ✅ Full succession planning module
 
+### Resolved in v3.0
+
+- ~~**No Historical Trend Tracking**~~ → ✅ Full trend tracking with time-series analysis
+- ~~**Limited Report Formats**~~ → ✅ Markdown and CSV export implemented
+- ~~**Manual CODEOWNERS Generation**~~ → ✅ Strategic pattern-based generation
+
 ### Current Limitations
 
 1. **Review Metrics Require GitHub Token**: PR review data needs `GITHUB_TOKEN`
-2. **No Historical Trend Tracking**: Doesn't track changes over time (yet)
-3. **Basic Pattern Matching**: CODEOWNERS glob patterns use simplified matching
-4. **Rate Limited API Calls**: GitHub API subject to rate limits
+2. **Basic Pattern Matching**: CODEOWNERS glob patterns use simplified matching
+3. **Rate Limited API Calls**: GitHub API subject to rate limits
+4. **Single Platform Support**: Currently Git/GitHub only (GitLab/Bitbucket planned)
 
 ### Analysis Limitations
 
@@ -512,12 +693,12 @@ jobs:
 - [x] Integration test suite
 - [x] Complete documentation
 
-### Phase 3: Advanced Features (Next)
-- [ ] Historical trend tracking
-- [ ] Trend visualization
-- [ ] Markdown report format
-- [ ] CSV export
-- [ ] Strategic CODEOWNERS generation
+### Phase 3: Advanced Features ✅ COMPLETE
+- [x] Historical trend tracking
+- [x] Trend visualization
+- [x] Markdown report format
+- [x] CSV export
+- [x] Strategic CODEOWNERS generation
 - [ ] Platform support (GitLab, Bitbucket)
 
 ### Phase 4: Production Optimization
@@ -535,16 +716,20 @@ jobs:
 ```
 code-ownership/
 ├── ownership-analyzer.sh              # Legacy v1.0 analyzer
-├── ownership-analyzer-v2.sh           # ⭐ Enhanced v2.5 analyzer (recommended)
+├── ownership-analyzer-v2.sh           # ⭐ Enhanced v3.0 analyzer (recommended)
 ├── ownership-analyzer-claude.sh       # AI-enhanced analyzer
 ├── compare-analyzers.sh               # Comparison tool
-├── lib/                               # Library modules
+├── lib/                               # Library modules (9 total)
 │   ├── metrics.sh                     # Research-backed metric calculations
 │   ├── github.sh                      # GitHub API integration
 │   ├── analyzer-core.sh               # Dual-method analysis engine
 │   ├── codeowners-validator.sh        # Advanced validation
 │   ├── config.sh                      # Configuration system
-│   └── succession.sh                  # Succession planning
+│   ├── succession.sh                  # Succession planning
+│   ├── trends.sh                      # ⭐ Historical trend tracking
+│   ├── markdown.sh                    # ⭐ Markdown report generation
+│   ├── csv.sh                         # ⭐ CSV export functionality
+│   └── codeowners-generator.sh        # ⭐ Strategic CODEOWNERS generation
 └── tests/                             # Test suite
     ├── run-all-tests.sh               # Test runner
     ├── test-metrics.sh                # Metrics unit tests
@@ -554,18 +739,24 @@ code-ownership/
 
 ### Adding Features
 
+Completed in v3.0:
+- ✅ Historical trend tracking (time-series analysis, snapshots)
+- ✅ Markdown report generation (badges, tables, visualizations)
+- ✅ CSV export (multi-sheet, Excel/Sheets compatible)
+- ✅ Strategic CODEOWNERS generation (pattern detection, intelligent rules)
+
 Completed in v2.5:
 - ✅ Configuration system (hierarchical)
 - ✅ GitHub API integration (profile mapping, review metrics)
 - ✅ Comprehensive test suite (unit + integration)
 - ✅ Enhanced documentation
 
-Priority development areas for Phase 3:
+Priority development areas for Phase 4:
 
-1. **Historical Trend Tracking**: Track ownership changes over time
-2. **Markdown Report Format**: Human-readable reports
-3. **CSV Export**: Data export for analysis
-4. **Strategic CODEOWNERS**: Smart pattern generation
+1. **Performance Optimization**: Large repository handling
+2. **Dashboard Integration**: Web UI for visualizations
+3. **Notification Systems**: Slack/email alerts
+4. **Team Structure Analysis**: Organizational insights
 5. **Platform Support**: GitLab, Bitbucket integration
 
 ## Use Cases
@@ -607,12 +798,13 @@ GPL-3.0 - See [LICENSE](../../LICENSE) for details.
 
 ## Version
 
-Current version: 2.5.0 (Production-Ready)
+Current version: 3.0.0 (Production-Ready)
 
 See [CHANGELOG.md](./CHANGELOG.md) for version history.
 
 ### Version History
 
+- **v3.0.0** (Phase 3): Historical trend tracking, markdown/CSV reports, strategic CODEOWNERS generation, trend visualization
 - **v2.5.0** (Phase 2): Configuration system, succession planning, enhanced metrics, test suite
 - **v2.0.0** (Phase 1): Dual-method analysis, multi-repo, GitHub integration, JSON output
 - **v1.0.0** (Experimental): Basic ownership analysis, CODEOWNERS validation
