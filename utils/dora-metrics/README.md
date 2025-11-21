@@ -6,13 +6,13 @@ SPDX-License-Identifier: GPL-3.0
 
 # DORA Metrics Analyzer
 
-**Status**: 🚧 Experimental - Not yet production-ready
+**Status**: 🔬 Experimental
 
 Calculates and analyzes DevOps Research and Assessment (DORA) metrics for software delivery performance.
 
 ## ⚠️ Development Status
 
-This utility is in **early development** and is not yet ready for production use. It provides basic DORA metrics calculation but lacks the comprehensive testing, documentation, and features of the production-ready supply chain analyzer.
+This utility is in **early development** and is not yet ready for Beta or production use. It provides basic DORA metrics calculation but lacks the comprehensive testing, documentation, and features of the Beta supply chain analyzer.
 
 ### What Works
 - ✅ Basic DORA metrics calculation (Deployment Frequency, Lead Time, MTTR, Change Failure Rate)
@@ -27,7 +27,7 @@ This utility is in **early development** and is not yet ready for production use
 - ❌ Extensive testing
 - ❌ Complete documentation
 
-**Use at your own risk**. For production-grade analysis, use the [Supply Chain Security Analyzer](../supply-chain/).
+**Use at your own risk**. For Beta-quality analysis, use the [Supply Chain Security Analyzer](../supply-chain/).
 
 ## Overview
 

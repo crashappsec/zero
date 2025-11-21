@@ -6,13 +6,13 @@ SPDX-License-Identifier: GPL-3.0
 
 # Certificate Analyzer
 
-**Status**: 🚧 Experimental - Not yet production-ready
+**Status**: 🔬 Experimental
 
 Analyzes TLS/SSL certificates for security, validity, and best practices compliance.
 
 ## ⚠️ Development Status
 
-This utility is in **early development** and is not yet ready for production use. It provides basic certificate analysis but lacks the comprehensive testing, documentation, and features of the production-ready supply chain analyzer.
+This utility is in **early development** and is not yet ready for Beta or production use. It provides basic certificate analysis but lacks the comprehensive testing, documentation, and features of the Beta supply chain analyzer.
 
 ### What Works
 - ✅ TLS/SSL certificate validation
@@ -30,7 +30,7 @@ This utility is in **early development** and is not yet ready for production use
 - ❌ Comprehensive testing
 - ❌ Complete documentation
 
-**Use at your own risk**. For production-grade analysis, use the [Supply Chain Security Analyzer](../supply-chain/).
+**Use at your own risk**. For Beta-quality analysis, use the [Supply Chain Security Analyzer](../supply-chain/).
 
 ## Overview
 
