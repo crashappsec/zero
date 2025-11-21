@@ -1,0 +1,11 @@
+{
+  "github": {
+    "pat": "",
+    "organizations": [],
+    "repositories": []
+  },
+  "analysis": {
+    "default_modules": ["vulnerability"],
+    "output_dir": "./supply-chain-reports"
+  }
+}
