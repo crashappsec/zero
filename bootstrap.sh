@@ -254,6 +254,18 @@ else
     echo -e "${YELLOW}⚠${NC} osv-scanner (not installed - vulnerability scanning won't work)"
 fi
 
+if command -v cosign &> /dev/null; then
+    echo -e "${GREEN}✓${NC} cosign"
+else
+    echo -e "${YELLOW}⚠${NC} cosign (not installed - provenance verification won't work)"
+fi
+
+if command -v rekor-cli &> /dev/null; then
+    echo -e "${GREEN}✓${NC} rekor-cli"
+else
+    echo -e "${YELLOW}⚠${NC} rekor-cli (not installed - transparency log checks won't work)"
+fi
+
 echo ""
 echo "Next steps:"
 echo "  1. Copy .env.example to .env:"
