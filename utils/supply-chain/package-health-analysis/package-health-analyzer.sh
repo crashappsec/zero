@@ -121,8 +121,19 @@ extract_packages_from_sbom() {
 
     log "Extracting packages from SBOM: $sbom_file"
 
+    # Check if file exists and is valid JSON
+    if [ ! -f "$sbom_file" ]; then
+        echo "Error: SBOM file not found: $sbom_file" >&2
+        return 1
+    fi
+
+    if ! jq empty "$sbom_file" 2>/dev/null; then
+        echo "Error: SBOM file is not valid JSON: $sbom_file" >&2
+        return 1
+    fi
+
     # Detect SBOM format
-    local format=$(jq -r 'if .bomFormat then "cyclonedx" elif .spdxVersion then "spdx" else "unknown" end' "$sbom_file")
+    local format=$(jq -r 'if .bomFormat then "cyclonedx" elif .spdxVersion then "spdx" else "unknown" end' "$sbom_file" 2>/dev/null || echo "unknown")
 
     case $format in
         cyclonedx)
@@ -159,8 +170,9 @@ extract_packages_from_sbom() {
             ' "$sbom_file"
             ;;
         *)
-            echo "Error: Unknown SBOM format" >&2
-            exit 1
+            echo "Error: Unknown or unsupported SBOM format" >&2
+            echo "Supported formats: CycloneDX, SPDX" >&2
+            return 1
             ;;
     esac
 }
@@ -204,24 +216,35 @@ generate_sbom_for_repo() {
         exit 1
     fi
 
-    # Check if gh is available
-    if ! command -v gh &> /dev/null; then
-        echo "Error: gh (GitHub CLI) is required but not installed" >&2
-        echo "Install: https://cli.github.com/" >&2
+    # Create temp directory for cloning
+    local temp_dir=$(mktemp -d)
+
+    # Convert repo URL to git clone format
+    local clone_url="$repo"
+    if [[ ! "$repo" =~ ^https?:// ]] && [[ ! "$repo" =~ ^git@ ]]; then
+        # Assume it's in owner/repo format, convert to HTTPS
+        clone_url="https://github.com/$repo"
+    fi
+
+    log "Cloning repository from $clone_url to $temp_dir"
+    if ! git clone --depth 1 --quiet "$clone_url" "$temp_dir/repo" 2>/dev/null; then
+        rm -rf "$temp_dir"
+        echo "Error: Failed to clone repository: $clone_url" >&2
         exit 1
     fi
 
-    # Create temp directory for cloning
-    local temp_dir=$(mktemp -d)
-    trap "rm -rf $temp_dir" EXIT
-
-    log "Cloning repository to $temp_dir"
-    gh repo clone "$repo" "$temp_dir/$repo" -- --depth 1 --quiet 2>/dev/null
-
-    # Generate SBOM
-    local sbom_file="$temp_dir/sbom.json"
+    # Generate SBOM to a persistent temp file (caller will clean up)
+    local sbom_file=$(mktemp)
     log "Running syft scan"
-    syft scan "$temp_dir/$repo" --output cyclonedx-json="$sbom_file" --quiet 2>/dev/null
+    if ! syft scan "$temp_dir/repo" --output cyclonedx-json="$sbom_file" --quiet 2>/dev/null; then
+        rm -rf "$temp_dir"
+        rm -f "$sbom_file"
+        echo "Error: Failed to generate SBOM" >&2
+        exit 1
+    fi
+
+    # Clean up cloned repo but keep SBOM
+    rm -rf "$temp_dir"
 
     echo "$sbom_file"
 }
@@ -552,13 +575,15 @@ main() {
     fi
 
     local result=""
+    local temp_sbom=""
 
     # Determine analysis mode
     if [ -n "$SBOM_FILE" ]; then
         result=$(analyze_from_sbom "$SBOM_FILE")
     elif [ -n "$REPO" ]; then
-        local sbom_file=$(generate_sbom_for_repo "$REPO")
-        result=$(analyze_from_sbom "$sbom_file" "$REPO")
+        temp_sbom=$(generate_sbom_for_repo "$REPO")
+        trap "rm -f $temp_sbom" EXIT
+        result=$(analyze_from_sbom "$temp_sbom" "$REPO")
     elif [ -n "$ORG" ]; then
         result=$(analyze_organization "$ORG")
     fi

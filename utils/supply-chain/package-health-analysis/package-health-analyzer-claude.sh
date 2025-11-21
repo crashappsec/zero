@@ -440,8 +440,23 @@ main() {
             if [ -n "$REPO" ]; then
                 local temp_dir=$(mktemp -d)
                 trap "rm -rf $temp_dir" EXIT
-                gh repo clone "$REPO" "$temp_dir/$REPO" -- --depth 1 --quiet 2>/dev/null
-                syft scan "$temp_dir/$REPO" --output cyclonedx-json="$temp_sbom" --quiet 2>/dev/null
+
+                # Convert repo URL to git clone format
+                local clone_url="$REPO"
+                if [[ ! "$REPO" =~ ^https?:// ]] && [[ ! "$REPO" =~ ^git@ ]]; then
+                    # Assume it's in owner/repo format, convert to HTTPS
+                    clone_url="https://github.com/$REPO"
+                fi
+
+                log "Cloning repository: $clone_url"
+                if ! git clone --depth 1 --quiet "$clone_url" "$temp_dir/repo" 2>/dev/null; then
+                    log "Warning: Failed to clone repository, skipping downstream analyses"
+                    SKIP_VULN_ANALYSIS=true
+                    SKIP_PROV_ANALYSIS=true
+                else
+                    log "Generating SBOM with syft"
+                    syft scan "$temp_dir/repo" --output cyclonedx-json="$temp_sbom" --quiet 2>/dev/null
+                fi
             fi
 
             sbom_for_analysis="$temp_sbom"
