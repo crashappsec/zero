@@ -14,6 +14,7 @@ This skill enables complete SBOM lifecycle management and supply chain analysis:
 
 ### Analysis & Security
 - **Vulnerability Detection**: Identifying security risks across all components using OSV.dev, deps.dev, and CISA KEV
+- **Provenance Analysis**: Verifying build attestations and SLSA compliance using sigstore
 - **Dependency Analysis**: Understanding direct and transitive dependency relationships
 - **License Compliance**: Ensuring license compatibility and identifying risks
 - **Supply Chain Security**: Verifying component provenance, integrity, and SLSA compliance

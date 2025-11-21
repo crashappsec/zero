@@ -24,6 +24,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Supply Chain Analyzer
 
+### [2.1.0] - 2024-11-21
+
+#### Added
+- **Provenance Analysis Module**: New SLSA provenance verification
+  - `provenance-analyzer.sh`: Base analyzer with SLSA level assessment (0-4)
+  - `provenance-analyzer-claude.sh`: AI-enhanced with trust assessment and risk analysis
+  - npm provenance checking with registry API integration
+  - Signature verification support (cosign/rekor)
+  - Multi-repo and organization scanning
+  - Package URL (purl) analysis
+- **RAG Knowledge Base**: Technical specifications optimized for AI consumption
+  - SLSA v1.0 specification with provenance formats
+  - CycloneDX v1.7 reference
+  - Sigstore (cosign/rekor/fulcio) documentation
+  - Structured for semantic search and RAG systems
+- **Central Orchestrator Updates**:
+  - Added `--provenance/-p` module flag
+  - Integrated provenance analysis into `--all` option
+  - Consistent multi-repo architecture
+
+#### Changed
+- Updated supply chain skill documentation with provenance analysis
+- Enhanced bootstrap.sh with cosign and rekor-cli checks
+- Expanded tool ecosystem coverage
+
+#### Technical Details
+- SLSA level compliance checking (0-4)
+- Provenance attestation validation
+- Builder identity verification
+- Transparency log integration (Rekor)
+- Multi-ecosystem support foundation (npm, more coming)
+
 ### [2.0.0] - 2024-11-21
 
 #### Breaking Changes
