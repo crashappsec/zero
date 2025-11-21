@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0
 
 # SBOM Management Prompts
 
-Comprehensive prompt templates for Software Bill of Materials (SBOM) analysis, operations, security, and compliance using the SBOM Analyzer skill.
+Comprehensive prompt templates for Software Bill of Materials (SBOM) analysis, operations, security, and compliance using the Supply Chain Analyzer skill.
 
 ## Directory Structure
 
@@ -45,7 +45,7 @@ License compliance and regulatory requirements.
 
 ## Quick Start
 
-1. **Load the SBOM Analyzer Skill** in Crash Override
+1. **Load the Supply Chain Analyzer Skill** in Crash Override
 2. **Choose a category** based on your needs (Security, Operations, Compliance)
 3. **Select a prompt template** for your specific task
 4. **Copy and customize** the prompt with your SBOM
@@ -125,7 +125,7 @@ License compliance and regulatory requirements.
 
 ## Prerequisites
 
-- SBOM Analyzer skill loaded in Crash Override
+- Supply Chain Analyzer skill loaded in Crash Override
 - SBOM document (CycloneDX or SPDX format)
 - Internet access for API queries (OSV.dev, deps.dev, CISA KEV)
 
@@ -150,8 +150,8 @@ Prompts can generate:
 ## Related Resources
 
 ### Skills
-- [SBOM Analyzer Skill](../../skills/sbom-analyzer/) - Complete documentation
-- [Examples](../../skills/sbom-analyzer/examples/) - Sample SBOMs and reports
+- [Supply Chain Analyzer Skill](../../skills/supply-chain-analyzer/) - Complete documentation
+- [Examples](../../skills/supply-chain-analyzer/examples/) - Sample SBOMs and reports
 
 ### External Documentation
 - [CycloneDX Specification](https://cyclonedx.org/specification/overview/)
@@ -175,7 +175,7 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines.
 ## Support
 
 For questions or issues:
-- Review [SBOM Analyzer documentation](../../skills/sbom-analyzer/README.md)
+- Review [Supply Chain Analyzer documentation](../../skills/supply-chain-analyzer/README.md)
 - Check existing [discussions](https://github.com/crashappsec/skills-and-prompts-and-rag/discussions)
 - Open an [issue](https://github.com/crashappsec/skills-and-prompts-and-rag/issues)
 - Contact: mark@crashoverride.com

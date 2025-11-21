@@ -40,7 +40,7 @@ while IFS= read -r -d '' script; do
     echo -e "${GREEN}✓${NC} Made executable: $RELATIVE_PATH"
 
     ((SCRIPT_COUNT++))
-done < <(find "$REPO_ROOT/skills" -type f -name "*.sh" -print0)
+done < <(find "$REPO_ROOT/utils" -type f -name "*.sh" -print0)
 
 echo ""
 
@@ -263,8 +263,8 @@ echo "  2. Add your Anthropic API key to .env:"
 echo "     ANTHROPIC_API_KEY=sk-ant-xxx"
 echo ""
 echo "  3. Run any skill script:"
-echo "     ./skills/code-ownership/ownership-analyzer-claude.sh --help"
-echo "     ./skills/sbom-analyzer/sbom-analyzer-claude.sh --help"
+echo "     ./utils/code-ownership/ownership-analyzer-claude.sh --help"
+echo "     ./utils/supply-chain/supply-chain-analyzer-claude.sh --help"
 echo ""
 
 # Warning if critical tools are missing
