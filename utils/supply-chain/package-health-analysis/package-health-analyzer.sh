@@ -144,7 +144,7 @@ extract_packages_from_sbom() {
                     version: .version,
                     ecosystem: (
                         if .purl then
-                            (.purl | split(":")[0] | sub("pkg:";""))
+                            (.purl | split(":")[1] | split("/")[0])
                         else
                             "unknown"
                         end
