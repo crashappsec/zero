@@ -55,11 +55,42 @@ else
     echo ""
     echo "syft is required to generate SBOMs for repositories without existing SBOMs."
     echo ""
-    echo "Install syft:"
-    echo "  - macOS:   brew install syft"
-    echo "  - Linux:   curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s"
-    echo "  - Manual:  https://github.com/anchore/syft#installation"
-    echo ""
+
+    # Check if brew is available (macOS)
+    if command -v brew &> /dev/null; then
+        echo -e "${GREEN}✓${NC} Homebrew is available"
+        echo ""
+
+        # Prompt to install syft
+        read -p "Would you like to install syft now? (y/n) " -n 1 -r
+        echo ""
+
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo -e "${BLUE}Installing syft via Homebrew...${NC}"
+            if brew install syft; then
+                echo -e "${GREEN}✓${NC} syft installed successfully"
+            else
+                echo -e "${YELLOW}✗${NC} Failed to install syft"
+                echo ""
+                echo "Try installing manually:"
+                echo "  brew install syft"
+                echo ""
+            fi
+        else
+            echo ""
+            echo "To install syft later:"
+            echo "  - macOS:   brew install syft"
+            echo "  - Linux:   curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s"
+            echo ""
+        fi
+    else
+        echo "Install syft:"
+        echo "  - macOS:   brew install syft"
+        echo "  - Linux:   curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s"
+        echo "  - Manual:  https://github.com/anchore/syft#installation"
+        echo ""
+    fi
 fi
 
 # Check for osv-scanner
