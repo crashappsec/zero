@@ -11,6 +11,42 @@ All notable changes to the SBOM/BOM Analyzer skill will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2024-11-21
+
+### Added
+- **Intelligent Prioritization in Base Analyzer**
+  - `--prioritize` flag for data-driven vulnerability ranking
+  - CISA KEV catalog integration (auto-fetched on demand)
+  - Algorithmic priority scoring based on:
+    * CISA KEV presence (+100 points = CRITICAL)
+    * CVSS 9-10 (+50 points = HIGH)
+    * CVSS 7-8.9 (+30 points = MEDIUM)
+    * CVSS 4-6.9 (+15 points)
+    * CVSS 0-3.9 (+5 points = LOW)
+  - Color-coded output with priority levels
+  - KEV flag indicators in results
+  - Summary statistics (total, by severity, KEV count)
+  - Sorted output (highest priority first)
+
+### Changed
+- **Refocused Claude Analyzer on AI-Specific Value**
+  - Moved basic prioritization (CVSS, KEV, counting) to base analyzer
+  - Claude now focuses on:
+    * Pattern analysis across vulnerabilities and dependencies
+    * Supply chain context and ecosystem health
+    * Exploitability context with attack surface analysis
+    * Risk narratives and systemic issue identification
+    * Business impact context and maturity assessment
+  - Clear separation of concerns:
+    * Base analyzer: Data-driven prioritization (no LLM cost)
+    * Claude analyzer: Context, patterns, insights, narratives (AI value-add)
+
+### Technical Details
+- Intelligent prioritization uses pure data analysis (jq, KEV API, CVSS parsing)
+- No LLM required for prioritization - reduces cost for basic vulnerability ranking
+- KEV catalog cached per session, cleaned up automatically
+- Works with both SBOM files and repository scans
+
 ## [1.3.1] - 2024-11-21
 
 ### Fixed
