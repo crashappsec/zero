@@ -422,47 +422,76 @@ elif is_git_url "$TARGET"; then
     echo -e "${GREEN}Target: Git repository${NC}"
     if clone_repository "$TARGET"; then
         TARGET_DESC="Repository: $TARGET"
+        echo ""
 
         # Check for existing SBOM first
+        echo -e "${BLUE}Checking for existing SBOM...${NC}"
         EXISTING_SBOM=$(find_sbom "$TEMP_DIR")
         if [[ -n "$EXISTING_SBOM" ]]; then
             echo -e "${GREEN}✓ Found existing SBOM: ${EXISTING_SBOM#$TEMP_DIR/}${NC}"
+            echo ""
             SCAN_RESULTS=$(run_osv_scanner "$EXISTING_SBOM" "true")
         else
-            # Use osv-scanner recursive scan (scans lock files directly)
+            echo -e "${YELLOW}⚠ No existing SBOM found${NC}"
+            echo ""
+
+            # Check for lock files
+            echo -e "${BLUE}Checking for lock files...${NC}"
             if has_scannable_files "$TEMP_DIR"; then
-                echo -e "${BLUE}No SBOM found. Using osv-scanner to scan lock files...${NC}"
+                echo -e "${GREEN}✓ Found scannable lock files${NC}"
+                echo -e "${BLUE}Using osv-scanner to scan dependencies from lock files...${NC}"
             else
-                echo -e "${YELLOW}⚠ No SBOM or lock files found. Results may be limited.${NC}"
+                echo -e "${YELLOW}⚠ No lock files found. osv-scanner will do its best to find dependencies.${NC}"
             fi
+            echo ""
+
             SCAN_RESULTS=$(run_osv_scanner "$TEMP_DIR" "false")
         fi
 
-        analyze_with_claude "$SCAN_RESULTS" "$TARGET_DESC"
-        rm -f "$SCAN_RESULTS"
+        if [[ -n "$SCAN_RESULTS" ]] && [[ -f "$SCAN_RESULTS" ]]; then
+            analyze_with_claude "$SCAN_RESULTS" "$TARGET_DESC"
+            rm -f "$SCAN_RESULTS"
+        else
+            echo -e "${RED}✗ Scan failed or produced no results${NC}"
+        fi
+
         cleanup
     fi
 elif [[ -d "$TARGET" ]]; then
     echo -e "${GREEN}Target: Local directory${NC}"
     TARGET_DESC="Directory: $TARGET"
+    echo ""
 
     # Check for existing SBOM first
+    echo -e "${BLUE}Checking for existing SBOM...${NC}"
     EXISTING_SBOM=$(find_sbom "$TARGET")
     if [[ -n "$EXISTING_SBOM" ]]; then
         echo -e "${GREEN}✓ Found existing SBOM: ${EXISTING_SBOM#$TARGET/}${NC}"
+        echo ""
         SCAN_RESULTS=$(run_osv_scanner "$EXISTING_SBOM" "true")
     else
-        # Use osv-scanner recursive scan (scans lock files directly)
+        echo -e "${YELLOW}⚠ No existing SBOM found${NC}"
+        echo ""
+
+        # Check for lock files
+        echo -e "${BLUE}Checking for lock files...${NC}"
         if has_scannable_files "$TARGET"; then
-            echo -e "${BLUE}No SBOM found. Using osv-scanner to scan lock files...${NC}"
+            echo -e "${GREEN}✓ Found scannable lock files${NC}"
+            echo -e "${BLUE}Using osv-scanner to scan dependencies from lock files...${NC}"
         else
-            echo -e "${YELLOW}⚠ No SBOM or lock files found. Results may be limited.${NC}"
+            echo -e "${YELLOW}⚠ No lock files found. osv-scanner will do its best to find dependencies.${NC}"
         fi
+        echo ""
+
         SCAN_RESULTS=$(run_osv_scanner "$TARGET" "false")
     fi
 
-    analyze_with_claude "$SCAN_RESULTS" "$TARGET_DESC"
-    rm -f "$SCAN_RESULTS"
+    if [[ -n "$SCAN_RESULTS" ]] && [[ -f "$SCAN_RESULTS" ]]; then
+        analyze_with_claude "$SCAN_RESULTS" "$TARGET_DESC"
+        rm -f "$SCAN_RESULTS"
+    else
+        echo -e "${RED}✗ Scan failed or produced no results${NC}"
+    fi
 else
     echo -e "${RED}Error: Invalid target${NC}"
     exit 1
