@@ -11,6 +11,50 @@ All notable changes to the SBOM/BOM Analyzer skill will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2024-11-21
+
+### Fixed
+- **Script Execution Issues in sbom-analyzer-claude.sh**
+  - Fixed `find_sbom()` return value handling with `set -e` - Added `|| true` to prevent script exit when no SBOM found
+  - Fixed SBOM filename compatibility - Changed from `sbom-generated.json` to `bom.json` per osv-scanner requirements
+  - Updated osv-scanner flag from deprecated `--sbom` to `-L` following current CLI conventions
+  - Fixed output capture in `run_osv_scanner()` - Redirected debug messages to stderr to prevent variable contamination
+  - Added JSON extraction from osv-scanner mixed output - Strips debug messages to ensure valid JSON parsing
+  - Removed error suppression in `clone_repository()` - Shows actual git clone errors for better debugging
+
+- **Script Updates in sbom-analyzer.sh**
+  - Updated osv-scanner flag from deprecated `--sbom` to `-L`
+  - Removed error suppression in `clone_repository()` - Shows git clone errors with helpful authentication message
+
+### Added
+- **SBOM Generation Integration**
+  - Added syft integration for automatic SBOM generation when no SBOM exists
+  - Scripts now generate SBOMs with correct filenames (`bom.json`) for osv-scanner compatibility
+  - Automatic fallback to direct directory scanning if SBOM generation fails
+
+- **Enhanced Documentation**
+  - Added syft section to skill file with usage examples and ecosystem support
+  - Updated osv-scanner documentation with filename requirements and `-L` flag usage
+  - Added SBOM filename validation requirements (bom.json, sbom.cdx.json, etc.)
+  - Updated README with syft installation instructions
+  - Added bootstrap script reference for automated dependency installation
+  - Documented syft + osv-scanner integration workflow
+
+### Changed
+- **Improved Script Output**
+  - Cleaner, more professional output messages
+  - Better error messages with actionable guidance
+  - Progress indicators for SBOM generation and scanning steps
+  - Removed excessive debug output while maintaining essential status messages
+
+### Requirements Update
+- Added syft as a required dependency for SBOM generation
+- Run `./bootstrap.sh` to automatically install syft, osv-scanner, and other dependencies
+
+### Technical Details
+The fixes ensure end-to-end script execution:
+1. Clone repository → 2. Check for SBOM → 3. Generate SBOM with syft if needed → 4. Scan with osv-scanner → 5. Extract clean JSON → 6. Analyze with Claude AI
+
 ## [1.3.0] - 2024-11-20
 
 ### Added
