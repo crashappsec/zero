@@ -6,13 +6,13 @@ SPDX-License-Identifier: GPL-3.0
 
 # Chalk Build Analyzer
 
-**Status**: 🚧 Experimental - Not yet production-ready
+**Status**: 🔬 Experimental
 
 Analyzes build artifacts marked with Chalk to extract and validate supply chain metadata.
 
 ## ⚠️ Development Status
 
-This utility is in **early development** and is not yet ready for production use. It provides basic Chalk metadata analysis but lacks the comprehensive testing, documentation, and features of the production-ready supply chain analyzer.
+This utility is in **early development** and is not yet ready for Beta or production use. It provides basic Chalk metadata analysis but lacks the comprehensive testing, documentation, and features of the Beta supply chain analyzer.
 
 ### What Works
 - ✅ Chalk metadata extraction
@@ -28,7 +28,7 @@ This utility is in **early development** and is not yet ready for production use
 - ❌ Comprehensive testing
 - ❌ Complete documentation
 
-**Use at your own risk**. For production-grade supply chain analysis, use the [Supply Chain Security Analyzer](../supply-chain/).
+**Use at your own risk**. For Beta-quality supply chain analysis, use the [Supply Chain Security Analyzer](../supply-chain/).
 
 ## Overview
 
