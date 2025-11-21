@@ -267,21 +267,90 @@ else
 fi
 
 echo ""
+
+# Check for .env file and API key
+echo -e "${BLUE}Checking for .env file and API configuration...${NC}"
+if [ -f "$REPO_ROOT/.env" ]; then
+    echo -e "${GREEN}✓${NC} .env file exists"
+
+    # Check if ANTHROPIC_API_KEY is set in the file
+    if grep -q "^ANTHROPIC_API_KEY=sk-ant-" "$REPO_ROOT/.env" 2>/dev/null; then
+        echo -e "${GREEN}✓${NC} ANTHROPIC_API_KEY is configured"
+    else
+        echo -e "${YELLOW}⚠${NC} ANTHROPIC_API_KEY is not set or invalid in .env"
+        echo ""
+        echo "Claude-enabled scripts require an Anthropic API key."
+        echo "Edit .env and add:"
+        echo "  ANTHROPIC_API_KEY=sk-ant-xxx..."
+        echo ""
+        echo "Get your API key from: https://console.anthropic.com/"
+        echo ""
+    fi
+else
+    echo -e "${YELLOW}⚠${NC} .env file does not exist"
+    echo ""
+
+    if [ -f "$REPO_ROOT/.env.example" ]; then
+        read -p "Would you like to create .env from .env.example? (y/n) " -n 1 -r
+        echo ""
+
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            echo ""
+            echo -e "${BLUE}Creating .env file...${NC}"
+            if cp "$REPO_ROOT/.env.example" "$REPO_ROOT/.env"; then
+                echo -e "${GREEN}✓${NC} Created .env file from template"
+                echo ""
+                echo -e "${YELLOW}Important:${NC} Edit .env and add your Anthropic API key:"
+                echo "  ANTHROPIC_API_KEY=sk-ant-xxx..."
+                echo ""
+                echo "Get your API key from: https://console.anthropic.com/"
+                echo ""
+            else
+                echo -e "${YELLOW}✗${NC} Failed to create .env file"
+                echo ""
+            fi
+        else
+            echo ""
+            echo -e "${YELLOW}Skipping .env creation${NC}"
+            echo "Create it manually:"
+            echo "  cp .env.example .env"
+            echo "Then add your Anthropic API key to .env"
+            echo ""
+        fi
+    else
+        echo "Create a .env file with your Anthropic API key:"
+        echo "  echo 'ANTHROPIC_API_KEY=sk-ant-xxx...' > .env"
+        echo ""
+        echo "Get your API key from: https://console.anthropic.com/"
+        echo ""
+    fi
+fi
+
+echo ""
 echo "Next steps:"
-echo "  1. Copy .env.example to .env:"
-echo "     cp .env.example .env"
 echo ""
-echo "  2. Add your Anthropic API key to .env:"
-echo "     ANTHROPIC_API_KEY=sk-ant-xxx"
-echo ""
-echo "  3. Run any utility script:"
+
+# Only show .env setup if not configured
+if [ ! -f "$REPO_ROOT/.env" ] || ! grep -q "^ANTHROPIC_API_KEY=sk-ant-" "$REPO_ROOT/.env" 2>/dev/null; then
+    echo "  1. Configure your .env file:"
+    if [ ! -f "$REPO_ROOT/.env" ]; then
+        echo "     cp .env.example .env"
+    fi
+    echo "     Edit .env and add: ANTHROPIC_API_KEY=sk-ant-xxx..."
+    echo ""
+    echo "  2. Run any utility script:"
+else
+    echo "  1. Run any utility script:"
+fi
 echo "     ./utils/code-ownership/ownership-analyzer-claude.sh --help"
 echo "     ./utils/supply-chain/supply-chain-scanner.sh --help"
 echo "     ./utils/supply-chain/vulnerability-analysis/vulnerability-analyzer.sh --help"
 echo ""
 
-# Warning if critical tools are missing
+# Warning if critical tools or config are missing
 MISSING_TOOLS=false
+MISSING_CONFIG=false
+
 if ! command -v syft &> /dev/null; then
     MISSING_TOOLS=true
 fi
@@ -289,8 +358,19 @@ if ! command -v osv-scanner &> /dev/null; then
     MISSING_TOOLS=true
 fi
 
+if [ ! -f "$REPO_ROOT/.env" ] || ! grep -q "^ANTHROPIC_API_KEY=sk-ant-" "$REPO_ROOT/.env" 2>/dev/null; then
+    MISSING_CONFIG=true
+fi
+
 if [[ "$MISSING_TOOLS" == "true" ]]; then
     echo -e "${YELLOW}⚠ Warning: Some required tools are not installed${NC}"
     echo "Some features may not work. Run ./bootstrap.sh again to install missing tools."
+    echo ""
+fi
+
+if [[ "$MISSING_CONFIG" == "true" ]]; then
+    echo -e "${YELLOW}⚠ Warning: ANTHROPIC_API_KEY is not configured${NC}"
+    echo "Claude-enabled scripts will not work without an API key."
+    echo "Edit .env and add your API key from https://console.anthropic.com/"
     echo ""
 fi
