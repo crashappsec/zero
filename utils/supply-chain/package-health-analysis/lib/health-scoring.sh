@@ -6,8 +6,8 @@
 set -euo pipefail
 
 # Get script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-UTILS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UTILS_ROOT="$(cd "$LIB_DIR/../.." && pwd)"
 
 # Load configuration
 if [ -f "$UTILS_ROOT/lib/config-loader.sh" ]; then
@@ -17,8 +17,10 @@ else
     CONFIG="{}"
 fi
 
-# Load deps.dev client
-source "$SCRIPT_DIR/deps-dev-client.sh"
+# Load deps.dev client (if not already loaded)
+if ! command -v get_package_info &> /dev/null; then
+    source "$LIB_DIR/deps-dev-client.sh"
+fi
 
 # Get scoring weights from config
 WEIGHT_OPENSSF=$(echo "$CONFIG" | jq -r '.package_health.health_score_weights.openssf // 0.30')

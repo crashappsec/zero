@@ -6,10 +6,12 @@
 set -euo pipefail
 
 # Get script directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Load deps.dev client
-source "$SCRIPT_DIR/deps-dev-client.sh"
+# Load deps.dev client (if not already loaded)
+if ! command -v get_package_info &> /dev/null; then
+    source "$LIB_DIR/deps-dev-client.sh"
+fi
 
 # Check if package is deprecated via deps.dev
 # Usage: check_package_deprecation <system> <package>
