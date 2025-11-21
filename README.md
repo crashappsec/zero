@@ -116,16 +116,19 @@ skills-and-prompts-and-rag/
 ## Available Skills
 
 ### SBOM/BOM Analyzer
-Comprehensive SBOM/BOM management including vulnerability analysis, format conversion (CycloneDX ↔ SPDX), version upgrades, SLSA compliance assessment, and supply chain security.
+Comprehensive SBOM/BOM management including vulnerability analysis, taint analysis, format conversion (CycloneDX ↔ SPDX), version upgrades, SLSA compliance assessment, and supply chain security.
 
 **Capabilities:**
 - Vulnerability detection (OSV.dev, deps.dev, CISA KEV)
+- Taint/reachability analysis to identify exploitable vulnerabilities
+- Automatic SBOM generation with syft
 - Dependency analysis and optimization
 - License compliance checking
 - Format conversion between CycloneDX and SPDX
 - SBOM version upgrades (CycloneDX 1.7, SPDX 2.3)
 - SLSA framework assessment (Levels 0-4)
 - Supply chain security and provenance verification
+- CI/CD integration with automation scripts
 
 [View Documentation](skills/sbom-analyzer/README.md)
 
