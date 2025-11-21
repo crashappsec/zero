@@ -27,6 +27,7 @@ NC='\033[0m' # No Color
 
 # Default options
 TAINT_ANALYSIS=false
+DEEP_ANALYSIS=false
 TEMP_DIR=""
 CLEANUP=true
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
@@ -43,8 +44,12 @@ TARGET:
     Git repository URL      Clone and analyze repository (scans lock files)
     Local directory path    Analyze local repository (scans lock files)
 
-OPTIONS:
-    -t, --taint-analysis    Enable call graph/taint analysis (Go projects)
+ANALYSIS MODES:
+    (default)               Vulnerability analysis only
+    -t, --taint-analysis    Add taint/reachability analysis (requires source code)
+    -d, --deep              Run all available analysis (vulnerability + taint + more)
+
+OTHER OPTIONS:
     -k, --api-key KEY       Anthropic API key (or set ANTHROPIC_API_KEY env var)
     --keep-clone            Keep cloned repository (don't cleanup)
     -h, --help              Show this help message
@@ -52,27 +57,41 @@ OPTIONS:
 ENVIRONMENT:
     ANTHROPIC_API_KEY       Your Anthropic API key
 
-HOW IT WORKS:
-    1. If SBOM exists: Uses the existing SBOM
+DEFAULT BEHAVIOR (Vulnerability Analysis):
+    1. If SBOM exists: Scans the SBOM for vulnerabilities
     2. If no SBOM: osv-scanner scans lock files directly
        - Supports: package-lock.json, go.mod, Cargo.lock, requirements.txt, etc.
-    3. Results are analyzed by Claude AI for enhanced insights
+    3. Reports vulnerabilities with severity, CVEs, CVSS scores
+    4. Checks against CISA KEV for known exploitation
+
+TAINT ANALYSIS (--taint-analysis):
+    - Adds call graph/reachability analysis
+    - Determines if vulnerable code is actually called
+    - Reports: CALLED, NOT CALLED, UNKNOWN reachability
+    - Currently best supported for Go projects
+    - Requires source code (not just SBOM)
+
+DEEP ANALYSIS (--deep):
+    - Runs all available analysis types
+    - Vulnerability scanning
+    - Taint/reachability analysis
+    - Maximum detail and insights
 
 EXAMPLES:
-    # Analyze SBOM with Claude enhancement
-    $0 /path/to/sbom.json
-
-    # Analyze repository (scans lock files automatically)
+    # Default: Vulnerability analysis only
     $0 https://github.com/org/repo
 
-    # Analyze with taint analysis (Go projects)
-    $0 --taint-analysis https://github.com/org/repo
+    # Add taint analysis (Go projects recommended)
+    $0 --taint-analysis https://github.com/org/go-project
+
+    # Deep analysis with everything
+    $0 --deep https://github.com/org/repo
+
+    # Analyze existing SBOM
+    $0 /path/to/sbom.json
 
     # Analyze local directory
     $0 /path/to/project
-
-    # Specify API key directly
-    $0 --api-key sk-ant-xxx /path/to/sbom.json
 
 DEPENDENCIES:
     - osv-scanner (required): Install via bootstrap.sh or:
@@ -238,11 +257,20 @@ analyze_with_claude() {
     # Read scan results
     local results_content=$(cat "$scan_results")
 
+    # Determine analysis mode description
+    local analysis_mode="Vulnerability Analysis Only"
+    if [[ "$DEEP_ANALYSIS" == "true" ]]; then
+        analysis_mode="Deep Analysis (Vulnerability + Taint + All Available)"
+    elif [[ "$TAINT_ANALYSIS" == "true" ]]; then
+        analysis_mode="Vulnerability + Taint/Reachability Analysis"
+    fi
+
     # Prepare prompt
     local prompt="I need you to analyze these SBOM vulnerability scan results from osv-scanner.
 
 Target: $target_desc
-Taint Analysis: $TAINT_ANALYSIS
+Analysis Mode: $analysis_mode
+Taint Analysis Enabled: $TAINT_ANALYSIS
 
 Scan Results:
 \`\`\`json
@@ -335,6 +363,11 @@ while [[ $# -gt 0 ]]; do
             TAINT_ANALYSIS=true
             shift
             ;;
+        -d|--deep)
+            DEEP_ANALYSIS=true
+            TAINT_ANALYSIS=true  # Deep includes taint
+            shift
+            ;;
         -k|--api-key)
             ANTHROPIC_API_KEY="$2"
             shift 2
@@ -364,6 +397,16 @@ echo ""
 echo "========================================="
 echo "  SBOM Analyzer with Claude AI"
 echo "========================================="
+echo ""
+
+# Show analysis mode
+if [[ "$DEEP_ANALYSIS" == "true" ]]; then
+    echo -e "${BLUE}Analysis Mode: Deep (Vulnerability + Taint + All)${NC}"
+elif [[ "$TAINT_ANALYSIS" == "true" ]]; then
+    echo -e "${BLUE}Analysis Mode: Vulnerability + Taint/Reachability${NC}"
+else
+    echo -e "${BLUE}Analysis Mode: Vulnerability Only (default)${NC}"
+fi
 echo ""
 
 check_prerequisites
