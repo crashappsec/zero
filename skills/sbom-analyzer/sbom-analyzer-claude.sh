@@ -127,11 +127,12 @@ clone_repository() {
     TEMP_DIR=$(mktemp -d)
 
     echo -e "${BLUE}Cloning repository...${NC}"
-    if git clone --depth 1 "$repo_url" "$TEMP_DIR" 2>/dev/null; then
+    if git clone --depth 1 "$repo_url" "$TEMP_DIR"; then
         echo -e "${GREEN}✓ Repository cloned${NC}"
         return 0
     else
         echo -e "${RED}✗ Failed to clone repository${NC}"
+        echo -e "${YELLOW}Note: For private repositories, ensure you have proper SSH keys or authentication${NC}"
         return 1
     fi
 }
