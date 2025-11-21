@@ -206,6 +206,13 @@ Tools and techniques for crafting effective prompts, with before/after examples 
 
 [View Documentation](skills/better-prompts/README.md)
 
+### COCOMO Estimator 📋 Planned
+Software cost, effort, and schedule estimation using COCOMO II models with automated repository analysis.
+
+**Status**: Planned - Specification complete, implementation pending. See [planned features](skills/cocomo/README.md).
+
+[View Specification](skills/cocomo/README.md) | [View Utils Plan](utils/cocomo/)
+
 ## Roadmap
 
 We're continuously expanding and improving this repository. Check out our [Roadmap](ROADMAP.md) to see:
