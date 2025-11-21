@@ -380,13 +380,14 @@ The SBOM Analyzer includes command-line automation scripts for CI/CD integration
 
 ### sbom-analyzer.sh
 
-Basic SBOM vulnerability scanning using osv-scanner without AI enhancement.
+Intelligent SBOM vulnerability scanning using osv-scanner with data-driven prioritization.
 
 **Features:**
 - Analyze SBOM files (JSON/XML)
 - Scan Git repositories (auto-cloning)
 - Scan local directories
 - Taint analysis for Go projects (call graph/reachability)
+- **Intelligent prioritization** (CISA KEV, CVSS severity, exploitability)
 - Multiple output formats (table, JSON, markdown, SARIF)
 
 **Usage:**
@@ -394,12 +395,24 @@ Basic SBOM vulnerability scanning using osv-scanner without AI enhancement.
 # Analyze an SBOM file
 ./sbom-analyzer.sh /path/to/sbom.json
 
-# Analyze repository with taint analysis
-./sbom-analyzer.sh --taint-analysis https://github.com/org/repo
+# Analyze with intelligent prioritization (KEV + CVSS scoring)
+./sbom-analyzer.sh --prioritize /path/to/sbom.json
+
+# Analyze repository with taint analysis and prioritization
+./sbom-analyzer.sh --taint-analysis --prioritize https://github.com/org/repo
 
 # JSON output to file
 ./sbom-analyzer.sh --format json --output results.json ./my-project
 ```
+
+**Prioritization Output:**
+When using `--prioritize`, vulnerabilities are ranked by risk score:
+- **CRITICAL**: In CISA KEV catalog (actively exploited)
+- **HIGH**: CVSS 9-10 or KEV + High CVSS
+- **MEDIUM**: CVSS 7-8.9
+- **LOW**: CVSS < 7
+
+Includes summary statistics: total vulnerabilities, severity breakdown, KEV matches.
 
 **Requirements:**
 - osv-scanner: `go install github.com/google/osv-scanner/cmd/osv-scanner@latest`
@@ -410,16 +423,30 @@ Basic SBOM vulnerability scanning using osv-scanner without AI enhancement.
 
 ### sbom-analyzer-claude.sh
 
-AI-enhanced SBOM analysis with Claude integration for intelligent vulnerability assessment.
+AI-enhanced SBOM analysis with Claude for contextual insights and pattern analysis.
 
 **Features:**
 - All features from basic analyzer
-- Executive summaries with risk assessment
-- Critical findings prioritization
-- Remediation guidance with specific version upgrades
-- CISA KEV correlation and exploitation context
-- Supply chain risk assessment
-- Actionable recommendations
+- **Pattern analysis** across vulnerabilities and dependencies
+- **Supply chain context** and ecosystem health assessment
+- **Exploitability context** with attack surface analysis
+- **Risk narratives** identifying systemic issues
+- **Business impact context** and maturity assessment
+- Dependency relationship analysis
+- Temporal trend identification
+
+**What Claude Adds:**
+- Pattern recognition across vulnerabilities
+- Contextual understanding of supply chain risks
+- Attack feasibility assessment
+- Systemic issue identification
+- Security posture narratives
+
+**What's in Base Analyzer:**
+- CISA KEV prioritization
+- CVSS severity scoring
+- Vulnerability counts and statistics
+- Basic categorization
 
 **Setup:**
 ```bash
@@ -445,10 +472,11 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 ```
 
 **Output Includes:**
-1. **Executive Summary** - Total vulnerabilities, severity breakdown, key risks
-2. **Critical Findings** - CVE IDs, CVSS scores, CISA KEV matches
-3. **Prioritized Remediation** - Ranked by priority with version upgrades
-4. **Risk Assessment** - Security posture, supply chain risks, actions
+1. **Pattern Analysis** - Vulnerability clustering, dependency chain risks, ecosystem health
+2. **Supply Chain Context** - Critical path vulnerabilities, maintainer patterns, ecosystem-specific risks
+3. **Exploitability Context** - Attack surface analysis, reachability insights, feasibility assessment
+4. **Risk Narrative** - Systemic issues, security posture assessment, concerning patterns
+5. **Business Impact** - Real-world risk evaluation, maturity assessment
 
 **Requirements:**
 - osv-scanner: `go install github.com/google/osv-scanner/cmd/osv-scanner@latest`
