@@ -378,7 +378,7 @@ The SBOM may only include direct dependencies. Regenerate with a tool that captu
 
 The Supply Chain Analyzer includes command-line automation scripts for CI/CD integration and rapid analysis:
 
-### supply-chain-analyzer.sh
+### vulnerability-analyzer.sh
 
 Intelligent SBOM vulnerability scanning using osv-scanner with data-driven prioritization.
 
@@ -393,16 +393,16 @@ Intelligent SBOM vulnerability scanning using osv-scanner with data-driven prior
 **Usage:**
 ```bash
 # Analyze an SBOM file
-./supply-chain-analyzer.sh /path/to/sbom.json
+./vulnerability-analyzer.sh /path/to/sbom.json
 
 # Analyze with intelligent prioritization (KEV + CVSS scoring)
-./supply-chain-analyzer.sh --prioritize /path/to/sbom.json
+./vulnerability-analyzer.sh --prioritize /path/to/sbom.json
 
 # Analyze repository with taint analysis and prioritization
-./supply-chain-analyzer.sh --taint-analysis --prioritize https://github.com/org/repo
+./vulnerability-analyzer.sh --taint-analysis --prioritize https://github.com/org/repo
 
 # JSON output to file
-./supply-chain-analyzer.sh --format json --output results.json ./my-project
+./vulnerability-analyzer.sh --format json --output results.json ./my-project
 ```
 
 **Prioritization Output:**
@@ -421,7 +421,7 @@ Includes summary statistics: total vulnerabilities, severity breakdown, KEV matc
 
 **Note:** For repositories without existing SBOMs, the scripts will automatically generate one using syft (if installed). SBOMs are generated with standard filenames (`bom.json`) for osv-scanner compatibility.
 
-### supply-chain-analyzer-claude.sh
+### vulnerability-analyzer-claude.sh
 
 AI-enhanced SBOM analysis with Claude for contextual insights and pattern analysis.
 
@@ -462,13 +462,13 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 **Usage:**
 ```bash
 # Analyze with AI insights (uses .env file or environment variable)
-./supply-chain-analyzer-claude.sh /path/to/sbom.json
+./vulnerability-analyzer-claude.sh /path/to/sbom.json
 
 # Analyze repository with taint analysis
-./supply-chain-analyzer-claude.sh --taint-analysis https://github.com/org/repo
+./vulnerability-analyzer-claude.sh --taint-analysis https://github.com/org/repo
 
 # Or specify API key directly (overrides .env)
-./supply-chain-analyzer-claude.sh --api-key sk-ant-xxx sbom.json
+./vulnerability-analyzer-claude.sh --api-key sk-ant-xxx sbom.json
 ```
 
 **Output Includes:**
@@ -521,21 +521,21 @@ Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrat
 ```yaml
 - name: SBOM Analysis
   run: |
-    ./supply-chain-analyzer.sh --format json --output scan.json sbom.json
+    ./vulnerability-analyzer.sh --format json --output scan.json sbom.json
 
 - name: AI-Enhanced Analysis (on main)
   if: github.ref == 'refs/heads/main'
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   run: |
-    ./supply-chain-analyzer-claude.sh sbom.json > analysis-report.txt
+    ./vulnerability-analyzer-claude.sh sbom.json > analysis-report.txt
 ```
 
 **GitLab CI Example:**
 ```yaml
 sbom_scan:
   script:
-    - ./supply-chain-analyzer.sh --format json --output scan.json sbom.json
+    - ./vulnerability-analyzer.sh --format json --output scan.json sbom.json
   artifacts:
     reports:
       dependency_scanning: scan.json
@@ -560,7 +560,7 @@ sbom_scan:
   - Grype by Anchore
   - Trivy
 - **API Clients**: curl, Postman, custom scripts
-- **Automation Scripts**: supply-chain-analyzer.sh, supply-chain-analyzer-claude.sh, compare-analyzers.sh
+- **Automation Scripts**: vulnerability-analyzer.sh, vulnerability-analyzer-claude.sh, compare-analyzers.sh
 
 ### Related Skills
 - [Certificate Analyzer](../certificate-analyzer/) - TLS/SSL certificate analysis

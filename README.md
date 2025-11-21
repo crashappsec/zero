@@ -141,7 +141,7 @@ Comprehensive supply chain security analysis including SBOM/BOM management, vuln
 - Supply chain security and provenance verification
 - CI/CD integration with automation scripts
 
-[View Documentation](skills/supply-chain-analyzer/README.md) | [Utils](utils/supply-chain/)
+[View Documentation](skills/supply-chain/README.md) | [Utils](utils/supply-chain/)
 
 ### DORA Metrics
 Comprehensive DORA (DevOps Research and Assessment) metrics analysis for measuring and improving software delivery performance using the four key metrics.
