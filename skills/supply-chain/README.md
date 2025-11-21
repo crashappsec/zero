@@ -4,7 +4,7 @@ Copyright (c) 2024 Crash Override Inc
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# SBOM/BOM Analyzer Skill
+# Supply Chain Analyzer Skill
 
 Comprehensive SBOM/BOM management including analysis, conversion, version upgrades, and supply chain security assessment using industry-standard formats, vulnerability databases, and security frameworks.
 
@@ -113,7 +113,7 @@ Comprehensive understanding of SLSA v1.0 for supply chain security:
 
 ### Load the Skill
 
-In Crash Override, load the SBOM Analyzer skill to enable expert SBOM analysis capabilities.
+In Crash Override, load the Supply Chain Analyzer skill to enable expert SBOM analysis capabilities.
 
 ### Basic Analysis
 
@@ -376,47 +376,77 @@ The SBOM may only include direct dependencies. Regenerate with a tool that captu
 
 ## Automation Scripts
 
-The SBOM Analyzer includes command-line automation scripts for CI/CD integration and rapid analysis:
+The Supply Chain Analyzer includes command-line automation scripts for CI/CD integration and rapid analysis:
 
-### sbom-analyzer.sh
+### vulnerability-analyzer.sh
 
-Basic SBOM vulnerability scanning using osv-scanner without AI enhancement.
+Intelligent SBOM vulnerability scanning using osv-scanner with data-driven prioritization.
 
 **Features:**
 - Analyze SBOM files (JSON/XML)
 - Scan Git repositories (auto-cloning)
 - Scan local directories
 - Taint analysis for Go projects (call graph/reachability)
+- **Intelligent prioritization** (CISA KEV, CVSS severity, exploitability)
 - Multiple output formats (table, JSON, markdown, SARIF)
 
 **Usage:**
 ```bash
 # Analyze an SBOM file
-./sbom-analyzer.sh /path/to/sbom.json
+./vulnerability-analyzer.sh /path/to/sbom.json
 
-# Analyze repository with taint analysis
-./sbom-analyzer.sh --taint-analysis https://github.com/org/repo
+# Analyze with intelligent prioritization (KEV + CVSS scoring)
+./vulnerability-analyzer.sh --prioritize /path/to/sbom.json
+
+# Analyze repository with taint analysis and prioritization
+./vulnerability-analyzer.sh --taint-analysis --prioritize https://github.com/org/repo
 
 # JSON output to file
-./sbom-analyzer.sh --format json --output results.json ./my-project
+./vulnerability-analyzer.sh --format json --output results.json ./my-project
 ```
+
+**Prioritization Output:**
+When using `--prioritize`, vulnerabilities are ranked by risk score:
+- **CRITICAL**: In CISA KEV catalog (actively exploited)
+- **HIGH**: CVSS 9-10 or KEV + High CVSS
+- **MEDIUM**: CVSS 7-8.9
+- **LOW**: CVSS < 7
+
+Includes summary statistics: total vulnerabilities, severity breakdown, KEV matches.
 
 **Requirements:**
 - osv-scanner: `go install github.com/google/osv-scanner/cmd/osv-scanner@latest`
+- syft (for SBOM generation): `brew install syft`
 - jq: `brew install jq`
 
-### sbom-analyzer-claude.sh
+**Note:** For repositories without existing SBOMs, the scripts will automatically generate one using syft (if installed). SBOMs are generated with standard filenames (`bom.json`) for osv-scanner compatibility.
 
-AI-enhanced SBOM analysis with Claude integration for intelligent vulnerability assessment.
+### vulnerability-analyzer-claude.sh
+
+AI-enhanced SBOM analysis with Claude for contextual insights and pattern analysis.
 
 **Features:**
 - All features from basic analyzer
-- Executive summaries with risk assessment
-- Critical findings prioritization
-- Remediation guidance with specific version upgrades
-- CISA KEV correlation and exploitation context
-- Supply chain risk assessment
-- Actionable recommendations
+- **Pattern analysis** across vulnerabilities and dependencies
+- **Supply chain context** and ecosystem health assessment
+- **Exploitability context** with attack surface analysis
+- **Risk narratives** identifying systemic issues
+- **Business impact context** and maturity assessment
+- Dependency relationship analysis
+- Temporal trend identification
+
+**What Claude Adds:**
+- Pattern recognition across vulnerabilities
+- Contextual understanding of supply chain risks
+- Attack feasibility assessment
+- Systemic issue identification
+- Security posture narratives
+
+**What's in Base Analyzer:**
+- CISA KEV prioritization
+- CVSS severity scoring
+- Vulnerability counts and statistics
+- Basic categorization
 
 **Setup:**
 ```bash
@@ -432,24 +462,29 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 **Usage:**
 ```bash
 # Analyze with AI insights (uses .env file or environment variable)
-./sbom-analyzer-claude.sh /path/to/sbom.json
+./vulnerability-analyzer-claude.sh /path/to/sbom.json
 
 # Analyze repository with taint analysis
-./sbom-analyzer-claude.sh --taint-analysis https://github.com/org/repo
+./vulnerability-analyzer-claude.sh --taint-analysis https://github.com/org/repo
 
 # Or specify API key directly (overrides .env)
-./sbom-analyzer-claude.sh --api-key sk-ant-xxx sbom.json
+./vulnerability-analyzer-claude.sh --api-key sk-ant-xxx sbom.json
 ```
 
 **Output Includes:**
-1. **Executive Summary** - Total vulnerabilities, severity breakdown, key risks
-2. **Critical Findings** - CVE IDs, CVSS scores, CISA KEV matches
-3. **Prioritized Remediation** - Ranked by priority with version upgrades
-4. **Risk Assessment** - Security posture, supply chain risks, actions
+1. **Pattern Analysis** - Vulnerability clustering, dependency chain risks, ecosystem health
+2. **Supply Chain Context** - Critical path vulnerabilities, maintainer patterns, ecosystem-specific risks
+3. **Exploitability Context** - Attack surface analysis, reachability insights, feasibility assessment
+4. **Risk Narrative** - Systemic issues, security posture assessment, concerning patterns
+5. **Business Impact** - Real-world risk evaluation, maturity assessment
 
 **Requirements:**
-- Same as basic analyzer
+- osv-scanner: `go install github.com/google/osv-scanner/cmd/osv-scanner@latest`
+- syft (for SBOM generation): `brew install syft`
+- jq: `brew install jq`
 - Anthropic API key
+
+**Note:** Run `./bootstrap.sh` from repository root to automatically check for and install all required dependencies.
 
 ### compare-analyzers.sh
 
@@ -486,21 +521,21 @@ Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrat
 ```yaml
 - name: SBOM Analysis
   run: |
-    ./sbom-analyzer.sh --format json --output scan.json sbom.json
+    ./vulnerability-analyzer.sh --format json --output scan.json sbom.json
 
 - name: AI-Enhanced Analysis (on main)
   if: github.ref == 'refs/heads/main'
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   run: |
-    ./sbom-analyzer-claude.sh sbom.json > analysis-report.txt
+    ./vulnerability-analyzer-claude.sh sbom.json > analysis-report.txt
 ```
 
 **GitLab CI Example:**
 ```yaml
 sbom_scan:
   script:
-    - ./sbom-analyzer.sh --format json --output scan.json sbom.json
+    - ./vulnerability-analyzer.sh --format json --output scan.json sbom.json
   artifacts:
     reports:
       dependency_scanning: scan.json
@@ -516,10 +551,16 @@ sbom_scan:
 - [CISA KEV Catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)
 
 ### Tools
-- **SBOM Generators**: Syft, CycloneDX CLI, SPDX tools
-- **Vulnerability Scanners**: OSV-Scanner, Grype, Trivy
+- **SBOM Generators**:
+  - **syft** by Anchore (recommended) - Fast, accurate SBOM generation
+  - CycloneDX CLI
+  - SPDX tools
+- **Vulnerability Scanners**:
+  - **osv-scanner** (official OSV CLI) - Scan SBOMs and repositories
+  - Grype by Anchore
+  - Trivy
 - **API Clients**: curl, Postman, custom scripts
-- **Automation Scripts**: sbom-analyzer.sh, sbom-analyzer-claude.sh, compare-analyzers.sh
+- **Automation Scripts**: vulnerability-analyzer.sh, vulnerability-analyzer-claude.sh, compare-analyzers.sh
 
 ### Related Skills
 - [Certificate Analyzer](../certificate-analyzer/) - TLS/SSL certificate analysis
