@@ -45,6 +45,7 @@ MODES:
 
 MODULES:
     --vulnerability, -v     Run vulnerability analysis
+    --provenance, -p        Run provenance analysis (SLSA)
     --all, -a               Run all analysis modules
 
 TARGETS:
@@ -315,6 +316,19 @@ run_vulnerability_analysis() {
     "$analyzer" --prioritize "$target"
 }
 
+# Function to run provenance analysis
+run_provenance_analysis() {
+    local target="$1"
+    local analyzer="$SCRIPT_DIR/provenance-analysis/provenance-analyzer.sh"
+
+    if [[ ! -f "$analyzer" ]]; then
+        echo -e "${RED}✗ Provenance analyzer not found${NC}"
+        return 1
+    fi
+
+    "$analyzer" "$target"
+}
+
 # Function to run analysis on target
 analyze_target() {
     local target="$1"
@@ -328,6 +342,9 @@ analyze_target() {
         case "$module" in
             vulnerability)
                 run_vulnerability_analysis "$target"
+                ;;
+            provenance)
+                run_provenance_analysis "$target"
                 ;;
             *)
                 echo -e "${YELLOW}⚠ Unknown module: $module${NC}"
@@ -351,8 +368,12 @@ while [[ $# -gt 0 ]]; do
             MODULES+=("vulnerability")
             shift
             ;;
+        -p|--provenance)
+            MODULES+=("provenance")
+            shift
+            ;;
         -a|--all)
-            MODULES=("vulnerability")
+            MODULES=("vulnerability" "provenance")
             shift
             ;;
         --org)
