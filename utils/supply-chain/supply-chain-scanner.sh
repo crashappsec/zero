@@ -434,7 +434,7 @@ fi
 if [[ ${#MODULES[@]} -eq 0 ]]; then
     # Try to load default modules from config
     if load_config "supply-chain" "$CONFIG_FILE" 2>/dev/null; then
-        local default_modules=$(get_default_modules)
+        default_modules=$(get_default_modules)
         if [[ -n "$default_modules" ]]; then
             echo -e "${BLUE}Using default modules from config${NC}"
             while IFS= read -r mod; do
