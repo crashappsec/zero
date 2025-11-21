@@ -292,7 +292,7 @@ analyze_with_claude() {
     fi
 
     # Prepare prompt
-    local prompt="I need you to analyze these SBOM vulnerability scan results from osv-scanner.
+    local prompt="Analyze these SBOM vulnerability scan results from osv-scanner. Focus on AI-driven insights that go beyond basic data aggregation.
 
 Target: $target_desc
 Analysis Mode: $analysis_mode
@@ -303,42 +303,44 @@ Scan Results:
 $results_content
 \`\`\`
 
-Please provide a purely objective vulnerability analysis with:
+Provide CONTEXTUAL ANALYSIS focusing on:
 
-1. **Executive Summary**
-   - Total vulnerabilities found
-   - Breakdown by severity (Critical, High, Medium, Low)
-   - Key risk indicators identified
+1. **Pattern Analysis**
+   - Common vulnerability patterns across packages
+   - Dependency chain risks (transitive vulnerability clustering)
+   - Package ecosystem health indicators
+   - Temporal trends (old vulnerabilities indicating stale dependencies)
 
-2. **Critical Findings**
-   - List critical and high severity vulnerabilities
-   - Include CVE IDs, affected packages, and CVSS scores
-   - Note any CISA KEV matches if applicable
-   - If taint analysis enabled: indicate reachability status (CALLED, NOT CALLED, UNKNOWN)
+2. **Supply Chain Context**
+   - Dependency relationship analysis
+   - Critical path vulnerabilities (packages used by many others)
+   - Maintainer patterns and project health signals
+   - Ecosystem-specific risks (e.g., npm typosquatting, Java deserialization)
 
-3. **Taint Analysis Results** (if enabled)
-   - Vulnerabilities that are CALLED (actually reachable from code)
-   - Vulnerabilities that are NOT CALLED (present but not used)
-   - Vulnerabilities with UNKNOWN reachability
-   - Impact of reachability on actual risk
+3. **Exploitability Context** (if taint analysis available)
+   - Relationship between vulnerability presence and actual usage
+   - Attack surface analysis based on reachability
+   - False positive indicators (not called vulnerabilities)
+   - Attack vector feasibility in this specific codebase
 
-4. **Vulnerability Distribution**
-   - Breakdown by package/dependency
-   - Direct vs. transitive dependencies
-   - Severity distribution across components
+4. **Risk Narrative**
+   - What story do these vulnerabilities tell about the codebase?
+   - Are there systemic issues (outdated dependencies, risky package choices)?
+   - How do direct vs transitive vulnerabilities compare?
+   - Notable gaps or concerning combinations
 
-5. **Risk Assessment**
-   - Overall security posture based on findings
-   - Supply chain risks identified
-   - Known exploitation (CISA KEV) presence
+5. **Business Impact Context**
+   - Which vulnerabilities pose real-world exploitation risk?
+   - Supply chain maturity assessment
+   - Security posture relative to modern practices
+
+NOTE: Basic prioritization (CVSS, KEV, counts) is handled by the base analyzer.
+Focus on INSIGHTS, PATTERNS, and CONTEXT that require understanding and reasoning.
 
 IMPORTANT: Provide ONLY factual analysis and observations. Do NOT include:
-- Recommendations or action items
-- Remediation priorities or timelines
-- Suggested version upgrades or fixes
-- \"Should\" or \"must\" statements
-
-Be specific and data-driven. Focus exclusively on what IS, not what should be done about it."
+- Specific remediation steps or version upgrades
+- Prescriptive action items or timelines
+- \"Should\" or \"must\" statements about fixes"
 
     # Call Claude API
     local response=$(curl -s https://api.anthropic.com/v1/messages \
