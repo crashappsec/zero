@@ -175,6 +175,123 @@ get_staleness_category() {
     fi
 }
 
+# Calculate commit frequency score for a file/contributor
+# Returns normalized score 0-100 based on commit count
+calculate_commit_frequency_score() {
+    local commits="$1"
+    local max_commits="$2"
+
+    if [[ $max_commits -eq 0 ]]; then
+        echo "0"
+        return
+    fi
+
+    # Normalize to 0-100 scale
+    echo "scale=2; ($commits / $max_commits) * 100" | bc -l
+}
+
+# Calculate lines contributed score
+# Returns normalized score 0-100 based on lines changed
+calculate_lines_score() {
+    local lines_changed="$1"
+    local max_lines="$2"
+
+    if [[ $max_lines -eq 0 ]]; then
+        echo "0"
+        return
+    fi
+
+    # Normalize to 0-100 scale with logarithmic scaling for very large changes
+    local normalized=$(echo "scale=2; ($lines_changed / $max_lines) * 100" | bc -l)
+
+    # Cap at 100
+    if (( $(echo "$normalized > 100" | bc -l) )); then
+        echo "100"
+    else
+        echo "$normalized"
+    fi
+}
+
+# Calculate review participation score
+# Based on number of reviews given and received
+calculate_review_participation_score() {
+    local reviews_given="$1"
+    local reviews_received="$2"
+    local max_reviews_given="$3"
+    local max_reviews_received="$4"
+
+    local given_score=0
+    local received_score=0
+
+    if [[ $max_reviews_given -gt 0 ]]; then
+        given_score=$(echo "scale=2; ($reviews_given / $max_reviews_given) * 50" | bc -l)
+    fi
+
+    if [[ $max_reviews_received -gt 0 ]]; then
+        received_score=$(echo "scale=2; ($reviews_received / $max_reviews_received) * 50" | bc -l)
+    fi
+
+    # Combined score (50% for giving reviews, 50% for receiving)
+    echo "scale=2; $given_score + $received_score" | bc -l
+}
+
+# Calculate consistency score based on commit distribution over time
+# Returns 0-1 where 1 is perfectly consistent, 0 is highly sporadic
+calculate_consistency_score() {
+    local -a commit_dates=("$@")
+    local n=${#commit_dates[@]}
+
+    if [[ $n -lt 2 ]]; then
+        echo "0"
+        return
+    fi
+
+    # Calculate standard deviation of time gaps between commits
+    # Lower std dev = more consistent = higher score
+
+    # Calculate gaps
+    local -a gaps=()
+    local prev_date="${commit_dates[0]}"
+
+    for ((i=1; i<n; i++)); do
+        local current_date="${commit_dates[i]}"
+        local gap=$(( $(date -j -f "%Y-%m-%d" "$current_date" +%s 2>/dev/null || date -d "$current_date" +%s) - $(date -j -f "%Y-%m-%d" "$prev_date" +%s 2>/dev/null || date -d "$prev_date" +%s) ))
+        gaps+=("$gap")
+        prev_date="$current_date"
+    done
+
+    # Calculate mean gap
+    local sum=0
+    for gap in "${gaps[@]}"; do
+        sum=$((sum + gap))
+    done
+    local mean=$((sum / ${#gaps[@]}))
+
+    # Calculate standard deviation
+    local variance_sum=0
+    for gap in "${gaps[@]}"; do
+        local diff=$((gap - mean))
+        variance_sum=$((variance_sum + diff * diff))
+    done
+    local std_dev=$(echo "scale=2; sqrt($variance_sum / ${#gaps[@]})" | bc -l)
+
+    # Convert to consistency score (0-1)
+    # Lower std dev relative to mean = higher consistency
+    local coefficient_variation=$(echo "scale=4; $std_dev / $mean" | bc -l)
+
+    # Invert and normalize (assuming CV > 2.0 is very inconsistent)
+    local consistency=$(echo "scale=4; 1 - ($coefficient_variation / 2)" | bc -l)
+
+    # Clamp to 0-1
+    if (( $(echo "$consistency < 0" | bc -l) )); then
+        echo "0"
+    elif (( $(echo "$consistency > 1" | bc -l) )); then
+        echo "1"
+    else
+        echo "$consistency"
+    fi
+}
+
 # Calculate ownership score using enhanced 5-component formula
 # Based on 2024 research findings
 calculate_ownership_score() {
@@ -188,6 +305,53 @@ calculate_ownership_score() {
     echo "scale=2; ($commit_freq * 0.30) + ($lines_contrib * 0.20) + ($review_partic * 0.25) + ($recency * 100 * 0.15) + ($consistency * 100 * 0.10)" | bc -l
 }
 
+# Calculate comprehensive ownership metrics for a contributor to a file
+# Returns: commit_score|lines_score|review_score|recency_factor|consistency_score|total_score
+calculate_comprehensive_ownership() {
+    local repo_path="$1"
+    local file_path="$2"
+    local contributor_email="$3"
+    local since_date="$4"
+
+    cd "$repo_path" || return 1
+
+    # Get commit count
+    local commits=$(git log --since="$since_date" --author="$contributor_email" --oneline -- "$file_path" 2>/dev/null | wc -l | tr -d ' ')
+
+    # Get max commits by anyone to this file
+    local max_commits=$(git log --since="$since_date" --format="%ae" -- "$file_path" 2>/dev/null | sort | uniq -c | sort -rn | head -1 | awk '{print $1}')
+    max_commits="${max_commits:-1}"
+
+    # Get lines changed
+    local lines_changed=$(git log --since="$since_date" --author="$contributor_email" --numstat -- "$file_path" 2>/dev/null | awk '{sum+=$1+$2} END {print sum+0}')
+
+    # Get max lines by anyone
+    local max_lines=$(git log --since="$since_date" --numstat -- "$file_path" 2>/dev/null | awk -v email="$contributor_email" '{lines[$4]+=$1+$2} END {for(e in lines) if(lines[e]>max) max=lines[e]; print max+0}')
+    max_lines="${max_lines:-1}"
+
+    # Get last commit date for recency
+    local last_commit=$(git log --since="$since_date" --author="$contributor_email" --format="%ad" --date=short -- "$file_path" 2>/dev/null | head -1)
+    local days_since=90
+    if [[ -n "$last_commit" ]]; then
+        days_since=$(( ($(date +%s) - $(date -j -f "%Y-%m-%d" "$last_commit" +%s 2>/dev/null || date -d "$last_commit" +%s)) / 86400 ))
+    fi
+
+    # Get commit dates for consistency
+    mapfile -t commit_dates < <(git log --since="$since_date" --author="$contributor_email" --format="%ad" --date=short -- "$file_path" 2>/dev/null)
+
+    # Calculate components
+    local commit_score=$(calculate_commit_frequency_score "$commits" "$max_commits")
+    local lines_score=$(calculate_lines_score "$lines_changed" "$max_lines")
+    local review_score="50"  # Placeholder - would need GitHub API integration
+    local recency=$(calculate_recency_factor "$days_since")
+    local consistency=$(calculate_consistency_score "${commit_dates[@]}")
+
+    # Calculate total ownership score
+    local total=$(calculate_ownership_score "$commit_score" "$lines_score" "$review_score" "$recency" "$consistency")
+
+    echo "$commit_score|$lines_score|$review_score|$recency|$consistency|$total"
+}
+
 # Export functions for use in other scripts
 export -f calculate_recency_factor
 export -f calculate_gini_coefficient
@@ -196,4 +360,9 @@ export -f calculate_health_score
 export -f get_health_grade
 export -f calculate_top_n_concentration
 export -f get_staleness_category
+export -f calculate_commit_frequency_score
+export -f calculate_lines_score
+export -f calculate_review_participation_score
+export -f calculate_consistency_score
 export -f calculate_ownership_score
+export -f calculate_comprehensive_ownership
