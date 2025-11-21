@@ -120,6 +120,72 @@ clone_repository() {
     fi
 }
 
+# Function to find existing SBOM in directory
+find_sbom() {
+    local dir="$1"
+
+    # Look for common SBOM file patterns
+    local sbom_patterns=(
+        "sbom.json"
+        "bom.json"
+        "*.cdx.json"
+        "sbom.xml"
+        "bom.xml"
+        "*.cdx.xml"
+        "sbom.cdx.json"
+        "bom.cdx.json"
+    )
+
+    for pattern in "${sbom_patterns[@]}"; do
+        local found=$(find "$dir" -maxdepth 2 -name "$pattern" -type f 2>/dev/null | head -1)
+        if [[ -n "$found" ]]; then
+            echo "$found"
+            return 0
+        fi
+    done
+
+    return 1
+}
+
+# Function to generate SBOM using syft or cdxgen
+generate_sbom() {
+    local target_dir="$1"
+    local output_file="$2"
+
+    echo -e "${BLUE}No existing SBOM found. Generating CycloneDX SBOM...${NC}"
+
+    # Try syft first (most popular)
+    if command -v syft &> /dev/null; then
+        echo -e "${BLUE}Using syft to generate SBOM...${NC}"
+        if syft "$target_dir" -o cyclonedx-json="$output_file" 2>/dev/null; then
+            echo -e "${GREEN}✓ SBOM generated with syft${NC}"
+            return 0
+        else
+            echo -e "${YELLOW}⚠ syft generation failed, trying cdxgen...${NC}"
+        fi
+    fi
+
+    # Try cdxgen as fallback
+    if command -v cdxgen &> /dev/null; then
+        echo -e "${BLUE}Using cdxgen to generate SBOM...${NC}"
+        if cdxgen "$target_dir" -o "$output_file" --spec-version 1.6 2>/dev/null; then
+            echo -e "${GREEN}✓ SBOM generated with cdxgen${NC}"
+            return 0
+        else
+            echo -e "${YELLOW}⚠ cdxgen generation failed${NC}"
+        fi
+    fi
+
+    # No SBOM generator available
+    echo -e "${YELLOW}⚠ No SBOM generator found${NC}"
+    echo ""
+    echo "Install syft (recommended) or cdxgen:"
+    echo "  - syft:   brew install syft  (or: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s)"
+    echo "  - cdxgen: npm install -g @cyclonedx/cdxgen"
+    echo ""
+    return 1
+}
+
 # Function to run osv-scanner
 run_osv_scanner() {
     local target="$1"
@@ -304,7 +370,25 @@ elif is_git_url "$TARGET"; then
     echo -e "${GREEN}Target: Git repository${NC}"
     if clone_repository "$TARGET"; then
         TARGET_DESC="Repository: $TARGET"
-        SCAN_RESULTS=$(run_osv_scanner "$TEMP_DIR" "false")
+
+        # Check for existing SBOM or generate one
+        EXISTING_SBOM=$(find_sbom "$TEMP_DIR")
+        if [[ -n "$EXISTING_SBOM" ]]; then
+            echo -e "${GREEN}✓ Found existing SBOM: ${EXISTING_SBOM#$TEMP_DIR/}${NC}"
+            SCAN_RESULTS=$(run_osv_scanner "$EXISTING_SBOM" "true")
+        else
+            # Generate SBOM
+            GENERATED_SBOM=$(mktemp -t sbom.XXXXXX.json)
+            if generate_sbom "$TEMP_DIR" "$GENERATED_SBOM"; then
+                SCAN_RESULTS=$(run_osv_scanner "$GENERATED_SBOM" "true")
+                rm -f "$GENERATED_SBOM"
+            else
+                # Fallback to recursive scan without SBOM
+                echo -e "${YELLOW}Falling back to recursive scan...${NC}"
+                SCAN_RESULTS=$(run_osv_scanner "$TEMP_DIR" "false")
+            fi
+        fi
+
         analyze_with_claude "$SCAN_RESULTS" "$TARGET_DESC"
         rm -f "$SCAN_RESULTS"
         cleanup
@@ -312,7 +396,25 @@ elif is_git_url "$TARGET"; then
 elif [[ -d "$TARGET" ]]; then
     echo -e "${GREEN}Target: Local directory${NC}"
     TARGET_DESC="Directory: $TARGET"
-    SCAN_RESULTS=$(run_osv_scanner "$TARGET" "false")
+
+    # Check for existing SBOM or generate one
+    EXISTING_SBOM=$(find_sbom "$TARGET")
+    if [[ -n "$EXISTING_SBOM" ]]; then
+        echo -e "${GREEN}✓ Found existing SBOM: ${EXISTING_SBOM#$TARGET/}${NC}"
+        SCAN_RESULTS=$(run_osv_scanner "$EXISTING_SBOM" "true")
+    else
+        # Generate SBOM
+        GENERATED_SBOM=$(mktemp -t sbom.XXXXXX.json)
+        if generate_sbom "$TARGET" "$GENERATED_SBOM"; then
+            SCAN_RESULTS=$(run_osv_scanner "$GENERATED_SBOM" "true")
+            rm -f "$GENERATED_SBOM"
+        else
+            # Fallback to recursive scan without SBOM
+            echo -e "${YELLOW}Falling back to recursive scan...${NC}"
+            SCAN_RESULTS=$(run_osv_scanner "$TARGET" "false")
+        fi
+    fi
+
     analyze_with_claude "$SCAN_RESULTS" "$TARGET_DESC"
     rm -f "$SCAN_RESULTS"
 else
