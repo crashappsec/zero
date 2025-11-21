@@ -44,6 +44,24 @@ done < <(find "$REPO_ROOT/skills" -type f -name "*.sh" -print0)
 
 echo ""
 
+# Check for syft (SBOM generator)
+echo -e "${BLUE}Checking for syft (SBOM generator)...${NC}"
+if command -v syft &> /dev/null; then
+    SYFT_VERSION=$(syft version 2>&1 | head -1 || echo "unknown")
+    echo -e "${GREEN}✓${NC} syft is installed: $SYFT_VERSION"
+    echo ""
+else
+    echo -e "${YELLOW}⚠${NC} syft is not installed"
+    echo ""
+    echo "syft is required to generate SBOMs for repositories without existing SBOMs."
+    echo ""
+    echo "Install syft:"
+    echo "  - macOS:   brew install syft"
+    echo "  - Linux:   curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s"
+    echo "  - Manual:  https://github.com/anchore/syft#installation"
+    echo ""
+fi
+
 # Check for osv-scanner
 echo -e "${BLUE}Checking for osv-scanner...${NC}"
 if command -v osv-scanner &> /dev/null; then

@@ -59,10 +59,10 @@ ENVIRONMENT:
 
 DEFAULT BEHAVIOR (Vulnerability Analysis):
     1. If SBOM exists: Scans the SBOM for vulnerabilities
-    2. If no SBOM: osv-scanner scans lock files directly
-       - Supports: package-lock.json, go.mod, Cargo.lock, requirements.txt, etc.
-    3. Reports vulnerabilities with severity, CVEs, CVSS scores
-    4. Checks against CISA KEV for known exploitation
+    2. If no SBOM: Generates SBOM with syft (CycloneDX format)
+    3. Scans SBOM with osv-scanner to find vulnerabilities
+    4. Reports vulnerabilities with severity, CVEs, CVSS scores
+    5. Checks against CISA KEV for known exploitation
 
 TAINT ANALYSIS (--taint-analysis):
     - Adds call graph/reachability analysis
@@ -94,8 +94,13 @@ EXAMPLES:
     $0 /path/to/project
 
 DEPENDENCIES:
-    - osv-scanner (required): Install via bootstrap.sh or:
+    - syft (required): SBOM generation
+      brew install syft  (or see bootstrap.sh)
+
+    - osv-scanner (required): Vulnerability scanning and taint analysis
       go install github.com/google/osv-scanner/cmd/osv-scanner@latest
+
+    Run ./bootstrap.sh to check for and install missing dependencies.
 
 EOF
     exit 1
@@ -183,35 +188,33 @@ find_sbom() {
     return 1
 }
 
-# Function to check if directory has lock files that osv-scanner can use
-has_scannable_files() {
-    local dir="$1"
+# Function to generate SBOM using syft
+generate_sbom() {
+    local target_dir="$1"
+    local output_file="$2"
 
-    # Check for common lock files and manifest files that osv-scanner supports
-    local lock_patterns=(
-        "package-lock.json"
-        "yarn.lock"
-        "pnpm-lock.yaml"
-        "Gemfile.lock"
-        "Cargo.lock"
-        "go.mod"
-        "go.sum"
-        "requirements.txt"
-        "poetry.lock"
-        "Pipfile.lock"
-        "composer.lock"
-        "pom.xml"
-        "gradle.lockfile"
-        "mix.lock"
-    )
+    echo -e "${BLUE}Generating SBOM with syft...${NC}"
 
-    for pattern in "${lock_patterns[@]}"; do
-        if find "$dir" -name "$pattern" -type f 2>/dev/null | grep -q .; then
-            return 0
-        fi
-    done
+    # Check if syft is installed
+    if ! command -v syft &> /dev/null; then
+        echo -e "${RED}✗ syft is not installed${NC}"
+        echo ""
+        echo "Install syft:"
+        echo "  - macOS:   brew install syft"
+        echo "  - Linux:   curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s"
+        echo "  - Manual:  https://github.com/anchore/syft#installation"
+        echo ""
+        return 1
+    fi
 
-    return 1
+    # Generate CycloneDX SBOM
+    if syft "$target_dir" -o cyclonedx-json="$output_file" 2>&1 | grep -v "cataloging"; then
+        echo -e "${GREEN}✓ SBOM generated: $(basename "$output_file")${NC}"
+        return 0
+    else
+        echo -e "${RED}✗ SBOM generation failed${NC}"
+        return 1
+    fi
 }
 
 # Function to run osv-scanner
@@ -427,24 +430,32 @@ elif is_git_url "$TARGET"; then
         # Check for existing SBOM first
         echo -e "${BLUE}Checking for existing SBOM...${NC}"
         EXISTING_SBOM=$(find_sbom "$TEMP_DIR")
+
+        SBOM_TO_SCAN=""
+        GENERATED_SBOM=""
+
         if [[ -n "$EXISTING_SBOM" ]]; then
             echo -e "${GREEN}✓ Found existing SBOM: ${EXISTING_SBOM#$TEMP_DIR/}${NC}"
-            echo ""
-            SCAN_RESULTS=$(run_osv_scanner "$EXISTING_SBOM" "true")
+            SBOM_TO_SCAN="$EXISTING_SBOM"
         else
             echo -e "${YELLOW}⚠ No existing SBOM found${NC}"
-            echo ""
 
-            # Check for lock files
-            echo -e "${BLUE}Checking for lock files...${NC}"
-            if has_scannable_files "$TEMP_DIR"; then
-                echo -e "${GREEN}✓ Found scannable lock files${NC}"
-                echo -e "${BLUE}Using osv-scanner to scan dependencies from lock files...${NC}"
+            # Generate SBOM with syft
+            GENERATED_SBOM="$TEMP_DIR/sbom-generated.json"
+            echo ""
+            if generate_sbom "$TEMP_DIR" "$GENERATED_SBOM"; then
+                SBOM_TO_SCAN="$GENERATED_SBOM"
             else
-                echo -e "${YELLOW}⚠ No lock files found. osv-scanner will do its best to find dependencies.${NC}"
+                echo -e "${YELLOW}Falling back to direct osv-scanner scan...${NC}"
             fi
-            echo ""
+        fi
 
+        echo ""
+
+        # Scan the SBOM or directory
+        if [[ -n "$SBOM_TO_SCAN" ]] && [[ -f "$SBOM_TO_SCAN" ]]; then
+            SCAN_RESULTS=$(run_osv_scanner "$SBOM_TO_SCAN" "true")
+        else
             SCAN_RESULTS=$(run_osv_scanner "$TEMP_DIR" "false")
         fi
 
@@ -465,24 +476,32 @@ elif [[ -d "$TARGET" ]]; then
     # Check for existing SBOM first
     echo -e "${BLUE}Checking for existing SBOM...${NC}"
     EXISTING_SBOM=$(find_sbom "$TARGET")
+
+    SBOM_TO_SCAN=""
+    GENERATED_SBOM=""
+
     if [[ -n "$EXISTING_SBOM" ]]; then
         echo -e "${GREEN}✓ Found existing SBOM: ${EXISTING_SBOM#$TARGET/}${NC}"
-        echo ""
-        SCAN_RESULTS=$(run_osv_scanner "$EXISTING_SBOM" "true")
+        SBOM_TO_SCAN="$EXISTING_SBOM"
     else
         echo -e "${YELLOW}⚠ No existing SBOM found${NC}"
-        echo ""
 
-        # Check for lock files
-        echo -e "${BLUE}Checking for lock files...${NC}"
-        if has_scannable_files "$TARGET"; then
-            echo -e "${GREEN}✓ Found scannable lock files${NC}"
-            echo -e "${BLUE}Using osv-scanner to scan dependencies from lock files...${NC}"
+        # Generate SBOM with syft
+        GENERATED_SBOM="$TARGET/sbom-generated.json"
+        echo ""
+        if generate_sbom "$TARGET" "$GENERATED_SBOM"; then
+            SBOM_TO_SCAN="$GENERATED_SBOM"
         else
-            echo -e "${YELLOW}⚠ No lock files found. osv-scanner will do its best to find dependencies.${NC}"
+            echo -e "${YELLOW}Falling back to direct osv-scanner scan...${NC}"
         fi
-        echo ""
+    fi
 
+    echo ""
+
+    # Scan the SBOM or directory
+    if [[ -n "$SBOM_TO_SCAN" ]] && [[ -f "$SBOM_TO_SCAN" ]]; then
+        SCAN_RESULTS=$(run_osv_scanner "$SBOM_TO_SCAN" "true")
+    else
         SCAN_RESULTS=$(run_osv_scanner "$TARGET" "false")
     fi
 
