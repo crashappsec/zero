@@ -207,12 +207,19 @@ generate_sbom() {
         return 1
     fi
 
-    # Generate CycloneDX SBOM
-    if syft "$target_dir" -o cyclonedx-json="$output_file" 2>&1 | grep -v "cataloging"; then
-        echo -e "${GREEN}✓ SBOM generated: $(basename "$output_file")${NC}"
-        return 0
+    # Generate CycloneDX SBOM (show progress)
+    if syft "$target_dir" -o cyclonedx-json="$output_file" -q; then
+        if [[ -f "$output_file" ]]; then
+            local pkg_count=$(jq -r '.components | length' "$output_file" 2>/dev/null || echo "unknown")
+            echo -e "${GREEN}✓ SBOM generated: $(basename "$output_file") (${pkg_count} packages)${NC}"
+            return 0
+        else
+            echo -e "${RED}✗ SBOM file not created${NC}"
+            return 1
+        fi
     else
         echo -e "${RED}✗ SBOM generation failed${NC}"
+        echo "Command: syft $target_dir -o cyclonedx-json=$output_file"
         return 1
     fi
 }
@@ -228,24 +235,32 @@ run_osv_scanner() {
     local cmd
     if [[ "$is_sbom" == "true" ]]; then
         cmd="osv-scanner --sbom=$target --format=json"
+        echo "  Scanning SBOM: $(basename "$target")"
     elif [[ "$TAINT_ANALYSIS" == "true" ]]; then
         cmd="osv-scanner --call-analysis=all $target --format=json"
+        echo "  Mode: Taint/call analysis"
     else
         cmd="osv-scanner --recursive $target --format=json"
+        echo "  Mode: Recursive directory scan"
     fi
 
-    if eval "$cmd" > "$output_file" 2>/dev/null || [[ -s "$output_file" ]]; then
-        echo -e "${GREEN}✓ Scan complete${NC}"
+    # Run the scan (show errors but continue on non-zero exit)
+    eval "$cmd" > "$output_file" 2>&1
+    local exit_code=$?
+
+    # Check if we got results
+    if [[ -s "$output_file" ]]; then
+        local vuln_count=$(jq -r '.results | length' "$output_file" 2>/dev/null || echo "0")
+        echo -e "${GREEN}✓ Scan complete${NC} (exit code: $exit_code)"
+        if [[ "$vuln_count" != "0" ]]; then
+            echo "  Found results in output"
+        fi
         echo "$output_file"
     else
-        # Even with no vulnerabilities, osv-scanner returns non-zero
-        if [[ -s "$output_file" ]]; then
-            echo -e "${GREEN}✓ Scan complete${NC}"
-            echo "$output_file"
-        else
-            echo -e "${YELLOW}⚠ Scan completed with warnings${NC}"
-            echo "$output_file"
-        fi
+        echo -e "${YELLOW}⚠ Scan produced no output${NC}"
+        echo "  Command: $cmd"
+        echo "  Exit code: $exit_code"
+        echo "$output_file"
     fi
 }
 
