@@ -40,8 +40,8 @@ Usage: $0 [OPTIONS] <target>
 
 TARGET:
     SBOM file path          Analyze an existing SBOM (JSON/XML)
-    Git repository URL      Clone and analyze repository
-    Local directory path    Analyze local repository
+    Git repository URL      Clone and analyze repository (scans lock files)
+    Local directory path    Analyze local repository (scans lock files)
 
 OPTIONS:
     -t, --taint-analysis    Enable call graph/taint analysis (Go projects)
@@ -52,15 +52,31 @@ OPTIONS:
 ENVIRONMENT:
     ANTHROPIC_API_KEY       Your Anthropic API key
 
+HOW IT WORKS:
+    1. If SBOM exists: Uses the existing SBOM
+    2. If no SBOM: osv-scanner scans lock files directly
+       - Supports: package-lock.json, go.mod, Cargo.lock, requirements.txt, etc.
+    3. Results are analyzed by Claude AI for enhanced insights
+
 EXAMPLES:
     # Analyze SBOM with Claude enhancement
     $0 /path/to/sbom.json
 
-    # Analyze repository with taint analysis and Claude
+    # Analyze repository (scans lock files automatically)
+    $0 https://github.com/org/repo
+
+    # Analyze with taint analysis (Go projects)
     $0 --taint-analysis https://github.com/org/repo
+
+    # Analyze local directory
+    $0 /path/to/project
 
     # Specify API key directly
     $0 --api-key sk-ant-xxx /path/to/sbom.json
+
+DEPENDENCIES:
+    - osv-scanner (required): Install via bootstrap.sh or:
+      go install github.com/google/osv-scanner/cmd/osv-scanner@latest
 
 EOF
     exit 1
@@ -147,42 +163,34 @@ find_sbom() {
     return 1
 }
 
-# Function to generate SBOM using syft or cdxgen
-generate_sbom() {
-    local target_dir="$1"
-    local output_file="$2"
+# Function to check if directory has lock files that osv-scanner can use
+has_scannable_files() {
+    local dir="$1"
 
-    echo -e "${BLUE}No existing SBOM found. Generating CycloneDX SBOM...${NC}"
+    # Check for common lock files and manifest files that osv-scanner supports
+    local lock_patterns=(
+        "package-lock.json"
+        "yarn.lock"
+        "pnpm-lock.yaml"
+        "Gemfile.lock"
+        "Cargo.lock"
+        "go.mod"
+        "go.sum"
+        "requirements.txt"
+        "poetry.lock"
+        "Pipfile.lock"
+        "composer.lock"
+        "pom.xml"
+        "gradle.lockfile"
+        "mix.lock"
+    )
 
-    # Try syft first (most popular)
-    if command -v syft &> /dev/null; then
-        echo -e "${BLUE}Using syft to generate SBOM...${NC}"
-        if syft "$target_dir" -o cyclonedx-json="$output_file" 2>/dev/null; then
-            echo -e "${GREEN}✓ SBOM generated with syft${NC}"
+    for pattern in "${lock_patterns[@]}"; do
+        if find "$dir" -name "$pattern" -type f 2>/dev/null | grep -q .; then
             return 0
-        else
-            echo -e "${YELLOW}⚠ syft generation failed, trying cdxgen...${NC}"
         fi
-    fi
+    done
 
-    # Try cdxgen as fallback
-    if command -v cdxgen &> /dev/null; then
-        echo -e "${BLUE}Using cdxgen to generate SBOM...${NC}"
-        if cdxgen "$target_dir" -o "$output_file" --spec-version 1.6 2>/dev/null; then
-            echo -e "${GREEN}✓ SBOM generated with cdxgen${NC}"
-            return 0
-        else
-            echo -e "${YELLOW}⚠ cdxgen generation failed${NC}"
-        fi
-    fi
-
-    # No SBOM generator available
-    echo -e "${YELLOW}⚠ No SBOM generator found${NC}"
-    echo ""
-    echo "Install syft (recommended) or cdxgen:"
-    echo "  - syft:   brew install syft  (or: curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s)"
-    echo "  - cdxgen: npm install -g @cyclonedx/cdxgen"
-    echo ""
     return 1
 }
 
@@ -371,22 +379,19 @@ elif is_git_url "$TARGET"; then
     if clone_repository "$TARGET"; then
         TARGET_DESC="Repository: $TARGET"
 
-        # Check for existing SBOM or generate one
+        # Check for existing SBOM first
         EXISTING_SBOM=$(find_sbom "$TEMP_DIR")
         if [[ -n "$EXISTING_SBOM" ]]; then
             echo -e "${GREEN}✓ Found existing SBOM: ${EXISTING_SBOM#$TEMP_DIR/}${NC}"
             SCAN_RESULTS=$(run_osv_scanner "$EXISTING_SBOM" "true")
         else
-            # Generate SBOM
-            GENERATED_SBOM=$(mktemp -t sbom.XXXXXX.json)
-            if generate_sbom "$TEMP_DIR" "$GENERATED_SBOM"; then
-                SCAN_RESULTS=$(run_osv_scanner "$GENERATED_SBOM" "true")
-                rm -f "$GENERATED_SBOM"
+            # Use osv-scanner recursive scan (scans lock files directly)
+            if has_scannable_files "$TEMP_DIR"; then
+                echo -e "${BLUE}No SBOM found. Using osv-scanner to scan lock files...${NC}"
             else
-                # Fallback to recursive scan without SBOM
-                echo -e "${YELLOW}Falling back to recursive scan...${NC}"
-                SCAN_RESULTS=$(run_osv_scanner "$TEMP_DIR" "false")
+                echo -e "${YELLOW}⚠ No SBOM or lock files found. Results may be limited.${NC}"
             fi
+            SCAN_RESULTS=$(run_osv_scanner "$TEMP_DIR" "false")
         fi
 
         analyze_with_claude "$SCAN_RESULTS" "$TARGET_DESC"
@@ -397,22 +402,19 @@ elif [[ -d "$TARGET" ]]; then
     echo -e "${GREEN}Target: Local directory${NC}"
     TARGET_DESC="Directory: $TARGET"
 
-    # Check for existing SBOM or generate one
+    # Check for existing SBOM first
     EXISTING_SBOM=$(find_sbom "$TARGET")
     if [[ -n "$EXISTING_SBOM" ]]; then
         echo -e "${GREEN}✓ Found existing SBOM: ${EXISTING_SBOM#$TARGET/}${NC}"
         SCAN_RESULTS=$(run_osv_scanner "$EXISTING_SBOM" "true")
     else
-        # Generate SBOM
-        GENERATED_SBOM=$(mktemp -t sbom.XXXXXX.json)
-        if generate_sbom "$TARGET" "$GENERATED_SBOM"; then
-            SCAN_RESULTS=$(run_osv_scanner "$GENERATED_SBOM" "true")
-            rm -f "$GENERATED_SBOM"
+        # Use osv-scanner recursive scan (scans lock files directly)
+        if has_scannable_files "$TARGET"; then
+            echo -e "${BLUE}No SBOM found. Using osv-scanner to scan lock files...${NC}"
         else
-            # Fallback to recursive scan without SBOM
-            echo -e "${YELLOW}Falling back to recursive scan...${NC}"
-            SCAN_RESULTS=$(run_osv_scanner "$TARGET" "false")
+            echo -e "${YELLOW}⚠ No SBOM or lock files found. Results may be limited.${NC}"
         fi
+        SCAN_RESULTS=$(run_osv_scanner "$TARGET" "false")
     fi
 
     analyze_with_claude "$SCAN_RESULTS" "$TARGET_DESC"

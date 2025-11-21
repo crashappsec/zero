@@ -44,39 +44,6 @@ done < <(find "$REPO_ROOT/skills" -type f -name "*.sh" -print0)
 
 echo ""
 
-# Check for SBOM generators (syft or cdxgen)
-echo -e "${BLUE}Checking for SBOM generators...${NC}"
-SBOM_GENERATOR_FOUND=false
-
-if command -v syft &> /dev/null; then
-    SYFT_VERSION=$(syft version 2>&1 | head -1 || echo "unknown")
-    echo -e "${GREEN}✓${NC} syft is installed: $SYFT_VERSION"
-    SBOM_GENERATOR_FOUND=true
-fi
-
-if command -v cdxgen &> /dev/null; then
-    CDXGEN_VERSION=$(cdxgen --version 2>&1 || echo "unknown")
-    echo -e "${GREEN}✓${NC} cdxgen is installed: $CDXGEN_VERSION"
-    SBOM_GENERATOR_FOUND=true
-fi
-
-if [[ "$SBOM_GENERATOR_FOUND" == "false" ]]; then
-    echo -e "${YELLOW}⚠${NC} No SBOM generator found (syft or cdxgen)"
-    echo ""
-    echo "An SBOM generator is required to generate SBOMs for repositories without existing SBOMs."
-    echo ""
-    echo "Install syft (recommended):"
-    echo "  - macOS:   brew install syft"
-    echo "  - Linux:   curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s"
-    echo "  - Manual:  https://github.com/anchore/syft#installation"
-    echo ""
-    echo "Or install cdxgen:"
-    echo "  - npm install -g @cyclonedx/cdxgen"
-    echo ""
-fi
-
-echo ""
-
 # Check for osv-scanner
 echo -e "${BLUE}Checking for osv-scanner...${NC}"
 if command -v osv-scanner &> /dev/null; then
