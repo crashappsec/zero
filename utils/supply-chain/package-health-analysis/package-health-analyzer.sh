@@ -260,14 +260,28 @@ analyze_package() {
     # Get health analysis
     local health_result=$(analyze_package_health "$system" "$package" "$version" 2>/dev/null || echo '{"error": "analysis_failed"}')
 
+    # Validate health_result is valid JSON
+    if ! echo "$health_result" | jq empty 2>/dev/null; then
+        log "Warning: Invalid JSON from health analysis for $package, using error placeholder"
+        health_result='{"error": "invalid_response", "package": "'$package'", "system": "'$system'", "version": "'$version'"}'
+    fi
+
     # Check deprecation
     local deprecation_result="{}"
     if [ "$CHECK_DEPRECATION" = true ]; then
         deprecation_result=$(comprehensive_deprecation_check "$system" "$package" 2>/dev/null || echo '{"deprecated": false}')
+
+        # Validate deprecation_result is valid JSON
+        if ! echo "$deprecation_result" | jq empty 2>/dev/null; then
+            log "Warning: Invalid JSON from deprecation check for $package"
+            deprecation_result='{"deprecated": false}'
+        fi
     fi
 
-    # Combine results
-    echo "$health_result" | jq --argjson deprecation "$deprecation_result" '. + {deprecation: $deprecation}'
+    # Combine results safely
+    echo "$health_result" | jq --argjson deprecation "$deprecation_result" '. + {deprecation: $deprecation}' 2>/dev/null || \
+        jq -n --arg pkg "$package" --arg sys "$system" --arg ver "$version" \
+            '{"error": "failed_to_combine_results", "package": $pkg, "system": $sys, "version": $ver}'
 }
 
 # Analyze packages from SBOM
@@ -303,8 +317,13 @@ analyze_from_sbom() {
         # Analyze package
         local result=$(analyze_package "$system" "$package" "$version")
 
-        # Add to results
-        package_results=$(echo "$package_results" | jq --argjson item "$result" '. + [$item]')
+        # Validate result before adding
+        if echo "$result" | jq empty 2>/dev/null; then
+            # Add to results only if valid JSON
+            package_results=$(echo "$package_results" | jq --argjson item "$result" '. + [$item]' 2>/dev/null || echo "$package_results")
+        else
+            log "Warning: Skipping invalid result for $package@$version"
+        fi
 
         # Track for version analysis
         if [ "$ANALYZE_VERSIONS" = true ]; then
