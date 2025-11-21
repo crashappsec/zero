@@ -1,0 +1,50 @@
+{
+  "package_health": {
+    "health_score_weights": {
+      "openssf": 0.30,
+      "maintenance": 0.25,
+      "security": 0.25,
+      "freshness": 0.10,
+      "popularity": 0.10
+    },
+    "thresholds": {
+      "excellent": 90,
+      "good": 75,
+      "fair": 60,
+      "poor": 40
+    },
+    "deprecation_sources": [
+      "deps.dev",
+      "package_registry"
+    ],
+    "ecosystems": [
+      "npm",
+      "pypi",
+      "cargo",
+      "maven",
+      "go"
+    ],
+    "api": {
+      "deps_dev_base_url": "https://api.deps.dev/v3alpha",
+      "timeout": 30,
+      "retry_attempts": 3,
+      "rate_limit_delay": 1
+    },
+    "cache": {
+      "enabled": true,
+      "ttl_hours": 24,
+      "cache_dir": "/tmp/package-health-cache"
+    },
+    "analysis": {
+      "check_unused_packages": true,
+      "analyze_versions": true,
+      "check_deprecation": true,
+      "minimum_repos_for_version_inconsistency": 2
+    },
+    "output": {
+      "default_format": "json",
+      "include_timestamps": true,
+      "verbose": false
+    }
+  }
+}
