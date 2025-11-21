@@ -14,8 +14,14 @@ set -e
 
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+UTILS_ROOT="$(dirname "$SCRIPT_DIR")"
 CONFIG_FILE="$SCRIPT_DIR/config.json"
 CONFIG_EXAMPLE="$SCRIPT_DIR/config.example.json"
+
+# Load config library
+if [[ -f "$UTILS_ROOT/lib/config-loader.sh" ]]; then
+    source "$UTILS_ROOT/lib/config-loader.sh"
+fi
 
 # Colors for output
 RED='\033[0;31m'
@@ -249,20 +255,27 @@ get_targets() {
         return 0
     fi
 
-    if [[ ! -f "$CONFIG_FILE" ]]; then
-        if [[ "$INTERACTIVE" == "true" ]]; then
-            echo -e "${YELLOW}No config file found${NC}"
-            setup_config
-        else
-            echo -e "${RED}Error: No config file found${NC}"
-            echo "Run with --setup to create configuration, or specify targets via --org/--repo"
-            exit 1
+    # Try to load config using hierarchical system
+    if load_config "supply-chain" "$CONFIG_FILE" 2>/dev/null; then
+        # Use hierarchical config loader
+        local config_orgs=$(get_organizations)
+        local config_repos=$(get_repositories)
+    else
+        # Fallback to direct config file reading
+        if [[ ! -f "$CONFIG_FILE" ]]; then
+            if [[ "$INTERACTIVE" == "true" ]]; then
+                echo -e "${YELLOW}No config file found${NC}"
+                setup_config
+            else
+                echo -e "${RED}Error: No config file found${NC}"
+                echo "Run with --setup to create configuration, or specify targets via --org/--repo"
+                exit 1
+            fi
         fi
-    fi
 
-    # Load from config
-    local config_orgs=$(jq -r '.github.organizations[]' "$CONFIG_FILE" 2>/dev/null || echo "")
-    local config_repos=$(jq -r '.github.repositories[]' "$CONFIG_FILE" 2>/dev/null || echo "")
+        config_orgs=$(jq -r '.github.organizations[]' "$CONFIG_FILE" 2>/dev/null || echo "")
+        config_repos=$(jq -r '.github.repositories[]' "$CONFIG_FILE" 2>/dev/null || echo "")
+    fi
 
     if [[ -z "$config_orgs" ]] && [[ -z "$config_repos" ]]; then
         if [[ "$INTERACTIVE" == "true" ]]; then
@@ -417,12 +430,26 @@ if [[ "$SETUP_MODE" == "true" ]]; then
     exit 0
 fi
 
-# Validate modules
+# Validate modules - use defaults from config if none specified
 if [[ ${#MODULES[@]} -eq 0 ]]; then
-    echo -e "${RED}Error: No analysis modules specified${NC}"
-    echo "Use --vulnerability, --all, or other module flags"
-    echo ""
-    usage
+    # Try to load default modules from config
+    if load_config "supply-chain" "$CONFIG_FILE" 2>/dev/null; then
+        local default_modules=$(get_default_modules)
+        if [[ -n "$default_modules" ]]; then
+            echo -e "${BLUE}Using default modules from config${NC}"
+            while IFS= read -r mod; do
+                [[ -n "$mod" ]] && MODULES+=("$mod")
+            done <<< "$default_modules"
+        fi
+    fi
+
+    # If still no modules, error
+    if [[ ${#MODULES[@]} -eq 0 ]]; then
+        echo -e "${RED}Error: No analysis modules specified${NC}"
+        echo "Use --vulnerability, --provenance, --all, or configure default_modules in config"
+        echo ""
+        usage
+    fi
 fi
 
 # Get targets

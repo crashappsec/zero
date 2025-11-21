@@ -24,6 +24,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Supply Chain Analyzer
 
+### [2.2.0] - 2024-11-21
+
+#### Added
+- **Hierarchical Configuration System**: Global and module-specific config architecture
+  - Global config at `utils/config.json` for organization-wide settings
+  - Module-specific configs at `utils/<module>/config.json` for overrides
+  - Config loading library at `utils/lib/config-loader.sh`
+  - Configuration precedence: CLI args > module config > global config
+  - `ignore_module_configs` flag to force global-only settings
+  - Helper functions: `get_organizations()`, `get_repositories()`, `get_default_modules()`
+- **Configuration Documentation**: Comprehensive `utils/CONFIG.md` guide
+  - Setup instructions and quick start
+  - Security considerations for PAT storage
+  - Migration guide from old configs
+  - Troubleshooting and best practices
+- **Default Module Settings**: All analysis engines included by default
+  - Supply chain: `["vulnerability", "provenance"]`
+  - Automatic loading when no CLI modules specified
+  - Configurable per module in global or module config
+
+#### Changed
+- **Config Loading**: All supply chain scripts now use hierarchical config system
+  - `supply-chain-scanner.sh`: Integrated config-loader library
+  - `vulnerability-analyzer.sh`: Uses config for defaults
+  - `vulnerability-analyzer-claude.sh`: Inherits config integration
+  - `provenance-analyzer.sh`: Uses config for trust settings
+  - `provenance-analyzer-claude.sh`: Inherits config integration
+- **Module Defaults**: Config-driven instead of hardcoded
+  - Loads `default_modules` from config if no CLI flags
+  - Supports per-module customization
+  - Backward compatible with CLI-only usage
+
+#### Technical Details
+- Config merge algorithm: Deep merge with module override
+- Array replacement (not concatenation) for lists
+- Environment variable support via config-loader
+- jq-based JSON parsing and validation
+- Exported functions for cross-script usage
+
+#### Migration
+- Old: Module-specific configs only
+- New: Global config with optional module overrides
+- Action: Copy `utils/config.example.json` to `utils/config.json`
+- No breaking changes: CLI-only usage still works
+
 ### [2.1.0] - 2024-11-21
 
 #### Added

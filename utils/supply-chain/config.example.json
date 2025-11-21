@@ -1,11 +1,35 @@
 {
+  "version": "1.0",
+  "description": "Supply chain module-specific configuration (overrides global config)",
   "github": {
     "pat": "",
     "organizations": [],
-    "repositories": []
+    "repositories": [],
+    "description": "Module-specific GitHub settings (overrides global if set)"
   },
-  "analysis": {
-    "default_modules": ["vulnerability"],
-    "output_dir": "./supply-chain-reports"
+  "modules": {
+    "supply_chain": {
+      "enabled": true,
+      "default_modules": ["vulnerability", "provenance"],
+      "output_dir": "./supply-chain-reports",
+      "vulnerability": {
+        "prioritize": true,
+        "min_cvss": 0,
+        "check_kev": true,
+        "taint_analysis": false,
+        "formats": ["table", "json", "markdown"],
+        "strict_mode": false
+      },
+      "provenance": {
+        "verify_signatures": false,
+        "min_slsa_level": 0,
+        "strict_mode": false,
+        "trusted_builders": [
+          "https://github.com/actions/runner",
+          "https://cloudbuild.googleapis.com"
+        ],
+        "ecosystems": ["npm", "pypi", "go", "maven", "docker"]
+      }
+    }
   }
 }
