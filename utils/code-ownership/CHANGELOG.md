@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-**Status**: 🚧 Experimental - Not production-ready
+**Status**: 🔬 Experimental
 
 ### Planned
 - Configuration system integration
