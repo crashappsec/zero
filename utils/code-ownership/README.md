@@ -6,13 +6,13 @@ SPDX-License-Identifier: GPL-3.0
 
 # Code Ownership Analyzer
 
-**Status**: 🚧 Experimental - Not yet production-ready
+**Status**: 🔬 Experimental
 
 Analyzes Git history to determine code ownership, validate CODEOWNERS files, and identify bus factor risks.
 
 ## ⚠️ Development Status
 
-This utility is in **early development** and is not yet ready for production use. It provides basic code ownership analysis but lacks the comprehensive testing, documentation, and features of the production-ready supply chain analyzer.
+This utility is in **early development** and is not yet ready for Beta or production use. It provides basic code ownership analysis but lacks the comprehensive testing, documentation, and features of the Beta supply chain analyzer.
 
 ### What Works
 - ✅ Git history analysis with weighted scoring
@@ -29,7 +29,7 @@ This utility is in **early development** and is not yet ready for production use
 - ❌ Comprehensive testing
 - ❌ Complete documentation
 
-**Use at your own risk**. For production-grade analysis, use the [Supply Chain Security Analyzer](../supply-chain/).
+**Use at your own risk**. For Beta-quality analysis, use the [Supply Chain Security Analyzer](../supply-chain/).
 
 ## Overview
 

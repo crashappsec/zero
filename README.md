@@ -53,17 +53,17 @@ skills-and-prompts/
 │   └── chalk-build-analyzer/        # Chalk build analyzer skill
 │
 ├── utils/                           # Executable scripts and utilities
-│   ├── supply-chain/                # Supply chain analysis (✅ Production Ready)
+│   ├── supply-chain/                # Supply chain analysis (🚀 Beta)
 │   │   ├── vulnerability-analysis/  # Vulnerability scanning module
 │   │   ├── provenance-analysis/     # SLSA provenance verification module
 │   │   ├── config.example.json      # Configuration template
 │   │   ├── README.md                # Complete documentation
 │   │   ├── CHANGELOG.md             # Version history
 │   │   └── supply-chain-scanner.sh  # Central orchestrator
-│   ├── dora-metrics/                # DORA metrics scripts (🚧 Experimental)
-│   ├── code-ownership/              # Code ownership scripts (🚧 Experimental)
-│   ├── certificate-analyzer/        # Certificate analyzer scripts (🚧 Experimental)
-│   ├── chalk-build-analyzer/        # Chalk analyzer scripts (🚧 Experimental)
+│   ├── dora-metrics/                # DORA metrics scripts (🔬 Experimental)
+│   ├── code-ownership/              # Code ownership scripts (🔬 Experimental)
+│   ├── certificate-analyzer/        # Certificate analyzer scripts (🔬 Experimental)
+│   ├── chalk-build-analyzer/        # Chalk analyzer scripts (🔬 Experimental)
 │   ├── validation/                  # Validation and testing utilities
 │   ├── lib/                         # Shared libraries (config-loader, etc.)
 │   ├── config.example.json          # Global configuration template
@@ -131,10 +131,10 @@ skills-and-prompts/
 
 ## Available Skills
 
-### Supply Chain Analyzer ✅ Production Ready
+### Supply Chain Analyzer 🚀 Beta
 Comprehensive supply chain security analysis including SBOM/BOM management, vulnerability analysis, taint analysis, format conversion (CycloneDX ↔ SPDX), version upgrades, SLSA compliance assessment, and provenance verification.
 
-**Status**: Fully tested, documented, and ready for production use. See [complete documentation](utils/supply-chain/README.md).
+**Status**: Beta - Feature-complete and tested, ready for broader use with active development. See [complete documentation](utils/supply-chain/README.md).
 
 **Capabilities:**
 - Vulnerability detection (OSV.dev, deps.dev, CISA KEV)
@@ -151,10 +151,10 @@ Comprehensive supply chain security analysis including SBOM/BOM management, vuln
 
 [View Skill Documentation](skills/supply-chain/README.md) | [View Utils Documentation](utils/supply-chain/)
 
-### DORA Metrics 🚧 Experimental
+### DORA Metrics 🔬 Experimental
 Comprehensive DORA (DevOps Research and Assessment) metrics analysis for measuring and improving software delivery performance using the four key metrics.
 
-**Status**: Experimental - Basic functionality works but lacks comprehensive testing and production features. See [roadmap](utils/dora-metrics/README.md#roadmap-to-production).
+**Status**: Experimental - Basic functionality working, under active development. Not yet ready for production use. See [roadmap](utils/dora-metrics/README.md#roadmap-to-production).
 
 **Capabilities:**
 - Calculate all four DORA metrics (Deployment Frequency, Lead Time, Change Failure Rate, MTTR)
@@ -168,10 +168,10 @@ Comprehensive DORA (DevOps Research and Assessment) metrics analysis for measuri
 
 [View Skill Documentation](skills/dora-metrics/README.md) | [View Utils Documentation](utils/dora-metrics/)
 
-### Code Ownership Analyzer 🚧 Experimental
+### Code Ownership Analyzer 🔬 Experimental
 Comprehensive code ownership analysis for understanding who owns what code, validating CODEOWNERS files, identifying risks, and optimizing code review processes.
 
-**Status**: Experimental - Works for single repositories but lacks multi-repo support and production features. See [roadmap](utils/code-ownership/README.md#roadmap-to-production).
+**Status**: Experimental - Single repository analysis working, needs multi-repo support and additional features. See [roadmap](utils/code-ownership/README.md#roadmap-to-production).
 
 **Capabilities:**
 - Analyze ownership patterns from git history with weighted scoring algorithms
@@ -185,22 +185,24 @@ Comprehensive code ownership analysis for understanding who owns what code, vali
 
 [View Skill Documentation](skills/code-ownership/README.md) | [View Utils Documentation](utils/code-ownership/)
 
-### Certificate Analyzer 🚧 Experimental
+### Certificate Analyzer 🔬 Experimental
 Comprehensive TLS/SSL certificate analysis including validation, expiration checks, and security assessments.
 
-**Status**: Experimental - Single domain analysis works but lacks bulk scanning and monitoring features. See [roadmap](utils/certificate-analyzer/README.md#roadmap-to-production).
+**Status**: Experimental - Basic certificate validation working, needs bulk scanning and monitoring capabilities. See [roadmap](utils/certificate-analyzer/README.md#roadmap-to-production).
 
 [View Skill Documentation](skills/certificate-analyzer/README.md) | [View Utils Documentation](utils/certificate-analyzer/)
 
-### Chalk Build Analyzer 🚧 Experimental
+### Chalk Build Analyzer 🔬 Experimental
 Analyze and interpret Chalk build artifacts, providing insights into software supply chain metadata and build performance.
 
-**Status**: Experimental - Basic Chalk metadata extraction works but needs policy validation and multi-artifact support. See [roadmap](utils/chalk-build-analyzer/README.md#roadmap-to-production).
+**Status**: Experimental - Chalk metadata extraction working, needs policy enforcement and multi-artifact support. See [roadmap](utils/chalk-build-analyzer/README.md#roadmap-to-production).
 
 [View Skill Documentation](skills/chalk-build-analyzer/README.md) | [View Utils Documentation](utils/chalk-build-analyzer/)
 
-### Better Prompts
+### Better Prompts 🚀 Beta
 Tools and techniques for crafting effective prompts, with before/after examples and conversation patterns.
+
+**Status**: Beta - Comprehensive guide with proven techniques, ready for broad use.
 
 [View Documentation](skills/better-prompts/README.md)
 
