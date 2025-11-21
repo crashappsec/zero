@@ -230,36 +230,44 @@ run_osv_scanner() {
     local is_sbom="$2"
     local output_file=$(mktemp)
 
-    echo -e "${BLUE}Running osv-scanner...${NC}"
+    echo -e "${BLUE}Running osv-scanner...${NC}" >&2
 
     local cmd
     if [[ "$is_sbom" == "true" ]]; then
-        cmd="osv-scanner --sbom=$target --format=json"
-        echo "  Scanning SBOM: $(basename "$target")"
+        cmd="osv-scanner -L $target --format=json"
+        echo "  Scanning SBOM: $(basename "$target")" >&2
     elif [[ "$TAINT_ANALYSIS" == "true" ]]; then
         cmd="osv-scanner --call-analysis=all $target --format=json"
-        echo "  Mode: Taint/call analysis"
+        echo "  Mode: Taint/call analysis" >&2
     else
         cmd="osv-scanner --recursive $target --format=json"
-        echo "  Mode: Recursive directory scan"
+        echo "  Mode: Recursive directory scan" >&2
     fi
 
-    # Run the scan (show errors but continue on non-zero exit)
-    eval "$cmd" > "$output_file" 2>&1
+    # Run the scan (capture all output)
+    eval "$cmd" > "$output_file" 2>&1 || true
     local exit_code=$?
 
     # Check if we got results
     if [[ -s "$output_file" ]]; then
+        # Extract JSON part (starts with '{' or '[')
+        # osv-scanner outputs debug messages followed by JSON
+        local json_start=$(grep -n '^{' "$output_file" | head -1 | cut -d: -f1)
+        if [[ -n "$json_start" ]]; then
+            # Create a new file with just the JSON
+            local json_file=$(mktemp)
+            tail -n +${json_start} "$output_file" > "$json_file"
+            mv "$json_file" "$output_file"
+        fi
+
         local vuln_count=$(jq -r '.results | length' "$output_file" 2>/dev/null || echo "0")
-        echo -e "${GREEN}✓ Scan complete${NC} (exit code: $exit_code)"
+        echo -e "${GREEN}✓ Scan complete${NC}" >&2
         if [[ "$vuln_count" != "0" ]]; then
-            echo "  Found results in output"
+            echo "  Found $vuln_count result(s)" >&2
         fi
         echo "$output_file"
     else
-        echo -e "${YELLOW}⚠ Scan produced no output${NC}"
-        echo "  Command: $cmd"
-        echo "  Exit code: $exit_code"
+        echo -e "${YELLOW}⚠ Scan produced no output${NC}" >&2
         echo "$output_file"
     fi
 }
@@ -444,7 +452,7 @@ elif is_git_url "$TARGET"; then
 
         # Check for existing SBOM first
         echo -e "${BLUE}Checking for existing SBOM...${NC}"
-        EXISTING_SBOM=$(find_sbom "$TEMP_DIR")
+        EXISTING_SBOM=$(find_sbom "$TEMP_DIR" || true)
 
         SBOM_TO_SCAN=""
         GENERATED_SBOM=""
@@ -455,8 +463,8 @@ elif is_git_url "$TARGET"; then
         else
             echo -e "${YELLOW}⚠ No existing SBOM found${NC}"
 
-            # Generate SBOM with syft
-            GENERATED_SBOM="$TEMP_DIR/sbom-generated.json"
+            # Generate SBOM with syft (use bom.json for osv-scanner compatibility)
+            GENERATED_SBOM="$TEMP_DIR/bom.json"
             echo ""
             if generate_sbom "$TEMP_DIR" "$GENERATED_SBOM"; then
                 SBOM_TO_SCAN="$GENERATED_SBOM"
@@ -475,7 +483,12 @@ elif is_git_url "$TARGET"; then
         fi
 
         if [[ -n "$SCAN_RESULTS" ]] && [[ -f "$SCAN_RESULTS" ]]; then
-            analyze_with_claude "$SCAN_RESULTS" "$TARGET_DESC"
+            # Check if the file contains valid JSON
+            if jq -e . "$SCAN_RESULTS" > /dev/null 2>&1; then
+                analyze_with_claude "$SCAN_RESULTS" "$TARGET_DESC"
+            else
+                echo -e "${RED}✗ Scan output is not valid JSON${NC}"
+            fi
             rm -f "$SCAN_RESULTS"
         else
             echo -e "${RED}✗ Scan failed or produced no results${NC}"
@@ -490,7 +503,7 @@ elif [[ -d "$TARGET" ]]; then
 
     # Check for existing SBOM first
     echo -e "${BLUE}Checking for existing SBOM...${NC}"
-    EXISTING_SBOM=$(find_sbom "$TARGET")
+    EXISTING_SBOM=$(find_sbom "$TARGET" || true)
 
     SBOM_TO_SCAN=""
     GENERATED_SBOM=""
@@ -501,8 +514,8 @@ elif [[ -d "$TARGET" ]]; then
     else
         echo -e "${YELLOW}⚠ No existing SBOM found${NC}"
 
-        # Generate SBOM with syft
-        GENERATED_SBOM="$TARGET/sbom-generated.json"
+        # Generate SBOM with syft (use bom.json for osv-scanner compatibility)
+        GENERATED_SBOM="$TARGET/bom.json"
         echo ""
         if generate_sbom "$TARGET" "$GENERATED_SBOM"; then
             SBOM_TO_SCAN="$GENERATED_SBOM"
