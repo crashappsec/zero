@@ -26,6 +26,8 @@ Fast, automated analysis providing:
 - Version inconsistency analysis
 - deps.dev integration for OpenSSF Scorecard data
 
+**Requirements**: `git`, `syft`, `jq` (no GitHub CLI needed)
+
 ### 2. AI-Enhanced Analyzer (`package-health-analyzer-claude.sh`)
 Comprehensive analysis with:
 - Chain of reasoning across multiple tools
@@ -34,9 +36,19 @@ Comprehensive analysis with:
 - Detailed migration strategies
 - Alternative package recommendations
 - Actionable improvement plans
+- Real-time progress indicators
+
+**Requirements**: Same as base + `ANTHROPIC_API_KEY` in `.env`
 
 ### 3. Comparison Tool (`compare-analyzers.sh`)
 Compares base vs AI-enhanced results.
+
+## Important Notes
+
+- **No GitHub CLI Required**: Uses standard `git clone` - works with any Git repository
+- **Auto-generates SBOM**: If no SBOM provided, generates one with syft
+- **Progress Tracking**: AI analyzer shows real-time progress for long-running analyses
+- **Error Resilient**: Gracefully handles API failures and continues analysis
 
 ## How to Help Users
 

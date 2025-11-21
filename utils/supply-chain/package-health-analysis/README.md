@@ -6,11 +6,11 @@ SPDX-License-Identifier: GPL-3.0
 
 # Package Health Analyzer
 
-**Status**: 🔬 Experimental - New capability under active development
+**Status**: 🔬 Experimental v1.0.1 - Core functionality stable, ready for testing
 
 Comprehensive package health analysis tools for identifying risks and operational improvement opportunities across an organization's software dependencies.
 
-**Current Version**: 1.0.0
+**Current Version**: 1.0.1 (Bug fixes - now functional!)
 
 ## Overview
 
@@ -38,13 +38,16 @@ The Package Health Analyzer provides two-tiered analysis of software packages:
 - bash 4.0+
 - jq 1.6+
 - curl
+- git
 
 # For repository scanning
-- gh (GitHub CLI) - https://cli.github.com/
 - syft - https://github.com/anchore/syft
 
 # For AI-enhanced analysis
-- ANTHROPIC_API_KEY environment variable
+- ANTHROPIC_API_KEY in .env file (see setup below)
+
+# NOT Required (common misconception)
+- gh (GitHub CLI) - NO LONGER NEEDED! Uses standard git clone
 ```
 
 ### Setup
@@ -54,17 +57,17 @@ The Package Health Analyzer provides two-tiered analysis of software packages:
 git clone https://github.com/crashappsec/skills-and-prompts-and-rag.git
 cd skills-and-prompts-and-rag
 
-# 2. Make scripts executable (if not already)
-chmod +x utils/supply-chain/package-health-analysis/*.sh
-chmod +x utils/supply-chain/package-health-analysis/lib/*.sh
+# 2. Run bootstrap to set everything up
+./bootstrap.sh
 
-# 3. Set up API key for AI analysis
-export ANTHROPIC_API_KEY="your-api-key"
+# 3. Set up API key for AI analysis (automatically loaded)
+cp .env.example .env
+# Edit .env and add your ANTHROPIC_API_KEY
 
-# 4. Configure (optional)
+# 4. Configure health scoring weights (optional)
 cp utils/supply-chain/package-health-analysis/config.example.json \
    utils/supply-chain/config.json
-# Edit config.json as needed
+# Edit config.json to customize health score weights
 ```
 
 ## Usage

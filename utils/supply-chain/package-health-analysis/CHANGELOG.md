@@ -11,6 +11,51 @@ All notable changes to the Package Health Analyzer will be documented in this fi
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2024-11-21
+
+### Fixed
+- **Critical**: Fixed URL encoding bug where newlines were included in API requests
+  - Changed from `echo "$package" | jq -sRr @uri` to `printf '%s' "$package" | jq -sRr @uri`
+  - All API requests were failing with 404 due to `%0A` (newline) in URLs
+  - This fix makes the analyzer actually functional
+
+- **Critical**: Fixed PURL ecosystem extraction in SBOM parsing
+  - Was extracting "pkg" instead of actual ecosystem ("npm", "pypi", etc.)
+  - Packages are now correctly identified by their ecosystem
+
+- **Major**: Removed GitHub CLI (`gh`) dependency
+  - Now uses standard `git clone` which is more widely available
+  - Supports full GitHub URLs and owner/repo format
+  - Works with any Git hosting platform, not just GitHub
+
+- **Major**: Added comprehensive error handling for API responses
+  - Validates all JSON before passing to `jq --argjson`
+  - API errors return valid JSON instead of mixed text/errors
+  - Invalid responses get error placeholders instead of crashing
+  - Failed packages are skipped gracefully with warnings
+  - Eliminates all "jq: invalid JSON text passed to --argjson" errors
+
+- **Major**: Fixed temp file cleanup in SBOM generation
+  - SBOM files were being deleted before they could be used
+  - Now properly persists temp files until analysis completes
+
+- **Major**: Added `.env` file loading for ANTHROPIC_API_KEY
+  - Automatically loads API key from repository root `.env` file
+  - Consistent with other Claude-enabled scripts
+  - No need to export environment variable manually
+
+### Added
+- **Real-time progress indicators** in AI-enhanced analyzer
+  - Shows progress for all 5 analysis steps
+  - Users see the script is working, not frozen
+  - Progress messages sent to stderr (doesn't interfere with JSON output)
+  - Friendly emoji indicators for better UX
+
+### Changed
+- Improved error messages with package context (name, system, version)
+- Better validation of curl responses before caching
+- More robust JSON handling throughout the codebase
+
 ## [1.0.0] - 2024-11-21
 
 ### Added
