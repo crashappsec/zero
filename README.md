@@ -53,15 +53,21 @@ skills-and-prompts/
 │   └── chalk-build-analyzer/        # Chalk build analyzer skill
 │
 ├── utils/                           # Executable scripts and utilities
-│   ├── supply-chain/                # Supply chain analysis (modular)
+│   ├── supply-chain/                # Supply chain analysis (✅ Production Ready)
 │   │   ├── vulnerability-analysis/  # Vulnerability scanning module
+│   │   ├── provenance-analysis/     # SLSA provenance verification module
 │   │   ├── config.example.json      # Configuration template
+│   │   ├── README.md                # Complete documentation
+│   │   ├── CHANGELOG.md             # Version history
 │   │   └── supply-chain-scanner.sh  # Central orchestrator
-│   ├── dora-metrics/                # DORA metrics scripts
-│   ├── code-ownership/              # Code ownership scripts
-│   ├── certificate-analyzer/        # Certificate analyzer scripts
-│   ├── chalk-build-analyzer/        # Chalk analyzer scripts
-│   └── validation/                  # Validation and testing utilities
+│   ├── dora-metrics/                # DORA metrics scripts (🚧 Experimental)
+│   ├── code-ownership/              # Code ownership scripts (🚧 Experimental)
+│   ├── certificate-analyzer/        # Certificate analyzer scripts (🚧 Experimental)
+│   ├── chalk-build-analyzer/        # Chalk analyzer scripts (🚧 Experimental)
+│   ├── validation/                  # Validation and testing utilities
+│   ├── lib/                         # Shared libraries (config-loader, etc.)
+│   ├── config.example.json          # Global configuration template
+│   └── CONFIG.md                    # Configuration system documentation
 │
 ├── prompts/                         # Prompt templates & examples
 │   ├── supply-chain/                # Supply chain prompts
@@ -87,7 +93,7 @@ skills-and-prompts/
 
 1. Clone this repository:
    ```bash
-   git clone https://github.com/yourusername/skills-and-prompts-and-rag.git
+   git clone https://github.com/crashappsec/skills-and-prompts-and-rag.git
    cd skills-and-prompts-and-rag
    ```
 
@@ -125,8 +131,10 @@ skills-and-prompts/
 
 ## Available Skills
 
-### Supply Chain Analyzer
+### Supply Chain Analyzer ✅ Production Ready
 Comprehensive supply chain security analysis including SBOM/BOM management, vulnerability analysis, taint analysis, format conversion (CycloneDX ↔ SPDX), version upgrades, SLSA compliance assessment, and provenance verification.
+
+**Status**: Fully tested, documented, and ready for production use. See [complete documentation](utils/supply-chain/README.md).
 
 **Capabilities:**
 - Vulnerability detection (OSV.dev, deps.dev, CISA KEV)
@@ -141,10 +149,12 @@ Comprehensive supply chain security analysis including SBOM/BOM management, vuln
 - Supply chain security and provenance verification
 - CI/CD integration with automation scripts
 
-[View Documentation](skills/supply-chain/README.md) | [Utils](utils/supply-chain/)
+[View Skill Documentation](skills/supply-chain/README.md) | [View Utils Documentation](utils/supply-chain/)
 
-### DORA Metrics
+### DORA Metrics 🚧 Experimental
 Comprehensive DORA (DevOps Research and Assessment) metrics analysis for measuring and improving software delivery performance using the four key metrics.
+
+**Status**: Experimental - Basic functionality works but lacks comprehensive testing and production features. See [roadmap](utils/dora-metrics/README.md#roadmap-to-production).
 
 **Capabilities:**
 - Calculate all four DORA metrics (Deployment Frequency, Lead Time, Change Failure Rate, MTTR)
@@ -156,20 +166,12 @@ Comprehensive DORA (DevOps Research and Assessment) metrics analysis for measuri
 - Executive reporting and stakeholder communication
 - CI/CD integration with automation scripts
 
-[View Documentation](skills/dora-metrics/README.md)
+[View Skill Documentation](skills/dora-metrics/README.md) | [View Utils Documentation](utils/dora-metrics/)
 
-### Chalk Build Analyzer
-Analyze and interpret Chalk build artifacts, providing insights into software supply chain metadata and build performance.
-
-[View Documentation](skills/chalk-build-analyzer/README.md)
-
-### Certificate Analyzer
-Comprehensive TLS/SSL certificate analysis including validation, expiration checks, and security assessments.
-
-[View Documentation](skills/certificate-analyzer/README.md)
-
-### Code Ownership Analysis
+### Code Ownership Analyzer 🚧 Experimental
 Comprehensive code ownership analysis for understanding who owns what code, validating CODEOWNERS files, identifying risks, and optimizing code review processes.
+
+**Status**: Experimental - Works for single repositories but lacks multi-repo support and production features. See [roadmap](utils/code-ownership/README.md#roadmap-to-production).
 
 **Capabilities:**
 - Analyze ownership patterns from git history with weighted scoring algorithms
@@ -181,7 +183,21 @@ Comprehensive code ownership analysis for understanding who owns what code, vali
 - Track owner activity and detect staleness
 - Generate actionable improvement recommendations
 
-[View Documentation](skills/code-ownership/README.md)
+[View Skill Documentation](skills/code-ownership/README.md) | [View Utils Documentation](utils/code-ownership/)
+
+### Certificate Analyzer 🚧 Experimental
+Comprehensive TLS/SSL certificate analysis including validation, expiration checks, and security assessments.
+
+**Status**: Experimental - Single domain analysis works but lacks bulk scanning and monitoring features. See [roadmap](utils/certificate-analyzer/README.md#roadmap-to-production).
+
+[View Skill Documentation](skills/certificate-analyzer/README.md) | [View Utils Documentation](utils/certificate-analyzer/)
+
+### Chalk Build Analyzer 🚧 Experimental
+Analyze and interpret Chalk build artifacts, providing insights into software supply chain metadata and build performance.
+
+**Status**: Experimental - Basic Chalk metadata extraction works but needs policy validation and multi-artifact support. See [roadmap](utils/chalk-build-analyzer/README.md#roadmap-to-production).
+
+[View Skill Documentation](skills/chalk-build-analyzer/README.md) | [View Utils Documentation](utils/chalk-build-analyzer/)
 
 ### Better Prompts
 Tools and techniques for crafting effective prompts, with before/after examples and conversation patterns.
@@ -236,8 +252,8 @@ The organized structure makes it easy to:
 
 ### Support
 
-- **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/yourusername/skills-and-prompts-and-rag/issues)
-- **Discussions**: Join conversations in [GitHub Discussions](https://github.com/yourusername/skills-and-prompts-and-rag/discussions)
+- **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/crashappsec/skills-and-prompts-and-rag/issues)
+- **Discussions**: Join conversations in [GitHub Discussions](https://github.com/crashappsec/skills-and-prompts-and-rag/discussions)
 - **Code of Conduct**: Please read our [Code of Conduct](CODE_OF_CONDUCT.md)
 
 ### Recognition
