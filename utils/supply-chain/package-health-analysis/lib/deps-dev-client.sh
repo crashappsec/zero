@@ -100,10 +100,16 @@ api_request() {
 
         case $http_code in
             200)
-                # Success - cache and return
-                save_to_cache "$url" "$body"
-                echo "$body"
-                return 0
+                # Success - validate JSON before caching
+                if echo "$body" | jq empty 2>/dev/null; then
+                    save_to_cache "$url" "$body"
+                    echo "$body"
+                    return 0
+                else
+                    # Invalid JSON response
+                    echo '{"error": "invalid_json_response"}'
+                    return 1
+                fi
                 ;;
             429)
                 # Rate limited - wait and retry
@@ -131,8 +137,8 @@ api_request() {
         ((attempt++))
     done
 
-    # All retries failed
-    echo '{"error": "api_request_failed"}' >&2
+    # All retries failed - return valid JSON error to stdout
+    echo '{"error": "api_request_failed"}'
     return 1
 }
 
@@ -286,7 +292,13 @@ get_package_summary() {
     local package_info=$(get_package_info "$system" "$package")
 
     if [ $? -ne 0 ]; then
-        echo '{"error": "failed_to_fetch_package"}' >&2
+        echo '{"error": "failed_to_fetch_package"}'
+        return 1
+    fi
+
+    # Validate package_info is valid JSON
+    if ! echo "$package_info" | jq empty 2>/dev/null; then
+        echo '{"error": "invalid_response"}'
         return 1
     fi
 
@@ -296,8 +308,8 @@ get_package_summary() {
         return 0
     fi
 
-    # Extract summary information
-    echo "$package_info" | jq -r '{
+    # Extract summary information safely
+    local summary=$(echo "$package_info" | jq -r '{
         name: (.packageKey.name // "unknown"),
         system: (.packageKey.system // "unknown"),
         deprecated: (.deprecated // false),
@@ -308,7 +320,15 @@ get_package_summary() {
         dependent_count: (.dependentCount // 0),
         dependent_repos_count: (.dependentReposCount // 0),
         project_url: (.projectKey // null)
-    }'
+    }' 2>/dev/null)
+
+    # Validate output
+    if echo "$summary" | jq empty 2>/dev/null; then
+        echo "$summary"
+    else
+        echo '{"error": "failed_to_parse_response"}'
+        return 1
+    fi
 }
 
 # Initialize cache on load
