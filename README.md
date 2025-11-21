@@ -151,6 +151,25 @@ Comprehensive supply chain security analysis including SBOM/BOM management, vuln
 
 [View Skill Documentation](skills/supply-chain/README.md) | [View Utils Documentation](utils/supply-chain/)
 
+### Package Health Analyzer 🔬 Experimental
+Comprehensive package health analysis for identifying risks and operational improvements across an organization's software dependencies.
+
+**Status**: Experimental - Core functionality verified, under active development. Not yet ready for production use. See [complete documentation](utils/supply-chain/package-health-analysis/README.md).
+
+**Capabilities:**
+- Health scoring (0-100) with weighted components (OpenSSF, maintenance, security, freshness, popularity)
+- Deprecation detection from multiple sources with alternative recommendations
+- Version inconsistency analysis across repositories with standardization strategies
+- Organization-wide scanning for multi-repo analysis
+- AI-enhanced analysis with Claude integration
+- Chain of reasoning (integrates with vulnerability and provenance analyzers)
+- Detailed migration guides and risk prioritization
+- Strategic operational recommendations
+- Multi-ecosystem support (npm, PyPI, Maven, Cargo, Go)
+- CI/CD integration ready
+
+[View Skill Documentation](skills/supply-chain/package-health-analyzer.skill) | [View Utils Documentation](utils/supply-chain/package-health-analysis/)
+
 ### DORA Metrics 🔬 Experimental
 Comprehensive DORA (DevOps Research and Assessment) metrics analysis for measuring and improving software delivery performance using the four key metrics.
 
