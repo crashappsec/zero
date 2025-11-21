@@ -93,12 +93,13 @@ clone_repository() {
     TEMP_DIR=$(mktemp -d)
 
     echo -e "${BLUE}Cloning repository...${NC}"
-    if git clone --depth 1 "$repo_url" "$TEMP_DIR" 2>/dev/null; then
+    if git clone --depth 1 "$repo_url" "$TEMP_DIR"; then
         echo -e "${GREEN}✓ Repository cloned to: $TEMP_DIR${NC}"
         echo ""
         return 0
     else
         echo -e "${RED}✗ Failed to clone repository${NC}"
+        echo -e "${YELLOW}Note: For private repositories, ensure you have proper SSH keys or authentication${NC}"
         return 1
     fi
 }
@@ -111,7 +112,7 @@ scan_sbom() {
     echo -e "${BLUE}Scanning SBOM: $sbom_file${NC}"
     echo ""
 
-    local cmd="osv-scanner --sbom=$sbom_file"
+    local cmd="osv-scanner -L $sbom_file"
 
     if [[ "$OUTPUT_FORMAT" != "table" ]]; then
         cmd="$cmd --format=$OUTPUT_FORMAT"

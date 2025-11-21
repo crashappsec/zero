@@ -403,7 +403,10 @@ Basic SBOM vulnerability scanning using osv-scanner without AI enhancement.
 
 **Requirements:**
 - osv-scanner: `go install github.com/google/osv-scanner/cmd/osv-scanner@latest`
+- syft (for SBOM generation): `brew install syft`
 - jq: `brew install jq`
+
+**Note:** For repositories without existing SBOMs, the scripts will automatically generate one using syft (if installed). SBOMs are generated with standard filenames (`bom.json`) for osv-scanner compatibility.
 
 ### sbom-analyzer-claude.sh
 
@@ -448,8 +451,12 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 4. **Risk Assessment** - Security posture, supply chain risks, actions
 
 **Requirements:**
-- Same as basic analyzer
+- osv-scanner: `go install github.com/google/osv-scanner/cmd/osv-scanner@latest`
+- syft (for SBOM generation): `brew install syft`
+- jq: `brew install jq`
 - Anthropic API key
+
+**Note:** Run `./bootstrap.sh` from repository root to automatically check for and install all required dependencies.
 
 ### compare-analyzers.sh
 
@@ -516,8 +523,14 @@ sbom_scan:
 - [CISA KEV Catalog](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)
 
 ### Tools
-- **SBOM Generators**: Syft, CycloneDX CLI, SPDX tools
-- **Vulnerability Scanners**: OSV-Scanner, Grype, Trivy
+- **SBOM Generators**:
+  - **syft** by Anchore (recommended) - Fast, accurate SBOM generation
+  - CycloneDX CLI
+  - SPDX tools
+- **Vulnerability Scanners**:
+  - **osv-scanner** (official OSV CLI) - Scan SBOMs and repositories
+  - Grype by Anchore
+  - Trivy
 - **API Clients**: curl, Postman, custom scripts
 - **Automation Scripts**: sbom-analyzer.sh, sbom-analyzer-claude.sh, compare-analyzers.sh
 
