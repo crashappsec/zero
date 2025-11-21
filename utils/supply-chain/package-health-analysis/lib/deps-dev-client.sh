@@ -148,8 +148,8 @@ get_package_info() {
     local system=$1
     local package=$2
 
-    # URL encode package name
-    local encoded_package=$(echo "$package" | jq -sRr @uri)
+    # URL encode package name (use printf to avoid newline)
+    local encoded_package=$(printf '%s' "$package" | jq -sRr @uri)
     local url="${DEPS_DEV_BASE_URL}/systems/${system}/packages/${encoded_package}"
 
     api_request "$url"
@@ -162,9 +162,9 @@ get_package_version() {
     local package=$2
     local version=$3
 
-    # URL encode package name and version
-    local encoded_package=$(echo "$package" | jq -sRr @uri)
-    local encoded_version=$(echo "$version" | jq -sRr @uri)
+    # URL encode package name and version (use printf to avoid newline)
+    local encoded_package=$(printf '%s' "$package" | jq -sRr @uri)
+    local encoded_version=$(printf '%s' "$version" | jq -sRr @uri)
     local url="${DEPS_DEV_BASE_URL}/systems/${system}/packages/${encoded_package}/versions/${encoded_version}"
 
     api_request "$url"
@@ -175,8 +175,8 @@ get_package_version() {
 get_project_info() {
     local project_key=$1
 
-    # URL encode project key
-    local encoded_key=$(echo "$project_key" | jq -sRr @uri)
+    # URL encode project key (use printf to avoid newline)
+    local encoded_key=$(printf '%s' "$project_key" | jq -sRr @uri)
     local url="${DEPS_DEV_BASE_URL}/projects/${encoded_key}"
 
     api_request "$url"
