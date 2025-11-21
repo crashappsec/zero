@@ -408,18 +408,30 @@ main() {
         usage
     fi
 
+    # Show startup message
+    echo "🔍 Package Health Analyzer - AI Enhanced" >&2
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+    echo "" >&2
+
     # Prepare arguments for base analyzer
     local base_args=""
     if [ -n "$REPO" ]; then
         base_args="--repo $REPO"
+        echo "📦 Analyzing repository: $REPO" >&2
     elif [ -n "$ORG" ]; then
         base_args="--org $ORG"
+        echo "🏢 Analyzing organization: $ORG" >&2
     elif [ -n "$SBOM_FILE" ]; then
         base_args="--sbom $SBOM_FILE"
+        echo "📄 Analyzing SBOM: $SBOM_FILE" >&2
     fi
+    echo "" >&2
 
     # Step 1: Base analysis
+    echo "⏳ Step 1/5: Running base package health analysis..." >&2
     local base_results=$(run_base_analysis "$base_args")
+    echo "✓ Base analysis complete" >&2
+    echo "" >&2
 
     # Determine SBOM file for subsequent analyses
     local sbom_for_analysis=""
@@ -464,26 +476,43 @@ main() {
     fi
 
     # Step 2: Vulnerability analysis (chain of reasoning)
+    echo "⏳ Step 2/5: Running vulnerability analysis..." >&2
     local vuln_results=$(run_vulnerability_analysis "$sbom_for_analysis")
+    echo "✓ Vulnerability analysis complete" >&2
+    echo "" >&2
 
     # Step 3: Provenance analysis (chain of reasoning)
+    echo "⏳ Step 3/5: Running provenance analysis..." >&2
     local prov_results=$(run_provenance_analysis "$sbom_for_analysis")
+    echo "✓ Provenance analysis complete" >&2
+    echo "" >&2
 
     # Step 4: Prepare context
+    echo "⏳ Step 4/5: Preparing context for AI analysis..." >&2
     local context=$(prepare_context "$base_results" "$vuln_results" "$prov_results")
+    echo "✓ Context prepared" >&2
+    echo "" >&2
 
     # Step 5: AI analysis
+    echo "⏳ Step 5/5: Performing AI-enhanced analysis with Claude..." >&2
     local ai_analysis=$(ai_analysis "$context")
+    echo "✓ AI analysis complete" >&2
+    echo "" >&2
 
     # Generate final report
+    echo "📝 Generating final report..." >&2
     local report=$(generate_report "$base_results" "$ai_analysis" "$OUTPUT_FORMAT")
 
     # Output
     if [ -n "$OUTPUT_FILE" ]; then
         echo "$report" > "$OUTPUT_FILE"
         log "Report written to $OUTPUT_FILE"
-        echo "✓ Analysis complete. Report saved to: $OUTPUT_FILE"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+        echo "✅ Analysis complete! Report saved to: $OUTPUT_FILE" >&2
+        echo "" >&2
     else
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" >&2
+        echo "" >&2
         echo "$report"
     fi
 }
