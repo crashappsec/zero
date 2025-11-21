@@ -4,7 +4,7 @@ Copyright (c) 2024 Crash Override Inc
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# SBOM/BOM Analyzer Skill
+# Supply Chain Analyzer Skill
 
 Comprehensive SBOM/BOM management including analysis, conversion, version upgrades, and supply chain security assessment using industry-standard formats, vulnerability databases, and security frameworks.
 
@@ -113,7 +113,7 @@ Comprehensive understanding of SLSA v1.0 for supply chain security:
 
 ### Load the Skill
 
-In Crash Override, load the SBOM Analyzer skill to enable expert SBOM analysis capabilities.
+In Crash Override, load the Supply Chain Analyzer skill to enable expert SBOM analysis capabilities.
 
 ### Basic Analysis
 
@@ -376,9 +376,9 @@ The SBOM may only include direct dependencies. Regenerate with a tool that captu
 
 ## Automation Scripts
 
-The SBOM Analyzer includes command-line automation scripts for CI/CD integration and rapid analysis:
+The Supply Chain Analyzer includes command-line automation scripts for CI/CD integration and rapid analysis:
 
-### sbom-analyzer.sh
+### supply-chain-analyzer.sh
 
 Intelligent SBOM vulnerability scanning using osv-scanner with data-driven prioritization.
 
@@ -393,16 +393,16 @@ Intelligent SBOM vulnerability scanning using osv-scanner with data-driven prior
 **Usage:**
 ```bash
 # Analyze an SBOM file
-./sbom-analyzer.sh /path/to/sbom.json
+./supply-chain-analyzer.sh /path/to/sbom.json
 
 # Analyze with intelligent prioritization (KEV + CVSS scoring)
-./sbom-analyzer.sh --prioritize /path/to/sbom.json
+./supply-chain-analyzer.sh --prioritize /path/to/sbom.json
 
 # Analyze repository with taint analysis and prioritization
-./sbom-analyzer.sh --taint-analysis --prioritize https://github.com/org/repo
+./supply-chain-analyzer.sh --taint-analysis --prioritize https://github.com/org/repo
 
 # JSON output to file
-./sbom-analyzer.sh --format json --output results.json ./my-project
+./supply-chain-analyzer.sh --format json --output results.json ./my-project
 ```
 
 **Prioritization Output:**
@@ -421,7 +421,7 @@ Includes summary statistics: total vulnerabilities, severity breakdown, KEV matc
 
 **Note:** For repositories without existing SBOMs, the scripts will automatically generate one using syft (if installed). SBOMs are generated with standard filenames (`bom.json`) for osv-scanner compatibility.
 
-### sbom-analyzer-claude.sh
+### supply-chain-analyzer-claude.sh
 
 AI-enhanced SBOM analysis with Claude for contextual insights and pattern analysis.
 
@@ -462,13 +462,13 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 **Usage:**
 ```bash
 # Analyze with AI insights (uses .env file or environment variable)
-./sbom-analyzer-claude.sh /path/to/sbom.json
+./supply-chain-analyzer-claude.sh /path/to/sbom.json
 
 # Analyze repository with taint analysis
-./sbom-analyzer-claude.sh --taint-analysis https://github.com/org/repo
+./supply-chain-analyzer-claude.sh --taint-analysis https://github.com/org/repo
 
 # Or specify API key directly (overrides .env)
-./sbom-analyzer-claude.sh --api-key sk-ant-xxx sbom.json
+./supply-chain-analyzer-claude.sh --api-key sk-ant-xxx sbom.json
 ```
 
 **Output Includes:**
@@ -521,21 +521,21 @@ Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrat
 ```yaml
 - name: SBOM Analysis
   run: |
-    ./sbom-analyzer.sh --format json --output scan.json sbom.json
+    ./supply-chain-analyzer.sh --format json --output scan.json sbom.json
 
 - name: AI-Enhanced Analysis (on main)
   if: github.ref == 'refs/heads/main'
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   run: |
-    ./sbom-analyzer-claude.sh sbom.json > analysis-report.txt
+    ./supply-chain-analyzer-claude.sh sbom.json > analysis-report.txt
 ```
 
 **GitLab CI Example:**
 ```yaml
 sbom_scan:
   script:
-    - ./sbom-analyzer.sh --format json --output scan.json sbom.json
+    - ./supply-chain-analyzer.sh --format json --output scan.json sbom.json
   artifacts:
     reports:
       dependency_scanning: scan.json
@@ -560,7 +560,7 @@ sbom_scan:
   - Grype by Anchore
   - Trivy
 - **API Clients**: curl, Postman, custom scripts
-- **Automation Scripts**: sbom-analyzer.sh, sbom-analyzer-claude.sh, compare-analyzers.sh
+- **Automation Scripts**: supply-chain-analyzer.sh, supply-chain-analyzer-claude.sh, compare-analyzers.sh
 
 ### Related Skills
 - [Certificate Analyzer](../certificate-analyzer/) - TLS/SSL certificate analysis

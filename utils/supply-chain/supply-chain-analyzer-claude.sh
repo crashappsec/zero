@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: GPL-3.0
 
 #############################################################################
-# SBOM Analyzer Script with Claude AI Integration
+# Supply Chain Analyzer Script with Claude AI Integration
 # Analyzes SBOMs using osv-scanner and enhances with Claude analysis
-# Usage: ./sbom-analyzer-claude.sh [options] <target>
+# Usage: ./supply-chain-analyzer-claude.sh [options] <target>
 #############################################################################
 
 set -e
@@ -35,7 +35,7 @@ ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 # Function to print usage
 usage() {
     cat << EOF
-SBOM Analyzer with Claude AI - Enhanced vulnerability analysis
+Supply Chain Analyzer with Claude AI - Enhanced vulnerability analysis
 
 Usage: $0 [OPTIONS] <target>
 
@@ -423,7 +423,7 @@ fi
 # Main
 echo ""
 echo "========================================="
-echo "  SBOM Analyzer with Claude AI"
+echo "  Supply Chain Analyzer with Claude AI"
 echo "========================================="
 echo ""
 

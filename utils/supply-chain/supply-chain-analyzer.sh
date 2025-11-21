@@ -4,10 +4,10 @@
 # SPDX-License-Identifier: GPL-3.0
 
 #############################################################################
-# SBOM Analyzer Script
+# Supply Chain Analyzer Script
 # Analyzes SBOMs and repositories for vulnerabilities using osv-scanner
 # Supports taint analysis for reachability determination
-# Usage: ./sbom-analyzer.sh [options] <target>
+# Usage: ./supply-chain-analyzer.sh [options] <target>
 #############################################################################
 
 set -e
@@ -30,7 +30,7 @@ KEV_CACHE=""
 # Function to print usage
 usage() {
     cat << EOF
-SBOM Analyzer - Vulnerability scanning with osv-scanner
+Supply Chain Analyzer - Vulnerability scanning with osv-scanner
 
 Usage: $0 [OPTIONS] <target>
 
@@ -393,7 +393,7 @@ fi
 # Main script
 echo ""
 echo "========================================="
-echo "  SBOM Analyzer (osv-scanner)"
+echo "  Supply Chain Analyzer (osv-scanner)"
 echo "========================================="
 echo ""
 

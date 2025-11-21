@@ -44,26 +44,33 @@ Whether you're analyzing security certificates, building software, or engineerin
 ## Repository Structure
 
 ```
-skills-and-prompts-and-rag/
-├── skills/                    # Claude skills (.skill files)
-│   ├── chalk-build-analyzer/  # Analyze Chalk build artifacts
-│   ├── certificate-analyzer/  # TLS/SSL certificate analysis
-│   └── prompt-engineering/    # Prompt crafting and optimization
+skills-and-prompts/
+├── skills/                          # Claude skills and documentation only
+│   ├── supply-chain-analyzer/       # Supply chain security skill
+│   ├── dora-metrics/                # DORA metrics skill
+│   ├── code-ownership/              # Code ownership skill
+│   ├── certificate-analyzer/        # Certificate analysis skill
+│   └── chalk-build-analyzer/        # Chalk build analyzer skill
 │
-├── prompts/                   # Prompt templates & examples
-│   ├── security/              # Security-focused prompts
-│   ├── development/           # Development and coding prompts
-│   └── analysis/              # Analysis and investigation prompts
+├── utils/                           # Executable scripts and utilities
+│   ├── supply-chain/                # Supply chain analysis scripts
+│   ├── dora-metrics/                # DORA metrics scripts
+│   ├── code-ownership/              # Code ownership scripts
+│   ├── certificate-analyzer/        # Certificate analyzer scripts
+│   ├── chalk-build-analyzer/        # Chalk analyzer scripts
+│   └── validation/                  # Validation and testing utilities
 │
-├── tools/                     # Scripts and utilities
-│   ├── git-sync/              # Repository synchronization tools
-│   └── validation/            # Validation and testing utilities
+├── prompts/                         # Prompt templates & examples
+│   ├── supply-chain/                # Supply chain prompts
+│   ├── dora/                        # DORA metrics prompts
+│   └── code-ownership/              # Code ownership prompts
 │
-├── docs/                      # Documentation
-│   ├── guides/                # How-to guides and tutorials
-│   └── references/            # Reference documentation
+├── docs/                            # Documentation
+│   ├── guides/                      # How-to guides and tutorials
+│   └── references/                  # Reference documentation
 │
-└── .github/                   # GitHub workflows and templates
+├── CHANGELOG.md                     # Central changelog for all components
+└── .github/                         # GitHub workflows and templates
 ```
 
 ## Getting Started
@@ -115,11 +122,12 @@ skills-and-prompts-and-rag/
 
 ## Available Skills
 
-### SBOM/BOM Analyzer
-Comprehensive SBOM/BOM management including vulnerability analysis, taint analysis, format conversion (CycloneDX ↔ SPDX), version upgrades, SLSA compliance assessment, and supply chain security.
+### Supply Chain Analyzer
+Comprehensive supply chain security analysis including SBOM/BOM management, vulnerability analysis, taint analysis, format conversion (CycloneDX ↔ SPDX), version upgrades, SLSA compliance assessment, and provenance verification.
 
 **Capabilities:**
 - Vulnerability detection (OSV.dev, deps.dev, CISA KEV)
+- Intelligent prioritization (data-driven CVSS + KEV scoring)
 - Taint/reachability analysis to identify exploitable vulnerabilities
 - Automatic SBOM generation with syft
 - Dependency analysis and optimization
@@ -130,7 +138,7 @@ Comprehensive SBOM/BOM management including vulnerability analysis, taint analys
 - Supply chain security and provenance verification
 - CI/CD integration with automation scripts
 
-[View Documentation](skills/sbom-analyzer/README.md)
+[View Documentation](skills/supply-chain-analyzer/README.md) | [Utils](utils/supply-chain/)
 
 ### DORA Metrics
 Comprehensive DORA (DevOps Research and Assessment) metrics analysis for measuring and improving software delivery performance using the four key metrics.
