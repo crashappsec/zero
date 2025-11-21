@@ -30,8 +30,8 @@ brew install jq gh syft osv-scanner
 # Optional: Install for provenance verification
 brew install cosign rekor-cli
 
-# Verify installation
-./bootstrap.sh
+# Verify installation (from repository root)
+../../bootstrap.sh
 ```
 
 ### Basic Usage
