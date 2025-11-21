@@ -6,8 +6,8 @@
 set -euo pipefail
 
 # Get script directory for loading shared libraries
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-UTILS_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+UTILS_ROOT="$(cd "$LIB_DIR/../.." && pwd)"
 
 # Load configuration
 if [ -f "$UTILS_ROOT/lib/config-loader.sh" ]; then
