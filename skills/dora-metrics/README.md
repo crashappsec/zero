@@ -147,6 +147,27 @@ Comparison tool showing value-add of AI enhancement.
 ./compare-analyzers.sh deployment-data.json
 ```
 
+### Test with Safe Repositories
+
+🧪 **Practice DORA metrics analysis safely:**
+
+The [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org) provides sample repositories with realistic commit and deployment patterns for testing.
+
+```bash
+# Analyze test repository deployment patterns
+./dora-analyzer.sh --repo https://github.com/Gibson-Powers-Test-Org/sample-repo
+
+# Generate sample deployment data from test repo
+./dora-analyzer-claude.sh \
+  --extract-from-git https://github.com/Gibson-Powers-Test-Org/sample-repo
+```
+
+Perfect for:
+- Learning DORA metrics analysis
+- Testing configurations
+- Creating example reports
+- Contributing examples
+
 ## Data Format
 
 Input data should be JSON with deployment and incident information:

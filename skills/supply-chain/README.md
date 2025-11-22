@@ -516,6 +516,31 @@ Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrat
 - Use case recommendations
 - Detailed output files (if --keep-outputs)
 
+### Test with Safe Repositories
+
+🧪 **Practice supply chain analysis safely:**
+
+The [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org) provides sample repositories with various dependency patterns for testing.
+
+```bash
+# Analyze test repository for vulnerabilities
+./vulnerability-analyzer.sh \
+  https://github.com/Gibson-Powers-Test-Org/sample-repo
+
+# Run AI-enhanced analysis with prioritization
+./vulnerability-analyzer-claude.sh --prioritize \
+  https://github.com/Gibson-Powers-Test-Org/sample-repo
+
+# Test SBOM analysis
+./vulnerability-analyzer.sh /path/to/test-sbom.json
+```
+
+Perfect for:
+- Learning vulnerability scanning
+- Testing SBOM analysis
+- Practicing risk prioritization
+- Creating example reports
+
 ### CI/CD Integration
 
 **GitHub Actions Example:**
