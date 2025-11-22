@@ -1,0 +1,40 @@
+# GitHub Discussions Categories for Gibson Powers
+
+categories:
+  - name: 💬 General
+    description: General discussions about Gibson Powers
+    emoji: 💬
+    
+  - name: 💡 Ideas
+    description: Share ideas for new features or improvements
+    emoji: 💡
+    
+  - name: 🙏 Q&A
+    description: Ask questions and get help from the community
+    emoji: 🙏
+    is_answerable: true
+    
+  - name: 🎓 Show and Tell
+    description: Share what you've built with Gibson Powers
+    emoji: 🎓
+    
+  - name: 📢 Announcements
+    description: Official announcements from maintainers
+    emoji: 📢
+    is_announcement: true
+    
+  - name: 🔧 Developer Productivity
+    description: Discussions about developer productivity insights and metrics
+    emoji: 🔧
+    
+  - name: 🔒 Security Engineering
+    description: Security analysis, supply chain security, and vulnerability management
+    emoji: 🔒
+    
+  - name: 🎯 DORA Metrics
+    description: Deployment frequency, lead time, MTTR, and change failure rate
+    emoji: 🎯
+    
+  - name: 👥 Code Ownership
+    description: Code ownership analysis and CODEOWNERS management
+    emoji: 👥

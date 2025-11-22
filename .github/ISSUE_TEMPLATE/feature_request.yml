@@ -1,0 +1,97 @@
+name: Feature Request
+description: Suggest a new feature or enhancement
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Gibson Powers is experimental, and community input helps shape its direction.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem would this feature solve?
+      placeholder: As a developer, I need to... because...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How should this feature work?
+      placeholder: Add a new analyzer that...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What other approaches have you considered?
+      placeholder: I considered using... but it doesn't...
+    validations:
+      required: false
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Component
+      description: Which Gibson Powers component would this affect?
+      options:
+        - DORA Metrics
+        - Code Ownership
+        - Supply Chain Analysis
+        - Certificate Analyzer
+        - Chalk Build Analyzer
+        - Package Health Analyzer
+        - New Component
+        - Prompts/Templates
+        - Documentation
+        - Infrastructure/Tooling
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Tier
+      description: Which tier would this apply to?
+      options:
+        - "Tier 1: Standalone Scripts"
+        - "Tier 2: AI-Enhanced (Claude)"
+        - "Tier 3: Platform-Powered"
+        - All Tiers
+        - Not sure
+    validations:
+      required: false
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who would benefit from this feature?
+      placeholder: This would help developers who...
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context, mockups, or examples
+      placeholder: Here's a mockup of what this could look like...
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Are you interested in contributing this feature?
+      options:
+        - label: I'd like to implement this feature myself
+          required: false
