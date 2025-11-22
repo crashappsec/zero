@@ -28,6 +28,8 @@ DOMAIN=""
 WORK_DIR=""
 REPORT_FILE=""
 ANALYSIS_DATE=""
+USE_CLAUDE=false
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 
 #############################################################################
 # Utility Functions

@@ -356,3 +356,20 @@ This skill is licensed under GPL-3.0. See [LICENSE](../../LICENSE) for details.
 ---
 
 **Start measuring and improving your software delivery performance today!**
+
+## 🔄 Recent Updates (v3.1)
+
+**Tool Consolidation:**
+- Single `dora-analyzer.sh` tool replaces separate versions
+- `--claude` flag enables AI-powered analysis
+- Cost tracking automatically displays when using Claude
+- Note: Claude features fully tested
+
+**Usage:**
+```bash
+# Basic DORA metrics
+./dora-analyzer.sh deployment-data.json
+
+# AI-enhanced with cost tracking
+./dora-analyzer.sh --claude deployment-data.json
+```

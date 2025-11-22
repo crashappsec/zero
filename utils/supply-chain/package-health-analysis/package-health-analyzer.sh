@@ -24,6 +24,8 @@ VERBOSE=false
 ANALYZE_VERSIONS=true
 CHECK_DEPRECATION=true
 OUTPUT_FILE=""
+USE_CLAUDE=false
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 
 # Usage information
 usage() {
@@ -40,6 +42,8 @@ OPTIONS:
     --output FILE              Write output to file (default: stdout)
     --no-version-analysis      Skip version inconsistency analysis
     --no-deprecation-check     Skip deprecation checking
+    --claude                   Use Claude AI for advanced analysis (requires ANTHROPIC_API_KEY)
+    -k, --api-key KEY          Anthropic API key (or set ANTHROPIC_API_KEY env var)
     --verbose                  Enable verbose output
     -h, --help                 Show this help message
 
@@ -91,6 +95,14 @@ parse_args() {
             --no-deprecation-check)
                 CHECK_DEPRECATION=false
                 shift
+                ;;
+            --claude)
+                USE_CLAUDE=true
+                shift
+                ;;
+            -k|--api-key)
+                ANTHROPIC_API_KEY="$2"
+                shift 2
                 ;;
             --verbose)
                 VERBOSE=true

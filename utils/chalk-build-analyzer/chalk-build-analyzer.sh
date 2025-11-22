@@ -24,6 +24,8 @@ OUTPUT_FORMAT="text"
 OUTPUT_FILE=""
 COMPARE_MODE=false
 BASELINE_FILE=""
+USE_CLAUDE=false
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 
 # Function to print usage
 usage() {

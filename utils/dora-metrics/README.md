@@ -17,7 +17,9 @@ This utility is in **early development** and is not yet ready for Beta or produc
 ### What Works
 - ✅ Basic DORA metrics calculation (Deployment Frequency, Lead Time, MTTR, Change Failure Rate)
 - ✅ Performance classification (Elite/High/Medium/Low)
-- ✅ AI-enhanced analysis with Claude
+- ✅ AI-enhanced analysis with Claude (--claude flag)
+- ✅ Cost tracking for API usage
+- ✅ Unified tool (single binary, dual modes)
 
 ### What's Missing
 - ❌ Comprehensive error handling
@@ -53,11 +55,12 @@ gh auth login
 ### Basic Usage
 
 ```bash
-# Analyze a repository
-./dora-analyzer.sh owner/repo
+# Basic analysis (no API key required)
+./dora-analyzer.sh deployment-data.json
 
-# AI-enhanced analysis
+# AI-enhanced analysis with insights and cost tracking
 export ANTHROPIC_API_KEY="your-key"
+./dora-analyzer.sh --claude deployment-data.json
 ./dora-analyzer-claude.sh owner/repo
 
 # Compare base vs Claude analysis
@@ -229,3 +232,24 @@ GPL-3.0 - See [LICENSE](../../LICENSE) for details.
 Current version: 1.1.0 (Experimental)
 
 See [CHANGELOG.md](./CHANGELOG.md) for version history.
+
+## 🔄 v3.1 Consolidation (Partially Tested)
+
+**What Changed:**
+- Single tool with dual modes (basic + Claude AI)
+- Use `--claude` flag for AI-powered insights
+- Cost tracking automatically displays API usage
+- Removed separate `dora-analyzer-claude.sh` file
+
+**Testing Status:**
+- ✅ DORA Metrics: Fully tested with both modes
+- ✅ Cost tracking verified
+
+**Example:**
+```bash
+# Basic mode
+./dora-analyzer.sh deployment-data.json
+
+# Claude AI mode
+./dora-analyzer.sh --claude deployment-data.json
+```

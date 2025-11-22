@@ -27,6 +27,8 @@ VALIDATE_CODEOWNERS=false
 CODEOWNERS_PATH=".github/CODEOWNERS"
 TEMP_DIR=""
 CLEANUP=true
+USE_CLAUDE=false
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 
 usage() {
     cat << EOF
@@ -47,6 +49,8 @@ OPTIONS:
     -o, --output FILE       Write output to file instead of stdout
     -v, --validate          Validate CODEOWNERS file if present
     -c, --codeowners PATH   Path to CODEOWNERS file (default: .github/CODEOWNERS)
+    --claude                Use Claude AI for advanced analysis (requires ANTHROPIC_API_KEY)
+    -k, --api-key KEY       Anthropic API key (or set ANTHROPIC_API_KEY env var)
     --keep-clone            Keep cloned repository (don't cleanup)
     -h, --help              Show this help message
 
@@ -68,6 +72,9 @@ EXAMPLES:
 
     # Full analysis with validation
     $0 --days 90 --validate --format json --output report.json .
+
+    # Use Claude AI for advanced insights
+    $0 --claude .
 
 EOF
     exit 1
@@ -418,6 +425,134 @@ validate_codeowners_file() {
     echo ""
 }
 
+#############################################################################
+# Claude AI Functions (only used when --claude flag is set)
+#############################################################################
+
+collect_repository_data_for_claude() {
+    local repo_path="$1"
+    local days="$2"
+
+    cd "$repo_path" || exit 1
+
+    local repo_name=$(basename "$(git rev-parse --show-toplevel)")
+    local since_date=$(date -v-${days}d +%Y-%m-%d 2>/dev/null || date -d "${days} days ago" +%Y-%m-%d)
+
+    # Basic repository stats
+    local total_files=$(git ls-files | wc -l | tr -d ' ')
+    local total_commits=$(git log --since="$since_date" --oneline | wc -l | tr -d ' ')
+    local top_contributors=$(git log --since="$since_date" --format="%an" | sort | uniq -c | sort -rn | head -10)
+
+    # Contributor details
+    local contributor_files=$(mktemp)
+    git log --since="$since_date" --name-only --format="%an" | \
+        awk 'NF==1 && $1!="" {author=$1; next} {files[author"|"$0]++} END {
+            for(key in files) {
+                split(key, parts, "|")
+                author_files[parts[1]]++
+            }
+            for(author in author_files) {
+                print author"|"author_files[author]
+            }
+        }' | sort -t'|' -k2 -rn > "$contributor_files"
+
+    # Build JSON
+    local contributors_json="["
+    local first=true
+    while IFS='|' read author files; do
+        if [[ "$first" == "true" ]]; then
+            first=false
+        else
+            contributors_json+=","
+        fi
+        contributors_json+=$(jq -n \
+            --arg author "$author" \
+            --arg files "$files" \
+            '{author: $author, files: ($files | tonumber)}')
+    done < "$contributor_files"
+    contributors_json+="]"
+
+    rm -f "$contributor_files"
+
+    # Build final JSON
+    jq -n \
+        --arg repo_name "$repo_name" \
+        --arg total_files "$total_files" \
+        --arg total_commits "$total_commits" \
+        --arg days "$days" \
+        --argjson contributors "$contributors_json" \
+        '{
+            repository: $repo_name,
+            analysis_period_days: ($days | tonumber),
+            total_files: ($total_files | tonumber),
+            total_commits: ($total_commits | tonumber),
+            contributors: $contributors
+        }'
+}
+
+analyze_with_claude() {
+    local data="$1"
+    local model="claude-sonnet-4-20250514"
+
+    if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+        echo -e "${RED}Error: ANTHROPIC_API_KEY is required for Claude analysis${NC}"
+        echo "Set it with: export ANTHROPIC_API_KEY=your-key"
+        echo "Or use: --api-key your-key"
+        exit 1
+    fi
+
+    echo -e "${BLUE}Analyzing with Claude AI...${NC}"
+
+    local prompt="Analyze this code ownership data and provide insights on:
+1. Ownership concentration and bus factor risks
+2. Knowledge silos and recommendations
+3. CODEOWNERS file recommendations
+4. Succession planning suggestions
+
+Repository Data:
+$data
+
+Provide a concise, actionable analysis."
+
+    local response=$(curl -s https://api.anthropic.com/v1/messages \
+        -H "content-type: application/json" \
+        -H "x-api-key: $ANTHROPIC_API_KEY" \
+        -H "anthropic-version: 2023-06-01" \
+        -d "$(jq -n \
+            --arg model "$model" \
+            --arg prompt "$prompt" \
+            '{
+                model: $model,
+                max_tokens: 4096,
+                messages: [{
+                    role: "user",
+                    content: $prompt
+                }]
+            }')")
+
+    # Record API usage for cost tracking
+    if command -v record_api_usage &> /dev/null; then
+        record_api_usage "$response" "$model" > /dev/null
+    fi
+
+    local analysis=$(echo "$response" | jq -r '.content[0].text // empty')
+
+    if [[ -z "$analysis" ]]; then
+        echo -e "${RED}✗ Claude API error${NC}"
+        echo "$response" | jq .
+        return 1
+    fi
+
+    echo -e "${GREEN}✓ Analysis complete${NC}"
+    echo ""
+    echo "========================================="
+    echo "  Claude AI Code Ownership Analysis"
+    echo "========================================="
+    echo ""
+    echo "$analysis"
+    echo ""
+}
+
 # Parse arguments
 REPO_PATH=""
 
@@ -443,6 +578,14 @@ while [[ $# -gt 0 ]]; do
             CODEOWNERS_PATH="$2"
             shift 2
             ;;
+        --claude)
+            USE_CLAUDE=true
+            shift
+            ;;
+        -k|--api-key)
+            ANTHROPIC_API_KEY="$2"
+            shift 2
+            ;;
         --keep-clone)
             CLEANUP=false
             shift
@@ -462,10 +605,24 @@ if [[ -z "$REPO_PATH" ]]; then
     usage
 fi
 
+# Load cost tracking library if using Claude
+if [[ "$USE_CLAUDE" == "true" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
+        source "$REPO_ROOT/utils/lib/claude-cost.sh"
+        init_cost_tracking
+    fi
+fi
+
 # Main execution
 echo ""
 echo "========================================="
-echo "  Code Ownership Analyzer"
+if [[ "$USE_CLAUDE" == "true" ]]; then
+    echo "  Code Ownership Analyzer (Claude AI Mode)"
+else
+    echo "  Code Ownership Analyzer"
+fi
 echo "========================================="
 echo ""
 
@@ -490,13 +647,31 @@ if [[ "$VALIDATE_CODEOWNERS" == "true" ]]; then
     validate_codeowners_file "$ACTUAL_REPO_PATH"
 fi
 
-# Run analysis and redirect to file if specified
-if [[ -n "$OUTPUT_FILE" ]]; then
-    analyze_ownership "$ACTUAL_REPO_PATH" "$DAYS" > "$OUTPUT_FILE"
-    echo -e "${GREEN}✓ Analysis complete${NC}"
-    echo -e "Output written to: $OUTPUT_FILE"
+# Run analysis based on mode
+if [[ "$USE_CLAUDE" == "true" ]]; then
+    # Claude AI analysis mode
+    data=$(collect_repository_data_for_claude "$ACTUAL_REPO_PATH" "$DAYS")
+    if [[ -n "$OUTPUT_FILE" ]]; then
+        analyze_with_claude "$data" > "$OUTPUT_FILE"
+        echo -e "${GREEN}✓ Analysis complete${NC}"
+        echo -e "Output written to: $OUTPUT_FILE"
+    else
+        analyze_with_claude "$data"
+    fi
+
+    # Display cost summary
+    if command -v display_api_cost_summary &> /dev/null; then
+        display_api_cost_summary
+    fi
 else
-    analyze_ownership "$ACTUAL_REPO_PATH" "$DAYS"
+    # Standard analysis mode
+    if [[ -n "$OUTPUT_FILE" ]]; then
+        analyze_ownership "$ACTUAL_REPO_PATH" "$DAYS" > "$OUTPUT_FILE"
+        echo -e "${GREEN}✓ Analysis complete${NC}"
+        echo -e "Output written to: $OUTPUT_FILE"
+    else
+        analyze_ownership "$ACTUAL_REPO_PATH" "$DAYS"
+    fi
 fi
 
 # Cleanup if we cloned a repo
