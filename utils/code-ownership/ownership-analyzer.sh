@@ -223,39 +223,81 @@ analyze_ownership() {
     # Get contributors in the time period
     local since_date=$(date -v-${days}d +%Y-%m-%d 2>/dev/null || date -d "$days days ago" +%Y-%m-%d)
 
+    # Calculate metrics first to check if we have data
+    local total_commits=$(git log --since="$since_date" --oneline | wc -l | tr -d ' ')
+
+    # If no commits in the specified period, warn and use all-time data
+    if [[ "$total_commits" -eq 0 ]]; then
+        echo -e "${YELLOW}⚠ Warning: No commits found in the last $days days${NC}"
+        echo -e "${YELLOW}  Showing all-time repository statistics instead${NC}"
+        echo ""
+        since_date=""  # Empty means all-time
+    fi
+
     # Collect ownership data
     local ownership_data=$(mktemp)
-    git log --since="$since_date" --format="%an|%ae" --name-only | \
-        grep -v "^$" | \
-        awk -F'|' '
-        NF==2 {author=$1; email=$2; next}
-        {files[author"|"email"|"$0]++}
-        END {for (key in files) print key"|"files[key]}
-        ' > "$ownership_data"
+    if [[ -n "$since_date" ]]; then
+        git log --since="$since_date" --format="%an|%ae" --name-only | \
+            grep -v "^$" | \
+            awk -F'|' '
+            NF==2 {author=$1; email=$2; next}
+            {files[author"|"email"|"$0]++}
+            END {for (key in files) print key"|"files[key]}
+            ' > "$ownership_data"
+    else
+        git log --format="%an|%ae" --name-only | \
+            grep -v "^$" | \
+            awk -F'|' '
+            NF==2 {author=$1; email=$2; next}
+            {files[author"|"email"|"$0]++}
+            END {for (key in files) print key"|"files[key]}
+            ' > "$ownership_data"
+    fi
 
     # Calculate per-author statistics
     local author_stats=$(mktemp)
-    git log --since="$since_date" --format="%an|%ae" --numstat | \
-        awk -F'|' '
-        NF==2 {author=$1; next}
-        NF==3 {
-            commits[author]++
-            added[author]+=$1
-            deleted[author]+=$2
-        }
-        END {
-            for (author in commits) {
-                print author"|"commits[author]"|"added[author]"|"deleted[author]
+    if [[ -n "$since_date" ]]; then
+        git log --since="$since_date" --format="%an|%ae" --numstat | \
+            awk -F'|' '
+            NF==2 {author=$1; next}
+            NF==3 {
+                commits[author]++
+                added[author]+=$1
+                deleted[author]+=$2
             }
-        }
-        ' > "$author_stats"
+            END {
+                for (author in commits) {
+                    print author"|"commits[author]"|"added[author]"|"deleted[author]
+                }
+            }
+            ' > "$author_stats"
+    else
+        git log --format="%an|%ae" --numstat | \
+            awk -F'|' '
+            NF==2 {author=$1; next}
+            NF==3 {
+                commits[author]++
+                added[author]+=$1
+                deleted[author]+=$2
+            }
+            END {
+                for (author in commits) {
+                    print author"|"commits[author]"|"added[author]"|"deleted[author]
+                }
+            }
+            ' > "$author_stats"
+    fi
 
     # Get commit counts per author
-    local commit_counts=$(git log --since="$since_date" --format="%an" | sort | uniq -c | sort -rn)
-
-    # Calculate metrics
-    local total_commits=$(git log --since="$since_date" --oneline | wc -l | tr -d ' ')
-    local active_authors=$(git log --since="$since_date" --format="%an" | sort -u | wc -l | tr -d ' ')
+    if [[ -n "$since_date" ]]; then
+        local commit_counts=$(git log --since="$since_date" --format="%an" | sort | uniq -c | sort -rn)
+        total_commits=$(git log --since="$since_date" --oneline | wc -l | tr -d ' ')
+        local active_authors=$(git log --since="$since_date" --format="%an" | sort -u | wc -l | tr -d ' ')
+    else
+        local commit_counts=$(git log --format="%an" | sort | uniq -c | sort -rn)
+        total_commits=$(git log --oneline | wc -l | tr -d ' ')
+        local active_authors=$(git log --format="%an" | sort -u | wc -l | tr -d ' ')
+    fi
 
     # Export results based on format
     if [[ "$FORMAT" == "json" ]]; then
@@ -264,8 +306,18 @@ analyze_ownership() {
         generate_csv_output "$ownership_data" "$author_stats"
     elif [[ "$FORMAT" == "markdown" ]]; then
         generate_markdown_output "$total_files" "$total_commits" "$active_authors" "$ownership_data" "$author_stats" "$commit_counts"
+        check_codeowners_file "$repo_path"
     else
         generate_text_output "$total_files" "$total_commits" "$active_authors" "$ownership_data" "$author_stats" "$commit_counts"
+        echo ""
+        # Check for CODEOWNERS file
+        if [[ -f "$repo_path/$CODEOWNERS_PATH" ]]; then
+            echo "CODEOWNERS File: Found at $CODEOWNERS_PATH"
+            local patterns=$(grep -v "^#" "$repo_path/$CODEOWNERS_PATH" | grep -v "^$" | wc -l | tr -d ' ')
+            echo "  Patterns defined: $patterns"
+        else
+            echo "CODEOWNERS File: Not found"
+        fi
     fi
 
     rm -f "$ownership_data" "$author_stats"
@@ -466,6 +518,40 @@ EOF
     done < "$author_stats" | head -10
 
     echo ""
+}
+
+check_codeowners_file() {
+    local repo_path="$1"
+    local codeowners_file="$repo_path/$CODEOWNERS_PATH"
+
+    echo ""
+    echo "## CODEOWNERS File"
+    echo ""
+
+    if [[ ! -f "$codeowners_file" ]]; then
+        echo "- **Status**: ❌ Not found"
+        echo "- **Expected location**: \`$CODEOWNERS_PATH\`"
+        echo ""
+        return 1
+    fi
+
+    local total_patterns=$(grep -v "^#" "$codeowners_file" | grep -v "^$" | wc -l | tr -d ' ')
+    local unique_owners=$(grep -v "^#" "$codeowners_file" | grep -v "^$" | awk '{for(i=2;i<=NF;i++) print $i}' | sort -u | wc -l | tr -d ' ')
+
+    echo "- **Status**: ✅ Found"
+    echo "- **Location**: \`$codeowners_file\`"
+    echo "- **Patterns defined**: $total_patterns"
+    echo "- **Unique owners**: $unique_owners"
+    echo ""
+
+    if [[ "$VALIDATE_CODEOWNERS" == "true" ]]; then
+        echo "**Top patterns:**"
+        echo ""
+        grep -v "^#" "$codeowners_file" | grep -v "^$" | head -5 | while IFS= read -r line; do
+            echo "- \`$line\`"
+        done
+        echo ""
+    fi
 }
 
 validate_codeowners_file() {
