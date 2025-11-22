@@ -141,8 +141,9 @@ is_git_repository() {
     local repo_path="$1"
     if [[ ! -d "$repo_path/.git" ]]; then
         echo -e "${RED}Error: $repo_path is not a git repository${NC}"
-        exit 1
+        return 1
     fi
+    return 0
 }
 
 # Function to look up GitHub profile by email
@@ -958,7 +959,10 @@ analyze_single_target() {
         local actual_path="$target"
     fi
 
-    is_git_repository "$actual_path"
+    if ! is_git_repository "$actual_path"; then
+        echo -e "${YELLOW}Skipping repository...${NC}"
+        return 1
+    fi
 
     if [[ "$VALIDATE_CODEOWNERS" == "true" ]]; then
         validate_codeowners_file "$actual_path"
