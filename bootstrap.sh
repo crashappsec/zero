@@ -326,7 +326,23 @@ else
     fi
 fi
 
+# Export skills to templates
+echo -e "${BLUE}Exporting Claude Code skills to portable templates...${NC}"
+if [ -d "$REPO_ROOT/.claude/skills" ]; then
+    if [ -x "$REPO_ROOT/export-skills-to-templates.sh" ]; then
+        if "$REPO_ROOT/export-skills-to-templates.sh" > /dev/null 2>&1; then
+            echo -e "${GREEN}✓${NC} Skills exported to ~/claude-templates"
+        else
+            echo -e "${YELLOW}⚠${NC} Failed to export skills (non-fatal)"
+        fi
+    else
+        echo -e "${YELLOW}⚠${NC} export-skills-to-templates.sh not executable"
+    fi
+else
+    echo -e "${YELLOW}⚠${NC} No .claude/skills directory found (skipping export)"
+fi
 echo ""
+
 echo "Next steps:"
 echo ""
 
