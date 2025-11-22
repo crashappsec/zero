@@ -555,6 +555,84 @@ check_codeowners_file() {
     fi
 }
 
+# Get organization members
+get_org_members() {
+    local org="$1"
+    local github_token="${GITHUB_TOKEN:-}"
+
+    if [[ -z "$github_token" ]]; then
+        return 1
+    fi
+
+    local page=1
+    local members=""
+
+    while true; do
+        local response=$(curl -s -H "Authorization: token $github_token" \
+            "https://api.github.com/orgs/$org/members?per_page=100&page=$page")
+
+        local page_members=$(echo "$response" | jq -r '.[].login' 2>/dev/null)
+
+        if [[ -z "$page_members" ]]; then
+            break
+        fi
+
+        members="${members}${page_members}"$'\n'
+        page=$((page + 1))
+    done
+
+    echo "$members"
+}
+
+# Check if user is org member
+is_org_member() {
+    local username="$1"
+    local org="$2"
+    local org_members="$3"
+
+    echo "$org_members" | grep -q "^${username}$"
+}
+
+# Get contributor seniority (days since first commit, total commits)
+get_contributor_seniority() {
+    local repo_path="$1"
+    local email="$2"
+
+    cd "$repo_path" || return 1
+
+    # Get first commit date
+    local first_commit_date=$(git log --author="$email" --reverse --format="%ad" --date=short | head -1)
+
+    if [[ -z "$first_commit_date" ]]; then
+        echo "0|0"
+        return
+    fi
+
+    # Calculate days since first commit
+    local first_commit_epoch=$(date -j -f "%Y-%m-%d" "$first_commit_date" "+%s" 2>/dev/null || date -d "$first_commit_date" "+%s" 2>/dev/null)
+    local now_epoch=$(date "+%s")
+    local days_contributing=$(( (now_epoch - first_commit_epoch) / 86400 ))
+
+    # Get total commits
+    local total_commits=$(git log --author="$email" --oneline | wc -l | tr -d ' ')
+
+    echo "$days_contributing|$total_commits"
+}
+
+# Get contributor activity (commits in last N days)
+get_contributor_activity() {
+    local repo_path="$1"
+    local email="$2"
+    local days="${3:-90}"
+
+    cd "$repo_path" || return 1
+
+    local since_date=$(date -v-${days}d +%Y-%m-%d 2>/dev/null || date -d "$days days ago" +%Y-%m-%d 2>/dev/null)
+    local recent_commits=$(git log --author="$email" --since="$since_date" --oneline | wc -l | tr -d ' ')
+
+    echo "$recent_commits"
+}
+
 validate_codeowners_file() {
     local repo_path="$1"
     local codeowners_file="$repo_path/$CODEOWNERS_PATH"
@@ -567,9 +645,31 @@ validate_codeowners_file() {
     echo -e "${BLUE}Validating CODEOWNERS file: $codeowners_file${NC}"
     echo ""
 
+    # Try to detect org from remote
+    local org=""
+    local org_members=""
+    if cd "$repo_path" 2>/dev/null; then
+        local remote_url=$(git config --get remote.origin.url 2>/dev/null)
+        if [[ "$remote_url" =~ github\.com[/:]([^/]+)/([^/]+) ]]; then
+            org="${BASH_REMATCH[1]}"
+            if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+                echo -e "${BLUE}Fetching members for org: $org${NC}"
+                org_members=$(get_org_members "$org")
+                if [[ -n "$org_members" ]]; then
+                    local member_count=$(echo "$org_members" | grep -c "^" || echo "0")
+                    echo -e "${GREEN}✓${NC} Found $member_count org members"
+                    echo ""
+                fi
+            fi
+        fi
+    fi
+
     local total_patterns=0
     local valid_patterns=0
     local issues=0
+    local owner_issues=0
+
+    declare -A checked_owners
 
     while IFS= read -r line; do
         # Skip comments and empty lines
@@ -585,22 +685,74 @@ validate_codeowners_file() {
         # Basic validation
         if [[ -n "$pattern" && -n "$owners" ]]; then
             ((valid_patterns++))
+
+            # Validate each owner
+            for owner in $owners; do
+                # Strip @ prefix
+                local username="${owner#@}"
+
+                # Skip team references
+                [[ "$username" =~ ^[^/]+/.+ ]] && continue
+
+                # Check if already validated
+                [[ -n "${checked_owners[$username]:-}" ]] && continue
+                checked_owners[$username]=1
+
+                # Check org membership
+                if [[ -n "$org_members" ]]; then
+                    if ! is_org_member "$username" "$org" "$org_members"; then
+                        echo -e "${YELLOW}⚠ Owner @$username is not a member of org: $org${NC}"
+                        ((owner_issues++))
+                        continue
+                    fi
+                fi
+
+                # Try to get email for this user
+                local user_email="${username}@users.noreply.github.com"
+
+                # Check seniority and activity
+                local seniority=$(get_contributor_seniority "$repo_path" "$user_email")
+                IFS='|' read -r days_contributing total_commits <<< "$seniority"
+
+                local activity=$(get_contributor_activity "$repo_path" "$user_email" 90)
+
+                # Validate seniority (less than 30 days or less than 10 commits = junior)
+                if [[ $days_contributing -gt 0 ]]; then
+                    if [[ $days_contributing -lt 30 || $total_commits -lt 10 ]]; then
+                        echo -e "${YELLOW}⚠ Owner @$username appears to be junior (${days_contributing} days, ${total_commits} commits)${NC}"
+                        ((owner_issues++))
+                    fi
+
+                    # Validate activity (no commits in last 90 days = inactive)
+                    if [[ $activity -eq 0 ]]; then
+                        echo -e "${YELLOW}⚠ Owner @$username has no recent activity (0 commits in last 90 days)${NC}"
+                        ((owner_issues++))
+                    fi
+                else
+                    echo -e "${YELLOW}⚠ Owner @$username has no commits in this repository${NC}"
+                    ((owner_issues++))
+                fi
+            done
         else
             echo -e "${YELLOW}⚠ Invalid pattern: $line${NC}"
             ((issues++))
         fi
     done < "$codeowners_file"
 
+    echo ""
     echo "CODEOWNERS Validation Results:"
     echo "----------------------------"
     echo "Total patterns: $total_patterns"
     echo "Valid patterns: $valid_patterns"
-    echo "Issues found: $issues"
+    echo "Syntax issues: $issues"
+    echo "Owner validation issues: $owner_issues"
 
-    if [[ $issues -eq 0 ]]; then
-        echo -e "${GREEN}✓ CODEOWNERS file syntax is valid${NC}"
+    if [[ $issues -eq 0 && $owner_issues -eq 0 ]]; then
+        echo -e "${GREEN}✓ CODEOWNERS file is valid${NC}"
+    elif [[ $issues -eq 0 ]]; then
+        echo -e "${YELLOW}⚠ CODEOWNERS syntax is valid but has owner validation warnings${NC}"
     else
-        echo -e "${RED}✗ CODEOWNERS file has $issues issues${NC}"
+        echo -e "${RED}✗ CODEOWNERS file has $issues syntax issues and $owner_issues owner issues${NC}"
     fi
     echo ""
 }
@@ -732,7 +884,8 @@ analyze_with_claude() {
 
     echo -e "${BLUE}Analyzing with Claude AI...${NC}"
 
-    local prompt="Analyze this code ownership data and provide insights on:
+    # Build base prompt
+    local base_prompt="Analyze this code ownership data and provide insights on:
 
 1. **CODEOWNERS File Analysis** (if present):
    - Compare designated owners in CODEOWNERS with actual commit-based ownership
@@ -758,6 +911,14 @@ Repository Data:
 $data
 
 Provide a clear, actionable analysis with specific recommendations. If a CODEOWNERS file exists, make the comparison analysis the primary focus."
+
+    # Include RAG content if available
+    local prompt
+    if command -v include_rag_in_prompt &> /dev/null; then
+        prompt=$(include_rag_in_prompt "code-ownership" "$base_prompt")
+    else
+        prompt="$base_prompt"
+    fi
 
     local response=$(curl -s https://api.anthropic.com/v1/messages \
         -H "content-type: application/json" \
@@ -870,6 +1031,11 @@ fi
 # Get script directory and load libraries
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Load global configuration
+if [ -f "$REPO_ROOT/utils/lib/config.sh" ]; then
+    source "$REPO_ROOT/utils/lib/config.sh"
+fi
 
 # Load GitHub library for org scanning
 if [ -f "$REPO_ROOT/utils/lib/github.sh" ]; then
