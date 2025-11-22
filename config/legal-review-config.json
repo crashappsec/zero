@@ -1,0 +1,455 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://crashoverride.com/schemas/legal-review-config.json",
+  "title": "Legal Review Configuration",
+  "description": "Configuration for legal review, license compliance, secret detection, and content policy enforcement",
+
+  "legal_review": {
+    "_comment": "Master configuration for all legal review activities",
+
+    "licenses": {
+      "_comment": "License policy configuration",
+
+      "allowed": {
+        "_comment": "Licenses approved for use without review",
+        "list": [
+          "MIT",
+          "Apache-2.0",
+          "BSD-2-Clause",
+          "BSD-3-Clause",
+          "ISC",
+          "CC0-1.0",
+          "Unlicense",
+          "0BSD"
+        ],
+        "allow_dual_license_with_approved": true,
+        "description": "Permissive licenses approved for all use cases"
+      },
+
+      "review_required": {
+        "_comment": "Licenses requiring legal review before use",
+        "list": [
+          "MPL-2.0",
+          "LGPL-2.1",
+          "LGPL-3.0",
+          "EPL-2.0",
+          "CDDL-1.0",
+          "CPL-1.0"
+        ],
+        "require_approval_from": "legal@company.com",
+        "description": "Weak copyleft licenses requiring case-by-case review"
+      },
+
+      "denied": {
+        "_comment": "Licenses prohibited from use",
+        "list": [
+          "GPL-2.0",
+          "GPL-2.0-only",
+          "GPL-2.0-or-later",
+          "GPL-3.0",
+          "GPL-3.0-only",
+          "GPL-3.0-or-later",
+          "AGPL-3.0",
+          "AGPL-3.0-only",
+          "AGPL-3.0-or-later",
+          "SSPL-1.0",
+          "Commons-Clause"
+        ],
+        "reason": "Strong copyleft incompatible with proprietary distribution",
+        "severity": "high"
+      },
+
+      "unknown_license_policy": {
+        "severity": "high",
+        "require_review": true,
+        "block_build": true,
+        "description": "Unknown or missing licenses require investigation"
+      },
+
+      "exemptions": {
+        "_comment": "Specific exemptions to license policy",
+        "list": [
+          {
+            "package": "readline",
+            "license": "GPL-3.0",
+            "reason": "System library exception",
+            "approved_by": "legal@company.com",
+            "approved_date": "2024-01-01",
+            "expires": null
+          }
+        ]
+      },
+
+      "compatibility_rules": {
+        "_comment": "License compatibility override rules",
+        "allow_gpl_with_system_libraries": true,
+        "allow_lgpl_linking": true,
+        "check_outbound_license_compatibility": true
+      },
+
+      "attribution_requirements": {
+        "generate_notice_file": true,
+        "notice_file_path": "NOTICE",
+        "include_copyright_years": true,
+        "include_license_text": true,
+        "minimum_attribution_fields": [
+          "package_name",
+          "version",
+          "license",
+          "copyright_holder"
+        ]
+      }
+    },
+
+    "secrets": {
+      "_comment": "Secret detection configuration",
+
+      "enabled": true,
+      "scan_git_history": false,
+      "max_history_commits": 100,
+
+      "patterns": {
+        "_comment": "Secret detection patterns",
+
+        "high_priority": [
+          {
+            "name": "AWS Access Key",
+            "pattern": "AKIA[0-9A-Z]{16}",
+            "severity": "critical",
+            "description": "AWS IAM access key"
+          },
+          {
+            "name": "GitHub Token",
+            "pattern": "gh[pousr]_[A-Za-z0-9]{36}",
+            "severity": "critical"
+          },
+          {
+            "name": "Private Key",
+            "pattern": "-----BEGIN (RSA |DSA |EC )?PRIVATE KEY-----",
+            "severity": "critical"
+          },
+          {
+            "name": "Generic API Key",
+            "pattern": "[aA][pP][iI][_-]?[kK][eE][yY].*['\\\"][0-9a-zA-Z]{32,}['\\\"]",
+            "severity": "high"
+          }
+        ],
+
+        "medium_priority": [
+          {
+            "name": "Password in Code",
+            "pattern": "[pP][aA][sS][sS][wW][oO][rR][dD].*[=:].*['\\\"][^'\\\"]{8,}['\\\"]",
+            "severity": "medium"
+          },
+          {
+            "name": "Database URL",
+            "pattern": "(postgres|mysql|mongodb)://[^\\s]+:[^\\s]+@",
+            "severity": "medium"
+          }
+        ],
+
+        "custom": []
+      },
+
+      "entropy": {
+        "enabled": true,
+        "threshold": 4.5,
+        "min_length": 20,
+        "description": "High entropy strings likely to be secrets"
+      },
+
+      "pii_detection": {
+        "enabled": true,
+        "patterns": [
+          {
+            "name": "SSN",
+            "pattern": "\\d{3}-\\d{2}-\\d{4}",
+            "severity": "high"
+          },
+          {
+            "name": "Credit Card",
+            "pattern": "\\d{4}[-\\s]?\\d{4}[-\\s]?\\d{4}[-\\s]?\\d{4}",
+            "severity": "high"
+          },
+          {
+            "name": "Email in Code",
+            "pattern": "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}",
+            "severity": "low",
+            "context": "only_in_strings"
+          }
+        ]
+      },
+
+      "exemptions": {
+        "paths": [
+          "test/**",
+          "tests/**",
+          "**/test/**",
+          "**/*_test.*",
+          "**/*_spec.*",
+          "fixtures/**",
+          "examples/**"
+        ],
+        "patterns": [
+          "EXAMPLE_KEY",
+          "sample_token",
+          "test_password",
+          "dummy_secret"
+        ]
+      }
+    },
+
+    "content_policy": {
+      "_comment": "Content policy enforcement configuration",
+
+      "profanity": {
+        "enabled": true,
+        "severity": "medium",
+        "check_locations": ["identifiers", "comments", "strings"],
+
+        "patterns": [
+          {
+            "term": "fuck",
+            "severity": "high",
+            "alternatives": ["broken", "problematic"]
+          },
+          {
+            "term": "shit",
+            "severity": "high",
+            "alternatives": ["poor quality", "problematic"]
+          },
+          {
+            "term": "damn",
+            "severity": "medium",
+            "alternatives": ["darn", "unfortunate"]
+          },
+          {
+            "term": "wtf",
+            "severity": "medium",
+            "alternatives": ["unexpected", "surprising"]
+          }
+        ],
+
+        "exemptions": {
+          "technical_terms": ["daemon", "password", "class", "assembly"],
+          "paths": ["test/**", "docs/examples/**"]
+        }
+      },
+
+      "inclusive_language": {
+        "enabled": true,
+        "severity": "medium",
+
+        "replacements": [
+          {
+            "term": "master",
+            "alternatives": ["primary", "main", "leader"],
+            "context": "branch_names_and_replication",
+            "severity": "high"
+          },
+          {
+            "term": "slave",
+            "alternatives": ["replica", "follower", "secondary"],
+            "severity": "high"
+          },
+          {
+            "term": "whitelist",
+            "alternatives": ["allowlist", "permitted"],
+            "severity": "medium"
+          },
+          {
+            "term": "blacklist",
+            "alternatives": ["denylist", "blocked"],
+            "severity": "medium"
+          },
+          {
+            "term": "grandfathered",
+            "alternatives": ["legacy", "exempt", "existing"],
+            "severity": "low"
+          },
+          {
+            "term": "sanity check",
+            "alternatives": ["validation", "verification", "health check"],
+            "severity": "low"
+          }
+        ],
+
+        "exemptions": {
+          "technical_terms": ["IDE master", "git master", "Bluetooth master"],
+          "paths": ["historical/**", "legacy/**"],
+          "comment": "Some technical standards still use legacy terms"
+        }
+      },
+
+      "hate_speech": {
+        "enabled": true,
+        "severity": "critical",
+        "zero_tolerance": true,
+        "description": "Any hate speech, slurs, or discriminatory content is prohibited"
+      },
+
+      "export_control": {
+        "enabled": true,
+        "severity": "high",
+
+        "keywords": [
+          "ITAR",
+          "EAR",
+          "ECCN",
+          "military grade",
+          "weapons system",
+          "munitions",
+          "defense article"
+        ],
+
+        "cryptography": {
+          "flag_strong_crypto": true,
+          "min_key_size": 256,
+          "description": "Strong cryptography may require export approval"
+        }
+      }
+    },
+
+    "compliance": {
+      "_comment": "Compliance framework configuration",
+
+      "gdpr": {
+        "enabled": true,
+        "check_pii_handling": true,
+        "require_consent_mechanisms": true,
+        "check_data_retention": true
+      },
+
+      "ccpa": {
+        "enabled": true,
+        "check_personal_data_sales": true,
+        "require_opt_out": true
+      },
+
+      "hipaa": {
+        "enabled": false,
+        "check_phi": false,
+        "require_encryption": true,
+        "require_audit_logs": true
+      },
+
+      "sox": {
+        "enabled": false,
+        "check_financial_data": false
+      }
+    },
+
+    "reporting": {
+      "_comment": "Report generation configuration",
+
+      "formats": {
+        "json": true,
+        "markdown": true,
+        "html": false,
+        "pdf": false,
+        "spdx": true
+      },
+
+      "severity_thresholds": {
+        "fail_build_on": ["critical", "high"],
+        "warn_on": ["medium"],
+        "info_only": ["low"]
+      },
+
+      "output": {
+        "directory": "legal-reports",
+        "filename_pattern": "{repo}-legal-{timestamp}.{format}",
+        "include_executive_summary": true,
+        "include_remediation_steps": true,
+        "group_by_severity": true
+      },
+
+      "notifications": {
+        "email": {
+          "enabled": false,
+          "recipients": ["security@company.com", "legal@company.com"],
+          "on_severity": ["critical", "high"]
+        },
+        "slack": {
+          "enabled": false,
+          "webhook_url": "",
+          "on_severity": ["critical"]
+        }
+      }
+    },
+
+    "scanning": {
+      "_comment": "Scan behavior configuration",
+
+      "scope": {
+        "include_paths": ["."],
+        "exclude_paths": [
+          "node_modules/**",
+          "vendor/**",
+          ".git/**",
+          "dist/**",
+          "build/**",
+          "coverage/**",
+          "tmp/**",
+          ".cache/**"
+        ],
+        "file_types": [
+          ".js", ".ts", ".jsx", ".tsx",
+          ".py", ".java", ".go", ".rs",
+          ".c", ".cpp", ".h", ".hpp",
+          ".rb", ".php", ".sh", ".bash",
+          ".json", ".yaml", ".yml", ".toml",
+          ".md", ".txt"
+        ]
+      },
+
+      "performance": {
+        "max_file_size_mb": 10,
+        "timeout_seconds": 600,
+        "parallel_scans": true,
+        "cache_results": true,
+        "cache_ttl_hours": 24
+      }
+    }
+  },
+
+  "presets": {
+    "_comment": "Pre-configured profiles for common scenarios",
+
+    "strict": {
+      "description": "Strictest policy for regulated industries",
+      "licenses": {
+        "allowed": ["MIT", "Apache-2.0", "BSD-3-Clause"],
+        "denied": ["*GPL*", "*AGPL*", "SSPL", "Commons-Clause"]
+      },
+      "secrets": {
+        "scan_git_history": true
+      },
+      "content_policy": {
+        "profanity": {"severity": "high"},
+        "inclusive_language": {"severity": "high"}
+      },
+      "fail_on": ["critical", "high", "medium"]
+    },
+
+    "permissive": {
+      "description": "Relaxed policy for internal projects",
+      "licenses": {
+        "allowed": ["MIT", "Apache-2.0", "BSD-*", "GPL-3.0", "LGPL-3.0"],
+        "denied": ["SSPL"]
+      },
+      "fail_on": ["critical"]
+    },
+
+    "open_source": {
+      "description": "Policy for open source projects",
+      "licenses": {
+        "allowed": ["MIT", "Apache-2.0", "GPL-3.0", "LGPL-3.0", "MPL-2.0"],
+        "check_compatibility": true
+      },
+      "content_policy": {
+        "inclusive_language": {"severity": "high"}
+      }
+    }
+  }
+}
