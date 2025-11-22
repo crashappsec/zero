@@ -18,6 +18,9 @@ GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+# Get script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Configuration
 CURRENT_MAX_VALIDITY=398  # Current CA/B Forum limit (days)
 EXPIRY_CRITICAL=7         # Critical if expires within X days
@@ -30,6 +33,15 @@ REPORT_FILE=""
 ANALYSIS_DATE=""
 USE_CLAUDE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+
+# Load cost tracking if using Claude
+if [[ "$USE_CLAUDE" == "true" ]]; then
+    REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
+        source "$REPO_ROOT/utils/lib/claude-cost.sh"
+        init_cost_tracking
+    fi
+fi
 
 #############################################################################
 # Utility Functions
@@ -642,6 +654,56 @@ EOF
 }
 
 #############################################################################
+# Claude AI Analysis
+#############################################################################
+
+analyze_with_claude() {
+    local report_content="$1"
+    local model="claude-sonnet-4-20250514"
+
+    if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+        log_error "ANTHROPIC_API_KEY required for --claude mode"
+        exit 1
+    fi
+
+    log_info "Analyzing with Claude AI..."
+
+    local prompt="Analyze this SSL/TLS certificate analysis report and provide enhanced security insights. Focus on:
+1. Risk prioritization and immediate actions required
+2. Security posture assessment (critical, high, medium, low risk)
+3. Certificate management best practices compliance
+4. Cryptographic strength evaluation and recommendations
+5. Expiration management and renewal planning
+6. Industry standards compliance (CA/B Forum, NIST, etc.)
+7. Specific remediation steps prioritized by impact
+8. Long-term certificate management strategy
+9. Common pitfalls and how to avoid them
+10. Automation opportunities for certificate lifecycle management
+
+Certificate Analysis Report:
+$report_content"
+
+    local response=$(curl -s https://api.anthropic.com/v1/messages \
+        -H "content-type: application/json" \
+        -H "x-api-key: $ANTHROPIC_API_KEY" \
+        -H "anthropic-version: 2023-06-01" \
+        -d "{
+            \"model\": \"$model\",
+            \"max_tokens\": 4096,
+            \"messages\": [{
+                \"role\": \"user\",
+                \"content\": $(echo "$prompt" | jq -Rs .)
+            }]
+        }")
+
+    if command -v record_api_usage &> /dev/null; then
+        record_api_usage "$response" "$model" > /dev/null
+    fi
+
+    echo "$response" | jq -r '.content[0].text // empty'
+}
+
+#############################################################################
 # Main Analysis Function
 #############################################################################
 
@@ -738,27 +800,76 @@ analyze_domain() {
 #############################################################################
 
 main() {
-    if [[ $# -ne 1 ]]; then
-        echo "Usage: $0 <domain>"
+    # Parse arguments
+    local domain=""
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --claude)
+                USE_CLAUDE=true
+                shift
+                ;;
+            -h|--help)
+                echo "Usage: $0 [OPTIONS] <domain>"
+                echo ""
+                echo "OPTIONS:"
+                echo "  --claude    Use Claude AI for enhanced analysis (requires ANTHROPIC_API_KEY)"
+                echo "  -h, --help  Show this help message"
+                echo ""
+                echo "Example: $0 example.com"
+                echo "Example: $0 --claude example.com"
+                echo ""
+                echo "Analyzes digital certificates for compliance with CA/Browser Forum policies"
+                exit 0
+                ;;
+            *)
+                domain="$1"
+                shift
+                ;;
+        esac
+    done
+
+    if [[ -z "$domain" ]]; then
+        echo "Usage: $0 [OPTIONS] <domain>"
         echo ""
-        echo "Example: $0 example.com"
-        echo ""
-        echo "Analyzes digital certificates for compliance with CA/Browser Forum policies"
+        echo "Use --help for more information"
         exit 1
     fi
-    
-    local domain=$1
-    
+
     # Remove protocol if present
     domain=$(echo "$domain" | sed 's|^https\?://||' | sed 's|/.*||')
-    
+
     # Check dependencies
     if ! command -v openssl &> /dev/null; then
         log_error "openssl is required but not installed"
         exit 1
     fi
-    
+
+    # Run analysis
     analyze_domain "$domain"
+
+    # If Claude mode, analyze the report
+    if [[ "$USE_CLAUDE" == "true" ]]; then
+        if [[ -f "$REPORT_FILE" ]]; then
+            local report_content=$(cat "$REPORT_FILE")
+
+            echo ""
+            echo "═══════════════════════════════════════════════════════════"
+            echo "  Claude AI Enhanced Analysis"
+            echo "═══════════════════════════════════════════════════════════"
+            echo ""
+
+            local claude_analysis=$(analyze_with_claude "$report_content")
+            echo "$claude_analysis"
+
+            echo ""
+
+            # Display cost summary
+            if command -v display_api_cost_summary &> /dev/null; then
+                display_api_cost_summary
+                echo ""
+            fi
+        fi
+    fi
 }
 
 main "$@"

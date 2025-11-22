@@ -60,6 +60,7 @@ ANALYSIS OPTIONS:
     --verify-signatures     Cryptographically verify signatures (requires cosign)
     --min-level LEVEL       Require minimum SLSA level (0-4)
     --strict                Fail on missing provenance or low SLSA level
+    --claude                Use Claude AI for enhanced analysis (requires ANTHROPIC_API_KEY)
     -f, --format FORMAT     Output format: table|json|markdown (default: table)
     -o, --output FILE       Write results to file
     -k, --keep-clone        Keep cloned repository (don't cleanup)
@@ -459,6 +460,52 @@ analyze_package() {
     fi
 }
 
+#############################################################################
+# Claude AI Analysis
+#############################################################################
+
+analyze_with_claude() {
+    local data="$1"
+    local model="claude-sonnet-4-20250514"
+
+    if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+        echo -e "${RED}Error: ANTHROPIC_API_KEY required for --claude mode${NC}" >&2
+        exit 1
+    fi
+
+    echo -e "${BLUE}Analyzing with Claude AI...${NC}" >&2
+
+    local prompt="Analyze this SLSA provenance analysis data and provide insights on supply chain security. Focus on:
+1. SLSA level compliance and gaps
+2. Provenance verification status and trust
+3. Build attestation quality and completeness
+4. Supply chain security risks and vulnerabilities
+5. Recommendations for improving provenance and SLSA levels
+6. Prioritized action items for hardening the build pipeline
+
+Data:
+$data"
+
+    local response=$(curl -s https://api.anthropic.com/v1/messages \
+        -H "content-type: application/json" \
+        -H "x-api-key: $ANTHROPIC_API_KEY" \
+        -H "anthropic-version: 2023-06-01" \
+        -d "{
+            \"model\": \"$model\",
+            \"max_tokens\": 4096,
+            \"messages\": [{
+                \"role\": \"user\",
+                \"content\": $(echo "$prompt" | jq -Rs .)
+            }]
+        }")
+
+    if command -v record_api_usage &> /dev/null; then
+        record_api_usage "$response" "$model" > /dev/null
+    fi
+
+    echo "$response" | jq -r '.content[0].text // empty'
+}
+
 # Function to analyze a single target
 analyze_single_target() {
     local target="$1"
@@ -490,6 +537,15 @@ analyze_single_target() {
         return 1
     fi
 }
+
+# Load cost tracking if using Claude
+if [[ "$USE_CLAUDE" == "true" ]]; then
+    REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+    if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
+        source "$REPO_ROOT/utils/lib/claude-cost.sh"
+        init_cost_tracking
+    fi
+fi
 
 # Parse command line arguments
 OUTPUT_FILE=""
@@ -535,6 +591,10 @@ while [[ $# -gt 0 ]]; do
             CONFIG_FILE="$2"
             shift 2
             ;;
+        --claude)
+            USE_CLAUDE=true
+            shift
+            ;;
         -h|--help)
             usage
             ;;
@@ -578,43 +638,106 @@ if [[ "$MULTI_REPO_MODE" == false ]]; then
     check_syft
 fi
 
-# Multi-repo mode or single target
-if [[ "$MULTI_REPO_MODE" == true ]]; then
-    echo -e "${BLUE}Multi-repository mode: ${#TARGETS_LIST[@]} target(s)${NC}"
+# Capture output for Claude analysis if enabled
+if [[ "$USE_CLAUDE" == "true" ]]; then
+    analysis_output=$(
+        # Multi-repo mode or single target
+        if [[ "$MULTI_REPO_MODE" == true ]]; then
+            echo "Multi-repository mode: ${#TARGETS_LIST[@]} target(s)"
+            echo ""
+
+            for target_spec in "${TARGETS_LIST[@]}"; do
+                if [[ "$target_spec" =~ ^org: ]]; then
+                    org="${target_spec#org:}"
+                    repos=$(expand_org_repos "$org" 2>&1)
+
+                    if [[ -z "$repos" ]]; then
+                        continue
+                    fi
+
+                    while IFS= read -r repo; do
+                        if [[ -n "$repo" ]]; then
+                            echo ""
+                            echo "========================================="
+                            echo "Analyzing: $repo"
+                            echo "========================================="
+                            echo ""
+                            analyze_single_target "https://github.com/$repo" 2>&1
+                        fi
+                    done <<< "$repos"
+
+                elif [[ "$target_spec" =~ ^repo: ]]; then
+                    repo="${target_spec#repo:}"
+                    echo ""
+                    echo "========================================="
+                    echo "Analyzing: $repo"
+                    echo "========================================="
+                    echo ""
+                    analyze_single_target "https://github.com/$repo" 2>&1
+                fi
+            done
+        else
+            analyze_single_target "$TARGET" 2>&1
+        fi
+    )
+
+    # Display original analysis
+    echo "$analysis_output"
+
+    echo ""
+    echo "========================================="
+    echo "  Claude AI Enhanced Analysis"
+    echo "========================================="
     echo ""
 
-    for target_spec in "${TARGETS_LIST[@]}"; do
-        if [[ "$target_spec" =~ ^org: ]]; then
-            org="${target_spec#org:}"
-            repos=$(expand_org_repos "$org")
+    # Get Claude analysis
+    claude_analysis=$(analyze_with_claude "$analysis_output")
+    echo "$claude_analysis"
 
-            if [[ -z "$repos" ]]; then
-                continue
-            fi
-
-            while IFS= read -r repo; do
-                if [[ -n "$repo" ]]; then
-                    echo ""
-                    echo -e "${CYAN}=========================================${NC}"
-                    echo -e "${CYAN}Analyzing: $repo${NC}"
-                    echo -e "${CYAN}=========================================${NC}"
-                    echo ""
-                    analyze_single_target "https://github.com/$repo"
-                fi
-            done <<< "$repos"
-
-        elif [[ "$target_spec" =~ ^repo: ]]; then
-            repo="${target_spec#repo:}"
-            echo ""
-            echo -e "${CYAN}=========================================${NC}"
-            echo -e "${CYAN}Analyzing: $repo${NC}"
-            echo -e "${CYAN}=========================================${NC}"
-            echo ""
-            analyze_single_target "https://github.com/$repo"
-        fi
-    done
+    # Display cost summary
+    if command -v display_api_cost_summary &> /dev/null; then
+        echo ""
+        display_api_cost_summary
+    fi
 else
-    analyze_single_target "$TARGET"
+    # Multi-repo mode or single target
+    if [[ "$MULTI_REPO_MODE" == true ]]; then
+        echo -e "${BLUE}Multi-repository mode: ${#TARGETS_LIST[@]} target(s)${NC}"
+        echo ""
+
+        for target_spec in "${TARGETS_LIST[@]}"; do
+            if [[ "$target_spec" =~ ^org: ]]; then
+                org="${target_spec#org:}"
+                repos=$(expand_org_repos "$org")
+
+                if [[ -z "$repos" ]]; then
+                    continue
+                fi
+
+                while IFS= read -r repo; do
+                    if [[ -n "$repo" ]]; then
+                        echo ""
+                        echo -e "${CYAN}=========================================${NC}"
+                        echo -e "${CYAN}Analyzing: $repo${NC}"
+                        echo -e "${CYAN}=========================================${NC}"
+                        echo ""
+                        analyze_single_target "https://github.com/$repo"
+                    fi
+                done <<< "$repos"
+
+            elif [[ "$target_spec" =~ ^repo: ]]; then
+                repo="${target_spec#repo:}"
+                echo ""
+                echo -e "${CYAN}=========================================${NC}"
+                echo -e "${CYAN}Analyzing: $repo${NC}"
+                echo -e "${CYAN}=========================================${NC}"
+                echo ""
+                analyze_single_target "https://github.com/$repo"
+            fi
+        done
+    else
+        analyze_single_target "$TARGET"
+    fi
 fi
 
 echo ""

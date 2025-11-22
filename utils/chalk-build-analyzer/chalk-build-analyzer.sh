@@ -19,6 +19,9 @@ BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
+# Get script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
 # Default options
 OUTPUT_FORMAT="text"
 OUTPUT_FILE=""
@@ -26,6 +29,15 @@ COMPARE_MODE=false
 BASELINE_FILE=""
 USE_CLAUDE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+
+# Load cost tracking if using Claude
+if [[ "$USE_CLAUDE" == "true" ]]; then
+    REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
+        source "$REPO_ROOT/utils/lib/claude-cost.sh"
+        init_cost_tracking
+    fi
+fi
 
 # Function to print usage
 usage() {
@@ -45,6 +57,7 @@ COMPARISON MODE:
 
 OPTIONS:
     -c, --compare BASELINE  Compare current build against baseline
+    --claude                Use Claude AI for enhanced analysis (requires ANTHROPIC_API_KEY)
     -f, --format FORMAT     Output format: text|json|csv (default: text)
     -o, --output FILE       Write results to file
     -h, --help              Show this help message
@@ -276,6 +289,57 @@ export_json() {
     echo -e "${GREEN}✓ Analysis exported to: $output${NC}"
 }
 
+#############################################################################
+# Claude AI Analysis
+#############################################################################
+
+analyze_with_claude() {
+    local data="$1"
+    local model="claude-sonnet-4-20250514"
+
+    if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+        echo -e "${RED}Error: ANTHROPIC_API_KEY required for --claude mode${NC}" >&2
+        exit 1
+    fi
+
+    echo -e "${BLUE}Analyzing with Claude AI...${NC}" >&2
+
+    local prompt="Analyze this Chalk build report data and provide insights on build performance and optimization. Focus on:
+1. Build duration analysis and performance categorization
+2. Stage-by-stage bottleneck identification
+3. Cache effectiveness and optimization opportunities
+4. Resource utilization patterns and inefficiencies
+5. Trend analysis and regression detection
+6. Specific recommendations for:
+   - Parallelization opportunities
+   - Caching improvements
+   - Dependency optimization
+   - Build pipeline hardening
+7. Prioritized action items for reducing build time
+
+Data:
+$data"
+
+    local response=$(curl -s https://api.anthropic.com/v1/messages \
+        -H "content-type: application/json" \
+        -H "x-api-key: $ANTHROPIC_API_KEY" \
+        -H "anthropic-version: 2023-06-01" \
+        -d "{
+            \"model\": \"$model\",
+            \"max_tokens\": 4096,
+            \"messages\": [{
+                \"role\": \"user\",
+                \"content\": $(echo "$prompt" | jq -Rs .)
+            }]
+        }")
+
+    if command -v record_api_usage &> /dev/null; then
+        record_api_usage "$response" "$model" > /dev/null
+    fi
+
+    echo "$response" | jq -r '.content[0].text // empty'
+}
+
 # Parse command line arguments
 REPORT_FILE=""
 
@@ -293,6 +357,10 @@ while [[ $# -gt 0 ]]; do
         -o|--output)
             OUTPUT_FILE="$2"
             shift 2
+            ;;
+        --claude)
+            USE_CLAUDE=true
+            shift
             ;;
         -h|--help)
             usage
@@ -319,25 +387,71 @@ echo ""
 
 check_prerequisites
 
-if [[ "$COMPARE_MODE" == true ]]; then
-    if [[ -z "$BASELINE_FILE" ]]; then
-        echo -e "${RED}Error: No baseline file specified for comparison${NC}"
-        exit 1
-    fi
+# Capture output for Claude analysis if enabled
+if [[ "$USE_CLAUDE" == "true" ]]; then
+    analysis_output=$(
+        if [[ "$COMPARE_MODE" == true ]]; then
+            if [[ -z "$BASELINE_FILE" ]]; then
+                echo "Error: No baseline file specified for comparison"
+                exit 1
+            fi
 
-    validate_report "$BASELINE_FILE"
-    validate_report "$REPORT_FILE"
-    compare_builds "$BASELINE_FILE" "$REPORT_FILE"
-else
-    validate_report "$REPORT_FILE"
+            validate_report "$BASELINE_FILE" 2>&1
+            validate_report "$REPORT_FILE" 2>&1
+            compare_builds "$BASELINE_FILE" "$REPORT_FILE" 2>&1
+        else
+            validate_report "$REPORT_FILE" 2>&1
 
-    if [[ "$OUTPUT_FORMAT" == "json" ]]; then
-        if [[ -z "$OUTPUT_FILE" ]]; then
-            OUTPUT_FILE="analysis.json"
+            if [[ "$OUTPUT_FORMAT" == "json" ]]; then
+                if [[ -z "$OUTPUT_FILE" ]]; then
+                    OUTPUT_FILE="analysis.json"
+                fi
+                export_json "$REPORT_FILE" "$OUTPUT_FILE" 2>&1
+            else
+                analyze_build "$REPORT_FILE" 2>&1
+            fi
         fi
-        export_json "$REPORT_FILE" "$OUTPUT_FILE"
+    )
+
+    # Display original analysis
+    echo "$analysis_output"
+
+    echo ""
+    echo "========================================="
+    echo "  Claude AI Enhanced Analysis"
+    echo "========================================="
+    echo ""
+
+    # Get Claude analysis
+    claude_analysis=$(analyze_with_claude "$analysis_output")
+    echo "$claude_analysis"
+
+    # Display cost summary
+    if command -v display_api_cost_summary &> /dev/null; then
+        echo ""
+        display_api_cost_summary
+    fi
+else
+    if [[ "$COMPARE_MODE" == true ]]; then
+        if [[ -z "$BASELINE_FILE" ]]; then
+            echo -e "${RED}Error: No baseline file specified for comparison${NC}"
+            exit 1
+        fi
+
+        validate_report "$BASELINE_FILE"
+        validate_report "$REPORT_FILE"
+        compare_builds "$BASELINE_FILE" "$REPORT_FILE"
     else
-        analyze_build "$REPORT_FILE"
+        validate_report "$REPORT_FILE"
+
+        if [[ "$OUTPUT_FORMAT" == "json" ]]; then
+            if [[ -z "$OUTPUT_FILE" ]]; then
+                OUTPUT_FILE="analysis.json"
+            fi
+            export_json "$REPORT_FILE" "$OUTPUT_FILE"
+        else
+            analyze_build "$REPORT_FILE"
+        fi
     fi
 fi
 
