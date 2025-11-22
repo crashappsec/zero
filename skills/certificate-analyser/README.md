@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Certificate Analyzer with Claude AI Integration - Complete Package
+# Certificate Analyser with Claude AI Integration - Complete Package
 
 ## 🎯 Overview
 
@@ -19,16 +19,16 @@ This is a complete certificate analysis system that combines automated certifica
 
 ## 📦 Package Contents
 
-### 1. **certificate-analyzer-skill.skill** (Recommended)
-The complete skill package ready for import into Claude. This is the easiest way to use the analyzer.
+### 1. **certificate-analyser-skill.skill** (Recommended)
+The complete skill package ready for import into Claude. This is the easiest way to use the analyser.
 
 **To Install:**
 1. Go to Claude settings
 2. Navigate to Skills section
 3. Click "Import Skill"
-4. Upload `certificate-analyzer-skill.skill`
+4. Upload `certificate-analyser-skill.skill`
 
-### 2. **cert-analyzer-claude.sh** (Standalone Script)
+### 2. **cert-analyser-claude.sh** (Standalone Script)
 Enhanced bash script with Claude API integration. Can be used independently without the skill.
 
 **Features:**
@@ -39,7 +39,7 @@ Enhanced bash script with Claude API integration. Can be used independently with
 - Color-coded console output
 
 ### 3. **Documentation**
-- `cert-analyzer-README.md` - Complete usage guide
+- `cert-analyser-README.md` - Complete usage guide
 - `certificate-analysis-prompt.md` - Technical prompt specification
 - `sample-certificate-analysis-report.md` - Example output
 - `PROJECT-OVERVIEW.md` - High-level project summary
@@ -65,10 +65,10 @@ Enhanced bash script with Claude API integration. Can be used independently with
 export ANTHROPIC_API_KEY="sk-ant-api03-..."
 
 # Make script executable
-chmod +x cert-analyzer-claude.sh
+chmod +x cert-analyser-claude.sh
 
 # Analyze a domain
-./cert-analyzer-claude.sh example.com
+./cert-analyser-claude.sh example.com
 
 # View the generated report
 cat certificate-analysis-example.com-*.md
@@ -78,7 +78,7 @@ cat certificate-analysis-example.com-*.md
 
 ```bash
 # Run without Claude AI enhancement
-./cert-analyzer-claude.sh --no-claude example.com
+./cert-analyser-claude.sh --no-claude example.com
 ```
 
 ## 🔑 API Key Setup
@@ -116,7 +116,7 @@ echo 'export ANTHROPIC_API_KEY="sk-ant-..."' >> ~/.bashrc
 
 **Option C: Command Line Flag**
 ```bash
-./cert-analyzer-claude.sh --api-key sk-ant-... example.com
+./cert-analyser-claude.sh --api-key sk-ant-... example.com
 ```
 
 **Option D: Skill Usage**
@@ -165,27 +165,27 @@ Each analysis generates a markdown report with:
 Analyze all production domains before compliance audits:
 ```bash
 for domain in api.example.com www.example.com admin.example.com; do
-    ./cert-analyzer-claude.sh "$domain"
+    ./cert-analyser-claude.sh "$domain"
 done
 ```
 
 ### 2. Expiration Monitoring
 Check if certificates need renewal:
 ```bash
-./cert-analyzer-claude.sh production.example.com
+./cert-analyser-claude.sh production.example.com
 ```
 
 ### 3. Incident Response
 Investigate suspicious certificates during security events:
 ```bash
-./cert-analyzer-claude.sh suspicious-domain.com
+./cert-analyser-claude.sh suspicious-domain.com
 ```
 
 ### 4. Compliance Reporting
 Generate evidence for auditors:
 ```bash
 # Run analysis
-./cert-analyzer-claude.sh example.com
+./cert-analyser-claude.sh example.com
 
 # Extract key findings
 grep -E "✓|⚠️|❌" certificate-analysis-*.md
@@ -233,7 +233,7 @@ sudo yum install openssl curl jq
 
 ### Basic Domain Analysis
 ```bash
-./cert-analyzer-claude.sh example.com
+./cert-analyser-claude.sh example.com
 ```
 
 ### Multiple Domains
@@ -241,7 +241,7 @@ sudo yum install openssl curl jq
 #!/bin/bash
 domains=("api.example.com" "www.example.com" "admin.example.com")
 for domain in "${domains[@]}"; do
-    ./cert-analyzer-claude.sh "$domain"
+    ./cert-analyser-claude.sh "$domain"
 done
 ```
 
@@ -251,7 +251,7 @@ done
 certificate-check:
   stage: security
   script:
-    - ./cert-analyzer-claude.sh $PRODUCTION_DOMAIN
+    - ./cert-analyser-claude.sh $PRODUCTION_DOMAIN
     - |
       if grep -q "❌" certificate-analysis-*.md; then
         echo "Critical certificate issues found"
@@ -269,10 +269,10 @@ certificate-check:
 # /etc/cron.daily/cert-monitor
 
 export ANTHROPIC_API_KEY="sk-ant-..."
-cd /opt/cert-analyzer
+cd /opt/cert-analyser
 
 for domain in $(cat /etc/cert-domains.txt); do
-    ./cert-analyzer-claude.sh "$domain"
+    ./cert-analyser-claude.sh "$domain"
     
     # Alert on critical issues
     if grep -q "❌" certificate-analysis-${domain}-*.md; then
@@ -377,7 +377,7 @@ nc -zv example.com 443
 export ANTHROPIC_API_KEY="sk-ant-..."
 
 # Or use flag
-./cert-analyzer-claude.sh --api-key sk-ant-... example.com
+./cert-analyser-claude.sh --api-key sk-ant-... example.com
 ```
 
 ### "jq: command not found"
@@ -416,7 +416,7 @@ brew install jq
 
 while IFS= read -r domain; do
     echo "Analyzing $domain..."
-    ./cert-analyzer-claude.sh "$domain"
+    ./cert-analyser-claude.sh "$domain"
     sleep 5  # Rate limiting
 done < domains.txt
 
@@ -449,7 +449,7 @@ done
 OUTPUT="/var/lib/node_exporter/textfile_collector/certificates.prom"
 
 for domain in $DOMAINS; do
-    days=$(./cert-analyzer-claude.sh --no-claude "$domain" 2>&1 | \
+    days=$(./cert-analyser-claude.sh --no-claude "$domain" 2>&1 | \
            grep "Days until expiration" | awk '{print $4}')
     
     echo "certificate_days_remaining{domain=\"$domain\"} $days" >> "$OUTPUT"
@@ -487,7 +487,7 @@ done
 When reporting issues, include:
 - Domain being analyzed (if not sensitive)
 - Complete error message
-- Script version (`grep "Version:" cert-analyzer-claude.sh`)
+- Script version (`grep "Version:" cert-analyser-claude.sh`)
 - Operating system and version
 - OpenSSL version (`openssl version`)
 
@@ -528,8 +528,8 @@ MIT License - Feel free to use, modify, and distribute.
 
 ## 🎯 Get Started Now
 
-1. **Import the skill**: Upload `certificate-analyzer-skill.skill` to Claude
-2. **Or run standalone**: `./cert-analyzer-claude.sh example.com`
+1. **Import the skill**: Upload `certificate-analyser-skill.skill` to Claude
+2. **Or run standalone**: `./cert-analyser-claude.sh example.com`
 3. **Review results**: Check generated markdown report
 4. **Take action**: Follow prioritized recommendations
 

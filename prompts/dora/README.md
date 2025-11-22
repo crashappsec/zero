@@ -353,9 +353,9 @@ translate to:
 - [DORA capabilities](https://dora.dev/capabilities/)
 
 ### Related Skills
-- [SBOM Analyzer](../../skills/sbom-analyzer/) - Supply chain security
-- [Chalk Build Analyzer](../../skills/chalk-build-analyzer/) - Build performance
-- [Certificate Analyzer](../../skills/certificate-analyzer/) - TLS/SSL analysis
+- [SBOM Analyser](../../skills/sbom-analyser/) - Supply chain security
+- [Chalk Build Analyser](../../skills/chalk-build-analyser/) - Build performance
+- [Certificate Analyser](../../skills/certificate-analyser/) - TLS/SSL analysis
 
 ## Contributing
 

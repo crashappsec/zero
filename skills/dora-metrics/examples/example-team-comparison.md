@@ -513,7 +513,7 @@ With focused effort on knowledge sharing and process improvements, the organizat
 
 ---
 
-**Report prepared by:** DORA Metrics Analyzer
+**Report prepared by:** DORA Metrics Analyser
 **Distribution:** Engineering Leadership, All Team Leads
 **Next review:** 2025-01-15
 **Questions:** Contact Engineering VP

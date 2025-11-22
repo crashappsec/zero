@@ -75,7 +75,7 @@ All commits should follow the [Conventional Commits](https://www.conventionalcom
 
 ```
 feat: add certificate chain validation
-fix(cert-analyzer): correct expiration date parsing
+fix(cert-analyser): correct expiration date parsing
 docs: update installation instructions
 style: format code with prettier
 refactor(skills): extract common validation logic

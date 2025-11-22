@@ -194,7 +194,7 @@ generate_default_config() {
     local output_file="${1:-config}"
 
     cat > "$output_file" << 'EOF'
-# Code Ownership Analyzer Configuration
+# Code Ownership Analyser Configuration
 # This file uses simple key=value format
 # Lines starting with # are comments
 
@@ -294,7 +294,7 @@ save_config() {
     mkdir -p "$config_dir"
 
     cat > "$output_file" << EOF
-# Code Ownership Analyzer Configuration
+# Code Ownership Analyser Configuration
 # Generated: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
 
 EOF

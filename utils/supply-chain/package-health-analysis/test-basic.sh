@@ -1,25 +1,25 @@
 #!/bin/bash
-# Quick test of package health analyzer
+# Quick test of package health analyser
 
 set -e
 
-echo "Testing Package Health Analyzer..."
+echo "Testing Package Health Analyser..."
 echo "=================================="
 echo ""
 
 # Test 1: Check if scripts are executable
 echo "Test 1: Checking script permissions..."
-if [ -x "package-health-analyzer.sh" ]; then
-    echo "✓ Base analyzer is executable"
+if [ -x "package-health-analyser.sh" ]; then
+    echo "✓ Base analyser is executable"
 else
-    echo "✗ Base analyzer is not executable"
+    echo "✗ Base analyser is not executable"
     exit 1
 fi
 
-if [ -x "package-health-analyzer-claude.sh" ]; then
-    echo "✓ AI analyzer is executable"
+if [ -x "package-health-analyser-claude.sh" ]; then
+    echo "✓ AI analyser is executable"
 else
-    echo "✗ AI analyzer is not executable"
+    echo "✗ AI analyser is not executable"
     exit 1
 fi
 
@@ -97,11 +97,11 @@ cat > test-sbom.json <<'EOF'
 EOF
 echo "✓ Test SBOM created"
 
-# Test 5: Run base analyzer on test SBOM
+# Test 5: Run base analyser on test SBOM
 echo ""
-echo "Test 5: Running base analyzer on test SBOM..."
-if ./package-health-analyzer.sh --sbom test-sbom.json --format json > test-results.json 2>&1; then
-    echo "✓ Base analyzer executed successfully"
+echo "Test 5: Running base analyser on test SBOM..."
+if ./package-health-analyser.sh --sbom test-sbom.json --format json > test-results.json 2>&1; then
+    echo "✓ Base analyser executed successfully"
 
     # Check results
     total_packages=$(jq -r '.summary.total_packages' test-results.json 2>/dev/null || echo "0")
@@ -116,20 +116,20 @@ if ./package-health-analyzer.sh --sbom test-sbom.json --format json > test-resul
         echo "⚠ No packages were analyzed"
     fi
 else
-    echo "✗ Base analyzer failed"
+    echo "✗ Base analyser failed"
     cat test-results.json
     exit 1
 fi
 
-# Test 6: Check for API key (for AI analyzer)
+# Test 6: Check for API key (for AI analyser)
 echo ""
-echo "Test 6: Checking for AI analyzer requirements..."
+echo "Test 6: Checking for AI analyser requirements..."
 if [ -n "${ANTHROPIC_API_KEY:-}" ]; then
     echo "✓ ANTHROPIC_API_KEY is set"
-    echo "  AI-enhanced analyzer can be tested"
+    echo "  AI-enhanced analyser can be tested"
 else
     echo "⚠ ANTHROPIC_API_KEY not set"
-    echo "  AI-enhanced analyzer will not be tested"
+    echo "  AI-enhanced analyser will not be tested"
 fi
 
 # Cleanup
@@ -144,5 +144,5 @@ echo "Basic tests completed successfully!"
 echo ""
 echo "Next steps:"
 echo "1. Test with real repository (requires gh CLI)"
-echo "2. Test AI-enhanced analyzer (requires ANTHROPIC_API_KEY)"
+echo "2. Test AI-enhanced analyser (requires ANTHROPIC_API_KEY)"
 echo "3. Test organization-wide scanning"

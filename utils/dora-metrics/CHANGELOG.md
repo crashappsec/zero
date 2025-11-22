@@ -4,9 +4,9 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Changelog - DORA Metrics Analyzer
+# Changelog - DORA Metrics Analyser
 
-All notable changes to the DORA Metrics Analyzer will be documented in this file.
+All notable changes to the DORA Metrics Analyser will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-11-20
 
 ### Added
-- Initial release of DORA Metrics analyzer
+- Initial release of DORA Metrics analyser
 - All four key metrics calculation:
   - Deployment Frequency
   - Lead Time for Changes
@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Change Failure Rate
 - Performance classification (Elite/High/Medium/Low)
 - Benchmark comparison and trend analysis
-- AI-enhanced analysis with Claude (`dora-analyzer-claude.sh`)
+- AI-enhanced analysis with Claude (`dora-analyser-claude.sh`)
 - Basic comparison tool
 
 ### Known Limitations

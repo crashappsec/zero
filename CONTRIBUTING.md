@@ -82,15 +82,15 @@ The [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org)
 
 ```bash
 # Test your code ownership changes
-./utils/code-ownership/ownership-analyzer.sh \
+./utils/code-ownership/ownership-analyser.sh \
   https://github.com/Gibson-Powers-Test-Org/sample-repo
 
 # Test DORA metrics changes
-./utils/dora-metrics/dora-analyzer.sh \
+./utils/dora-metrics/dora-analyser.sh \
   --repo https://github.com/Gibson-Powers-Test-Org/sample-repo
 
 # Test supply chain changes
-./utils/supply-chain/vulnerability-analyzer.sh \
+./utils/supply-chain/vulnerability-analyser.sh \
   https://github.com/Gibson-Powers-Test-Org/sample-repo
 ```
 
@@ -123,7 +123,7 @@ Closes #issue-number
 
 **Examples:**
 ```
-feat(skills): add DNS analyzer skill
+feat(skills): add DNS analyser skill
 
 Implements comprehensive DNS record analysis including:
 - A/AAAA record validation

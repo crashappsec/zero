@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# SLSA Provenance Analyzer - Implementation Requirements
+# SLSA Provenance Analyser - Implementation Requirements
 
 ## Overview
 
@@ -19,8 +19,8 @@ This tool will be part of the modular supply chain analysis suite located at:
 
 ### Reference Implementations
 Use these as templates for structure and patterns:
-- `utils/supply-chain/vulnerability-analysis/vulnerability-analyzer.sh`
-- `utils/supply-chain/vulnerability-analysis/vulnerability-analyzer-claude.sh`
+- `utils/supply-chain/vulnerability-analysis/vulnerability-analyser.sh`
+- `utils/supply-chain/vulnerability-analysis/vulnerability-analyser-claude.sh`
 - `utils/supply-chain/supply-chain-scanner.sh`
 
 ## Core Requirements
@@ -46,7 +46,7 @@ SLSA provenance is cryptographically signed attestation about how a software art
 
 Create two scripts following the established pattern:
 
-#### `provenance-analyzer.sh` (Base Analyzer)
+#### `provenance-analyser.sh` (Base Analyser)
 Basic provenance checking without AI:
 - Verify provenance attestations exist
 - Validate signatures using cosign/sigstore
@@ -57,7 +57,7 @@ Basic provenance checking without AI:
 - Assess SLSA level (0-4)
 - Generate structured reports (JSON, table, markdown)
 
-#### `provenance-analyzer-claude.sh` (AI-Enhanced)
+#### `provenance-analyser-claude.sh` (AI-Enhanced)
 Add Claude AI analysis for:
 - **Trust Assessment**: Evaluate builder identity trustworthiness
 - **Risk Context**: Analyze supply chain position and exposure
@@ -159,11 +159,11 @@ SLSA Level 4:
 
 ### 6. Command-Line Interface
 
-Follow the same pattern as vulnerability analyzers:
+Follow the same pattern as vulnerability analysers:
 
 ```bash
 # Basic usage
-./provenance-analyzer.sh <sbom|repo|package-url>
+./provenance-analyser.sh <sbom|repo|package-url>
 
 # Options
 -f, --format FORMAT     Output format: table|json|markdown|sarif
@@ -180,15 +180,15 @@ Follow the same pattern as vulnerability analyzers:
 --config FILE          Use alternate config file
 
 # Examples
-./provenance-analyzer.sh /path/to/sbom.json
-./provenance-analyzer.sh --min-level 2 https://github.com/org/repo
-./provenance-analyzer.sh --verify-signatures pkg:npm/express@4.17.1
-./provenance-analyzer.sh --org myorg --min-level 1
+./provenance-analyser.sh /path/to/sbom.json
+./provenance-analyser.sh --min-level 2 https://github.com/org/repo
+./provenance-analyser.sh --verify-signatures pkg:npm/express@4.17.1
+./provenance-analyser.sh --org myorg --min-level 1
 ```
 
 ### 7. Output Format
 
-#### Basic Analyzer Output (Table)
+#### Basic Analyser Output (Table)
 ```
 ========================================
   Provenance Analysis Results
@@ -231,7 +231,7 @@ Summary:
 {
   "scan_metadata": {
     "timestamp": "2024-11-21T10:30:00Z",
-    "scanner": "provenance-analyzer v1.0.0",
+    "scanner": "provenance-analyser v1.0.0",
     "target": "sbom.json",
     "total_packages": 25
   },
@@ -486,11 +486,11 @@ Create comprehensive docs:
 - [ ] Progress reporting
 
 ### Phase 5: Claude AI Integration
-- [ ] Create Claude analyzer script
+- [ ] Create Claude analyser script
 - [ ] Trust assessment prompts
 - [ ] Risk context analysis
 - [ ] Policy recommendations
-- [ ] Comparison with base analyzer
+- [ ] Comparison with base analyser
 
 ### Phase 6: Integration & Polish
 - [ ] Update central orchestrator
@@ -538,31 +538,31 @@ The implementation is complete when:
 
 ### Test Case 1: Well-Signed npm Package
 ```bash
-./provenance-analyzer.sh pkg:npm/sigstore@latest
+./provenance-analyser.sh pkg:npm/sigstore@latest
 # Expected: SLSA Level 3, verified signature, GitHub Actions builder
 ```
 
 ### Test Case 2: Legacy Package Without Provenance
 ```bash
-./provenance-analyzer.sh pkg:npm/left-pad@1.3.0
+./provenance-analyser.sh pkg:npm/left-pad@1.3.0
 # Expected: SLSA Level 0, no provenance, warning issued
 ```
 
 ### Test Case 3: Full Repository Scan
 ```bash
-./provenance-analyzer.sh --min-level 2 https://github.com/myorg/myrepo
+./provenance-analyser.sh --min-level 2 https://github.com/myorg/myrepo
 # Expected: Analyze all dependencies, report Level 2+ compliance
 ```
 
 ### Test Case 4: Organization Scan
 ```bash
-./provenance-analyzer.sh --org myorg --verify-signatures
+./provenance-analyser.sh --org myorg --verify-signatures
 # Expected: Scan all repos, verify all signatures, summary report
 ```
 
 ## Notes
 
-- Follow the same code style and patterns as vulnerability analyzers
+- Follow the same code style and patterns as vulnerability analysers
 - Use consistent error messages and color coding
 - Maintain compatibility with existing config.json
 - Ensure all scripts are POSIX-compliant bash

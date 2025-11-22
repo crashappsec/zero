@@ -166,7 +166,7 @@ A skill for calculating and improving the bus factor (truck factor) of software 
 
 ### Existing Skills
 
-#### SBOM/BOM Analyzer ✅
+#### SBOM/BOM Analyser ✅
 **Status**: Completed
 
 Planned enhancements:
@@ -189,7 +189,7 @@ Planned enhancements:
 - Advanced visualization support
 - Value stream mapping integration
 
-#### Chalk Build Analyzer ✅
+#### Chalk Build Analyser ✅
 **Status**: Completed
 
 Planned enhancements:
@@ -199,7 +199,7 @@ Planned enhancements:
 - Multi-project comparisons
 - Supply chain visualization
 
-#### Certificate Analyzer ✅
+#### Certificate Analyser ✅
 **Status**: Completed
 
 Planned enhancements:

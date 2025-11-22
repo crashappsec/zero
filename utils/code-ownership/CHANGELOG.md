@@ -4,9 +4,9 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Changelog - Code Ownership Analyzer
+# Changelog - Code Ownership Analyser
 
-All notable changes to the Code Ownership Analyzer will be documented in this file.
+All notable changes to the Code Ownership Analyser will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-11-20
 
 ### Added
-- Initial release of Code Ownership analyzer
+- Initial release of Code Ownership analyser
 - Git history analysis with weighted scoring:
   - Commit count weighting
   - Lines changed weighting
@@ -41,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Ownership metrics by directory
 - Health scores calculation
 - Bus factor risk identification
-- AI-enhanced analysis with Claude (`ownership-analyzer-claude.sh`)
+- AI-enhanced analysis with Claude (`ownership-analyser-claude.sh`)
 - Comparison tool for base vs Claude analysis
 
 ### Known Limitations

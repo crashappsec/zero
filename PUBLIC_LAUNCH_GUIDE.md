@@ -206,8 +206,8 @@ your software development practices:
 - 🎯 **DORA Metrics**: Deployment frequency, lead time, MTTR, change failure rate
 - 👥 **Code Ownership**: Analyze ownership, validate CODEOWNERS, assess risk
 - 🔒 **Supply Chain**: Package health, vulnerability analysis, provenance checking
-- 🔐 **Certificate Analyzer**: SSL/TLS certificate analysis and monitoring
-- 🔨 **Chalk Build Analyzer**: Extract and analyze Chalk build metadata
+- 🔐 **Certificate Analyser**: SSL/TLS certificate analysis and monitoring
+- 🔨 **Chalk Build Analyser**: Extract and analyze Chalk build metadata
 
 ## Getting Started
 

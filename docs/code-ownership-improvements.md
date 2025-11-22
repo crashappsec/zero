@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Code Ownership Analyzer - Improvement Opportunities
+# Code Ownership Analyser - Improvement Opportunities
 
 **Date**: 2024-11-21
 **Status**: Analysis Phase
@@ -28,9 +28,9 @@ Analysis of the current code ownership implementation against industry best prac
 - AI-enhanced analysis with Claude
 
 **✅ Architecture**:
-- `ownership-analyzer.sh` - Base analyzer
-- `ownership-analyzer-claude.sh` - AI-enhanced
-- `compare-analyzers.sh` - Comparison tool
+- `ownership-analyser.sh` - Base analyser
+- `ownership-analyser-claude.sh` - AI-enhanced
+- `compare-analysers.sh` - Comparison tool
 - Integration with Claude Code skill system
 - Prompt templates for various use cases
 
@@ -314,10 +314,10 @@ GET /search/users?q=email:user@example.com
 
 ```bash
 # Scan entire org
-./ownership-analyzer-claude.sh --org crashappsec
+./ownership-analyser-claude.sh --org crashappsec
 
 # Scan specific repos
-./ownership-analyzer-claude.sh \
+./ownership-analyser-claude.sh \
   --repo owner/repo1 \
   --repo owner/repo2 \
   --repo owner/repo3
@@ -374,7 +374,7 @@ GET /search/users?q=email:user@example.com
 
 #### A. JSON Output
 ```bash
-./ownership-analyzer.sh --format json
+./ownership-analyser.sh --format json
 ```
 
 **Structure**:
@@ -383,7 +383,7 @@ GET /search/users?q=email:user@example.com
   "metadata": {
     "repository": "owner/repo",
     "analyzed_at": "2024-11-21T10:00:00Z",
-    "analyzer_version": "2.0.0"
+    "analyser_version": "2.0.0"
   },
   "metrics": {
     "bus_factor": 2,
@@ -402,7 +402,7 @@ GET /search/users?q=email:user@example.com
 
 #### B. Markdown Report
 ```bash
-./ownership-analyzer.sh --format markdown --output report.md
+./ownership-analyser.sh --format markdown --output report.md
 ```
 
 **Features**:
@@ -418,7 +418,7 @@ GET /search/users?q=email:user@example.com
 
 #### C. CSV Export
 ```bash
-./ownership-analyzer.sh --format csv --output owners.csv
+./ownership-analyser.sh --format csv --output owners.csv
 ```
 
 **Use Cases**:
@@ -527,7 +527,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Analyze Ownership
-        run: ./ownership-analyzer.sh --format json
+        run: ./ownership-analyser.sh --format json
       - name: Check Thresholds
         run: |
           if [ "$BUS_FACTOR" -lt 2 ]; then
@@ -768,7 +768,7 @@ If full implementation is too resource-intensive:
 
 ## Conclusion
 
-The code ownership analyzer has a solid foundation but requires significant enhancement to reach production quality. The research-backed improvements outlined here will:
+The code ownership analyser has a solid foundation but requires significant enhancement to reach production quality. The research-backed improvements outlined here will:
 
 1. **Increase accuracy** through dual-method measurement
 2. **Enable enterprise use** through multi-repo support

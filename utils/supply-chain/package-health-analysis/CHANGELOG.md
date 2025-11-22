@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0
 
 # Changelog
 
-All notable changes to the Package Health Analyzer will be documented in this file.
+All notable changes to the Package Health Analyser will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Critical**: Fixed URL encoding bug where newlines were included in API requests
   - Changed from `echo "$package" | jq -sRr @uri` to `printf '%s' "$package" | jq -sRr @uri`
   - All API requests were failing with 404 due to `%0A` (newline) in URLs
-  - This fix makes the analyzer actually functional
+  - This fix makes the analyser actually functional
 
 - **Critical**: Fixed PURL ecosystem extraction in SBOM parsing
   - Was extracting "pkg" instead of actual ecosystem ("npm", "pypi", etc.)
@@ -45,7 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No need to export environment variable manually
 
 ### Added
-- **Real-time progress indicators** in AI-enhanced analyzer
+- **Real-time progress indicators** in AI-enhanced analyser
   - Shows progress for all 5 analysis steps
   - Users see the script is working, not frozen
   - Progress messages sent to stderr (doesn't interfere with JSON output)
@@ -59,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-11-21
 
 ### Added
-- **Base Analyzer** (`package-health-analyzer.sh`)
+- **Base Analyser** (`package-health-analyser.sh`)
   - Automated package health scanning
   - deps.dev API integration for package metadata
   - Health scoring algorithm (0-100) with weighted components
@@ -70,18 +70,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Organization-wide scanning capability
   - SBOM file analysis (CycloneDX and SPDX)
 
-- **AI-Enhanced Analyzer** (`package-health-analyzer-claude.sh`)
+- **AI-Enhanced Analyser** (`package-health-analyser-claude.sh`)
   - Claude AI integration for deep analysis
   - Chain of reasoning across multiple tools
-  - Integration with vulnerability analyzer
-  - Integration with provenance analyzer
+  - Integration with vulnerability analyser
+  - Integration with provenance analyser
   - Risk assessment and prioritization
   - Detailed migration strategies
   - Alternative package recommendations
   - Actionable improvement plans
   - Strategic operational recommendations
 
-- **Comparison Tool** (`compare-analyzers.sh`)
+- **Comparison Tool** (`compare-analysers.sh`)
   - Side-by-side comparison of base vs AI-enhanced results
   - Performance benchmarking
   - Feature comparison matrix
@@ -158,13 +158,13 @@ Default configuration includes:
 
 - Works with existing supply chain scanner infrastructure
 - Leverages shared configuration system
-- Integrates with vulnerability and provenance analyzers
+- Integrates with vulnerability and provenance analysers
 - Compatible with CI/CD pipelines
 - GitHub Actions workflow examples included
 
 ### Performance
 
-- Base analyzer: ~30s for small repos (10-20 packages)
+- Base analyser: ~30s for small repos (10-20 packages)
 - AI-enhanced: ~2-3min for small repos
 - Organization scans: ~10min for 10 repos (base)
 - Caching reduces API calls by ~80%
@@ -222,7 +222,7 @@ Default configuration includes:
 
 ### Version 1.0.0 - Initial Release
 
-This is the first release of the Package Health Analyzer, providing comprehensive tools for analyzing package health across organizations.
+This is the first release of the Package Health Analyser, providing comprehensive tools for analyzing package health across organizations.
 
 **Highlights**:
 - Two-tiered analysis system (base + AI-enhanced)

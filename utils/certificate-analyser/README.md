@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Certificate Analyzer
+# Certificate Analyser
 
 **Status**: 🔬 Experimental
 
@@ -12,7 +12,7 @@ Analyzes TLS/SSL certificates for security, validity, and best practices complia
 
 ## ⚠️ Development Status
 
-This utility is in **early development** and is not yet ready for Beta or production use. It provides basic certificate analysis but lacks the comprehensive testing, documentation, and features of the Beta supply chain analyzer.
+This utility is in **early development** and is not yet ready for Beta or production use. It provides basic certificate analysis but lacks the comprehensive testing, documentation, and features of the Beta supply chain analyser.
 
 ### What Works
 - ✅ TLS/SSL certificate validation
@@ -30,11 +30,11 @@ This utility is in **early development** and is not yet ready for Beta or produc
 - ❌ Comprehensive testing
 - ❌ Complete documentation
 
-**Use at your own risk**. For Beta-quality analysis, use the [Supply Chain Security Analyzer](../supply-chain/).
+**Use at your own risk**. For Beta-quality analysis, use the [Supply Chain Security Analyser](../supply-chain/).
 
 ## Overview
 
-The Certificate Analyzer validates and analyzes SSL/TLS certificates to ensure:
+The Certificate Analyser validates and analyzes SSL/TLS certificates to ensure:
 
 - **Validity**: Certificate is not expired or invalid
 - **Chain Trust**: Complete certificate chain verification
@@ -58,21 +58,21 @@ brew install jq curl
 
 ```bash
 # Analyze a domain
-./cert-analyzer.sh example.com
+./cert-analyser.sh example.com
 
 # Analyze with port specification
-./cert-analyzer.sh example.com 443
+./cert-analyser.sh example.com 443
 
 # AI-enhanced analysis
 export ANTHROPIC_API_KEY="your-key"
-./cert-analyzer-claude.sh example.com
+./cert-analyser-claude.sh example.com
 ```
 
 ## Available Scripts
 
-### cert-analyzer.sh
+### cert-analyser.sh
 
-Base analyzer that validates certificates using OpenSSL.
+Base analyser that validates certificates using OpenSSL.
 
 **Features**:
 - Certificate validity checking
@@ -85,13 +85,13 @@ Base analyzer that validates certificates using OpenSSL.
 **Usage**:
 ```bash
 # Analyze domain
-./cert-analyzer.sh example.com
+./cert-analyser.sh example.com
 
 # Specify port
-./cert-analyzer.sh example.com 8443
+./cert-analyser.sh example.com 8443
 
 # Verbose output
-./cert-analyzer.sh --verbose example.com
+./cert-analyser.sh --verbose example.com
 ```
 
 **Output**:
@@ -118,12 +118,12 @@ Cipher: TLS_AES_256_GCM_SHA384
 Security Assessment: Good
 ```
 
-### cert-analyzer-claude.sh
+### cert-analyser-claude.sh
 
-AI-enhanced analyzer with security insights and recommendations.
+AI-enhanced analyser with security insights and recommendations.
 
 **Features**:
-- All base analyzer features
+- All base analyser features
 - Security risk assessment
 - Compliance checking
 - Remediation recommendations
@@ -134,7 +134,7 @@ AI-enhanced analyzer with security insights and recommendations.
 **Usage**:
 ```bash
 export ANTHROPIC_API_KEY="your-key"
-./cert-analyzer-claude.sh example.com
+./cert-analyser-claude.sh example.com
 ```
 
 ## Analysis Components
@@ -227,9 +227,9 @@ Alerts when certificate expires in:
 ### Architecture
 
 ```
-certificate-analyzer/
-├── cert-analyzer.sh              # Base analyzer
-└── cert-analyzer-claude.sh       # AI-enhanced analyzer
+certificate-analyser/
+├── cert-analyser.sh              # Base analyser
+└── cert-analyser-claude.sh       # AI-enhanced analyser
 ```
 
 ### Adding Features
@@ -265,13 +265,13 @@ Assess certificate status before infrastructure changes.
 ### Example 1: Basic Check
 
 ```bash
-./cert-analyzer.sh google.com
+./cert-analyser.sh google.com
 ```
 
 ### Example 2: Custom Port
 
 ```bash
-./cert-analyzer.sh internal.example.com 8443
+./cert-analyser.sh internal.example.com 8443
 ```
 
 ### Example 3: Multiple Domains
@@ -279,7 +279,7 @@ Assess certificate status before infrastructure changes.
 ```bash
 for domain in example.com test.com demo.com; do
   echo "Checking $domain..."
-  ./cert-analyzer.sh "$domain"
+  ./cert-analyser.sh "$domain"
   echo ""
 done
 ```
@@ -289,7 +289,7 @@ done
 ```bash
 #!/bin/bash
 # Check production certificates
-./cert-analyzer.sh prod.example.com | grep -q "Valid"
+./cert-analyser.sh prod.example.com | grep -q "Valid"
 if [ $? -ne 0 ]; then
   echo "Certificate validation failed!"
   exit 1
@@ -298,7 +298,7 @@ fi
 
 ## Related Documentation
 
-- [Certificate Skill](../../skills/certificate-analyzer/)
+- [Certificate Skill](../../skills/certificate-analyser/)
 - [Changelog](./CHANGELOG.md)
 
 ## Contributing

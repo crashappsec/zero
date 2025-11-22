@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Status Indicator Updates**: Clarified development maturity levels
   - 🚀 **Beta**: Feature-complete, comprehensively tested, ready for broader use (Supply Chain, Better Prompts)
-  - 🔬 **Experimental**: Early development, basic functionality working, not yet ready for production (DORA Metrics, Code Ownership, Certificate Analyzer, Chalk Build Analyzer)
+  - 🔬 **Experimental**: Early development, basic functionality working, not yet ready for production (DORA Metrics, Code Ownership, Certificate Analyser, Chalk Build Analyser)
   - 🧪 **Alpha**: (Reserved for very early prototypes)
   - Removed "Production Ready" designation - all tools under active development
 
@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - CHANGELOG.md in each utils subdirectory tracking module-specific changes
   - Clear development status indicators (Beta vs Experimental)
   - Supply Chain marked as 🚀 Beta - feature-complete and tested
-  - DORA Metrics, Code Ownership, Certificate Analyzer, Chalk Build Analyzer marked as 🔬 Experimental
+  - DORA Metrics, Code Ownership, Certificate Analyser, Chalk Build Analyser marked as 🔬 Experimental
   - Maintains aggregated CHANGELOG (this file) for cross-utility changes
 
 ### Changed
@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Renamed "SBOM" to "Supply Chain" throughout for broader scope
   - Created central CHANGELOG.md (this file) consolidating all skill changelogs
 
-## Supply Chain Analyzer
+## Supply Chain Analyser
 
 ### [2.2.0] - 2024-11-21
 
@@ -63,10 +63,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 #### Changed
 - **Config Loading**: All supply chain scripts now use hierarchical config system
   - `supply-chain-scanner.sh`: Integrated config-loader library
-  - `vulnerability-analyzer.sh`: Uses config for defaults
-  - `vulnerability-analyzer-claude.sh`: Inherits config integration
-  - `provenance-analyzer.sh`: Uses config for trust settings
-  - `provenance-analyzer-claude.sh`: Inherits config integration
+  - `vulnerability-analyser.sh`: Uses config for defaults
+  - `vulnerability-analyser-claude.sh`: Inherits config integration
+  - `provenance-analyser.sh`: Uses config for trust settings
+  - `provenance-analyser-claude.sh`: Inherits config integration
 - **Module Defaults**: Config-driven instead of hardcoded
   - Loads `default_modules` from config if no CLI flags
   - Supports per-module customization
@@ -89,8 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Added
 - **Provenance Analysis Module**: New SLSA provenance verification
-  - `provenance-analyzer.sh`: Base analyzer with SLSA level assessment (0-4)
-  - `provenance-analyzer-claude.sh`: AI-enhanced with trust assessment and risk analysis
+  - `provenance-analyser.sh`: Base analyser with SLSA level assessment (0-4)
+  - `provenance-analyser-claude.sh`: AI-enhanced with trust assessment and risk analysis
   - npm provenance checking with registry API integration
   - Signature verification support (cosign/rekor)
   - Multi-repo and organization scanning
@@ -120,8 +120,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### [2.0.0] - 2024-11-21
 
 #### Breaking Changes
-- **Directory Restructure**: Renamed skills/supply-chain-analyzer → skills/supply-chain
-- **Script Renames**: supply-chain-analyzer → vulnerability-analyzer (moved to vulnerability-analysis subdirectory)
+- **Directory Restructure**: Renamed skills/supply-chain-analyser → skills/supply-chain
+- **Script Renames**: supply-chain-analyser → vulnerability-analyser (moved to vulnerability-analysis subdirectory)
 - **Modular Architecture**: Scripts reorganized into single-purpose modules with central orchestrator
 
 #### Added
@@ -135,7 +135,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Organizations and repositories lists
   - Default modules and output directories
   - Automatic config loading and validation
-- **Multi-Repository Scanning**: Both analyzers support organization/multi-repo scanning
+- **Multi-Repository Scanning**: Both analysers support organization/multi-repo scanning
   - GitHub CLI integration for org expansion (lists all repos in org)
   - Batch processing across multiple repositories
   - Individual repo targeting with `--repo owner/repo` flag
@@ -148,11 +148,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Changed
 - **Modular Architecture**: utils/supply-chain/ now contains:
-  - vulnerability-analysis/ - Vulnerability scanning module (with both analyzers)
+  - vulnerability-analysis/ - Vulnerability scanning module (with both analysers)
   - config.example.json - Configuration template
   - supply-chain-scanner.sh - Central orchestrator
 - **Script Organization**: Single-purpose scripts in feature subdirectories
-- **Script Naming**: Clearer module-specific names (supply-chain-analyzer → vulnerability-analyzer)
+- **Script Naming**: Clearer module-specific names (supply-chain-analyser → vulnerability-analyser)
 - **Execution Model**: Scripts work standalone OR through central orchestrator
 - **Output Headers**: Color-coded with CYAN for multi-repo section headers
 
@@ -164,15 +164,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved path resolution for nested script directories
 
 #### Migration Guide
-- Old path: `utils/supply-chain/supply-chain-analyzer.sh`
-- New path: `utils/supply-chain/vulnerability-analysis/vulnerability-analyzer.sh`
+- Old path: `utils/supply-chain/supply-chain-analyser.sh`
+- New path: `utils/supply-chain/vulnerability-analysis/vulnerability-analyser.sh`
 - Or use central orchestrator: `utils/supply-chain/supply-chain-scanner.sh --vulnerability`
 - Run `./utils/supply-chain/supply-chain-scanner.sh --setup` for interactive configuration
 
 ### [1.4.0] - 2024-11-21
 
 #### Added
-- **Intelligent Prioritization in Base Analyzer**
+- **Intelligent Prioritization in Base Analyser**
   - `--prioritize` flag for data-driven vulnerability ranking
   - CISA KEV catalog integration (auto-fetched on demand)
   - Algorithmic priority scoring based on KEV presence and CVSS scores
@@ -180,10 +180,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Summary statistics (total, by severity, KEV count)
 
 #### Changed
-- **Refocused Claude Analyzer on AI-Specific Value**
-  - Moved basic prioritization (CVSS, KEV, counting) to base analyzer
+- **Refocused Claude Analyser on AI-Specific Value**
+  - Moved basic prioritization (CVSS, KEV, counting) to base analyser
   - Claude now focuses on pattern analysis, supply chain context, and risk narratives
-  - Clear separation: Base analyzer (data-driven) vs Claude (AI insights)
+  - Clear separation: Base analyser (data-driven) vs Claude (AI insights)
 
 ### [1.3.1] - 2024-11-21
 
@@ -224,7 +224,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### [1.0.0] - 2024-11-20
 
 #### Added
-- Initial release of Supply Chain Analyzer
+- Initial release of Supply Chain Analyser
 - CycloneDX 1.7 and SPDX format support
 - OSV.dev, deps.dev, and CISA KEV integration
 - Vulnerability analysis and license compliance
@@ -242,7 +242,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### [1.0.0] - 2024-11-20
 
 #### Added
-- Initial release of DORA Metrics analyzer
+- Initial release of DORA Metrics analyser
 - All four key metrics calculation
 - Performance classification (Elite/High/Medium/Low)
 - Benchmark comparison and trend analysis
@@ -252,27 +252,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### [1.0.0] - 2024-11-20
 
 #### Added
-- Initial release of Code Ownership analyzer
+- Initial release of Code Ownership analyser
 - Git history analysis with weighted scoring
 - CODEOWNERS file validation and generation
 - Ownership metrics and health scores
 - Bus factor risk identification
 
-## Certificate Analyzer
+## Certificate Analyser
 
 ### [1.0.0] - 2024-11-20
 
 #### Added
-- Initial release of Certificate Analyzer
+- Initial release of Certificate Analyser
 - TLS/SSL certificate validation
 - Expiration checking and security assessment
 
-## Chalk Build Analyzer
+## Chalk Build Analyser
 
 ### [1.0.0] - 2024-11-20
 
 #### Added
-- Initial release of Chalk Build Analyzer
+- Initial release of Chalk Build Analyser
 - Build artifact analysis
 - Supply chain metadata insights
 

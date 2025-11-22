@@ -285,7 +285,7 @@ Team = Effort / TDEV
 
 ## Planned Integration
 
-### With Supply Chain Analyzer
+### With Supply Chain Analyser
 - Factor in dependency count
 - Consider technical debt
 - Assess security impact on effort

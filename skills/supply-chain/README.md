@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Supply Chain Analyzer Skill
+# Supply Chain Analyser Skill
 
 Comprehensive SBOM/BOM management including analysis, conversion, version upgrades, and supply chain security assessment using industry-standard formats, vulnerability databases, and security frameworks.
 
@@ -114,7 +114,7 @@ Comprehensive understanding of SLSA v1.0 for supply chain security:
 
 ### Load the Skill
 
-In Crash Override, load the Supply Chain Analyzer skill to enable expert SBOM analysis capabilities.
+In Crash Override, load the Supply Chain Analyser skill to enable expert SBOM analysis capabilities.
 
 ### Basic Analysis
 
@@ -377,9 +377,9 @@ The SBOM may only include direct dependencies. Regenerate with a tool that captu
 
 ## Automation Scripts
 
-The Supply Chain Analyzer includes command-line automation scripts for CI/CD integration and rapid analysis:
+The Supply Chain Analyser includes command-line automation scripts for CI/CD integration and rapid analysis:
 
-### vulnerability-analyzer.sh
+### vulnerability-analyser.sh
 
 Intelligent SBOM vulnerability scanning using osv-scanner with data-driven prioritization.
 
@@ -394,16 +394,16 @@ Intelligent SBOM vulnerability scanning using osv-scanner with data-driven prior
 **Usage:**
 ```bash
 # Analyze an SBOM file
-./vulnerability-analyzer.sh /path/to/sbom.json
+./vulnerability-analyser.sh /path/to/sbom.json
 
 # Analyze with intelligent prioritization (KEV + CVSS scoring)
-./vulnerability-analyzer.sh --prioritize /path/to/sbom.json
+./vulnerability-analyser.sh --prioritize /path/to/sbom.json
 
 # Analyze repository with taint analysis and prioritization
-./vulnerability-analyzer.sh --taint-analysis --prioritize https://github.com/org/repo
+./vulnerability-analyser.sh --taint-analysis --prioritize https://github.com/org/repo
 
 # JSON output to file
-./vulnerability-analyzer.sh --format json --output results.json ./my-project
+./vulnerability-analyser.sh --format json --output results.json ./my-project
 ```
 
 **Prioritization Output:**
@@ -422,12 +422,12 @@ Includes summary statistics: total vulnerabilities, severity breakdown, KEV matc
 
 **Note:** For repositories without existing SBOMs, the scripts will automatically generate one using syft (if installed). SBOMs are generated with standard filenames (`bom.json`) for osv-scanner compatibility.
 
-### vulnerability-analyzer-claude.sh
+### vulnerability-analyser-claude.sh
 
 AI-enhanced SBOM analysis with Claude for contextual insights and pattern analysis.
 
 **Features:**
-- All features from basic analyzer
+- All features from basic analyser
 - **Pattern analysis** across vulnerabilities and dependencies
 - **Supply chain context** and ecosystem health assessment
 - **Exploitability context** with attack surface analysis
@@ -443,7 +443,7 @@ AI-enhanced SBOM analysis with Claude for contextual insights and pattern analys
 - Systemic issue identification
 - Security posture narratives
 
-**What's in Base Analyzer:**
+**What's in Base Analyser:**
 - CISA KEV prioritization
 - CVSS severity scoring
 - Vulnerability counts and statistics
@@ -463,13 +463,13 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 **Usage:**
 ```bash
 # Analyze with AI insights (uses .env file or environment variable)
-./vulnerability-analyzer-claude.sh /path/to/sbom.json
+./vulnerability-analyser-claude.sh /path/to/sbom.json
 
 # Analyze repository with taint analysis
-./vulnerability-analyzer-claude.sh --taint-analysis https://github.com/org/repo
+./vulnerability-analyser-claude.sh --taint-analysis https://github.com/org/repo
 
 # Or specify API key directly (overrides .env)
-./vulnerability-analyzer-claude.sh --api-key sk-ant-xxx sbom.json
+./vulnerability-analyser-claude.sh --api-key sk-ant-xxx sbom.json
 ```
 
 **Output Includes:**
@@ -487,12 +487,12 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 
 **Note:** Run `./bootstrap.sh` from repository root to automatically check for and install all required dependencies.
 
-### compare-analyzers.sh
+### compare-analysers.sh
 
-Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrate value-add.
+Comparison tool that runs both basic and Claude-enhanced analysers to demonstrate value-add.
 
 **Features:**
-- Runs both analyzers in parallel
+- Runs both analysers in parallel
 - Compares outputs and capabilities
 - Shows AI value-add with specific examples
 - Generates comprehensive comparison report
@@ -501,13 +501,13 @@ Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrat
 **Usage:**
 ```bash
 # Compare basic vs Claude analysis
-./compare-analyzers.sh /path/to/sbom.json
+./compare-analysers.sh /path/to/sbom.json
 
 # With taint analysis
-./compare-analyzers.sh --taint-analysis sbom.json
+./compare-analysers.sh --taint-analysis sbom.json
 
 # Keep output files for review
-./compare-analyzers.sh --keep-outputs sbom.json
+./compare-analysers.sh --keep-outputs sbom.json
 ```
 
 **Output:**
@@ -524,15 +524,15 @@ The [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org)
 
 ```bash
 # Analyze test repository for vulnerabilities
-./vulnerability-analyzer.sh \
+./vulnerability-analyser.sh \
   https://github.com/Gibson-Powers-Test-Org/sample-repo
 
 # Run AI-enhanced analysis with prioritization
-./vulnerability-analyzer-claude.sh --prioritize \
+./vulnerability-analyser-claude.sh --prioritize \
   https://github.com/Gibson-Powers-Test-Org/sample-repo
 
 # Test SBOM analysis
-./vulnerability-analyzer.sh /path/to/test-sbom.json
+./vulnerability-analyser.sh /path/to/test-sbom.json
 ```
 
 Perfect for:
@@ -547,21 +547,21 @@ Perfect for:
 ```yaml
 - name: SBOM Analysis
   run: |
-    ./vulnerability-analyzer.sh --format json --output scan.json sbom.json
+    ./vulnerability-analyser.sh --format json --output scan.json sbom.json
 
 - name: AI-Enhanced Analysis (on main)
   if: github.ref == 'refs/heads/main'
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   run: |
-    ./vulnerability-analyzer-claude.sh sbom.json > analysis-report.txt
+    ./vulnerability-analyser-claude.sh sbom.json > analysis-report.txt
 ```
 
 **GitLab CI Example:**
 ```yaml
 sbom_scan:
   script:
-    - ./vulnerability-analyzer.sh --format json --output scan.json sbom.json
+    - ./vulnerability-analyser.sh --format json --output scan.json sbom.json
   artifacts:
     reports:
       dependency_scanning: scan.json
@@ -586,11 +586,11 @@ sbom_scan:
   - Grype by Anchore
   - Trivy
 - **API Clients**: curl, Postman, custom scripts
-- **Automation Scripts**: vulnerability-analyzer.sh, vulnerability-analyzer-claude.sh, compare-analyzers.sh
+- **Automation Scripts**: vulnerability-analyser.sh, vulnerability-analyser-claude.sh, compare-analysers.sh
 
 ### Related Skills
-- [Certificate Analyzer](../certificate-analyzer/) - TLS/SSL certificate analysis
-- [Chalk Build Analyzer](../chalk-build-analyzer/) - Build artifact analysis
+- [Certificate Analyser](../certificate-analyser/) - TLS/SSL certificate analysis
+- [Chalk Build Analyser](../chalk-build-analyser/) - Build artifact analysis
 
 ## Contributing
 

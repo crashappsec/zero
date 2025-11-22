@@ -319,27 +319,27 @@ expand_org_repos() {
 # Function to run vulnerability analysis
 run_vulnerability_analysis() {
     local target="$1"
-    local analyzer="$SCRIPT_DIR/vulnerability-analysis/vulnerability-analyzer.sh"
+    local analyser="$SCRIPT_DIR/vulnerability-analysis/vulnerability-analyser.sh"
 
-    if [[ ! -f "$analyzer" ]]; then
-        echo -e "${RED}✗ Vulnerability analyzer not found${NC}"
+    if [[ ! -f "$analyser" ]]; then
+        echo -e "${RED}✗ Vulnerability analyser not found${NC}"
         return 1
     fi
 
-    "$analyzer" --prioritize "$target"
+    "$analyser" --prioritize "$target"
 }
 
 # Function to run provenance analysis
 run_provenance_analysis() {
     local target="$1"
-    local analyzer="$SCRIPT_DIR/provenance-analysis/provenance-analyzer.sh"
+    local analyser="$SCRIPT_DIR/provenance-analysis/provenance-analyser.sh"
 
-    if [[ ! -f "$analyzer" ]]; then
-        echo -e "${RED}✗ Provenance analyzer not found${NC}"
+    if [[ ! -f "$analyser" ]]; then
+        echo -e "${RED}✗ Provenance analyser not found${NC}"
         return 1
     fi
 
-    "$analyzer" "$target"
+    "$analyser" "$target"
 }
 
 # Function to run analysis on target

@@ -272,7 +272,7 @@ cat ~/claude-templates/code-ownership/ownership-analysis.md | \
 ### Automation
 ```bash
 # Quarterly ownership audit
-./utils/code-ownership/ownership-analyzer-v2.sh . --format json | \
+./utils/code-ownership/ownership-analyser-v2.sh . --format json | \
   claude "Analyze this ownership data: $(cat ownership.json)"
 ```
 
@@ -653,7 +653,7 @@ Validate against: Corporate PKI policy
 - `tls-configuration-hardening.md` - TLS security improvements
 - `certificate-lifecycle.md` - Certificate management process
 
-**Source**: Exported from `skills/certificate-analyzer/`
+**Source**: Exported from `skills/certificate-analyser/`
 **Last Updated**: 2025-11-21
 EOF
 
@@ -799,7 +799,7 @@ Priority: Secrets detection, dependency verification
 Flag: Any embedded credentials or unsigned dependencies
 ```
 
-**Source**: Exported from `skills/chalk-build-analyzer/`
+**Source**: Exported from `skills/chalk-build-analyser/`
 **Last Updated**: 2025-11-21
 EOF
 

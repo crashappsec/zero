@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: GPL-3.0
 
 #############################################################################
-# Code Ownership Analyzer - Basic Analysis
+# Code Ownership Analyser - Basic Analysis
 # Analyzes git repository to identify code owners and generate reports
-# Usage: ./ownership-analyzer.sh [options] <repository-path>
+# Usage: ./ownership-analyser.sh [options] <repository-path>
 #############################################################################
 
 set -e
@@ -36,7 +36,7 @@ MULTI_REPO_MODE=false
 
 usage() {
     cat << EOF
-Code Ownership Analyzer - Analyze repository ownership patterns
+Code Ownership Analyser - Analyze repository ownership patterns
 
 Analyzes git history to identify code owners, calculate metrics, and
 optionally validate CODEOWNERS files.
@@ -1098,11 +1098,11 @@ fi
 echo ""
 echo "========================================="
 if [[ "$COMPARE_MODE" == "true" ]]; then
-    echo "  Code Ownership Analyzer (Comparison Mode)"
+    echo "  Code Ownership Analyser (Comparison Mode)"
 elif [[ "$USE_CLAUDE" == "true" ]]; then
-    echo "  Code Ownership Analyzer (Claude AI Mode)"
+    echo "  Code Ownership Analyser (Claude AI Mode)"
 else
-    echo "  Code Ownership Analyzer"
+    echo "  Code Ownership Analyser"
 fi
 echo "========================================="
 echo ""
@@ -1204,14 +1204,14 @@ if [[ "$COMPARE_MODE" == "true" ]]; then
     echo -e "${CYAN}Comparison Summary${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "Basic analyzer provides:"
+    echo "Basic analyser provides:"
     echo "  • Contribution statistics and metrics"
     echo "  • Top contributors by commit count"
     echo "  • Ownership distribution data"
     echo "  • Activity summary"
     echo "  • CODEOWNERS syntax validation"
     echo ""
-    echo "Claude-enhanced analyzer adds:"
+    echo "Claude-enhanced analyser adds:"
     echo "  • ${GREEN}Executive summary${NC} with health assessment"
     echo "  • ${GREEN}Risk analysis${NC} and bus factor calculation"
     echo "  • ${GREEN}CODEOWNERS accuracy validation${NC} against actual contributions"

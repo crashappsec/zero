@@ -134,7 +134,7 @@ Output Format: JSON
   "documentNamespace": "...",
   "creationInfo": {
     "created": "2024-11-20T12:00:00Z",
-    "creators": ["Tool: SBOM Analyzer"],
+    "creators": ["Tool: SBOM Analyser"],
     "comment": "Converted from CycloneDX 1.4"
   },
   "packages": [...],

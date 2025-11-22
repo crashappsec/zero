@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: GPL-3.0
 
 #############################################################################
-# DORA Metrics Analyzer Script
+# DORA Metrics Analyser Script
 # Calculates DORA metrics from deployment data
-# Usage: ./dora-analyzer.sh [options] <deployment-data.json>
+# Usage: ./dora-analyser.sh [options] <deployment-data.json>
 #############################################################################
 
 set -e
@@ -29,7 +29,7 @@ ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 # Function to print usage
 usage() {
     cat << EOF
-DORA Metrics Analyzer - Calculate software delivery performance metrics
+DORA Metrics Analyser - Calculate software delivery performance metrics
 
 Calculates the four key DORA metrics from deployment data:
 - Deployment Frequency
@@ -527,11 +527,11 @@ fi
 echo ""
 echo "========================================="
 if [[ "$COMPARE_MODE" == "true" ]]; then
-    echo "  DORA Metrics Analyzer (Comparison Mode)"
+    echo "  DORA Metrics Analyser (Comparison Mode)"
 elif [[ "$USE_CLAUDE" == "true" ]]; then
-    echo "  DORA Metrics Analyzer (Claude AI Mode)"
+    echo "  DORA Metrics Analyser (Claude AI Mode)"
 else
-    echo "  DORA Metrics Analyzer"
+    echo "  DORA Metrics Analyser"
 fi
 echo "========================================="
 echo ""
@@ -560,13 +560,13 @@ if [[ "$COMPARE_MODE" == "true" ]]; then
     echo -e "${CYAN}Comparison Summary${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "Basic analyzer provides:"
+    echo "Basic analyser provides:"
     echo "  • Four key DORA metrics calculation"
     echo "  • Performance level classification"
     echo "  • Benchmark comparison (Elite/High/Medium/Low)"
     echo "  • Raw metrics and percentiles"
     echo ""
-    echo "Claude-enhanced analyzer adds:"
+    echo "Claude-enhanced analyser adds:"
     echo "  • ${GREEN}Contextual insights${NC} and trend interpretation"
     echo "  • ${GREEN}Pattern recognition${NC} across metrics"
     echo "  • ${GREEN}Root cause analysis${NC} for performance issues"

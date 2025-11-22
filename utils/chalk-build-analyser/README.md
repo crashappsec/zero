@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Chalk Build Analyzer
+# Chalk Build Analyser
 
 **Status**: 🔬 Experimental
 
@@ -12,7 +12,7 @@ Analyzes build artifacts marked with Chalk to extract and validate supply chain 
 
 ## ⚠️ Development Status
 
-This utility is in **early development** and is not yet ready for Beta or production use. It provides basic Chalk metadata analysis but lacks the comprehensive testing, documentation, and features of the Beta supply chain analyzer.
+This utility is in **early development** and is not yet ready for Beta or production use. It provides basic Chalk metadata analysis but lacks the comprehensive testing, documentation, and features of the Beta supply chain analyser.
 
 ### What Works
 - ✅ Chalk metadata extraction
@@ -28,11 +28,11 @@ This utility is in **early development** and is not yet ready for Beta or produc
 - ❌ Comprehensive testing
 - ❌ Complete documentation
 
-**Use at your own risk**. For Beta-quality supply chain analysis, use the [Supply Chain Security Analyzer](../supply-chain/).
+**Use at your own risk**. For Beta-quality supply chain analysis, use the [Supply Chain Security Analyser](../supply-chain/).
 
 ## Overview
 
-[Chalk](https://crashoverride.com/chalk) is a tool by Crash Override for embedding metadata into software artifacts during the build process. This analyzer extracts and validates that metadata to provide insights into:
+[Chalk](https://crashoverride.com/chalk) is a tool by Crash Override for embedding metadata into software artifacts during the build process. This analyser extracts and validates that metadata to provide insights into:
 
 - **Build Context**: When, where, and how artifacts were built
 - **Source Information**: Git commit, branch, repository details
@@ -59,21 +59,21 @@ brew install jq
 
 ```bash
 # Analyze chalked artifact
-./chalk-build-analyzer.sh /path/to/artifact
+./chalk-build-analyser.sh /path/to/artifact
 
 # AI-enhanced analysis
 export ANTHROPIC_API_KEY="your-key"
-./chalk-build-analyzer-claude.sh /path/to/artifact
+./chalk-build-analyser-claude.sh /path/to/artifact
 
 # Compare base vs Claude analysis
-./compare-analyzers.sh /path/to/artifact
+./compare-analysers.sh /path/to/artifact
 ```
 
 ## Available Scripts
 
-### chalk-build-analyzer.sh
+### chalk-build-analyser.sh
 
-Base analyzer that extracts and displays Chalk metadata.
+Base analyser that extracts and displays Chalk metadata.
 
 **Features**:
 - Chalk metadata extraction
@@ -85,13 +85,13 @@ Base analyzer that extracts and displays Chalk metadata.
 **Usage**:
 ```bash
 # Analyze artifact
-./chalk-build-analyzer.sh myapp
+./chalk-build-analyser.sh myapp
 
 # Analyze Docker image
-./chalk-build-analyzer.sh my-image:tag
+./chalk-build-analyser.sh my-image:tag
 
 # Analyze binary
-./chalk-build-analyzer.sh /usr/local/bin/myapp
+./chalk-build-analyser.sh /usr/local/bin/myapp
 ```
 
 **Output**:
@@ -124,12 +124,12 @@ Attestations:
   SLSA Level: 2
 ```
 
-### chalk-build-analyzer-claude.sh
+### chalk-build-analyser-claude.sh
 
-AI-enhanced analyzer with security insights and recommendations.
+AI-enhanced analyser with security insights and recommendations.
 
 **Features**:
-- All base analyzer features
+- All base analyser features
 - Supply chain risk assessment
 - Build environment analysis
 - Security recommendations
@@ -140,16 +140,16 @@ AI-enhanced analyzer with security insights and recommendations.
 **Usage**:
 ```bash
 export ANTHROPIC_API_KEY="your-key"
-./chalk-build-analyzer-claude.sh /path/to/artifact
+./chalk-build-analyser-claude.sh /path/to/artifact
 ```
 
-### compare-analyzers.sh
+### compare-analysers.sh
 
 Compare base and AI-enhanced analysis side-by-side.
 
 **Usage**:
 ```bash
-./compare-analyzers.sh /path/to/artifact
+./compare-analysers.sh /path/to/artifact
 ```
 
 ## Chalk Metadata Fields
@@ -230,10 +230,10 @@ Compare base and AI-enhanced analysis side-by-side.
 ### Architecture
 
 ```
-chalk-build-analyzer/
-├── chalk-build-analyzer.sh              # Base analyzer
-├── chalk-build-analyzer-claude.sh       # AI-enhanced analyzer
-└── compare-analyzers.sh                 # Comparison tool
+chalk-build-analyser/
+├── chalk-build-analyser.sh              # Base analyser
+├── chalk-build-analyser-claude.sh       # AI-enhanced analyser
+└── compare-analysers.sh                 # Comparison tool
 ```
 
 ### Adding Features
@@ -269,13 +269,13 @@ Track and verify release artifacts.
 ### Example 1: Verify Build Origin
 
 ```bash
-./chalk-build-analyzer.sh myapp | grep "GIT_COMMIT"
+./chalk-build-analyser.sh myapp | grep "GIT_COMMIT"
 ```
 
 ### Example 2: Check SLSA Level
 
 ```bash
-./chalk-build-analyzer.sh myapp | grep "SLSA_LEVEL"
+./chalk-build-analyser.sh myapp | grep "SLSA_LEVEL"
 ```
 
 ### Example 3: Audit Multiple Artifacts
@@ -283,7 +283,7 @@ Track and verify release artifacts.
 ```bash
 for artifact in app1 app2 app3; do
   echo "Analyzing $artifact..."
-  ./chalk-build-analyzer.sh "$artifact"
+  ./chalk-build-analyser.sh "$artifact"
   echo ""
 done
 ```
@@ -293,7 +293,7 @@ done
 ```bash
 #!/bin/bash
 # Verify artifact was built from main branch
-./chalk-build-analyzer.sh myapp | grep -q "Branch: main"
+./chalk-build-analyser.sh myapp | grep -q "Branch: main"
 if [ $? -ne 0 ]; then
   echo "Artifact not from main branch!"
   exit 1
@@ -303,7 +303,7 @@ fi
 ## Related Documentation
 
 - [Chalk Documentation](https://crashoverride.com/chalk)
-- [Chalk Build Skill](../../skills/chalk-build-analyzer/)
+- [Chalk Build Skill](../../skills/chalk-build-analyser/)
 - [Supply Chain Security](../supply-chain/)
 - [Changelog](./CHANGELOG.md)
 

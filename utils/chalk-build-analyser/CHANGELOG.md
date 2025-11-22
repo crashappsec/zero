@@ -4,9 +4,9 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Changelog - Chalk Build Analyzer
+# Changelog - Chalk Build Analyser
 
-All notable changes to the Chalk Build Analyzer will be documented in this file.
+All notable changes to the Chalk Build Analyser will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-11-20
 
 ### Added
-- Initial release of Chalk Build Analyzer
+- Initial release of Chalk Build Analyser
 - Chalk metadata extraction from artifacts
 - Build information display:
   - Build context (time, host, user)
@@ -39,7 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Environment configuration
   - Tool versions
 - Supply chain metadata insights
-- AI-enhanced analysis with Claude (`chalk-build-analyzer-claude.sh`)
+- AI-enhanced analysis with Claude (`chalk-build-analyser-claude.sh`)
 - Comparison tool for base vs Claude analysis
 
 ### Known Limitations

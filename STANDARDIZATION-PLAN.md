@@ -1,22 +1,22 @@
-# Gibson Powers Analyzers - Standardization Plan
+# Gibson Powers Analysers - Standardization Plan
 
 ## Current State Inventory
 
-### Analyzers
-1. **certificate-analyzer** (cert-analyzer.sh)
-2. **chalk-build-analyzer** (chalk-build-analyzer.sh)
-3. **code-ownership** (ownership-analyzer.sh)
-4. **dora-metrics** (dora-analyzer.sh)
-5. **package-health-analysis** (package-health-analyzer.sh)
-6. **provenance-analysis** (provenance-analyzer.sh)
-7. **vulnerability-analysis** (vulnerability-analyzer.sh)
+### Analysers
+1. **certificate-analyser** (cert-analyser.sh)
+2. **chalk-build-analyser** (chalk-build-analyser.sh)
+3. **code-ownership** (ownership-analyser.sh)
+4. **dora-metrics** (dora-analyser.sh)
+5. **package-health-analysis** (package-health-analyser.sh)
+6. **provenance-analysis** (provenance-analyser.sh)
+7. **vulnerability-analysis** (vulnerability-analyser.sh)
 
 ### Current Flag Support Matrix
 
-| Analyzer | --org | --repo | --claude | --compare | --format | --output | --keep-clone |
+| Analyser | --org | --repo | --claude | --compare | --format | --output | --keep-clone |
 |----------|-------|--------|----------|-----------|----------|----------|--------------|
-| certificate-analyzer | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
-| chalk-build-analyzer | ❌ | ❌ | ✅ | ❌ | ✅ | ✅ | ❌ |
+| certificate-analyser | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| chalk-build-analyser | ❌ | ❌ | ✅ | ❌ | ✅ | ✅ | ❌ |
 | code-ownership | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | dora-metrics | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ❌ |
 | package-health-analysis | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
@@ -30,7 +30,7 @@
 - **config-loader.sh** - Configuration loading
 - **claude-cost.sh** - API cost tracking (referenced but not found)
 
-#### Analyzer-Specific
+#### Analyser-Specific
 - **code-ownership/lib/** - 10 library files including enhanced github.sh
 - **package-health-analysis/lib/** - 4 library files
 
@@ -38,20 +38,20 @@
 
 ### 1. Common Flag Standards
 
-**Required flags for all analyzers:**
+**Required flags for all analysers:**
 - `--format FORMAT` - Output format (text|json|markdown|csv) - default: markdown
 - `--output FILE` - Write to file instead of stdout
 - `--claude` - Enable Claude AI analysis
 - `-k, --api-key KEY` - Anthropic API key
 - `-h, --help` - Show help
 
-**For analyzers that work with repositories:**
+**For analysers that work with repositories:**
 - `--org ORGANIZATION` - Analyze all repos in GitHub organization
 - `--repo OWNER/REPO` - Analyze single repository
 - `--repos REPO1 REPO2...` - Analyze multiple repositories
 - `--keep-clone` - Keep cloned repos (don't cleanup)
 
-**For analyzers with Claude support:**
+**For analysers with Claude support:**
 - `--compare` - Run both basic and Claude modes side-by-side
 
 ### 2. GitHub Library Consolidation
@@ -71,7 +71,7 @@
 
 ### 3. Cleanup Standardization
 
-**All analyzers that clone repos must:**
+**All analysers that clone repos must:**
 - Use `mktemp -d` for temporary directories
 - Set `TEMP_DIR` variable
 - Define `cleanup()` function
@@ -94,7 +94,7 @@ GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 
 ### 5. Usage Documentation Standards
 
-**Every analyzer README.md must include:**
+**Every analyser README.md must include:**
 1. **Title and Description** - What it does
 2. **Prerequisites** - Required tools, tokens
 3. **Installation** - How to install/setup
@@ -113,7 +113,7 @@ GITHUB_TOKEN="${GITHUB_TOKEN:-}"
 
 ### 6. Code Structure Standards
 
-**All analyzers should follow:**
+**All analysers should follow:**
 ```bash
 #!/bin/bash
 # Script header with SPDX license
@@ -154,21 +154,21 @@ trap cleanup EXIT
 - [x] Fix organization scanning bug (DONE)
 - [ ] Create consolidated utils/lib/github.sh
 - [ ] Create utils/lib/claude-cost.sh
-- [ ] Ensure all analyzers use trap cleanup EXIT
+- [ ] Ensure all analysers use trap cleanup EXIT
 
 ### Phase 2: Flag Standardization (Priority 1)
-- [ ] Add --org and --repo support to certificate-analyzer
-- [ ] Add --org and --repo support to chalk-build-analyzer
+- [ ] Add --org and --repo support to certificate-analyser
+- [ ] Add --org and --repo support to chalk-build-analyser
 - [ ] Add --org and --repo support to dora-metrics
-- [ ] Add --compare mode to provenance-analyzer
-- [ ] Add --compare mode to vulnerability-analyzer
-- [ ] Standardize --format across all analyzers
-- [ ] Add --keep-clone to all repo-based analyzers
+- [ ] Add --compare mode to provenance-analyser
+- [ ] Add --compare mode to vulnerability-analyser
+- [ ] Standardize --format across all analysers
+- [ ] Add --keep-clone to all repo-based analysers
 
 ### Phase 3: Documentation (Priority 2)
 - [ ] Create standardized README template
-- [ ] Update certificate-analyzer README
-- [ ] Update chalk-build-analyzer README
+- [ ] Update certificate-analyser README
+- [ ] Update chalk-build-analyser README
 - [ ] Update code-ownership README
 - [ ] Update dora-metrics README
 - [ ] Update package-health-analysis README
@@ -176,9 +176,9 @@ trap cleanup EXIT
 - [ ] Update vulnerability-analysis README
 
 ### Phase 4: Testing & Validation (Priority 2)
-- [ ] Test each analyzer with --org
-- [ ] Test each analyzer with --claude
-- [ ] Test each analyzer with --compare (where applicable)
+- [ ] Test each analyser with --org
+- [ ] Test each analyser with --claude
+- [ ] Test each analyser with --compare (where applicable)
 - [ ] Test cleanup with interrupts (Ctrl+C)
 - [ ] Verify all examples in documentation work
 

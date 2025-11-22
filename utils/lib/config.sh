@@ -5,10 +5,10 @@
 
 #############################################################################
 # Global Configuration Library
-# Provides common paths and configuration for all analyzers
+# Provides common paths and configuration for all analysers
 #############################################################################
 
-# Detect repository root (works from any analyzer location)
+# Detect repository root (works from any analyser location)
 if [[ -n "${REPO_ROOT:-}" ]]; then
     # Already set by caller
     :

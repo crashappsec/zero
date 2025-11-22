@@ -4,11 +4,11 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Chalk Build Analyzer Skill
+# Chalk Build Analyser Skill
 
 ## 🎯 Purpose
 
-The **Chalk Build Analyzer** is an AI-powered Claude skill specifically designed for analyzing build performance and engineering efficiency from Chalk reports. Unlike security-focused tools, this skill concentrates on what matters most for day-to-day engineering: **build speed**, **team velocity**, and **operational excellence**.
+The **Chalk Build Analyser** is an AI-powered Claude skill specifically designed for analyzing build performance and engineering efficiency from Chalk reports. Unlike security-focused tools, this skill concentrates on what matters most for day-to-day engineering: **build speed**, **team velocity**, and **operational excellence**.
 
 ## 🚀 Key Features
 
@@ -140,7 +140,7 @@ Trend analysis reveals:
 
 ## 🛠️ Installation
 
-1. **Download**: Get `chalk-build-analyzer.skill`
+1. **Download**: Get `chalk-build-analyser.skill`
 2. **Upload to Claude**: Use the skill upload feature
 3. **Ready to Use**: The skill activates automatically for Chalk data
 
@@ -248,9 +248,9 @@ Export metrics for visualization:
 
 ## 🔧 Automation Scripts
 
-The Chalk Build Analyzer includes command-line automation scripts for CI/CD integration and rapid analysis:
+The Chalk Build Analyser includes command-line automation scripts for CI/CD integration and rapid analysis:
 
-### chalk-build-analyzer.sh
+### chalk-build-analyser.sh
 
 Basic Chalk build report analysis without AI enhancement.
 
@@ -266,13 +266,13 @@ Basic Chalk build report analysis without AI enhancement.
 **Usage:**
 ```bash
 # Analyze a single build
-./chalk-build-analyzer.sh build-report.json
+./chalk-build-analyser.sh build-report.json
 
 # Compare two builds
-./chalk-build-analyzer.sh --compare baseline.json current.json
+./chalk-build-analyser.sh --compare baseline.json current.json
 
 # Export to JSON
-./chalk-build-analyzer.sh --format json --output analysis.json build.json
+./chalk-build-analyser.sh --format json --output analysis.json build.json
 ```
 
 **Output Includes:**
@@ -286,12 +286,12 @@ Basic Chalk build report analysis without AI enhancement.
 **Requirements:**
 - jq: `brew install jq`
 
-### chalk-build-analyzer-claude.sh
+### chalk-build-analyser-claude.sh
 
 AI-enhanced Chalk build analysis with Claude integration for intelligent performance insights.
 
 **Features:**
-- All features from basic analyzer
+- All features from basic analyser
 - Executive summaries with build health scores
 - Performance bottleneck identification
 - Engineering velocity metrics (DORA)
@@ -313,13 +313,13 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 **Usage:**
 ```bash
 # Analyze with AI insights (uses .env file or environment variable)
-./chalk-build-analyzer-claude.sh build-report.json
+./chalk-build-analyser-claude.sh build-report.json
 
 # Compare with regression analysis
-./chalk-build-analyzer-claude.sh --compare baseline.json current.json
+./chalk-build-analyser-claude.sh --compare baseline.json current.json
 
 # Or specify API key directly (overrides .env)
-./chalk-build-analyzer-claude.sh --api-key sk-ant-xxx build.json
+./chalk-build-analyser-claude.sh --api-key sk-ant-xxx build.json
 ```
 
 **Single Build Output Includes:**
@@ -339,15 +339,15 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 6. **Efficiency Comparison** - Cache, resources, parallelization trends
 
 **Requirements:**
-- Same as basic analyzer
+- Same as basic analyser
 - Anthropic API key
 
-### compare-analyzers.sh
+### compare-analysers.sh
 
-Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrate value-add.
+Comparison tool that runs both basic and Claude-enhanced analysers to demonstrate value-add.
 
 **Features:**
-- Runs both analyzers (single or compare mode)
+- Runs both analysers (single or compare mode)
 - Compares outputs and capabilities
 - Shows AI value-add with specific examples
 - Generates comprehensive comparison report
@@ -356,13 +356,13 @@ Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrat
 **Usage:**
 ```bash
 # Compare basic vs Claude analysis
-./compare-analyzers.sh build-report.json
+./compare-analysers.sh build-report.json
 
 # Compare regression detection capabilities
-./compare-analyzers.sh --compare baseline.json current.json
+./compare-analysers.sh --compare baseline.json current.json
 
 # Keep output files for review
-./compare-analyzers.sh --keep-outputs build.json
+./compare-analysers.sh --keep-outputs build.json
 ```
 
 **Output:**
@@ -380,11 +380,11 @@ Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrat
   run: chalk extract > build-report.json
 
 - name: Basic Build Analysis
-  run: ./chalk-build-analyzer.sh build-report.json
+  run: ./chalk-build-analyser.sh build-report.json
 
 - name: Regression Check
   run: |
-    ./chalk-build-analyzer.sh --compare baseline.json build-report.json
+    ./chalk-build-analyser.sh --compare baseline.json build-report.json
     if grep -q "REGRESSION DETECTED" output.txt; then
       echo "Build performance regression detected!"
       exit 1
@@ -395,7 +395,7 @@ Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrat
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   run: |
-    ./chalk-build-analyzer-claude.sh build-report.json > analysis-report.txt
+    ./chalk-build-analyser-claude.sh build-report.json > analysis-report.txt
 ```
 
 **GitLab CI Example:**
@@ -403,7 +403,7 @@ Comparison tool that runs both basic and Claude-enhanced analyzers to demonstrat
 build_analysis:
   script:
     - chalk extract > build-report.json
-    - ./chalk-build-analyzer.sh build-report.json
+    - ./chalk-build-analyser.sh build-report.json
   artifacts:
     reports:
       metrics: build-report.json
@@ -412,14 +412,14 @@ build_analysis:
 ## 📚 What's Included
 
 - `SKILL.md` - Complete documentation
-- `scripts/analyze_build.py` - Single build analyzer (Python)
+- `scripts/analyze_build.py` - Single build analyser (Python)
 - `scripts/compare_builds.py` - Comparison tool (Python)
 - `scripts/demo.sh` - Interactive demonstration
 - `references/build_metrics.md` - Metrics guide
 - `assets/` - Example reports
-- `chalk-build-analyzer.sh` - Basic CLI analyzer
-- `chalk-build-analyzer-claude.sh` - AI-enhanced CLI analyzer
-- `compare-analyzers.sh` - Analyzer comparison tool
+- `chalk-build-analyser.sh` - Basic CLI analyser
+- `chalk-build-analyser-claude.sh` - AI-enhanced CLI analyser
+- `compare-analysers.sh` - Analyser comparison tool
 
 ## 🤝 Perfect For
 

@@ -358,9 +358,9 @@ if [ ! -f "$REPO_ROOT/.env" ] || ! grep -q "^ANTHROPIC_API_KEY=sk-ant-" "$REPO_R
 else
     echo "  1. Run any utility script:"
 fi
-echo "     ./utils/code-ownership/ownership-analyzer-claude.sh --help"
+echo "     ./utils/code-ownership/ownership-analyser-claude.sh --help"
 echo "     ./utils/supply-chain/supply-chain-scanner.sh --help"
-echo "     ./utils/supply-chain/vulnerability-analysis/vulnerability-analyzer.sh --help"
+echo "     ./utils/supply-chain/vulnerability-analysis/vulnerability-analyser.sh --help"
 echo ""
 
 # Warning if critical tools or config are missing

@@ -598,6 +598,6 @@ The team is on track to join the top 7% of performers globally.
 
 ---
 
-**Report prepared by:** DORA Metrics Analyzer
+**Report prepared by:** DORA Metrics Analyser
 **Next review:** 2025-01-15
 **Questions?** Contact Platform Engineering Lead

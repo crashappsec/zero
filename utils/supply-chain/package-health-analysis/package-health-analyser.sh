@@ -1,5 +1,5 @@
 #!/bin/bash
-# Package Health Analyzer - Base Scanner
+# Package Health Analyser - Base Scanner
 # Copyright (c) 2024 Gibson Powers Contributors
 # SPDX-License-Identifier: GPL-3.0
 
@@ -46,7 +46,7 @@ trap cleanup EXIT
 # Usage information
 usage() {
     cat <<EOF
-Package Health Analyzer - Base Scanner
+Package Health Analyser - Base Scanner
 
 Usage: $0 [OPTIONS]
 
@@ -401,8 +401,8 @@ analyze_from_sbom() {
                 timestamp: $timestamp,
                 repositories_scanned: 1,
                 packages_analyzed: $total,
-                analyzer_version: "1.0.0",
-                analyzer_type: "base"
+                analyser_version: "1.0.0",
+                analyser_type: "base"
             },
             summary: {
                 total_packages: $total,
@@ -499,8 +499,8 @@ analyze_organization() {
                 organization: $org,
                 repositories_scanned: $repos,
                 packages_analyzed: $total,
-                analyzer_version: "1.0.0",
-                analyzer_type: "base"
+                analyser_version: "1.0.0",
+                analyser_type: "base"
             },
             summary: {
                 total_packages: $total,
@@ -740,14 +740,14 @@ main() {
         echo "Comparison Summary"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo ""
-        echo "Basic analyzer provides:"
+        echo "Basic analyser provides:"
         echo "  • Package health scores and metrics"
         echo "  • Vulnerability counts and severity"
         echo "  • Deprecation status"
         echo "  • Version analysis"
         echo "  • Raw data export (JSON/CSV)"
         echo ""
-        echo "Claude-enhanced analyzer adds:"
+        echo "Claude-enhanced analyser adds:"
         echo "  • Risk prioritization and assessment"
         echo "  • Contextual security insights"
         echo "  • Specific remediation recommendations"
