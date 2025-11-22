@@ -134,6 +134,9 @@ cleanup() {
     fi
 }
 
+# Ensure cleanup on script exit (normal, error, or interrupt)
+trap cleanup EXIT
+
 is_git_repository() {
     local repo_path="$1"
     if [[ ! -d "$repo_path/.git" ]]; then
@@ -742,8 +745,6 @@ analyze_single_target() {
             analyze_ownership "$actual_path" "$DAYS"
         fi
     fi
-
-    cleanup
 }
 
 # Execute analysis

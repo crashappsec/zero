@@ -207,6 +207,16 @@ generate_sbom() {
     return 1
 }
 
+# Function to cleanup temporary files
+cleanup() {
+    if [[ "$CLEANUP" == true ]] && [[ -n "$TEMP_DIR" ]] && [[ -d "$TEMP_DIR" ]]; then
+        rm -rf "$TEMP_DIR"
+    fi
+}
+
+# Ensure cleanup on script exit (normal, error, or interrupt)
+trap cleanup EXIT
+
 # Function to parse purl components
 parse_purl() {
     local purl="$1"
@@ -521,7 +531,6 @@ analyze_single_target() {
         echo ""
         if clone_repository "$target"; then
             analyze_repository "$TEMP_DIR"
-            [[ "$CLEANUP" == "true" ]] && rm -rf "$TEMP_DIR"
         fi
     elif [[ -d "$target" ]]; then
         echo -e "${GREEN}Target: Local directory${NC}"
