@@ -37,6 +37,11 @@ NC='\033[0m'
 # Temp directories tracking
 TEMP_DIRS=()
 
+# Scan results storage (for Claude AI enhancement)
+SCAN_RESULTS_FILE=""
+LICENSE_VIOLATIONS=()
+CONTENT_ISSUES=()
+
 # Cleanup function
 cleanup() {
     if [[ ${#TEMP_DIRS[@]} -gt 0 ]]; then
@@ -46,6 +51,8 @@ cleanup() {
             fi
         done
     fi
+    [[ -n "$SCAN_RESULTS_FILE" ]] && rm -f "$SCAN_RESULTS_FILE"
+    # Cost tracking cleanup is handled by temp file cleanup
 }
 
 trap cleanup EXIT
@@ -331,6 +338,7 @@ scan_licenses() {
                 echo "  - ❌ **VIOLATION**: License is on denied list"
                 has_violations=true
                 license_status="❌ FAIL"
+                LICENSE_VIOLATIONS+=("$rel_path: $detected_license (denied)")
             elif license_in_array "$detected_license" "${REVIEW_LICENSES[@]}"; then
                 echo "  - ⚠️ **REVIEW REQUIRED**: License requires legal review"
                 license_status="⚠️ WARNING"
@@ -360,6 +368,7 @@ scan_licenses() {
             echo "  - ❌ **VIOLATION**: Denied license"
             has_violations=true
             license_status="❌ FAIL"
+            LICENSE_VIOLATIONS+=("package.json: $npm_license (denied)")
         elif license_in_array "$npm_license" "${ALLOWED_LICENSES[@]}"; then
             echo "  - ✅ Approved"
         fi
@@ -375,6 +384,7 @@ scan_licenses() {
             echo "  - ❌ **VIOLATION**: Denied license"
             has_violations=true
             license_status="❌ FAIL"
+            LICENSE_VIOLATIONS+=("Cargo.toml: $cargo_license (denied)")
         elif license_in_array "$cargo_license" "${ALLOWED_LICENSES[@]}"; then
             echo "  - ✅ Approved"
         fi
@@ -412,6 +422,7 @@ scan_licenses() {
                     echo "  - ❌ **VIOLATION**: Denied license"
                     has_violations=true
                     license_status="❌ FAIL"
+                    LICENSE_VIOLATIONS+=("$rel_path: $spdx (SPDX identifier)")
                 fi
             fi
         fi
@@ -563,6 +574,7 @@ scan_content_policy() {
                             local rel_path="${file#$path/}"
                             local alternatives=$(get_alternatives "$term" "profanity")
                             profanity_findings+=("- \`$rel_path:$line_num\` - **$term** → Alternatives: $alternatives")
+                            CONTENT_ISSUES+=("$rel_path:$line_num - profanity: $term")
                             has_issues=true
                             content_status="⚠️ WARNING"
                         fi
@@ -623,6 +635,7 @@ scan_content_policy() {
                             local rel_path="${file#$path/}"
                             local alternatives=$(get_alternatives "$term" "inclusive_language")
                             inclusive_findings+=("- \`$rel_path:$line_num\` - **$term** → Alternatives: $alternatives")
+                            CONTENT_ISSUES+=("$rel_path:$line_num - non-inclusive: $term")
                             has_issues=true
                             content_status="⚠️ WARNING"
                         fi
@@ -662,6 +675,227 @@ scan_content_policy() {
         echo "- Consider audience and context when writing documentation"
         echo ""
     fi
+}
+
+# Load RAG documentation for Claude context
+load_rag_context() {
+    local context=""
+
+    # Load license compliance guide
+    if [[ -f "$REPO_ROOT/rag/legal-review/license-compliance-guide.md" ]]; then
+        context+="# License Compliance Guide\n\n"
+        context+=$(head -500 "$REPO_ROOT/rag/legal-review/license-compliance-guide.md")
+        context+="\n\n"
+    fi
+
+    # Load content policy guide
+    if [[ -f "$REPO_ROOT/rag/legal-review/content-policy-guide.md" ]]; then
+        context+="# Content Policy Guide\n\n"
+        context+=$(head -500 "$REPO_ROOT/rag/legal-review/content-policy-guide.md")
+        context+="\n\n"
+    fi
+
+    echo -e "$context"
+}
+
+# Call Claude API for enhanced analysis
+call_claude_api() {
+    local prompt="$1"
+    local model="${2:-claude-sonnet-4-5-20250929}"
+
+    # Check for API key
+    if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+        echo "Error: ANTHROPIC_API_KEY environment variable not set" >&2
+        return 1
+    fi
+
+    log "Calling Claude API with model: $model"
+
+    # Prepare API request
+    local request_body=$(jq -n \
+        --arg model "$model" \
+        --arg prompt "$prompt" \
+        '{
+            model: $model,
+            max_tokens: 4096,
+            messages: [{
+                role: "user",
+                content: $prompt
+            }]
+        }')
+
+    # Call API
+    local response=$(curl -s -X POST https://api.anthropic.com/v1/messages \
+        -H "x-api-key: $ANTHROPIC_API_KEY" \
+        -H "anthropic-version: 2023-06-01" \
+        -H "content-type: application/json" \
+        -d "$request_body")
+
+    # Check for errors
+    if echo "$response" | jq -e '.error' >/dev/null 2>&1; then
+        echo "Error calling Claude API: $(echo "$response" | jq -r '.error.message')" >&2
+        return 1
+    fi
+
+    # Extract content
+    echo "$response" | jq -r '.content[0].text'
+}
+
+# Enhanced license analysis with Claude AI
+claude_analyze_licenses() {
+    local scan_results="$1"
+
+    log "Enhancing license analysis with Claude AI..."
+
+    # Load RAG context
+    local rag_context=$(load_rag_context)
+
+    # Build prompt
+    local prompt="You are an expert in open source license compliance and software legal review.
+
+${rag_context}
+
+Based on the scan results below, provide:
+
+1. **License Compatibility Analysis**
+   - Identify compatibility issues between detected licenses
+   - Explain copyleft implications
+   - Flag license conflicts
+
+2. **Risk Assessment**
+   - Categorize risks (critical, high, medium, low)
+   - Prioritize issues by business impact
+   - Identify compliance violations
+
+3. **Remediation Recommendations**
+   - Specific actions to address each violation
+   - Alternative libraries with compatible licenses
+   - Migration strategies
+
+4. **Policy Evaluation**
+   - Assess if exceptions might be justified
+   - Recommend policy updates if needed
+
+## Scan Results
+
+${scan_results}
+
+## Analysis
+
+Provide actionable, specific recommendations in markdown format."
+
+    # Call Claude API
+    call_claude_api "$prompt"
+}
+
+# Enhanced content policy analysis with Claude AI
+claude_analyze_content() {
+    local scan_results="$1"
+
+    log "Enhancing content policy analysis with Claude AI..."
+
+    # Load RAG context
+    local rag_context=$(load_rag_context)
+
+    # Build prompt
+    local prompt="You are an expert in professional code standards, inclusive language, and content policy enforcement.
+
+${rag_context}
+
+Based on the scan results below, provide:
+
+1. **Content Analysis**
+   - Assess severity of flagged terms
+   - Identify patterns and recurring issues
+   - Evaluate context appropriateness
+
+2. **Risk Assessment**
+   - Categorize by impact (professional standards, inclusion, legal)
+   - Prioritize remediation by visibility and frequency
+
+3. **Remediation Recommendations**
+   - Specific term replacements with context
+   - Code refactoring suggestions
+   - Communication templates for team education
+
+4. **Best Practices**
+   - Style guide recommendations
+   - Automation opportunities (linters, pre-commit hooks)
+   - Team training suggestions
+
+## Scan Results
+
+${scan_results}
+
+## Analysis
+
+Provide practical, actionable guidance in markdown format."
+
+    # Call Claude API
+    call_claude_api "$prompt"
+}
+
+# Comprehensive Claude AI analysis
+claude_enhanced_analysis() {
+    local scan_path="$1"
+
+    if [[ "$USE_CLAUDE" != true ]]; then
+        return 0
+    fi
+
+    echo ""
+    echo "## 🤖 Claude AI Enhanced Analysis"
+    echo ""
+
+    # Check for API key
+    if [[ -z "${ANTHROPIC_API_KEY:-}" ]]; then
+        echo "⚠️ **Warning**: ANTHROPIC_API_KEY not set. Skipping AI enhancement."
+        echo ""
+        echo "Set your API key to enable Claude AI analysis:"
+        echo "\`\`\`bash"
+        echo "export ANTHROPIC_API_KEY='your-api-key'"
+        echo "\`\`\`"
+        echo ""
+        return 0
+    fi
+
+    # Create summary of scan results
+    local scan_summary="# Legal Review Scan Results Summary
+
+## License Findings
+- Total violations: ${#LICENSE_VIOLATIONS[@]}
+- Critical issues: $(echo "${LICENSE_VIOLATIONS[@]}" | grep -c "GPL" || echo "0")
+
+Violations:
+$(for violation in "${LICENSE_VIOLATIONS[@]}"; do echo "- $violation"; done)
+
+## Content Policy Findings
+- Total issues: ${#CONTENT_ISSUES[@]}
+
+Issues:
+$(for issue in "${CONTENT_ISSUES[@]}"; do echo "- $issue"; done)
+"
+
+    # Get Claude's analysis
+    if [[ ${#LICENSE_VIOLATIONS[@]} -gt 0 ]]; then
+        echo "### 📋 License Compliance Analysis"
+        echo ""
+        local license_analysis=$(claude_analyze_licenses "$scan_summary")
+        echo "$license_analysis"
+        echo ""
+    fi
+
+    if [[ ${#CONTENT_ISSUES[@]} -gt 0 ]]; then
+        echo "### ✍️ Content Policy Analysis"
+        echo ""
+        local content_analysis=$(claude_analyze_content "$scan_summary")
+        echo "$content_analysis"
+        echo ""
+    fi
+
+    echo ""
+    echo "**Note**: Token usage and cost information available in API response headers"
+    echo ""
 }
 
 # Main analysis
@@ -710,6 +944,9 @@ main() {
     if [[ "$SCAN_CONTENT" == true ]]; then
         scan_content_policy "$scan_path"
     fi
+
+    # Claude AI enhanced analysis
+    claude_enhanced_analysis "$scan_path"
 
 }
 
