@@ -1,6 +1,6 @@
 #!/bin/bash
 # Deprecation Checker
-# Copyright (c) 2024 Crash Override Inc
+# Copyright (c) 2024 Gibson Powers Contributors
 # SPDX-License-Identifier: GPL-3.0
 
 set -euo pipefail

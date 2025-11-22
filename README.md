@@ -1,308 +1,402 @@
 <!--
-Copyright (c) 2024 Crash Override Inc
-101 Fulton St, 416, New York 10038
 SPDX-License-Identifier: GPL-3.0
+Copyright (c) 2024 Gibson Powers Contributors
 -->
 
-# Skills and Prompts for Crash Override
+# Gibson Powers
 
-A curated collection of skills, prompts, and tools to enhance your experience with the Crash Override platform. This repository provides reusable components, best practices, and a growing knowledge base powered by RAG (Retrieval-Augmented Generation) to help you get the most out of Crash Override.
+> **Experimental Preview** - A collection of developer productivity and security engineering utilities powered by AI
 
-## Table of Contents
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Status: Experimental](https://img.shields.io/badge/Status-Experimental-orange.svg)](https://github.com/crashappsec/gibson-powers)
 
-- [Overview](#overview)
-- [Features](#features)
-- [Repository Structure](#repository-structure)
-- [Getting Started](#getting-started)
-- [Available Skills](#available-skills)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [RAG Knowledge Base](#rag-knowledge-base)
-- [Community](#community)
-- [License](#license)
+## What is Gibson Powers?
 
-## Overview
+Gibson Powers is a suite of practical utilities for developers and security engineers, inspired by capabilities found in modern Developer Productivity Insights platforms (formerly known as Software Engineering Intelligence platforms). The name pays homage to the Gibson supercomputer from the film *Hackers* and adds a playful nod to Austin Powers.
 
-This repository serves as a central hub for:
+### The Three-Tier Approach
 
-- **Skills**: Pre-built `.skill` files that extend Crash Override's capabilities
-- **Prompts**: Tested and optimized prompt templates for common use cases
-- **Tools**: Utilities and scripts to enhance your workflow
-- **Documentation**: Guides, references, and best practices
-- **RAG Knowledge Base**: A growing corpus of domain knowledge to improve responses
+Gibson Powers provides **three progressively powerful tiers** of capabilities:
 
-Whether you're analyzing security certificates, building software, or engineering better prompts, this repository provides battle-tested components to accelerate your work.
+```
+Tier 1: Standalone Scripts     Tier 2: AI-Enhanced         Tier 3: Platform-Powered
+─────────────────────────────  ─────────────────────────  ──────────────────────────
+• Shell scripts                • Claude integration       • Crash Override platform
+• Local analysis               • LLM-powered insights     • Enterprise features
+• No dependencies              • Advanced reasoning       • Team collaboration
+• Fast, simple                 • Comprehensive reports    • Historical analytics
+```
+
+**Tier 1** provides immediate value - just run the scripts on your code
+**Tier 2** enhances analysis with Claude AI for deeper insights and recommendations
+**Tier 3** (future) will integrate with the Crash Override platform for enterprise-scale deployments
+
+This repository focuses on **Tiers 1 & 2**, giving you powerful standalone tools that get even better with AI.
 
 ## Features
 
-- **Production-Ready Skills**: Fully documented skills with examples and changelogs
-- **Organized Prompts**: Categorized by domain (security, development, analysis)
-- **Community-Driven**: Open source contributions welcome
-- **RAG-Powered**: Enhanced context and knowledge retrieval
-- **Best Practices**: Learn from real-world examples and conversations
+- 🔒 **Supply Chain Security**: SBOM analysis, vulnerability scanning, provenance verification
+- 📊 **DORA Metrics**: DevOps performance measurement (deployment frequency, lead time, etc.)
+- 👥 **Code Ownership**: Bus factor analysis, knowledge transfer planning, CODEOWNERS generation
+- 🔐 **Certificate Analysis**: X.509/TLS security review, expiration monitoring
+- 📦 **Build Attestation**: Chalk build provenance verification, SLSA compliance
+- 📈 **COCOMO Estimation**: Software development effort and cost estimation
+
+All tools provide:
+- ✅ **Standalone operation** (Tier 1) - works without any external services
+- ✅ **AI enhancement** (Tier 2) - optional Claude integration for richer insights
+- ✅ **Portable templates** - use prompts in Claude Desktop, Web, or API
+- ✅ **Comprehensive documentation** - examples, guides, and best practices
+
+## Quick Start
+
+### Prerequisites
+
+**For Tier 1 (Standalone)**:
+- Bash 3.2+ (macOS/Linux)
+- Git
+- Standard Unix tools (jq, curl, etc.)
+
+**For Tier 2 (AI-Enhanced)**:
+- All Tier 1 prerequisites
+- Claude API access (Anthropic API key)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/crashappsec/gibson-powers.git
+cd gibson-powers
+
+# Make scripts executable
+chmod +x utils/**/*.sh
+
+# Try a standalone analysis
+./utils/code-ownership/ownership-analyzer-v2.sh .
+
+# Try an AI-enhanced analysis (requires ANTHROPIC_API_KEY)
+export ANTHROPIC_API_KEY="your-key"
+./utils/code-ownership/ownership-analyzer-claude.sh .
+```
 
 ## Repository Structure
 
 ```
-skills-and-prompts/
-├── skills/                          # Claude skills and documentation only
+gibson-powers/
+├── skills/                          # Claude Code skills (.skill files)
 │   ├── supply-chain/                # Supply chain security skill
 │   ├── dora-metrics/                # DORA metrics skill
 │   ├── code-ownership/              # Code ownership skill
 │   ├── certificate-analyzer/        # Certificate analysis skill
-│   └── chalk-build-analyzer/        # Chalk build analyzer skill
+│   ├── chalk-build-analyzer/        # Chalk build analyzer skill
+│   └── better-prompts/              # Prompt engineering skill
 │
-├── utils/                           # Executable scripts and utilities
-│   ├── supply-chain/                # Supply chain analysis (🚀 Beta)
-│   │   ├── vulnerability-analysis/  # Vulnerability scanning module
-│   │   ├── provenance-analysis/     # SLSA provenance verification module
-│   │   ├── config.example.json      # Configuration template
-│   │   ├── README.md                # Complete documentation
-│   │   ├── CHANGELOG.md             # Version history
-│   │   └── supply-chain-scanner.sh  # Central orchestrator
-│   ├── dora-metrics/                # DORA metrics scripts (🔬 Experimental)
-│   ├── code-ownership/              # Code ownership scripts (🔬 Experimental)
-│   ├── certificate-analyzer/        # Certificate analyzer scripts (🔬 Experimental)
-│   ├── chalk-build-analyzer/        # Chalk analyzer scripts (🔬 Experimental)
-│   ├── validation/                  # Validation and testing utilities
-│   ├── lib/                         # Shared libraries (config-loader, etc.)
-│   ├── config.example.json          # Global configuration template
-│   └── CONFIG.md                    # Configuration system documentation
+├── utils/                           # Executable utilities (Tiers 1 & 2)
+│   ├── supply-chain/                # Supply chain analysis tools
+│   │   ├── supply-chain-scanner.sh      # Tier 1: Standalone scanner
+│   │   ├── supply-chain-scanner-claude.sh # Tier 2: AI-enhanced
+│   │   ├── vulnerability-analysis/      # CVE scanning module
+│   │   ├── provenance-analysis/         # SLSA/Sigstore verification
+│   │   └── package-health-analysis/     # Dependency health checks
+│   ├── dora-metrics/                # DORA metrics calculation
+│   ├── code-ownership/              # Code ownership analysis
+│   │   ├── ownership-analyzer-v2.sh     # Tier 1: Advanced analyzer
+│   │   └── ownership-analyzer-claude.sh # Tier 2: AI-enhanced
+│   ├── certificate-analyzer/        # X.509/TLS security analysis
+│   ├── chalk-build-analyzer/        # Build attestation verification
+│   └── cocomo/                      # Software estimation tools
 │
-├── prompts/                         # Prompt templates & examples
+├── prompts/                         # Reusable prompt templates
 │   ├── supply-chain/                # Supply chain prompts
 │   ├── dora/                        # DORA metrics prompts
 │   └── code-ownership/              # Code ownership prompts
 │
-├── docs/                            # Documentation
-│   ├── guides/                      # How-to guides and tutorials
-│   └── references/                  # Reference documentation
+├── rag/                             # RAG knowledge base
+│   ├── supply-chain/                # Supply chain references
+│   ├── dora-metrics/                # DORA best practices
+│   └── code-ownership/              # Ownership patterns
 │
-├── CHANGELOG.md                     # Central changelog for all components
-└── .github/                         # GitHub workflows and templates
+└── docs/                            # Documentation
+    ├── guides/                      # How-to guides
+    └── references/                  # Reference docs
 ```
 
-## Getting Started
+## Available Tools
 
-### Prerequisites
+### Supply Chain Security (🚀 Production-Ready)
 
-- Access to Crash Override platform
-- Basic familiarity with Claude skills and prompts
+Comprehensive software supply chain analysis with SBOM generation, vulnerability scanning, and provenance verification.
 
-### Installation
+```bash
+# Tier 1: Standalone analysis
+./utils/supply-chain/supply-chain-scanner.sh --repo /path/to/repo
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/crashappsec/skills-and-prompts-and-rag.git
-   cd skills-and-prompts-and-rag
-   ```
+# Tier 2: AI-enhanced with recommendations
+./utils/supply-chain/supply-chain-scanner-claude.sh --repo /path/to/repo
+```
 
-2. Make all scripts executable:
-   ```bash
-   chmod +x bootstrap.sh
-   ./bootstrap.sh
-   ```
-
-3. Set up your environment:
-   ```bash
-   # Copy the environment template
-   cp .env.example .env
-
-   # Edit .env and add your Anthropic API key
-   # ANTHROPIC_API_KEY=sk-ant-xxx...
-   ```
-
-   Get your Anthropic API key from [https://console.anthropic.com/](https://console.anthropic.com/)
-
-4. Browse the available skills in the `skills/` directory
-
-5. Each skill includes:
-   - `.skill` file - The skill implementation
-   - `README.md` - Comprehensive documentation
-   - `CHANGELOG.md` - Version history
-   - `examples/` - Usage examples
-
-### Using a Skill
-
-1. Navigate to the skill directory (e.g., `skills/certificate-analyzer/`)
-2. Read the README.md for usage instructions
-3. Load the `.skill` file into Crash Override
-4. Follow the examples to get started
-
-## Available Skills
-
-### Supply Chain Analyzer 🚀 Beta
-Comprehensive supply chain security analysis including SBOM/BOM management, vulnerability analysis, taint analysis, format conversion (CycloneDX ↔ SPDX), version upgrades, SLSA compliance assessment, and provenance verification.
-
-**Status**: Beta - Feature-complete and tested, ready for broader use with active development. See [complete documentation](utils/supply-chain/README.md).
-
-**Capabilities:**
-- Vulnerability detection (OSV.dev, deps.dev, CISA KEV)
-- Intelligent prioritization (data-driven CVSS + KEV scoring)
-- Taint/reachability analysis to identify exploitable vulnerabilities
-- Automatic SBOM generation with syft
-- Dependency analysis and optimization
+**Features**:
+- SBOM generation (CycloneDX/SPDX)
+- Vulnerability scanning (OSV.dev integration)
+- SLSA provenance verification
 - License compliance checking
-- Format conversion between CycloneDX and SPDX
-- SBOM version upgrades (CycloneDX 1.7, SPDX 2.3)
-- SLSA framework assessment (Levels 0-4)
-- Supply chain security and provenance verification
-- CI/CD integration with automation scripts
+- Dependency health assessment
 
-[View Skill Documentation](skills/supply-chain/README.md) | [View Utils Documentation](utils/supply-chain/)
+[📖 Full Documentation](./utils/supply-chain/README.md)
 
-### Package Health Analyzer 🔬 Experimental
-Comprehensive package health analysis for identifying risks and operational improvements across an organization's software dependencies.
+### DORA Metrics (🔬 Experimental)
 
-**Status**: Experimental - Core functionality verified, under active development. Not yet ready for production use. See [complete documentation](utils/supply-chain/package-health-analysis/README.md).
+Measure software delivery performance using the four key DORA metrics.
 
-**Capabilities:**
-- Health scoring (0-100) with weighted components (OpenSSF, maintenance, security, freshness, popularity)
-- Deprecation detection from multiple sources with alternative recommendations
-- Version inconsistency analysis across repositories with standardization strategies
-- Organization-wide scanning for multi-repo analysis
-- AI-enhanced analysis with Claude integration
-- Chain of reasoning (integrates with vulnerability and provenance analyzers)
-- Detailed migration guides and risk prioritization
-- Strategic operational recommendations
-- Multi-ecosystem support (npm, PyPI, Maven, Cargo, Go)
-- CI/CD integration ready
+```bash
+# Tier 1: Calculate metrics from Git history
+./utils/dora-metrics/dora-analyzer.sh /path/to/repo
 
-[View Skill Documentation](skills/supply-chain/package-health-analyzer.skill) | [View Utils Documentation](utils/supply-chain/package-health-analysis/)
+# Tier 2: AI-enhanced with insights and recommendations
+./utils/dora-metrics/dora-analyzer-claude.sh /path/to/repo
+```
 
-### DORA Metrics 🔬 Experimental
-Comprehensive DORA (DevOps Research and Assessment) metrics analysis for measuring and improving software delivery performance using the four key metrics.
+**Metrics**:
+- Deployment Frequency
+- Lead Time for Changes
+- Change Failure Rate
+- Mean Time to Recovery
 
-**Status**: Experimental - Basic functionality working, under active development. Not yet ready for production use. See [roadmap](utils/dora-metrics/README.md#roadmap-to-production).
+[📖 Full Documentation](./utils/dora-metrics/README.md)
 
-**Capabilities:**
-- Calculate all four DORA metrics (Deployment Frequency, Lead Time, Change Failure Rate, MTTR)
-- Performance classification (Elite, High, Medium, Low)
-- Benchmark comparison against DORA research
-- Root cause analysis and trend detection
-- Team comparison and best practice identification
-- Improvement roadmaps with prioritized recommendations
-- Executive reporting and stakeholder communication
-- CI/CD integration with automation scripts
+### Code Ownership Analysis (🚀 Production-Ready v3.0)
 
-[View Skill Documentation](skills/dora-metrics/README.md) | [View Utils Documentation](utils/dora-metrics/)
+Analyze code ownership, identify knowledge risks, and plan succession.
 
-### Code Ownership Analyzer 🔬 Experimental
-Comprehensive code ownership analysis for understanding who owns what code, validating CODEOWNERS files, identifying risks, and optimizing code review processes.
+```bash
+# Tier 1: Detailed ownership analysis
+./utils/code-ownership/ownership-analyzer-v2.sh .
 
-**Status**: Experimental - Single repository analysis working, needs multi-repo support and additional features. See [roadmap](utils/code-ownership/README.md#roadmap-to-production).
+# Tier 2: AI-enhanced with strategic recommendations
+./utils/code-ownership/ownership-analyzer-claude.sh .
+```
 
-**Capabilities:**
-- Analyze ownership patterns from git history with weighted scoring algorithms
-- Validate and generate CODEOWNERS files (GitHub, GitLab, Bitbucket formats)
-- Calculate ownership metrics (coverage, distribution, health scores)
-- Identify single points of failure and bus factor risks
-- Plan knowledge transfers for departing team members
-- Recommend optimal PR reviewers based on ownership
-- Track owner activity and detect staleness
-- Generate actionable improvement recommendations
+**Features**:
+- Bus factor calculation
+- Single points of failure (SPOF) detection
+- CODEOWNERS file validation and generation
+- Succession planning recommendations
+- Historical trend tracking
+- Markdown and CSV reporting
 
-[View Skill Documentation](skills/code-ownership/README.md) | [View Utils Documentation](utils/code-ownership/)
+[📖 Full Documentation](./utils/code-ownership/README.md)
 
-### Certificate Analyzer 🔬 Experimental
-Comprehensive TLS/SSL certificate analysis including validation, expiration checks, and security assessments.
+### Certificate Analysis (🔬 Experimental)
 
-**Status**: Experimental - Basic certificate validation working, needs bulk scanning and monitoring capabilities. See [roadmap](utils/certificate-analyzer/README.md#roadmap-to-production).
+X.509 certificate and TLS configuration security review.
 
-[View Skill Documentation](skills/certificate-analyzer/README.md) | [View Utils Documentation](utils/certificate-analyzer/)
+```bash
+# Analyze a domain's certificate
+./utils/certificate-analyzer/cert-analyzer.sh api.example.com
 
-### Chalk Build Analyzer 🔬 Experimental
-Analyze and interpret Chalk build artifacts, providing insights into software supply chain metadata and build performance.
+# AI-enhanced analysis with compliance insights
+./utils/certificate-analyzer/cert-analyzer-claude.sh api.example.com
+```
 
-**Status**: Experimental - Chalk metadata extraction working, needs policy enforcement and multi-artifact support. See [roadmap](utils/chalk-build-analyzer/README.md#roadmap-to-production).
+[📖 Full Documentation](./utils/certificate-analyzer/README.md)
 
-[View Skill Documentation](skills/chalk-build-analyzer/README.md) | [View Utils Documentation](utils/chalk-build-analyzer/)
+### Chalk Build Analyzer (🔬 Experimental)
 
-### Better Prompts 🚀 Beta
-Tools and techniques for crafting effective prompts, with before/after examples and conversation patterns.
+Verify build provenance and SLSA compliance using Chalk attestations.
 
-**Status**: Beta - Comprehensive guide with proven techniques, ready for broad use.
+```bash
+# Extract and analyze Chalk marks
+./utils/chalk-build-analyzer/chalk-analyzer.sh my-binary
 
-[View Documentation](skills/better-prompts/README.md)
+# AI-enhanced compliance assessment
+./utils/chalk-build-analyzer/chalk-analyzer-claude.sh my-binary
+```
 
-### COCOMO Estimator 📋 Planned
-Software cost, effort, and schedule estimation using COCOMO II models with automated repository analysis.
+[📖 Full Documentation](./utils/chalk-build-analyzer/README.md)
 
-**Status**: Planned - Specification complete, implementation pending. See [planned features](skills/cocomo/README.md).
+### COCOMO Estimation (🔬 Experimental)
 
-[View Specification](skills/cocomo/README.md) | [View Utils Plan](utils/cocomo/)
+Software development effort and cost estimation using COCOMO models.
 
-## Roadmap
+```bash
+# Estimate project effort
+./utils/cocomo/cocomo-estimate.sh /path/to/repo
+```
 
-We're continuously expanding and improving this repository. Check out our [Roadmap](ROADMAP.md) to see:
+[📖 Full Documentation](./utils/cocomo/README.md)
 
-- **Planned Features**: Upcoming skills and enhancements
-- **Current Priorities**: What we're working on now
-- **Community Requests**: Ideas from the community
-- **How to Contribute**: Pick up a roadmap item and help build it
+## Portable Templates
 
-### Upcoming Skills
+All skills are available as **portable templates** that work in any Claude interface:
 
-**Bus Factor Analysis** - Calculate project risk from knowledge concentration, identify critical dependencies, and recommend mitigation strategies
+```bash
+# Generate templates for use in Claude Desktop, Web, or API
+./batch-create-templates.sh
 
-**Security Posture Assessment** - Comprehensive security analysis combining vulnerability management, compliance frameworks, and risk scoring
+# Templates created in ~/claude-templates/
+# - supply-chain/supply-chain-comprehensive.md
+# - dora-metrics/dora-analysis.md
+# - code-ownership/ownership-analysis.md
+# - security/certificate-analysis.md
+# - And more...
+```
 
-[View Full Roadmap](ROADMAP.md) | [Suggest a Feature](https://github.com/crashappsec/skills-and-prompts-and-rag/issues/new?template=roadmap_item.md)
+Templates enable you to:
+- ✅ Use Gibson Powers capabilities in Claude Desktop or Web
+- ✅ Share analysis prompts with team members
+- ✅ Integrate with CI/CD pipelines
+- ✅ Customize for your specific needs
+
+[📖 Template Documentation](~/claude-templates/CATALOG.md)
+
+## Use Cases
+
+### For Developers
+- 📊 Measure and improve delivery performance (DORA metrics)
+- 👥 Identify code owners and knowledge gaps
+- 🔒 Audit dependencies for security vulnerabilities
+- 📦 Verify build provenance and supply chain integrity
+- 📈 Estimate project effort and timelines
+
+### For Security Engineers
+- 🔐 Supply chain security analysis (SBOM, vulnerabilities, provenance)
+- 🔒 Certificate and TLS configuration review
+- 📋 License compliance auditing
+- 🛡️ Build attestation verification (SLSA, Sigstore)
+- 🔍 Dependency health and risk assessment
+
+### For Engineering Leaders
+- 📈 Track team performance with DORA metrics
+- 🎯 Identify single points of failure in codebases
+- 📊 Plan knowledge transfer and succession
+- 💰 Estimate project costs and timelines
+- 🔄 Benchmark against industry standards
+
+## Configuration
+
+Gibson Powers uses a hierarchical configuration system:
+
+1. Command-line arguments (highest priority)
+2. Environment variables (`GIBSON_*`)
+3. Local config (`.gibson.conf`)
+4. Global config (`~/.config/gibson/config`)
+5. Built-in defaults
+
+```bash
+# Example: Configure API keys
+export GIBSON_ANTHROPIC_API_KEY="sk-ant-..."
+
+# Example: Set analysis preferences
+export GIBSON_ANALYSIS_DAYS=90
+export GIBSON_OUTPUT_FORMAT=json
+
+# Or use configuration files
+cat > .gibson.conf << EOF
+analysis_days=90
+output_format=json
+anthropic_api_key=sk-ant-...
+EOF
+```
+
+[📖 Configuration Guide](./utils/CONFIG.md)
 
 ## Contributing
 
-We welcome contributions from the community! Whether you're:
+Gibson Powers is an **experimental preview** and we welcome contributions!
 
-- Creating new skills
-- Improving existing prompts
-- Adding documentation
-- Fixing bugs
-- Sharing examples
+### How to Contribute
 
-Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to get started.
+1. **Report bugs**: [Open an issue](https://github.com/crashappsec/gibson-powers/issues)
+2. **Suggest features**: [Start a discussion](https://github.com/crashappsec/gibson-powers/discussions)
+3. **Improve documentation**: Submit PRs for docs
+4. **Add capabilities**: Create new analyzers or enhance existing ones
+5. **Share templates**: Contribute useful prompt templates
 
-## RAG Knowledge Base
+### Development
 
-This repository is designed to serve as a knowledge base for RAG systems, providing:
+```bash
+# Run tests
+./utils/code-ownership/tests/run-all-tests.sh
 
-- **Structured Documentation**: Consistent formatting for easy parsing
-- **Domain Expertise**: Deep knowledge in security, development, and analysis
-- **Real-World Examples**: Tested patterns and solutions
-- **Living Documentation**: Continuously updated with community contributions
+# Validate scripts
+./utils/validation/check-copyright.sh
 
-The organized structure makes it easy to:
-- Index content for semantic search
-- Retrieve relevant context for specific tasks
-- Build specialized knowledge domains
-- Enhance LLM responses with curated information
+# Format code
+./utils/validation/format-scripts.sh
+```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
+
+## Roadmap
+
+### Current (Experimental Preview)
+- [x] Tier 1: Standalone scripts for all analyzers
+- [x] Tier 2: Claude AI integration
+- [x] Portable template system
+- [x] Comprehensive documentation
+
+### Near-Term (Q1 2025)
+- [ ] Enhanced CI/CD integrations (GitHub Actions, GitLab CI)
+- [ ] Web dashboard for report visualization
+- [ ] Additional analyzers (test coverage, complexity metrics)
+- [ ] Multi-repository batch analysis
+- [ ] Team collaboration features
+
+### Future (Tier 3)
+- [ ] Crash Override platform integration
+- [ ] Enterprise SSO and access control
+- [ ] Historical trend analysis and alerts
+- [ ] Custom metrics and KPI tracking
+- [ ] API for programmatic access
+
+See [ROADMAP.md](./ROADMAP.md) for details.
+
+## Project Philosophy
+
+Gibson Powers is built on these principles:
+
+1. **Immediate Value**: Tier 1 tools provide instant insights without dependencies
+2. **Progressive Enhancement**: Add AI (Tier 2) or platform features (Tier 3) when ready
+3. **Open and Transparent**: GPL-3.0 licensed, open source, community-driven
+4. **Practical Over Perfect**: Experimental features that solve real problems
+5. **Learn in Public**: Share knowledge, examples, and best practices
 
 ## Community
 
-### Support
-
-- **Issues**: Report bugs or request features via [GitHub Issues](https://github.com/crashappsec/skills-and-prompts-and-rag/issues)
-- **Discussions**: Join conversations in [GitHub Discussions](https://github.com/crashappsec/skills-and-prompts-and-rag/discussions)
-- **Code of Conduct**: Please read our [Code of Conduct](CODE_OF_CONDUCT.md)
-
-### Recognition
-
-Contributors are recognized in our documentation and release notes. Thank you to everyone who helps make this project better!
+- 💬 [Discussions](https://github.com/crashappsec/gibson-powers/discussions) - Ask questions, share ideas
+- 🐛 [Issues](https://github.com/crashappsec/gibson-powers/issues) - Report bugs, request features
+- 📖 [Wiki](https://github.com/crashappsec/gibson-powers/wiki) - Community knowledge base
+- 🔐 [Security](./SECURITY.md) - Report security vulnerabilities
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+Gibson Powers is licensed under the [GNU General Public License v3.0](./LICENSE).
 
-This means you are free to:
-- Use the software for any purpose
-- Change the software to suit your needs
-- Share the software with your friends and neighbors
-- Share the changes you make
+```
+Copyright (c) 2024 Gibson Powers Contributors
 
-Under the conditions that:
-- You must share your modifications under GPL-3.0
-- You must include the original copyright and license
-- You must state significant changes made to the software
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+```
+
+## Acknowledgments
+
+- Inspired by the Gibson supercomputer from the film *Hackers*
+- Named with a playful nod to Austin Powers
+- Built on research from DORA, SLSA, OpenSSF, and the open source community
+- Powered by Anthropic's Claude AI (Tier 2)
+- Part of the Crash Override ecosystem
+
+## About
+
+Gibson Powers is maintained by the open source community and sponsored by [Crash Override](https://crashoverride.com), a Developer Productivity Insights platform.
 
 ---
 
-**Made with ❤️ by the Crash Override community**
+**Status**: Experimental Preview
+**Version**: 3.0.0
+**Last Updated**: 2024-11-22
+
+🎮 **Hack the Planet!**

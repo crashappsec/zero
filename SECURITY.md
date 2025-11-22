@@ -1,6 +1,6 @@
 <!--
-Copyright (c) 2024 Crash Override Inc
-101 Fulton St, 416, New York 10038
+Copyright (c) 2024 Gibson Powers Contributors
+
 SPDX-License-Identifier: GPL-3.0
 -->
 
@@ -18,7 +18,7 @@ As this is an early-stage project, we currently only support the main branch. On
 
 ## Reporting a Vulnerability
 
-We take the security of Skills and Prompts seriously. If you believe you have found a security vulnerability, please report it to us as described below.
+We take the security of Gibson Powers seriously. If you believe you have found a security vulnerability, please report it to us as described below.
 
 ### Where to Report
 
@@ -168,9 +168,9 @@ If you have questions about this security policy, please:
 
 ## Recognition
 
-We appreciate security researchers who help keep Skills and Prompts safe. With your permission, we will:
+We appreciate security researchers who help keep Gibson Powers safe. With your permission, we will:
 - Credit you in the security advisory
 - List you in our security acknowledgments
 - Provide a reference for your responsible disclosure
 
-Thank you for helping keep Skills and Prompts and our community safe!
+Thank you for helping keep Gibson Powers and our community safe!

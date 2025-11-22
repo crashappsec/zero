@@ -1,18 +1,18 @@
 <!--
-Copyright (c) 2024 Crash Override Inc
-101 Fulton St, 416, New York 10038
+Copyright (c) 2024 Gibson Powers Contributors
+
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Skills and Prompts Roadmap
+# Gibson Powers Roadmap
 
-This roadmap outlines planned features, enhancements, and ideas for the skills-and-prompts-and-rag repository. Community contributions and suggestions are welcome!
+This roadmap outlines planned features, enhancements, and ideas for the gibson-powers repository. Community contributions and suggestions are welcome!
 
 ## How to Contribute Ideas
 
 We welcome community input on our roadmap! Here's how you can participate:
 
-1. **Submit Feature Requests**: Use our [Feature Request template](https://github.com/crashappsec/skills-and-prompts-and-rag/issues/new?template=feature_request.md) to suggest new ideas
+1. **Submit Feature Requests**: Use our [Feature Request template](https://github.com/crashappsec/gibson-powers/issues/new?template=feature_request.md) to suggest new ideas
 2. **Comment on Existing Items**: Add your thoughts, use cases, or implementation ideas to roadmap issues
 3. **Vote with Reactions**: Use 👍 reactions on issues to help us prioritize
 4. **Contribute Code**: Pick up any roadmap item and submit a PR
@@ -376,8 +376,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ## Questions or Suggestions?
 
-- **GitHub Issues**: [Create a feature request](https://github.com/crashappsec/skills-and-prompts-and-rag/issues/new?template=feature_request.md)
-- **GitHub Discussions**: [Join the conversation](https://github.com/crashappsec/skills-and-prompts-and-rag/discussions)
+- **GitHub Issues**: [Create a feature request](https://github.com/crashappsec/gibson-powers/issues/new?template=feature_request.md)
+- **GitHub Discussions**: [Join the conversation](https://github.com/crashappsec/gibson-powers/discussions)
 - **Email**: mark@crashoverride.com
 
 ---
