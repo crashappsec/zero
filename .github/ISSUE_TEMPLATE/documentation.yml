@@ -1,0 +1,70 @@
+name: Documentation Issue
+description: Report missing, unclear, or incorrect documentation
+title: "[Docs]: "
+labels: ["documentation", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Gibson Powers documentation!
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: Documentation Issue
+      description: What's wrong with the documentation?
+      placeholder: The README for the DORA metrics analyzer doesn't explain...
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: Which file or page has the issue?
+      placeholder: skills/dora-metrics/README.md, line 42
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should it say?
+      description: What information is missing or needs correction?
+      placeholder: It should explain how to...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Issue Type
+      description: What kind of documentation issue is this?
+      options:
+        - Missing information
+        - Incorrect information
+        - Unclear/confusing
+        - Outdated
+        - Typo/grammar
+        - Broken link
+        - Missing example
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other context or suggestions
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      description: Can you help fix this?
+      options:
+        - label: I'd like to submit a PR to fix this
+          required: false
