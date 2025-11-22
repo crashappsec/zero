@@ -653,6 +653,53 @@ collect_repository_data_for_claude() {
 
     rm -f "$contributor_files"
 
+    # Check for CODEOWNERS file and parse it
+    local codeowners_data="null"
+    local codeowners_file="$repo_path/$CODEOWNERS_PATH"
+    if [[ -f "$codeowners_file" ]]; then
+        local patterns=$(grep -v "^#" "$codeowners_file" | grep -v "^$" | wc -l | tr -d ' ')
+        local owners_list=$(grep -v "^#" "$codeowners_file" | grep -v "^$" | awk '{for(i=2;i<=NF;i++) print $i}' | sort -u | tr '\n' ',' | sed 's/,$//')
+
+        # Get actual file patterns and owners
+        local codeowners_patterns="["
+        local first_pattern=true
+        while IFS= read -r line; do
+            [[ "$line" =~ ^#.*$ ]] && continue
+            [[ -z "$line" ]] && continue
+
+            local pattern=$(echo "$line" | awk '{print $1}')
+            local owners=$(echo "$line" | cut -d' ' -f2- | tr ' ' ',')
+
+            if [[ "$first_pattern" == "true" ]]; then
+                first_pattern=false
+            else
+                codeowners_patterns+=","
+            fi
+            codeowners_patterns+=$(jq -n \
+                --arg pattern "$pattern" \
+                --arg owners "$owners" \
+                '{pattern: $pattern, owners: $owners}')
+        done < "$codeowners_file"
+        codeowners_patterns+="]"
+
+        codeowners_data=$(jq -n \
+            --arg exists "true" \
+            --arg location "$CODEOWNERS_PATH" \
+            --arg pattern_count "$patterns" \
+            --arg owners "$owners_list" \
+            --argjson patterns "$codeowners_patterns" \
+            '{
+                exists: ($exists | test("true")),
+                location: $location,
+                pattern_count: ($pattern_count | tonumber),
+                unique_owners: ($owners | split(",") | length),
+                owners: ($owners | split(",")),
+                patterns: $patterns
+            }')
+    else
+        codeowners_data='{"exists": false}'
+    fi
+
     # Build final JSON
     jq -n \
         --arg repo_name "$repo_name" \
@@ -660,12 +707,14 @@ collect_repository_data_for_claude() {
         --arg total_commits "$total_commits" \
         --arg days "$days" \
         --argjson contributors "$contributors_json" \
+        --argjson codeowners "$codeowners_data" \
         '{
             repository: $repo_name,
             analysis_period_days: ($days | tonumber),
             total_files: ($total_files | tonumber),
             total_commits: ($total_commits | tonumber),
-            contributors: $contributors
+            contributors: $contributors,
+            codeowners: $codeowners
         }'
 }
 
@@ -683,15 +732,31 @@ analyze_with_claude() {
     echo -e "${BLUE}Analyzing with Claude AI...${NC}"
 
     local prompt="Analyze this code ownership data and provide insights on:
-1. Ownership concentration and bus factor risks
-2. Knowledge silos and recommendations
-3. CODEOWNERS file recommendations
-4. Succession planning suggestions
+
+1. **CODEOWNERS File Analysis** (if present):
+   - Compare designated owners in CODEOWNERS with actual commit-based ownership
+   - Identify discrepancies: Who is listed as owner but hasn't contributed recently?
+   - Identify gaps: Who is a major contributor but not listed in CODEOWNERS?
+   - Are the CODEOWNERS patterns comprehensive or are significant files uncovered?
+   - Provide specific recommendations for updating CODEOWNERS
+
+2. **Ownership Concentration & Bus Factor Risks**:
+   - Identify critical dependencies on individual contributors
+   - Highlight areas with single points of failure
+   - Calculate estimated bus factor
+
+3. **Knowledge Silos**:
+   - Identify isolated knowledge areas
+   - Recommend collaboration and knowledge sharing opportunities
+
+4. **Succession Planning**:
+   - Suggest backup owners for critical areas
+   - Recommend mentoring/shadowing relationships
 
 Repository Data:
 $data
 
-Provide a concise, actionable analysis."
+Provide a clear, actionable analysis with specific recommendations. If a CODEOWNERS file exists, make the comparison analysis the primary focus."
 
     local response=$(curl -s https://api.anthropic.com/v1/messages \
         -H "content-type: application/json" \
