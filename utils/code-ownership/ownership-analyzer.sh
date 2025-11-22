@@ -21,7 +21,7 @@ NC='\033[0m'
 
 # Default options
 DAYS=90
-FORMAT="text"
+FORMAT="markdown"
 OUTPUT_FILE=""
 VALIDATE_CODEOWNERS=false
 CODEOWNERS_PATH=".github/CODEOWNERS"
@@ -51,7 +51,7 @@ TARGET:
 
 OPTIONS:
     -d, --days N            Analyze last N days of history (default: 90)
-    -f, --format FORMAT     Output format: text, json, csv (default: text)
+    -f, --format FORMAT     Output format: text, json, csv, markdown (default: markdown)
     -o, --output FILE       Write output to file instead of stdout
     -v, --validate          Validate CODEOWNERS file if present
     -c, --codeowners PATH   Path to CODEOWNERS file (default: .github/CODEOWNERS)
@@ -262,6 +262,8 @@ analyze_ownership() {
         generate_json_output "$total_files" "$total_commits" "$active_authors" "$ownership_data" "$author_stats"
     elif [[ "$FORMAT" == "csv" ]]; then
         generate_csv_output "$ownership_data" "$author_stats"
+    elif [[ "$FORMAT" == "markdown" ]]; then
+        generate_markdown_output "$total_files" "$total_commits" "$active_authors" "$ownership_data" "$author_stats" "$commit_counts"
     else
         generate_text_output "$total_files" "$total_commits" "$active_authors" "$ownership_data" "$author_stats" "$commit_counts"
     fi
@@ -383,6 +385,87 @@ generate_csv_output() {
             local net=$((added - deleted))
             echo "$author,$email,$files,$commits,$added,$deleted,$net"
         done
+}
+
+generate_markdown_output() {
+    local total_files="$1"
+    local total_commits="$2"
+    local active_authors="$3"
+    local ownership_data="$4"
+    local author_stats="$5"
+    local commit_counts="$6"
+
+    cat << EOF
+# Code Ownership Analysis Report
+
+## Repository Metrics
+
+- **Total Files**: $total_files
+- **Total Commits (period)**: $total_commits
+- **Active Contributors**: $active_authors
+
+## Top Contributors (by commit count)
+
+EOF
+
+    # Get email addresses for top contributors
+    git log --since="$since_date" --format="%an|%ae" | sort -u > /tmp/author_emails.tmp
+
+    echo "$commit_counts" | head -10 | while read count author; do
+        local email=$(grep "^$author|" /tmp/author_emails.tmp | head -1 | cut -d'|' -f2)
+        local github_info=$(get_github_profile "$email" "$author")
+        local github_user=$(echo "$github_info" | cut -d'|' -f1)
+        local github_url=$(echo "$github_info" | cut -d'|' -f2)
+
+        if [[ -n "$github_user" ]]; then
+            echo "- **$author**: $count commits ([@$github_user]($github_url))"
+        else
+            echo "- **$author**: $count commits"
+        fi
+    done
+
+    rm -f /tmp/author_emails.tmp
+
+    cat << EOF
+
+## Ownership Distribution
+
+| Author | Files Owned |
+|--------|-------------|
+EOF
+
+    # Calculate top file owners
+    awk -F'|' '{
+        author_email=$1"|"$2
+        authors[author_email]+=$4
+    }
+    END {
+        for (ae in authors) {
+            split(ae, parts, "|")
+            print authors[ae]"|"parts[1]
+        }
+    }' "$ownership_data" | sort -t'|' -k1 -rn | head -10 | while IFS='|' read files author; do
+        echo "| $author | $files |"
+    done
+
+    cat << EOF
+
+## Activity Summary
+
+| Author | Commits | Lines Added | Lines Deleted | Net Lines |
+|--------|---------|-------------|---------------|-----------|
+EOF
+
+    while IFS='|' read author commits added deleted; do
+        local net=$((added - deleted))
+        local net_sign=""
+        if [[ $net -gt 0 ]]; then
+            net_sign="+"
+        fi
+        echo "| $author | $commits | $added | $deleted | ${net_sign}$net |"
+    done < "$author_stats" | head -10
+
+    echo ""
 }
 
 validate_codeowners_file() {

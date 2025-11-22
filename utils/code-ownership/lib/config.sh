@@ -31,7 +31,7 @@ init_config() {
     cat > "$CONFIG_CACHE_FILE" << 'EOF'
 analysis_method=hybrid
 analysis_days=90
-output_format=json
+output_format=markdown
 staleness_threshold_days=90
 spof_score_threshold=2
 health_score_weights_coverage=0.35
