@@ -19,7 +19,7 @@ source "$SCRIPT_DIR/lib/deprecation-checker.sh"
 REPO=""
 ORG=""
 SBOM_FILE=""
-OUTPUT_FORMAT="json"
+OUTPUT_FORMAT="markdown"
 VERBOSE=false
 ANALYZE_VERSIONS=true
 CHECK_DEPRECATION=true
@@ -54,7 +54,7 @@ OPTIONS:
     --repo OWNER/REPO          Analyze single repository
     --org ORGANIZATION         Analyze all repositories in organization
     --sbom FILE                Analyze existing SBOM file
-    --format FORMAT            Output format: json (default), markdown, table
+    --format FORMAT            Output format: json, markdown (default), table
     --output FILE              Write output to file (default: stdout)
     --no-version-analysis      Skip version inconsistency analysis
     --no-deprecation-check     Skip deprecation checking

@@ -26,7 +26,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Default options
-OUTPUT_FORMAT="table"
+OUTPUT_FORMAT="markdown"
 VERIFY_SIGNATURES=false
 USE_CLAUDE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
@@ -61,7 +61,7 @@ ANALYSIS OPTIONS:
     --min-level LEVEL       Require minimum SLSA level (0-4)
     --strict                Fail on missing provenance or low SLSA level
     --claude                Use Claude AI for enhanced analysis (requires ANTHROPIC_API_KEY)
-    -f, --format FORMAT     Output format: table|json|markdown (default: table)
+    -f, --format FORMAT     Output format: table|json|markdown (default: markdown)
     -o, --output FILE       Write results to file
     -k, --keep-clone        Keep cloned repository (don't cleanup)
     -h, --help              Show this help message

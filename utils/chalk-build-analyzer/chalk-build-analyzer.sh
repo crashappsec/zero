@@ -23,7 +23,7 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Default options
-OUTPUT_FORMAT="text"
+OUTPUT_FORMAT="markdown"
 OUTPUT_FILE=""
 COMPARE_MODE=false
 BASELINE_FILE=""
@@ -58,7 +58,7 @@ COMPARISON MODE:
 OPTIONS:
     -c, --compare BASELINE  Compare current build against baseline
     --claude                Use Claude AI for enhanced analysis (requires ANTHROPIC_API_KEY)
-    -f, --format FORMAT     Output format: text|json|csv (default: text)
+    -f, --format FORMAT     Output format: text|json|csv|markdown (default: markdown)
     -o, --output FILE       Write results to file
     -h, --help              Show this help message
 
@@ -289,6 +289,61 @@ export_json() {
     echo -e "${GREEN}✓ Analysis exported to: $output${NC}"
 }
 
+# Function to export to Markdown
+export_markdown() {
+    local report="$1"
+    local output="$2"
+
+    # Extract key fields from the JSON report
+    local build_id=$(jq -r '.build_id // .BUILD_ID // "unknown"' "$report")
+    local duration=$(jq -r '.duration // .DURATION // 0' "$report")
+    local status=$(jq -r '.status // .STATUS // "unknown"' "$report")
+    local platform=$(jq -r '.platform // .PLATFORM // "unknown"' "$report")
+    local branch=$(jq -r '.branch // .git_branch // .BRANCH // "unknown"' "$report")
+
+    # Calculate duration category
+    local duration_category="GOOD"
+    if (( $(echo "$duration > 600" | bc -l) )); then
+        duration_category="HIGH"
+    elif (( $(echo "$duration > 300" | bc -l) )); then
+        duration_category="MODERATE"
+    fi
+
+    cat > "$output" << EOF
+# Chalk Build Analysis Report
+
+## Build Information
+
+- **Build ID**: $build_id
+- **Status**: $status
+- **Duration**: ${duration}s ($duration_category)
+- **Platform**: $platform
+- **Branch**: $branch
+
+## Build Metrics
+
+| Metric | Value |
+|--------|-------|
+| Build ID | $build_id |
+| Status | $status |
+| Duration | ${duration}s |
+| Duration Category | $duration_category |
+| Platform | $platform |
+| Branch | $branch |
+
+EOF
+
+    # Add stages if present
+    if jq -e '.stages' "$report" > /dev/null 2>&1; then
+        echo "" >> "$output"
+        echo "## Build Stages" >> "$output"
+        echo "" >> "$output"
+        jq -r '.stages | to_entries[] | "### \(.key)\n- Duration: \(.value.duration // "N/A")s\n- Status: \(.value.status // "N/A")\n"' "$report" >> "$output"
+    fi
+
+    echo -e "${GREEN}✓ Analysis exported to: $output${NC}"
+}
+
 #############################################################################
 # Claude AI Analysis
 #############################################################################
@@ -407,6 +462,11 @@ if [[ "$USE_CLAUDE" == "true" ]]; then
                     OUTPUT_FILE="analysis.json"
                 fi
                 export_json "$REPORT_FILE" "$OUTPUT_FILE" 2>&1
+            elif [[ "$OUTPUT_FORMAT" == "markdown" ]]; then
+                if [[ -z "$OUTPUT_FILE" ]]; then
+                    OUTPUT_FILE="analysis.md"
+                fi
+                export_markdown "$REPORT_FILE" "$OUTPUT_FILE" 2>&1
             else
                 analyze_build "$REPORT_FILE" 2>&1
             fi
@@ -449,6 +509,11 @@ else
                 OUTPUT_FILE="analysis.json"
             fi
             export_json "$REPORT_FILE" "$OUTPUT_FILE"
+        elif [[ "$OUTPUT_FORMAT" == "markdown" ]]; then
+            if [[ -z "$OUTPUT_FILE" ]]; then
+                OUTPUT_FILE="analysis.md"
+            fi
+            export_markdown "$REPORT_FILE" "$OUTPUT_FILE"
         else
             analyze_build "$REPORT_FILE"
         fi

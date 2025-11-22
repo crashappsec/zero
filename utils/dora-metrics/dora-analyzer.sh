@@ -20,7 +20,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Default options
-OUTPUT_FORMAT="text"
+OUTPUT_FORMAT="markdown"
 OUTPUT_FILE=""
 USE_CLAUDE=false
 COMPARE_MODE=false
@@ -40,7 +40,7 @@ Calculates the four key DORA metrics from deployment data:
 Usage: $0 [OPTIONS] <deployment-data.json>
 
 OPTIONS:
-    -f, --format FORMAT     Output format: text|json|csv (default: text)
+    -f, --format FORMAT     Output format: text|json|csv|markdown (default: markdown)
     -o, --output FILE       Write results to file
     --claude                Use Claude AI for advanced analysis (requires ANTHROPIC_API_KEY)
     --compare               Run both basic and Claude modes side-by-side for comparison
@@ -346,6 +346,49 @@ EOF
     echo -e "${GREEN}✓ Metrics exported to: $output${NC}"
 }
 
+# Function to export to Markdown
+export_markdown() {
+    local output="$1"
+
+    cat > "$output" << EOF
+# DORA Metrics Analysis
+
+## Summary
+
+Overall Performance: **$METRICS_OVERALL**
+
+## Metrics
+
+### Deployment Frequency
+- **Value**: $METRICS_DF deploys/day
+- **Classification**: $METRICS_DF_CLASS
+
+### Lead Time for Changes
+- **Value**: $METRICS_LT hours
+- **Classification**: $METRICS_LT_CLASS
+
+### Change Failure Rate
+- **Value**: $METRICS_CFR%
+- **Classification**: $METRICS_CFR_CLASS
+
+### Time to Restore Service
+- **Value**: $METRICS_MTTR hours
+- **Classification**: $METRICS_MTTR_CLASS
+
+## Classifications
+
+| Metric | Value | Classification |
+|--------|-------|----------------|
+| Deployment Frequency | $METRICS_DF deploys/day | $METRICS_DF_CLASS |
+| Lead Time for Changes | $METRICS_LT hours | $METRICS_LT_CLASS |
+| Change Failure Rate | $METRICS_CFR% | $METRICS_CFR_CLASS |
+| Time to Restore Service | $METRICS_MTTR hours | $METRICS_MTTR_CLASS |
+
+EOF
+
+    echo -e "${GREEN}✓ Metrics exported to: $output${NC}"
+}
+
 #############################################################################
 # Claude AI Functions (only used when --claude flag is set)
 #############################################################################
@@ -563,6 +606,9 @@ if [[ -n "$OUTPUT_FILE" ]]; then
             ;;
         csv)
             export_csv "$OUTPUT_FILE"
+            ;;
+        markdown)
+            export_markdown "$OUTPUT_FILE"
             ;;
     esac
 fi
