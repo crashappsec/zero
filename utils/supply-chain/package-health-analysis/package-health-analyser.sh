@@ -33,11 +33,13 @@ TEMP_DIRS=()
 
 # Cleanup function
 cleanup() {
-    for temp_dir in "${TEMP_DIRS[@]}"; do
-        if [[ -n "$temp_dir" ]] && [[ -d "$temp_dir" ]]; then
-            rm -rf "$temp_dir"
-        fi
-    done
+    if [[ ${#TEMP_DIRS[@]} -gt 0 ]]; then
+        for temp_dir in "${TEMP_DIRS[@]}"; do
+            if [[ -n "$temp_dir" ]] && [[ -d "$temp_dir" ]]; then
+                rm -rf "$temp_dir"
+            fi
+        done
+    fi
 }
 
 # Ensure cleanup on script exit (normal, error, or interrupt)
