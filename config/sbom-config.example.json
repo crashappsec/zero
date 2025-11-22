@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "title": "SBOM Configuration Example",
+  "description": "Copy this file to sbom-config.json and customize for your needs",
+
+  "sbom": {
+    "_comment": "Basic SBOM generation settings",
+    "format": "cyclonedx-json",
+    "use_lock_files": true,
+    "include_dev_deps": false,
+    "include_test_deps": false,
+    "scan_node_modules": false,
+    "resolve_versions": true,
+    "output_dir": "sbom-output"
+  },
+
+  "quick_start": {
+    "_comment": "Quick start examples - uncomment and use the preset that matches your needs",
+
+    "example_1_production_only": {
+      "description": "Generate production SBOM (recommended for releases)",
+      "command": "Use preset: production",
+      "config": {
+        "format": "cyclonedx-json",
+        "use_lock_files": true,
+        "include_dev_deps": false,
+        "include_test_deps": false
+      }
+    },
+
+    "example_2_full_dependencies": {
+      "description": "Include all dependencies for security audit",
+      "command": "Use preset: security_audit",
+      "config": {
+        "format": "cyclonedx-json",
+        "use_lock_files": true,
+        "include_dev_deps": true,
+        "include_test_deps": true
+      }
+    },
+
+    "example_3_compliance": {
+      "description": "CISA NTIA compliant SBOM",
+      "command": "Use preset: compliance",
+      "config": {
+        "format": "spdx-json",
+        "use_lock_files": true,
+        "validation": {
+          "cisa_ntia_compliance": true
+        }
+      }
+    }
+  },
+
+  "customization_guide": {
+    "_comment": "How to customize this configuration",
+
+    "step_1": "Copy this file to config/sbom-config.json",
+    "step_2": "Choose a preset or customize individual settings",
+    "step_3": "Review package manager specific settings if needed",
+    "step_4": "Enable/disable metadata fields based on requirements",
+    "step_5": "Configure output format and validation rules",
+
+    "common_customizations": {
+      "exclude_dev_deps": "Set include_dev_deps: false",
+      "include_all_deps": "Set include_dev_deps: true and include_test_deps: true",
+      "change_format": "Set format to spdx-json, cyclonedx-xml, etc.",
+      "enable_signing": "Set output.signing.enabled: true",
+      "cache_results": "Set performance.cache.enabled: true"
+    }
+  }
+}

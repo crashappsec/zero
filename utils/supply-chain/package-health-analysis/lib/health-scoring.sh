@@ -1,6 +1,7 @@
 #!/bin/bash
 # Health Scoring Engine
-# Copyright (c) 2024 Gibson Powers Contributors
+# Copyright (c) 2025 Crash Override Inc.
+# https://crashoverride.com
 # SPDX-License-Identifier: GPL-3.0
 
 set -euo pipefail

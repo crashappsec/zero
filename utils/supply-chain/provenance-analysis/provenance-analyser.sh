@@ -1,5 +1,6 @@
 #!/bin/bash
-# Copyright (c) 2024 Gibson Powers Contributors
+# Copyright (c) 2025 Crash Override Inc.
+# https://crashoverride.com
 # 
 # SPDX-License-Identifier: GPL-3.0
 
@@ -15,7 +16,11 @@ set -e
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PARENT_DIR="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(cd "$PARENT_DIR/.." && pwd)"
 CONFIG_FILE="$PARENT_DIR/config.json"
+
+# Load global libraries
+source "$REPO_ROOT/utils/lib/sbom.sh"
 
 # Colors for output
 RED='\033[0;31m'
@@ -190,13 +195,16 @@ clone_repository() {
 }
 
 # Function to generate SBOM if not exists
-generate_sbom() {
+# Uses global SBOM library from utils/lib/sbom.sh
+generate_sbom_for_provenance() {
     local target_dir="$1"
     local output_file="$2"
 
-    echo -e "${BLUE}Generating SBOM with syft...${NC}"
+    echo -e "${BLUE}Generating SBOM using global library...${NC}"
 
-    if syft "$target_dir" -o cyclonedx-json="$output_file" -q 2>/dev/null; then
+    # Call global generate_sbom function (from utils/lib/sbom.sh)
+    # Pass force=true to regenerate even if exists
+    if generate_sbom "$target_dir" "$output_file" "true" 2>&1 | grep -v "^$"; then
         if [[ -f "$output_file" ]]; then
             echo -e "${GREEN}✓ SBOM generated${NC}"
             return 0
@@ -419,9 +427,9 @@ analyze_repository() {
     echo -e "${BLUE}Analyzing repository for provenance...${NC}"
     echo ""
 
-    # Generate SBOM
+    # Generate SBOM using global library
     local sbom_file="$repo_path/generated-sbom.json"
-    if generate_sbom "$repo_path" "$sbom_file"; then
+    if generate_sbom_for_provenance "$repo_path" "$sbom_file"; then
         analyze_sbom "$sbom_file"
         rm -f "$sbom_file"
     else

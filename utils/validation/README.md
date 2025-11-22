@@ -1,5 +1,5 @@
 <!--
-Copyright (c) 2024 Gibson Powers Contributors
+Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 
 SPDX-License-Identifier: GPL-3.0
 -->
@@ -90,7 +90,7 @@ All source files must include a copyright header:
 **For Markdown files (.md):**
 ```markdown
 <!--
-Copyright (c) 2024 Gibson Powers Contributors
+Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 
 SPDX-License-Identifier: GPL-3.0
 -->
@@ -99,7 +99,7 @@ SPDX-License-Identifier: GPL-3.0
 **For Shell scripts (.sh):**
 ```bash
 #!/bin/bash
-# Copyright (c) 2024 Gibson Powers Contributors
+# Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 # 
 # SPDX-License-Identifier: GPL-3.0
 ```
