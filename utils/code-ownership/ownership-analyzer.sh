@@ -28,6 +28,7 @@ CODEOWNERS_PATH=".github/CODEOWNERS"
 TEMP_DIR=""
 CLEANUP=true
 USE_CLAUDE=false
+COMPARE_MODE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 ORG=""
 REPOS=()
@@ -55,6 +56,7 @@ OPTIONS:
     -v, --validate          Validate CODEOWNERS file if present
     -c, --codeowners PATH   Path to CODEOWNERS file (default: .github/CODEOWNERS)
     --claude                Use Claude AI for advanced analysis (requires ANTHROPIC_API_KEY)
+    --compare               Run both basic and Claude modes side-by-side for comparison
     -k, --api-key KEY       Anthropic API key (or set ANTHROPIC_API_KEY env var)
     --keep-clone            Keep cloned repository (don't cleanup)
     -h, --help              Show this help message
@@ -587,6 +589,10 @@ while [[ $# -gt 0 ]]; do
             USE_CLAUDE=true
             shift
             ;;
+        --compare)
+            COMPARE_MODE=true
+            shift
+            ;;
         -k|--api-key)
             ANTHROPIC_API_KEY="$2"
             shift 2
@@ -664,10 +670,23 @@ if [[ -n "$ORG" ]]; then
     MULTI_REPO_MODE=true
 fi
 
+# Check compare mode requirements
+if [[ "$COMPARE_MODE" == "true" ]]; then
+    if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+        echo -e "${RED}Error: --compare mode requires ANTHROPIC_API_KEY${NC}"
+        echo "Set environment variable or use -k flag"
+        exit 1
+    fi
+    # Compare mode will run both basic and Claude
+    USE_CLAUDE=false  # Start with basic
+fi
+
 # Main execution
 echo ""
 echo "========================================="
-if [[ "$USE_CLAUDE" == "true" ]]; then
+if [[ "$COMPARE_MODE" == "true" ]]; then
+    echo "  Code Ownership Analyzer (Comparison Mode)"
+elif [[ "$USE_CLAUDE" == "true" ]]; then
     echo "  Code Ownership Analyzer (Claude AI Mode)"
 else
     echo "  Code Ownership Analyzer"
@@ -719,7 +738,77 @@ analyze_single_target() {
 }
 
 # Execute analysis
-if [[ "$MULTI_REPO_MODE" == "true" ]]; then
+if [[ "$COMPARE_MODE" == "true" ]]; then
+    # Comparison mode: run both basic and Claude
+    echo -e "${BLUE}Running basic analysis...${NC}"
+    echo ""
+
+    # Run basic mode
+    USE_CLAUDE=false
+    if [[ "$MULTI_REPO_MODE" == "true" ]]; then
+        for repo in "${REPOS[@]}"; do
+            if [[ ! "$repo" =~ ^https:// ]]; then
+                repo="https://github.com/$repo"
+            fi
+            analyze_single_target "$repo"
+        done
+    else
+        analyze_single_target "$REPO_PATH"
+    fi
+
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo -e "${BLUE}Running Claude AI analysis...${NC}"
+    echo ""
+
+    # Run Claude mode
+    USE_CLAUDE=true
+    if [[ "$MULTI_REPO_MODE" == "true" ]]; then
+        for repo in "${REPOS[@]}"; do
+            if [[ ! "$repo" =~ ^https:// ]]; then
+                repo="https://github.com/$repo"
+            fi
+            analyze_single_target "$repo"
+        done
+    else
+        analyze_single_target "$REPO_PATH"
+    fi
+
+    # Display cost and value-add summary
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${CYAN}Comparison Summary${NC}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Basic analyzer provides:"
+    echo "  • Contribution statistics and metrics"
+    echo "  • Top contributors by commit count"
+    echo "  • Ownership distribution data"
+    echo "  • Activity summary"
+    echo "  • CODEOWNERS syntax validation"
+    echo ""
+    echo "Claude-enhanced analyzer adds:"
+    echo "  • ${GREEN}Executive summary${NC} with health assessment"
+    echo "  • ${GREEN}Risk analysis${NC} and bus factor calculation"
+    echo "  • ${GREEN}CODEOWNERS accuracy validation${NC} against actual contributions"
+    echo "  • ${GREEN}Prioritized recommendations${NC} with effort/impact estimates"
+    echo "  • ${GREEN}Actionable improvement plans${NC} (Priority 1/2/3)"
+    echo "  • ${GREEN}Knowledge transfer guidance${NC}"
+    echo "  • ${GREEN}Contextual insights${NC} and best practices"
+    echo ""
+
+    if command -v display_api_cost_summary &> /dev/null; then
+        echo "API Cost:"
+        display_api_cost_summary
+    fi
+
+    echo ""
+    echo "Use basic for: Quick metrics, CI/CD checks, data export"
+    echo "Use Claude for: Audits, strategic planning, risk assessment"
+    echo ""
+
+elif [[ "$MULTI_REPO_MODE" == "true" ]]; then
     # Multi-repository mode
     for repo in "${REPOS[@]}"; do
         echo ""
