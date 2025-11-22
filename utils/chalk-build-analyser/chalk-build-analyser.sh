@@ -4,9 +4,9 @@
 # SPDX-License-Identifier: GPL-3.0
 
 #############################################################################
-# Chalk Build Analyzer Script
+# Chalk Build Analyser Script
 # Analyzes Chalk build reports for performance metrics and bottlenecks
-# Usage: ./chalk-build-analyzer.sh [options] <chalk-report.json>
+# Usage: ./chalk-build-analyser.sh [options] <chalk-report.json>
 #############################################################################
 
 set -e
@@ -42,7 +42,7 @@ fi
 # Function to print usage
 usage() {
     cat << EOF
-Chalk Build Analyzer - Build performance analysis
+Chalk Build Analyser - Build performance analysis
 
 Analyzes Chalk build reports to identify performance bottlenecks,
 resource utilization issues, and engineering velocity metrics.
@@ -436,7 +436,7 @@ fi
 # Main
 echo ""
 echo "========================================="
-echo "  Chalk Build Analyzer"
+echo "  Chalk Build Analyser"
 echo "========================================="
 echo ""
 

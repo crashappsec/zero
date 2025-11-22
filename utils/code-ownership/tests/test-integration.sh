@@ -5,12 +5,12 @@
 
 #############################################################################
 # Integration Tests
-# Tests full analyzer workflow with a test repository
+# Tests full analyser workflow with a test repository
 #############################################################################
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ANALYZER_DIR="$SCRIPT_DIR/.."
+ANALYSER_DIR="$SCRIPT_DIR/.."
 
 # Test framework
 TESTS_RUN=0
@@ -149,7 +149,7 @@ EOF
     echo "Test repository created at: $test_repo"
 }
 
-# Test: Basic analyzer execution
+# Test: Basic analyser execution
 test_basic_analysis() {
     echo ""
     echo "Testing basic analysis..."
@@ -159,9 +159,9 @@ test_basic_analysis() {
 
     local output=$(mktemp)
 
-    # Run analyzer
-    assert_success "$ANALYZER_DIR/ownership-analyzer-v2.sh -f json -o '$output' '$test_repo'" \
-        "Analyzer should run successfully"
+    # Run analyser
+    assert_success "$ANALYSER_DIR/ownership-analyser-v2.sh -f json -o '$output' '$test_repo'" \
+        "Analyser should run successfully"
 
     # Check output file exists
     assert_file_exists "$output" "Output file should be created"
@@ -188,9 +188,9 @@ test_codeowners_validation() {
 
     local output=$(mktemp)
 
-    # Run analyzer with validation
-    assert_success "$ANALYZER_DIR/ownership-analyzer-v2.sh -f json --validate -o '$output' '$test_repo'" \
-        "Analyzer with validation should run successfully"
+    # Run analyser with validation
+    assert_success "$ANALYSER_DIR/ownership-analyser-v2.sh -f json --validate -o '$output' '$test_repo'" \
+        "Analyser with validation should run successfully"
 
     # Cleanup
     rm -rf "$test_repo" "$output"
@@ -206,19 +206,19 @@ test_analysis_methods() {
 
     # Test commit-based
     local output_commit=$(mktemp)
-    assert_success "$ANALYZER_DIR/ownership-analyzer-v2.sh -m commit -f json -o '$output_commit' '$test_repo'" \
+    assert_success "$ANALYSER_DIR/ownership-analyser-v2.sh -m commit -f json -o '$output_commit' '$test_repo'" \
         "Commit-based analysis should work"
     assert_json_valid "$output_commit" "Commit-based output should be valid JSON"
 
     # Test line-based
     local output_line=$(mktemp)
-    assert_success "$ANALYZER_DIR/ownership-analyzer-v2.sh -m line -f json -o '$output_line' '$test_repo'" \
+    assert_success "$ANALYSER_DIR/ownership-analyser-v2.sh -m line -f json -o '$output_line' '$test_repo'" \
         "Line-based analysis should work"
     assert_json_valid "$output_line" "Line-based output should be valid JSON"
 
     # Test hybrid
     local output_hybrid=$(mktemp)
-    assert_success "$ANALYZER_DIR/ownership-analyzer-v2.sh -m hybrid -f json -o '$output_hybrid' '$test_repo'" \
+    assert_success "$ANALYSER_DIR/ownership-analyser-v2.sh -m hybrid -f json -o '$output_hybrid' '$test_repo'" \
         "Hybrid analysis should work"
     assert_json_valid "$output_hybrid" "Hybrid output should be valid JSON"
 
@@ -236,8 +236,8 @@ test_text_output() {
 
     local output=$(mktemp)
 
-    # Run analyzer with text output
-    assert_success "$ANALYZER_DIR/ownership-analyzer-v2.sh -f text -o '$output' '$test_repo'" \
+    # Run analyser with text output
+    assert_success "$ANALYSER_DIR/ownership-analyser-v2.sh -f text -o '$output' '$test_repo'" \
         "Text format analysis should work"
 
     # Check output file exists
@@ -274,9 +274,9 @@ EOF
 
     local output=$(mktemp)
 
-    # Run analyzer (should use local config)
-    assert_success "$ANALYZER_DIR/ownership-analyzer-v2.sh -o '$output' '$test_repo'" \
-        "Analyzer should respect local config"
+    # Run analyser (should use local config)
+    assert_success "$ANALYSER_DIR/ownership-analyser-v2.sh -o '$output' '$test_repo'" \
+        "Analyser should respect local config"
 
     # Cleanup
     rm -rf "$test_repo" "$output"
@@ -289,7 +289,7 @@ test_library_loading() {
 
     # Source libraries and check for key functions
     ((TESTS_RUN++))
-    if source "$ANALYZER_DIR/lib/metrics.sh" 2>/dev/null && \
+    if source "$ANALYSER_DIR/lib/metrics.sh" 2>/dev/null && \
        type calculate_gini_coefficient &>/dev/null; then
         echo "✓ PASS: metrics.sh should load correctly"
         ((TESTS_PASSED++))
@@ -299,7 +299,7 @@ test_library_loading() {
     fi
 
     ((TESTS_RUN++))
-    if source "$ANALYZER_DIR/lib/config.sh" 2>/dev/null && \
+    if source "$ANALYSER_DIR/lib/config.sh" 2>/dev/null && \
        type init_config &>/dev/null; then
         echo "✓ PASS: config.sh should load correctly"
         ((TESTS_PASSED++))
@@ -309,7 +309,7 @@ test_library_loading() {
     fi
 
     ((TESTS_RUN++))
-    if source "$ANALYZER_DIR/lib/github.sh" 2>/dev/null && \
+    if source "$ANALYSER_DIR/lib/github.sh" 2>/dev/null && \
        type get_github_profile &>/dev/null; then
         echo "✓ PASS: github.sh should load correctly"
         ((TESTS_PASSED++))
@@ -319,7 +319,7 @@ test_library_loading() {
     fi
 
     ((TESTS_RUN++))
-    if source "$ANALYZER_DIR/lib/succession.sh" 2>/dev/null && \
+    if source "$ANALYSER_DIR/lib/succession.sh" 2>/dev/null && \
        type identify_successors &>/dev/null; then
         echo "✓ PASS: succession.sh should load correctly"
         ((TESTS_PASSED++))

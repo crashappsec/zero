@@ -75,11 +75,11 @@ cd gibson-powers
 chmod +x utils/**/*.sh
 
 # Try a standalone analysis on this repository
-./utils/code-ownership/ownership-analyzer-v2.sh .
+./utils/code-ownership/ownership-analyser-v2.sh .
 
 # Try an AI-enhanced analysis (requires ANTHROPIC_API_KEY)
 export ANTHROPIC_API_KEY="your-key"
-./utils/code-ownership/ownership-analyzer-claude.sh .
+./utils/code-ownership/ownership-analyser-claude.sh .
 ```
 
 ### Test Organization
@@ -90,11 +90,11 @@ We've created the [Gibson Powers Test Organization](https://github.com/Gibson-Po
 
 ```bash
 # Test Code Ownership Analysis
-./utils/code-ownership/ownership-analyzer.sh \
+./utils/code-ownership/ownership-analyser.sh \
   https://github.com/Gibson-Powers-Test-Org/sample-repo
 
 # Test DORA Metrics (if you have test data)
-./utils/dora-metrics/dora-analyzer.sh \
+./utils/dora-metrics/dora-analyser.sh \
   --repo https://github.com/Gibson-Powers-Test-Org/sample-repo
 
 # Test Supply Chain Analysis
@@ -117,8 +117,8 @@ gibson-powers/
 │   ├── supply-chain/                # Supply chain security skill
 │   ├── dora-metrics/                # DORA metrics skill
 │   ├── code-ownership/              # Code ownership skill
-│   ├── certificate-analyzer/        # Certificate analysis skill
-│   ├── chalk-build-analyzer/        # Chalk build analyzer skill
+│   ├── certificate-analyser/        # Certificate analysis skill
+│   ├── chalk-build-analyser/        # Chalk build analyser skill
 │   └── better-prompts/              # Prompt engineering skill
 │
 ├── utils/                           # Executable utilities (Tiers 1 & 2)
@@ -130,10 +130,10 @@ gibson-powers/
 │   │   └── package-health-analysis/     # Dependency health checks
 │   ├── dora-metrics/                # DORA metrics calculation
 │   ├── code-ownership/              # Code ownership analysis
-│   │   ├── ownership-analyzer-v2.sh     # Tier 1: Advanced analyzer
-│   │   └── ownership-analyzer-claude.sh # Tier 2: AI-enhanced
-│   ├── certificate-analyzer/        # X.509/TLS security analysis
-│   ├── chalk-build-analyzer/        # Build attestation verification
+│   │   ├── ownership-analyser-v2.sh     # Tier 1: Advanced analyser
+│   │   └── ownership-analyser-claude.sh # Tier 2: AI-enhanced
+│   ├── certificate-analyser/        # X.509/TLS security analysis
+│   ├── chalk-build-analyser/        # Build attestation verification
 │   └── cocomo/                      # Software estimation tools
 │
 ├── prompts/                         # Reusable prompt templates
@@ -180,10 +180,10 @@ Measure software delivery performance using the four key DORA metrics.
 
 ```bash
 # Tier 1: Calculate metrics from Git history
-./utils/dora-metrics/dora-analyzer.sh /path/to/repo
+./utils/dora-metrics/dora-analyser.sh /path/to/repo
 
 # Tier 2: AI-enhanced with insights and recommendations
-./utils/dora-metrics/dora-analyzer-claude.sh /path/to/repo
+./utils/dora-metrics/dora-analyser-claude.sh /path/to/repo
 ```
 
 **Metrics**:
@@ -200,10 +200,10 @@ Analyze code ownership, identify knowledge risks, and plan succession.
 
 ```bash
 # Tier 1: Detailed ownership analysis
-./utils/code-ownership/ownership-analyzer-v2.sh .
+./utils/code-ownership/ownership-analyser-v2.sh .
 
 # Tier 2: AI-enhanced with strategic recommendations
-./utils/code-ownership/ownership-analyzer-claude.sh .
+./utils/code-ownership/ownership-analyser-claude.sh .
 ```
 
 **Features**:
@@ -222,27 +222,27 @@ X.509 certificate and TLS configuration security review.
 
 ```bash
 # Analyze a domain's certificate
-./utils/certificate-analyzer/cert-analyzer.sh api.example.com
+./utils/certificate-analyser/cert-analyser.sh api.example.com
 
 # AI-enhanced analysis with compliance insights
-./utils/certificate-analyzer/cert-analyzer-claude.sh api.example.com
+./utils/certificate-analyser/cert-analyser-claude.sh api.example.com
 ```
 
-[📖 Full Documentation](./utils/certificate-analyzer/README.md)
+[📖 Full Documentation](./utils/certificate-analyser/README.md)
 
-### Chalk Build Analyzer (🔬 Experimental)
+### Chalk Build Analyser (🔬 Experimental)
 
 Verify build provenance and SLSA compliance using Chalk attestations.
 
 ```bash
 # Extract and analyze Chalk marks
-./utils/chalk-build-analyzer/chalk-analyzer.sh my-binary
+./utils/chalk-build-analyser/chalk-analyser.sh my-binary
 
 # AI-enhanced compliance assessment
-./utils/chalk-build-analyzer/chalk-analyzer-claude.sh my-binary
+./utils/chalk-build-analyser/chalk-analyser-claude.sh my-binary
 ```
 
-[📖 Full Documentation](./utils/chalk-build-analyzer/README.md)
+[📖 Full Documentation](./utils/chalk-build-analyser/README.md)
 
 ### COCOMO Estimation (🔬 Experimental)
 
@@ -339,7 +339,7 @@ Gibson Powers is an **experimental preview** and we welcome contributions!
 1. **Report bugs**: [Open an issue](https://github.com/crashappsec/gibson-powers/issues)
 2. **Suggest features**: [Start a discussion](https://github.com/crashappsec/gibson-powers/discussions)
 3. **Improve documentation**: Submit PRs for docs
-4. **Add capabilities**: Create new analyzers or enhance existing ones
+4. **Add capabilities**: Create new analysers or enhance existing ones
 5. **Share templates**: Contribute useful prompt templates
 
 ### Development
@@ -360,7 +360,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 ## Roadmap
 
 ### Current (Experimental Preview)
-- [x] Tier 1: Standalone scripts for all analyzers
+- [x] Tier 1: Standalone scripts for all analysers
 - [x] Tier 2: Claude AI integration
 - [x] Portable template system
 - [x] Comprehensive documentation
@@ -368,7 +368,7 @@ See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
 ### Near-Term (Q1 2025)
 - [ ] Enhanced CI/CD integrations (GitHub Actions, GitLab CI)
 - [ ] Web dashboard for report visualization
-- [ ] Additional analyzers (test coverage, complexity metrics)
+- [ ] Additional analysers (test coverage, complexity metrics)
 - [ ] Multi-repository batch analysis
 - [ ] Team collaboration features
 

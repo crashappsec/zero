@@ -146,7 +146,7 @@ Code review process optimization and reviewer recommendations.
 
 ## Configuration
 
-The CLI scripts (`ownership-analyzer.sh` and `ownership-analyzer-claude.sh`) support centralized configuration:
+The CLI scripts (`ownership-analyser.sh` and `ownership-analyser-claude.sh`) support centralized configuration:
 
 1. **API Key Setup**:
    ```bash
@@ -165,10 +165,10 @@ The CLI scripts (`ownership-analyzer.sh` and `ownership-analyzer-claude.sh`) sup
 3. **Repository Analysis**:
    ```bash
    # Analyze local repository
-   ./skills/code-ownership/ownership-analyzer-claude.sh .
+   ./skills/code-ownership/ownership-analyser-claude.sh .
 
    # Analyze remote repository (automatically clones)
-   ./skills/code-ownership/ownership-analyzer-claude.sh https://github.com/org/repo
+   ./skills/code-ownership/ownership-analyser-claude.sh https://github.com/org/repo
    ```
 
 **Important**: CLI scripts always use full clone (not shallow clone) to ensure accurate ownership analysis based on complete commit history.
@@ -204,8 +204,8 @@ Prompts generate:
 - [Examples](../../skills/code-ownership/examples/) - Sample reports and outputs
 
 ### Automation
-- [ownership-analyzer.sh](../../skills/code-ownership/ownership-analyzer.sh) - Basic CLI analysis
-- [ownership-analyzer-claude.sh](../../skills/code-ownership/ownership-analyzer-claude.sh) - AI-enhanced CLI
+- [ownership-analyser.sh](../../skills/code-ownership/ownership-analyser.sh) - Basic CLI analysis
+- [ownership-analyser-claude.sh](../../skills/code-ownership/ownership-analyser-claude.sh) - AI-enhanced CLI
 
 ## Contributing
 
@@ -238,7 +238,7 @@ All prompts now support cost tracking when used with the `--claude` flag:
 ```bash
 # Use any prompt with cost tracking
 export ANTHROPIC_API_KEY=your-key
-./ownership-analyzer.sh --claude .
+./ownership-analyser.sh --claude .
 
 # Automatically displays:
 # - API calls made

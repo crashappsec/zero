@@ -226,7 +226,7 @@ Use the validation script for CI/CD:
 # In GitHub Actions
 - name: Validate CODEOWNERS
   run: |
-    ./skills/code-ownership/ownership-analyzer.sh \
+    ./skills/code-ownership/ownership-analyser.sh \
       --validate \
       --codeowners .github/CODEOWNERS \
       .

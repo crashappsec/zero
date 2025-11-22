@@ -4,10 +4,10 @@
 # SPDX-License-Identifier: GPL-3.0
 
 #############################################################################
-# Provenance Analyzer Script
+# Provenance Analyser Script
 # Analyzes SBOMs and repositories for SLSA provenance using sigstore
 # Verifies build attestations and assesses SLSA levels
-# Usage: ./provenance-analyzer.sh [options] <target>
+# Usage: ./provenance-analyser.sh [options] <target>
 #############################################################################
 
 set -e
@@ -40,7 +40,7 @@ TARGETS_LIST=()
 # Function to print usage
 usage() {
     cat << EOF
-Provenance Analyzer - SLSA provenance verification and assessment
+Provenance Analyser - SLSA provenance verification and assessment
 
 Usage: $0 [OPTIONS] [target]
 
@@ -633,7 +633,7 @@ fi
 # Main script
 echo ""
 echo "========================================="
-echo "  Provenance Analyzer (SLSA)"
+echo "  Provenance Analyser (SLSA)"
 echo "========================================="
 echo ""
 

@@ -8,7 +8,7 @@ SPDX-License-Identifier: GPL-3.0
 
 **Domain**: example.com  
 **Analysis Date**: 2024-11-19 14:30:22 UTC  
-**Analyst**: Certificate Security Analyzer v1.0
+**Analyst**: Certificate Security Analyser v1.0
 
 ---
 

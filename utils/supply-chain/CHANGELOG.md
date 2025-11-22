@@ -4,9 +4,9 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Changelog - Supply Chain Security Analyzer
+# Changelog - Supply Chain Security Analyser
 
-All notable changes to the Supply Chain Security Analyzer will be documented in this file.
+All notable changes to the Supply Chain Security Analyser will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -36,10 +36,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Config Loading**: All supply chain scripts now use hierarchical config system
   - `supply-chain-scanner.sh`: Integrated config-loader library
-  - `vulnerability-analyzer.sh`: Uses config for defaults
-  - `vulnerability-analyzer-claude.sh`: Inherits config integration
-  - `provenance-analyzer.sh`: Uses config for trust settings
-  - `provenance-analyzer-claude.sh`: Inherits config integration
+  - `vulnerability-analyser.sh`: Uses config for defaults
+  - `vulnerability-analyser-claude.sh`: Inherits config integration
+  - `provenance-analyser.sh`: Uses config for trust settings
+  - `provenance-analyser-claude.sh`: Inherits config integration
 - **Module Defaults**: Config-driven instead of hardcoded
   - Loads `default_modules` from config if no CLI flags
   - Supports per-module customization
@@ -62,8 +62,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Provenance Analysis Module**: New SLSA provenance verification
-  - `provenance-analyzer.sh`: Base analyzer with SLSA level assessment (0-4)
-  - `provenance-analyzer-claude.sh`: AI-enhanced with trust assessment and risk analysis
+  - `provenance-analyser.sh`: Base analyser with SLSA level assessment (0-4)
+  - `provenance-analyser-claude.sh`: AI-enhanced with trust assessment and risk analysis
   - npm provenance checking with registry API integration
   - Signature verification support (cosign/rekor)
   - Multi-repo and organization scanning
@@ -93,8 +93,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - 2024-11-21
 
 ### Breaking Changes
-- **Directory Restructure**: Renamed skills/supply-chain-analyzer → skills/supply-chain
-- **Script Renames**: supply-chain-analyzer → vulnerability-analyzer (moved to vulnerability-analysis subdirectory)
+- **Directory Restructure**: Renamed skills/supply-chain-analyser → skills/supply-chain
+- **Script Renames**: supply-chain-analyser → vulnerability-analyser (moved to vulnerability-analysis subdirectory)
 - **Modular Architecture**: Scripts reorganized into single-purpose modules with central orchestrator
 
 ### Added
@@ -108,7 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Organizations and repositories lists
   - Default modules and output directories
   - Automatic config loading and validation
-- **Multi-Repository Scanning**: Both analyzers support organization/multi-repo scanning
+- **Multi-Repository Scanning**: Both analysers support organization/multi-repo scanning
   - GitHub CLI integration for org expansion (lists all repos in org)
   - Batch processing across multiple repositories
   - Individual repo targeting with `--repo owner/repo` flag
@@ -121,11 +121,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Modular Architecture**: utils/supply-chain/ now contains:
-  - vulnerability-analysis/ - Vulnerability scanning module (with both analyzers)
+  - vulnerability-analysis/ - Vulnerability scanning module (with both analysers)
   - config.example.json - Configuration template
   - supply-chain-scanner.sh - Central orchestrator
 - **Script Organization**: Single-purpose scripts in feature subdirectories
-- **Script Naming**: Clearer module-specific names (supply-chain-analyzer → vulnerability-analyzer)
+- **Script Naming**: Clearer module-specific names (supply-chain-analyser → vulnerability-analyser)
 - **Execution Model**: Scripts work standalone OR through central orchestrator
 - **Output Headers**: Color-coded with CYAN for multi-repo section headers
 
@@ -137,15 +137,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved path resolution for nested script directories
 
 ### Migration Guide
-- Old path: `utils/supply-chain/supply-chain-analyzer.sh`
-- New path: `utils/supply-chain/vulnerability-analysis/vulnerability-analyzer.sh`
+- Old path: `utils/supply-chain/supply-chain-analyser.sh`
+- New path: `utils/supply-chain/vulnerability-analysis/vulnerability-analyser.sh`
 - Or use central orchestrator: `utils/supply-chain/supply-chain-scanner.sh --vulnerability`
 - Run `./utils/supply-chain/supply-chain-scanner.sh --setup` for interactive configuration
 
 ## [1.4.0] - 2024-11-21
 
 ### Added
-- **Intelligent Prioritization in Base Analyzer**
+- **Intelligent Prioritization in Base Analyser**
   - `--prioritize` flag for data-driven vulnerability ranking
   - CISA KEV catalog integration (auto-fetched on demand)
   - Algorithmic priority scoring based on KEV presence and CVSS scores
@@ -153,10 +153,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Summary statistics (total, by severity, KEV count)
 
 ### Changed
-- **Refocused Claude Analyzer on AI-Specific Value**
-  - Moved basic prioritization (CVSS, KEV, counting) to base analyzer
+- **Refocused Claude Analyser on AI-Specific Value**
+  - Moved basic prioritization (CVSS, KEV, counting) to base analyser
   - Claude now focuses on pattern analysis, supply chain context, and risk narratives
-  - Clear separation: Base analyzer (data-driven) vs Claude (AI insights)
+  - Clear separation: Base analyser (data-driven) vs Claude (AI insights)
 
 ## [1.3.1] - 2024-11-21
 
@@ -197,7 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-11-20
 
 ### Added
-- Initial release of Supply Chain Analyzer
+- Initial release of Supply Chain Analyser
 - CycloneDX 1.7 and SPDX format support
 - OSV.dev, deps.dev, and CISA KEV integration
 - Vulnerability analysis and license compliance

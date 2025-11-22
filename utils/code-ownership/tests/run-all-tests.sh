@@ -45,7 +45,7 @@ run_test_suite() {
 
 main() {
     echo "========================================="
-    echo "Code Ownership Analyzer - Test Suite"
+    echo "Code Ownership Analyser - Test Suite"
     echo "========================================="
     echo ""
 

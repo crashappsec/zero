@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Package Health Analyzer
+# Package Health Analyser
 
 **Status**: 🔬 Experimental v1.0.1 - Core functionality stable, ready for testing
 
@@ -14,10 +14,10 @@ Comprehensive package health analysis tools for identifying risks and operationa
 
 ## Overview
 
-The Package Health Analyzer provides two-tiered analysis of software packages:
+The Package Health Analyser provides two-tiered analysis of software packages:
 
-1. **Base Analyzer**: Fast, automated scanning with health scoring, deprecation detection, and version analysis
-2. **AI-Enhanced Analyzer**: Deep analysis with Claude AI, providing contextual recommendations, migration strategies, and risk prioritization
+1. **Base Analyser**: Fast, automated scanning with health scoring, deprecation detection, and version analysis
+2. **AI-Enhanced Analyser**: Deep analysis with Claude AI, providing contextual recommendations, migration strategies, and risk prioritization
 
 ### Key Features
 
@@ -76,39 +76,39 @@ cp utils/supply-chain/package-health-analysis/config.example.json \
 
 ```bash
 # Analyze single repository
-./utils/supply-chain/package-health-analysis/package-health-analyzer.sh \
+./utils/supply-chain/package-health-analysis/package-health-analyser.sh \
   --repo owner/repo
 
 # AI-enhanced analysis
-./utils/supply-chain/package-health-analysis/package-health-analyzer-claude.sh \
+./utils/supply-chain/package-health-analysis/package-health-analyser-claude.sh \
   --repo owner/repo \
   --output health-report.md
 
 # Organization-wide scan
-./utils/supply-chain/package-health-analysis/package-health-analyzer-claude.sh \
+./utils/supply-chain/package-health-analysis/package-health-analyser-claude.sh \
   --org myorg \
   --output org-health.md
 ```
 
-### Base Analyzer
+### Base Analyser
 
 **Purpose**: Fast automated scanning for CI/CD and regular monitoring.
 
 ```bash
 # Basic usage
-./package-health-analyzer.sh --repo owner/repo
+./package-health-analyser.sh --repo owner/repo
 
 # Custom output format
-./package-health-analyzer.sh --repo owner/repo --format markdown
+./package-health-analyser.sh --repo owner/repo --format markdown
 
 # Analyze existing SBOM
-./package-health-analyzer.sh --sbom path/to/sbom.json
+./package-health-analyser.sh --sbom path/to/sbom.json
 
 # Organization scan
-./package-health-analyzer.sh --org myorg --output org-scan.json
+./package-health-analyser.sh --org myorg --output org-scan.json
 
 # Skip specific analyses
-./package-health-analyzer.sh --repo owner/repo \
+./package-health-analyser.sh --repo owner/repo \
   --no-version-analysis \
   --no-deprecation-check
 ```
@@ -120,7 +120,7 @@ cp utils/supply-chain/package-health-analysis/config.example.json \
     "timestamp": "2024-11-21T10:30:00Z",
     "repositories_scanned": 1,
     "packages_analyzed": 42,
-    "analyzer_version": "1.0.0"
+    "analyser_version": "1.0.0"
   },
   "summary": {
     "total_packages": 42,
@@ -149,24 +149,24 @@ cp utils/supply-chain/package-health-analysis/config.example.json \
 }
 ```
 
-### AI-Enhanced Analyzer
+### AI-Enhanced Analyser
 
 **Purpose**: Comprehensive analysis with recommendations and strategic insights.
 
 ```bash
 # Full analysis with recommendations
-./package-health-analyzer-claude.sh --repo owner/repo
+./package-health-analyser-claude.sh --repo owner/repo
 
 # Organization-wide with all analyses
-./package-health-analyzer-claude.sh --org myorg \
+./package-health-analyser-claude.sh --org myorg \
   --output comprehensive-report.md
 
 # Quick mode (skip provenance check)
-./package-health-analyzer-claude.sh --repo owner/repo \
+./package-health-analyser-claude.sh --repo owner/repo \
   --skip-prov-analysis
 
 # JSON output
-./package-health-analyzer-claude.sh --repo owner/repo \
+./package-health-analyser-claude.sh --repo owner/repo \
   --format json \
   --output analysis.json
 ```
@@ -230,10 +230,10 @@ try {
 
 ### Comparison Tool
 
-Compare base vs AI-enhanced analyzers:
+Compare base vs AI-enhanced analysers:
 
 ```bash
-./compare-analyzers.sh --repo owner/repo --output comparison.md
+./compare-analysers.sh --repo owner/repo --output comparison.md
 ```
 
 ## Health Scoring Algorithm
@@ -261,7 +261,7 @@ Health Score =
 
 ## Chain of Reasoning
 
-The AI-enhanced analyzer orchestrates multiple tools:
+The AI-enhanced analyser orchestrates multiple tools:
 
 ```
 1. SBOM Generation (if needed)
@@ -339,7 +339,7 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          ./utils/supply-chain/package-health-analysis/package-health-analyzer.sh \
+          ./utils/supply-chain/package-health-analysis/package-health-analyser.sh \
             --repo ${{ github.repository }} \
             --format json > health-report.json
 
@@ -363,28 +363,28 @@ jobs:
 ### 1. Security Audits
 Identify deprecated packages with security vulnerabilities:
 ```bash
-./package-health-analyzer-claude.sh --org myorg | \
+./package-health-analyser-claude.sh --org myorg | \
   grep -A 5 "deprecated.*true"
 ```
 
 ### 2. Version Standardization
 Find and fix version inconsistencies:
 ```bash
-./package-health-analyzer.sh --org myorg --format json | \
+./package-health-analyser.sh --org myorg --format json | \
   jq '.version_inconsistencies[]'
 ```
 
 ### 3. Tech Debt Reduction
 Prioritize package improvements:
 ```bash
-./package-health-analyzer-claude.sh --repo owner/repo \
+./package-health-analyser-claude.sh --repo owner/repo \
   --output tech-debt-plan.md
 ```
 
 ### 4. Pre-Release Validation
 Ensure healthy dependencies before major releases:
 ```bash
-./package-health-analyzer.sh --repo owner/repo | \
+./package-health-analyser.sh --repo owner/repo | \
   jq '.packages[] | select(.health_score < 60)'
 ```
 
@@ -392,9 +392,9 @@ Ensure healthy dependencies before major releases:
 
 ```
 package-health-analysis/
-├── package-health-analyzer.sh          # Base scanner
-├── package-health-analyzer-claude.sh   # AI-enhanced
-├── compare-analyzers.sh                # Comparison tool
+├── package-health-analyser.sh          # Base scanner
+├── package-health-analyser-claude.sh   # AI-enhanced
+├── compare-analysers.sh                # Comparison tool
 ├── lib/
 │   ├── deps-dev-client.sh              # API client
 │   ├── health-scoring.sh               # Scoring engine
@@ -409,7 +409,7 @@ package-health-analysis/
 
 ### deps.dev API
 
-The analyzer integrates with [deps.dev](https://deps.dev) for:
+The analyser integrates with [deps.dev](https://deps.dev) for:
 - OpenSSF Scorecard data
 - Package metadata
 - Deprecation status
@@ -446,7 +446,7 @@ gh auth login
 
 **Slow Performance**
 - Enable caching in config
-- Use base analyzer for quick scans
+- Use base analyser for quick scans
 - Reduce scope (single repo vs org)
 
 ## Performance
@@ -467,7 +467,7 @@ gh auth login
 - **Ecosystem Coverage**: Best support for npm and PyPI; limited for others
 - **API Rate Limits**: deps.dev may rate limit frequent requests
 - **Accuracy**: Health scoring is heuristic-based, not definitive
-- **Analysis Depth**: Base analyzer provides data; AI analyzer provides insight
+- **Analysis Depth**: Base analyser provides data; AI analyser provides insight
 
 ## Contributing
 
@@ -479,11 +479,11 @@ GPL-3.0 - See [LICENSE](../../../LICENSE) for details.
 
 ## References
 
-- [Build Prompt](../../../prompts/supply-chain/BUILD-PACKAGE-HEALTH-ANALYZER.md)
-- [Requirements](../../../prompts/supply-chain/package-health-analyzer-requirements.md)
+- [Build Prompt](../../../prompts/supply-chain/BUILD-PACKAGE-HEALTH-ANALYSER.md)
+- [Requirements](../../../prompts/supply-chain/package-health-analyser-requirements.md)
 - [deps.dev API](../../../rag/supply-chain/package-health/deps-dev-api.md)
 - [Best Practices](../../../rag/supply-chain/package-health/package-management-best-practices.md)
-- [Supply Chain Analyzer](../README.md)
+- [Supply Chain Analyser](../README.md)
 
 ## Support
 

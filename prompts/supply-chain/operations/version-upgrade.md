@@ -134,7 +134,7 @@ Target Version: 1.7
   "metadata": {
     "timestamp": "2024-11-20T12:00:00Z",
     "tools": [{
-      "vendor": "SBOM Analyzer",
+      "vendor": "SBOM Analyser",
       "name": "Version Upgrade Tool",
       "version": "1.0"
     }],

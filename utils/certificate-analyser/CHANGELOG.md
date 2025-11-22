@@ -4,9 +4,9 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Changelog - Certificate Analyzer
+# Changelog - Certificate Analyser
 
-All notable changes to the Certificate Analyzer will be documented in this file.
+All notable changes to the Certificate Analyser will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -30,7 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-11-20
 
 ### Added
-- Initial release of Certificate Analyzer
+- Initial release of Certificate Analyser
 - TLS/SSL certificate validation
 - Expiration checking and warnings
 - Certificate chain validation
@@ -40,7 +40,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Key length validation
   - Signature algorithm checking
 - Common name and SAN validation
-- AI-enhanced analysis with Claude (`cert-analyzer-claude.sh`)
+- AI-enhanced analysis with Claude (`cert-analyser-claude.sh`)
 - Port specification support
 
 ### Known Limitations

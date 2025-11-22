@@ -420,7 +420,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Calculate Bus Factor
         run: |
-          ./scripts/bus-factor-analyzer.sh
+          ./scripts/bus-factor-analyser.sh
       - name: Fail if Critical
         run: |
           if [ "$BUS_FACTOR" -eq 1 ]; then

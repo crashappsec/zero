@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Package Health Analyzer - Requirements and Implementation Prompt
+# Package Health Analyser - Requirements and Implementation Prompt
 
 ## Overview
 
@@ -36,9 +36,9 @@ Build a comprehensive package health analysis system that evaluates the operatio
 ### Module Structure
 ```
 utils/supply-chain/package-health-analysis/
-├── package-health-analyzer.sh              # Base analyzer
-├── package-health-analyzer-claude.sh       # AI-enhanced analyzer
-└── compare-analyzers.sh                    # Comparison tool
+├── package-health-analyser.sh              # Base analyser
+├── package-health-analyser-claude.sh       # AI-enhanced analyser
+└── compare-analysers.sh                    # Comparison tool
 ```
 
 ### Integration Points
@@ -550,14 +550,14 @@ Risks:
 
 ## Command-Line Interface
 
-### Base Analyzer
+### Base Analyser
 
 ```bash
 # Basic usage
-./package-health-analyzer.sh owner/repo
+./package-health-analyser.sh owner/repo
 
 # With options
-./package-health-analyzer.sh \
+./package-health-analyser.sh \
   --format json \
   --min-health 50 \
   --check-pinning \
@@ -565,24 +565,24 @@ Risks:
   owner/repo
 
 # Multi-repo
-./package-health-analyzer.sh --org myorg
+./package-health-analyser.sh --org myorg
 
 # Specific checks
-./package-health-analyzer.sh \
+./package-health-analyser.sh \
   --check-standardization \
   --check-scorecard \
   owner/repo
 ```
 
-### Claude-Enhanced Analyzer
+### Claude-Enhanced Analyser
 
 ```bash
 # AI-enhanced analysis
 export ANTHROPIC_API_KEY="your-key"
-./package-health-analyzer-claude.sh owner/repo
+./package-health-analyser-claude.sh owner/repo
 
 # With migration planning
-./package-health-analyzer-claude.sh \
+./package-health-analyser-claude.sh \
   --suggest-alternatives \
   --estimate-effort \
   owner/repo
@@ -755,7 +755,7 @@ Track:
 ## Implementation Priority
 
 ### Phase 1: Core Health Analysis
-1. Create package-health-analyzer.sh base script
+1. Create package-health-analyser.sh base script
 2. Implement deps.dev API client
 3. Add OpenSSF Scorecard fetching
 4. Implement basic health scoring
@@ -768,7 +768,7 @@ Track:
 4. Configuration integration
 
 ### Phase 3: AI Enhancement
-1. Create package-health-analyzer-claude.sh
+1. Create package-health-analyser-claude.sh
 2. Implement analysis prompts
 3. Add alternative suggestions
 4. Migration effort estimation

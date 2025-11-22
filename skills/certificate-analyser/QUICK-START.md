@@ -4,17 +4,17 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Certificate Analyzer with Claude AI - Deliverables
+# Certificate Analyser with Claude AI - Deliverables
 
 ## ⭐ RECOMMENDED: Start Here
 
-### **certificate-analyzer.skill** (16 KB)
+### **certificate-analyser.skill** (16 KB)
 Import this .skill file into Claude for the easiest experience.
 
 **How to use:**
 1. Open Claude → Settings → Skills
 2. Click "Import Skill"  
-3. Upload certificate-analyzer.skill
+3. Upload certificate-analyser.skill
 4. Ask Claude: "Analyze the certificate for example.com"
 
 **What you get:** Full AI-powered analysis with recommendations, all within Claude's interface.
@@ -23,23 +23,23 @@ Import this .skill file into Claude for the easiest experience.
 
 ## 🚀 Alternative Options
 
-### **cert-analyzer-claude.sh** (23 KB)
+### **cert-analyser-claude.sh** (23 KB)
 Standalone script with Claude API integration.
 
 **Use when:** You want command-line control or CI/CD integration
 
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
-./cert-analyzer-claude.sh example.com
+./cert-analyser-claude.sh example.com
 ```
 
-### **cert-analyzer.sh** (24 KB)
+### **cert-analyser.sh** (24 KB)
 Basic version without Claude AI (no API key required).
 
 **Use when:** You need quick checks without AI enhancement
 
 ```bash
-./cert-analyzer.sh example.com
+./cert-analyser.sh example.com
 ```
 
 ---
@@ -47,7 +47,7 @@ Basic version without Claude AI (no API key required).
 ## 📖 Documentation
 
 - **README.md** - Complete guide (setup, usage, troubleshooting)
-- **cert-analyzer-README.md** - Original documentation
+- **cert-analyser-README.md** - Original documentation
 - **PROJECT-OVERVIEW.md** - High-level project summary
 - **certificate-analysis-prompt.md** - Technical prompt specification
 - **sample-certificate-analysis-report.md** - Example output
@@ -56,9 +56,9 @@ Basic version without Claude AI (no API key required).
 
 ## 🎯 Quick Decision Guide
 
-**"I use Claude regularly"** → Import certificate-analyzer.skill  
-**"I need CLI automation"** → Use cert-analyzer-claude.sh  
-**"I don't have an API key"** → Use cert-analyzer.sh  
+**"I use Claude regularly"** → Import certificate-analyser.skill  
+**"I need CLI automation"** → Use cert-analyser-claude.sh  
+**"I don't have an API key"** → Use cert-analyser.sh  
 
 ---
 
@@ -84,8 +84,8 @@ Every analysis provides:
    export ANTHROPIC_API_KEY="sk-ant-..."
    ```
 
-Required for: cert-analyzer-claude.sh  
-Not required for: certificate-analyzer.skill (handled by Claude)
+Required for: cert-analyser-claude.sh  
+Not required for: certificate-analyser.skill (handled by Claude)
 
 ---
 
@@ -99,4 +99,4 @@ Not required for: certificate-analyzer.skill (handled by Claude)
 
 ---
 
-**Start with certificate-analyzer.skill for the best experience!**
+**Start with certificate-analyser.skill for the best experience!**

@@ -19,7 +19,7 @@ You can analyze packages to identify:
 
 You have access to two analysis tools in `utils/supply-chain/package-health-analysis/`:
 
-### 1. Base Analyzer (`package-health-analyzer.sh`)
+### 1. Base Analyser (`package-health-analyser.sh`)
 Fast, automated analysis providing:
 - Health scoring (0-100) for each package
 - Deprecation detection
@@ -28,10 +28,10 @@ Fast, automated analysis providing:
 
 **Requirements**: `git`, `syft`, `jq` (no GitHub CLI needed)
 
-### 2. AI-Enhanced Analyzer (`package-health-analyzer-claude.sh`)
+### 2. AI-Enhanced Analyser (`package-health-analyser-claude.sh`)
 Comprehensive analysis with:
 - Chain of reasoning across multiple tools
-- Integration with vulnerability and provenance analyzers
+- Integration with vulnerability and provenance analysers
 - Risk assessment and prioritization
 - Detailed migration strategies
 - Alternative package recommendations
@@ -40,30 +40,30 @@ Comprehensive analysis with:
 
 **Requirements**: Same as base + `ANTHROPIC_API_KEY` in `.env`
 
-### 3. Comparison Tool (`compare-analyzers.sh`)
+### 3. Comparison Tool (`compare-analysers.sh`)
 Compares base vs AI-enhanced results.
 
 ## Important Notes
 
 - **No GitHub CLI Required**: Uses standard `git clone` - works with any Git repository
 - **Auto-generates SBOM**: If no SBOM provided, generates one with syft
-- **Progress Tracking**: AI analyzer shows real-time progress for long-running analyses
+- **Progress Tracking**: AI analyser shows real-time progress for long-running analyses
 - **Error Resilient**: Gracefully handles API failures and continues analysis
 
 ## How to Help Users
 
 ### For Quick Scans
-Use the base analyzer for fast automated scanning:
+Use the base analyser for fast automated scanning:
 ```bash
-./utils/supply-chain/package-health-analysis/package-health-analyzer.sh \
+./utils/supply-chain/package-health-analysis/package-health-analyser.sh \
   --repo owner/repo \
   --format json
 ```
 
 ### For Comprehensive Analysis
-Use the AI-enhanced analyzer for detailed insights:
+Use the AI-enhanced analyser for detailed insights:
 ```bash
-./utils/supply-chain/package-health-analysis/package-health-analyzer-claude.sh \
+./utils/supply-chain/package-health-analysis/package-health-analyser-claude.sh \
   --repo owner/repo \
   --output health-report.md
 ```
@@ -71,7 +71,7 @@ Use the AI-enhanced analyzer for detailed insights:
 ### For Organization-Wide Analysis
 Scan entire organizations:
 ```bash
-./utils/supply-chain/package-health-analysis/package-health-analyzer-claude.sh \
+./utils/supply-chain/package-health-analysis/package-health-analyser-claude.sh \
   --org myorg \
   --output org-health-report.md
 ```
@@ -86,8 +86,8 @@ When a user asks for package health analysis:
    - Specific concerns (deprecation, versions, security)?
 
 2. **Choose Appropriate Tool**
-   - Base analyzer: Fast, automated, CI/CD friendly
-   - AI analyzer: Deep insights, recommendations, strategy
+   - Base analyser: Fast, automated, CI/CD friendly
+   - AI analyser: Deep insights, recommendations, strategy
 
 3. **Run Analysis**
    - Execute the appropriate tool
@@ -112,7 +112,7 @@ When a user asks for package health analysis:
 
 *Executes:*
 ```bash
-./utils/supply-chain/package-health-analysis/package-health-analyzer-claude.sh \
+./utils/supply-chain/package-health-analysis/package-health-analyser-claude.sh \
   --repo my-org/my-repo \
   --output health-report.md
 ```
@@ -138,7 +138,7 @@ Detailed report saved to health-report.md. Would you like migration guidance for
 
 *Executes:*
 ```bash
-./utils/supply-chain/package-health-analysis/package-health-analyzer.sh \
+./utils/supply-chain/package-health-analysis/package-health-analyser.sh \
   --org myorg \
   --format json | jq '.packages[] | select(.deprecation.deprecated == true)'
 ```
@@ -162,7 +162,7 @@ Would you like me to create migration plans for these packages?"
 
 **You**: I'll analyze version inconsistencies across your repositories.
 
-*Executes analyzer with version analysis*
+*Executes analyser with version analysis*
 
 "Found 12 packages with version inconsistencies:
 
@@ -178,7 +178,7 @@ Would you like detailed migration guides for these?"
 
 ## Chain of Reasoning
 
-The AI-enhanced analyzer integrates data from:
+The AI-enhanced analyser integrates data from:
 1. Package health analysis (base)
 2. Vulnerability analysis (security issues)
 3. Provenance analysis (supply chain integrity)
@@ -198,9 +198,9 @@ When helping users:
 ## Integration with Other Skills
 
 This skill works well with:
-- **supply-chain-analyzer**: For broader SBOM analysis
-- **vulnerability-analyzer**: For security-focused analysis
-- **provenance-analyzer**: For supply chain integrity
+- **supply-chain-analyser**: For broader SBOM analysis
+- **vulnerability-analyser**: For security-focused analysis
+- **provenance-analyser**: For supply chain integrity
 
 ## Configuration
 
@@ -245,7 +245,7 @@ Be clear about:
 ## Error Handling
 
 If analysis fails:
-- Check API key (ANTHROPIC_API_KEY for AI analyzer)
+- Check API key (ANTHROPIC_API_KEY for AI analyser)
 - Verify repository access (gh CLI authentication)
 - Ensure dependencies installed (syft, jq, gh)
 - Check rate limits (deps.dev API)

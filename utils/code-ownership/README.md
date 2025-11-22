@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Code Ownership Analyzer
+# Code Ownership Analyser
 
 **Status**: 🚀 Production-Ready v3.0
 
@@ -80,11 +80,11 @@ Enterprise-grade code ownership analysis with historical tracking, multi-format 
 - **AI-powered insights** (optional Claude analysis)
 - **Cost tracking** (API usage and cost display)
 - **Organization scanning** (--org flag for bulk analysis)
-- Note: Claude AI features tested with ownership analyzer only
+- Note: Claude AI features tested with ownership analyser only
 
 ## Overview
 
-The Code Ownership Analyzer helps teams understand who owns what code in a repository by analyzing Git commit history. It provides:
+The Code Ownership Analyser helps teams understand who owns what code in a repository by analyzing Git commit history. It provides:
 
 - **Ownership Metrics**: Calculate code ownership based on commits, lines changed, and recency
 - **CODEOWNERS Validation**: Verify CODEOWNERS files match actual ownership
@@ -105,30 +105,30 @@ git --version
 
 ```bash
 # Basic analysis (no API key required)
-./ownership-analyzer.sh .
+./ownership-analyser.sh .
 
 # Analyze specific repository
-./ownership-analyzer.sh /path/to/repo
+./ownership-analyser.sh /path/to/repo
 
 # Analyze test organization
-./ownership-analyzer.sh --org Gibson-Powers-Test-Org
+./ownership-analyser.sh --org Gibson-Powers-Test-Org
 
 # AI-enhanced analysis with insights and cost tracking
 export ANTHROPIC_API_KEY="your-key"
-./ownership-analyzer.sh --claude .
+./ownership-analyser.sh --claude .
 
 # Get help
-./ownership-analyzer.sh --help
+./ownership-analyser.sh --help
 
 # Compare base vs Claude analysis
-./compare-analyzers.sh
+./compare-analysers.sh
 ```
 
 ## Available Scripts
 
-### ownership-analyzer-v2.sh (⭐ Recommended)
+### ownership-analyser-v2.sh (⭐ Recommended)
 
-**Enhanced analyzer with research-backed metrics and comprehensive features.**
+**Enhanced analyser with research-backed metrics and comprehensive features.**
 
 **Key Features**:
 - **Dual-method analysis**: Combine commit-based (97% defect prediction) and line-based (authorship) approaches
@@ -142,30 +142,30 @@ export ANTHROPIC_API_KEY="your-key"
 **Usage**:
 ```bash
 # Analyze single repository (JSON output)
-./ownership-analyzer-v2.sh .
+./ownership-analyser-v2.sh .
 
 # Analyze with text output
-./ownership-analyzer-v2.sh --format text .
+./ownership-analyser-v2.sh --format text .
 
 # Analyze GitHub repository
-./ownership-analyzer-v2.sh https://github.com/owner/repo
+./ownership-analyser-v2.sh https://github.com/owner/repo
 
 # Analyze organization (requires GITHUB_TOKEN)
 export GITHUB_TOKEN=ghp_xxx
-./ownership-analyzer-v2.sh --org myorg --output org-analysis.json
+./ownership-analyser-v2.sh --org myorg --output org-analysis.json
 
 # Validate CODEOWNERS
-./ownership-analyzer-v2.sh --validate --verbose .
+./ownership-analyser-v2.sh --validate --verbose .
 
 # Analyze multiple repos
-./ownership-analyzer-v2.sh --repos repo1 repo2 repo3 --output analysis.json
+./ownership-analyser-v2.sh --repos repo1 repo2 repo3 --output analysis.json
 ```
 
 **Output Example (JSON)**:
 ```json
 {
   "metadata": {
-    "analyzer_version": "2.0.0",
+    "analyser_version": "2.0.0",
     "repository": "my-repo",
     "analysis_date": "2024-11-21T10:00:00Z",
     "analysis_method": "hybrid"
@@ -191,9 +191,9 @@ export GITHUB_TOKEN=ghp_xxx
 }
 ```
 
-### ownership-analyzer.sh (Legacy v1.0)
+### ownership-analyser.sh (Legacy v1.0)
 
-Base analyzer that calculates ownership from Git history.
+Base analyser that calculates ownership from Git history.
 
 **Features**:
 - Commit-based ownership scoring
@@ -202,18 +202,18 @@ Base analyzer that calculates ownership from Git history.
 - CODEOWNERS file validation
 - Bus factor identification
 
-**Note**: For new projects, use `ownership-analyzer-v2.sh` which includes all v1.0 features plus enhanced capabilities.
+**Note**: For new projects, use `ownership-analyser-v2.sh` which includes all v1.0 features plus enhanced capabilities.
 
 **Usage**:
 ```bash
 # Analyze current directory
-./ownership-analyzer.sh
+./ownership-analyser.sh
 
 # Analyze specific path
-./ownership-analyzer.sh /path/to/repo
+./ownership-analyser.sh /path/to/repo
 
 # Generate CODEOWNERS file
-./ownership-analyzer.sh --generate-codeowners
+./ownership-analyser.sh --generate-codeowners
 ```
 
 **Output**:
@@ -238,12 +238,12 @@ Bus Factor: 2 (Medium Risk)
 Health Score: 72/100
 ```
 
-### ownership-analyzer-claude.sh
+### ownership-analyser-claude.sh
 
-AI-enhanced analyzer with contextual insights and recommendations.
+AI-enhanced analyser with contextual insights and recommendations.
 
 **Features**:
-- All base analyzer features
+- All base analyser features
 - Ownership pattern analysis
 - Collaboration insights
 - Risk assessment
@@ -254,16 +254,16 @@ AI-enhanced analyzer with contextual insights and recommendations.
 **Usage**:
 ```bash
 export ANTHROPIC_API_KEY="your-key"
-./ownership-analyzer-claude.sh
+./ownership-analyser-claude.sh
 ```
 
-### compare-analyzers.sh
+### compare-analysers.sh
 
 Compare base and AI-enhanced analysis side-by-side.
 
 **Usage**:
 ```bash
-./compare-analyzers.sh [repo-path]
+./compare-analysers.sh [repo-path]
 ```
 
 ## Ownership Metrics
@@ -304,14 +304,14 @@ Overall ownership health (0-100):
 
 ```bash
 # Check if CODEOWNERS matches actual ownership
-./ownership-analyzer.sh --validate-codeowners
+./ownership-analyser.sh --validate-codeowners
 ```
 
 ### Generating CODEOWNERS
 
 ```bash
 # Auto-generate based on Git history
-./ownership-analyzer.sh --generate-codeowners > .github/CODEOWNERS
+./ownership-analyser.sh --generate-codeowners > .github/CODEOWNERS
 ```
 
 **Example Output**:
@@ -331,7 +331,7 @@ Overall ownership health (0-100):
 
 ### Hierarchical Configuration
 
-The analyzer supports hierarchical configuration with the following priority (highest to lowest):
+The analyser supports hierarchical configuration with the following priority (highest to lowest):
 
 1. Command-line arguments
 2. Environment variables (`CODE_OWNERSHIP_*`)
@@ -376,7 +376,7 @@ export CODE_OWNERSHIP_ANALYSIS_METHOD=commit
 export CODE_OWNERSHIP_ANALYSIS_DAYS=120
 export CODE_OWNERSHIP_COVERAGE_TARGET=95
 
-./ownership-analyzer-v2.sh .
+./ownership-analyser-v2.sh .
 ```
 
 ### Available Configuration Options
@@ -580,7 +580,7 @@ validate_generated_codeowners ".github/CODEOWNERS"
 **Example Output**:
 ```
 # CODEOWNERS
-# Auto-generated by Code Ownership Analyzer
+# Auto-generated by Code Ownership Analyser
 
 # Global Owners
 * @alice @bob @charlie
@@ -608,7 +608,7 @@ cd utils/code-ownership/tests
 # Run individual test suites
 ./test-metrics.sh         # Metrics library unit tests
 ./test-config.sh          # Configuration library unit tests
-./test-integration.sh     # Full analyzer integration tests
+./test-integration.sh     # Full analyser integration tests
 ```
 
 ### Test Coverage
@@ -626,7 +626,7 @@ cd utils/code-ownership/tests
   - Type conversions
 
 **Integration Tests**:
-- `test-integration.sh`: End-to-end analyzer tests
+- `test-integration.sh`: End-to-end analyser tests
   - Basic analysis workflow
   - CODEOWNERS validation
   - Different analysis methods
@@ -728,14 +728,14 @@ jobs:
 
 ```
 code-ownership/
-├── ownership-analyzer.sh              # Legacy v1.0 analyzer
-├── ownership-analyzer-v2.sh           # ⭐ Enhanced v3.0 analyzer (recommended)
-├── ownership-analyzer-claude.sh       # AI-enhanced analyzer
-├── compare-analyzers.sh               # Comparison tool
+├── ownership-analyser.sh              # Legacy v1.0 analyser
+├── ownership-analyser-v2.sh           # ⭐ Enhanced v3.0 analyser (recommended)
+├── ownership-analyser-claude.sh       # AI-enhanced analyser
+├── compare-analysers.sh               # Comparison tool
 ├── lib/                               # Library modules (9 total)
 │   ├── metrics.sh                     # Research-backed metric calculations
 │   ├── github.sh                      # GitHub API integration
-│   ├── analyzer-core.sh               # Dual-method analysis engine
+│   ├── analyser-core.sh               # Dual-method analysis engine
 │   ├── codeowners-validator.sh        # Advanced validation
 │   ├── config.sh                      # Configuration system
 │   ├── succession.sh                  # Succession planning
@@ -828,7 +828,7 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 - Single tool with dual modes (basic + Claude AI)
 - Use `--claude` flag for AI-powered insights
 - Cost tracking automatically displays API usage
-- Removed separate `ownership-analyzer-claude.sh` file
+- Removed separate `ownership-analyser-claude.sh` file
 
 **Testing Status:**
 - ✅ Code Ownership: Fully tested with both modes
@@ -838,10 +838,10 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 **Example:**
 ```bash
 # Basic mode
-./ownership-analyzer.sh .
+./ownership-analyser.sh .
 
 # Claude AI mode  
-./ownership-analyzer.sh --claude .
+./ownership-analyser.sh --claude .
 
 # Shows cost at end:
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

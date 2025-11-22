@@ -125,7 +125,7 @@ Use team-based ownership where it makes sense.
 
 The skill includes bash scripts for offline analysis and CI/CD integration:
 
-#### ownership-analyzer.sh
+#### ownership-analyser.sh
 
 Basic ownership analysis using git commands without AI enhancement.
 
@@ -139,16 +139,16 @@ Basic ownership analysis using git commands without AI enhancement.
 **Usage:**
 ```bash
 # Analyze current directory (last 90 days)
-./ownership-analyzer.sh .
+./ownership-analyser.sh .
 
 # Analyze specific time period
-./ownership-analyzer.sh --days 180 /path/to/repo
+./ownership-analyser.sh --days 180 /path/to/repo
 
 # Generate JSON output
-./ownership-analyzer.sh --format json --output ownership.json .
+./ownership-analyser.sh --format json --output ownership.json .
 
 # Validate CODEOWNERS file
-./ownership-analyzer.sh --validate --codeowners .github/CODEOWNERS .
+./ownership-analyser.sh --validate --codeowners .github/CODEOWNERS .
 ```
 
 **Requirements:**
@@ -156,12 +156,12 @@ Basic ownership analysis using git commands without AI enhancement.
 - jq: `brew install jq`
 - bc: `brew install bc`
 
-#### ownership-analyzer-claude.sh
+#### ownership-analyser-claude.sh
 
 AI-enhanced analysis with Claude integration for intelligent insights.
 
 **Features:**
-- All features from basic analyzer
+- All features from basic analyser
 - Executive summaries with health assessment
 - Risk analysis and bus factor calculation
 - CODEOWNERS accuracy validation
@@ -183,13 +183,13 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 **Usage:**
 ```bash
 # Analyze with AI insights (uses .env file or environment variable)
-./ownership-analyzer-claude.sh .
+./ownership-analyser-claude.sh .
 
 # Specify time period
-./ownership-analyzer-claude.sh --days 90 /path/to/repo
+./ownership-analyser-claude.sh --days 90 /path/to/repo
 
 # Or specify API key directly (overrides .env)
-./ownership-analyzer-claude.sh --days 90 --api-key sk-ant-xxx /path/to/repo
+./ownership-analyser-claude.sh --days 90 --api-key sk-ant-xxx /path/to/repo
 ```
 
 **Output Includes:**
@@ -200,15 +200,15 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 5. **Recommendations** - Priority 1/2/3 actions with effort/impact estimates
 
 **Requirements:**
-- Same as basic analyzer
+- Same as basic analyser
 - Anthropic API key
 
-#### compare-analyzers.sh
+#### compare-analysers.sh
 
 Comparison tool showing value-add of AI enhancement.
 
 **Features:**
-- Runs both analyzers side-by-side
+- Runs both analysers side-by-side
 - Compares capabilities and outputs
 - Demonstrates AI value-add
 - Use case recommendations
@@ -216,10 +216,10 @@ Comparison tool showing value-add of AI enhancement.
 **Usage:**
 ```bash
 # Compare basic vs Claude analysis
-./compare-analyzers.sh /path/to/repo
+./compare-analysers.sh /path/to/repo
 
 # Specify time period
-./compare-analyzers.sh --days 180 --api-key sk-ant-xxx .
+./compare-analysers.sh --days 180 --api-key sk-ant-xxx .
 ```
 
 **Output:**
@@ -235,14 +235,14 @@ The [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org)
 
 ```bash
 # Analyze ownership of test repository
-./ownership-analyzer.sh https://github.com/Gibson-Powers-Test-Org/sample-repo
+./ownership-analyser.sh https://github.com/Gibson-Powers-Test-Org/sample-repo
 
 # Generate AI-enhanced ownership report
-./ownership-analyzer-claude.sh \
+./ownership-analyser-claude.sh \
   https://github.com/Gibson-Powers-Test-Org/sample-repo
 
 # Validate CODEOWNERS (if present in test repo)
-./ownership-analyzer.sh --validate \
+./ownership-analyser.sh --validate \
   --codeowners .github/CODEOWNERS \
   https://github.com/Gibson-Powers-Test-Org/sample-repo
 ```
@@ -274,14 +274,14 @@ jobs:
 
       - name: Basic Analysis
         run: |
-          ./skills/code-ownership/ownership-analyzer.sh \
+          ./skills/code-ownership/ownership-analyser.sh \
             --format json --output ownership-metrics.json .
 
       - name: AI-Enhanced Analysis (monthly)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          ./skills/code-ownership/ownership-analyzer-claude.sh . \
+          ./skills/code-ownership/ownership-analyser-claude.sh . \
             > ownership-report.md
 
       - name: Upload Results
@@ -297,7 +297,7 @@ jobs:
 ```yaml
 ownership_audit:
   script:
-    - ./skills/code-ownership/ownership-analyzer.sh --format json .
+    - ./skills/code-ownership/ownership-analyser.sh --format json .
   artifacts:
     reports:
       metrics: ownership-metrics.json
@@ -609,7 +609,7 @@ For questions, issues, or feature requests:
 ## 🔄 Recent Updates (v3.1)
 
 **Tool Consolidation:**
-- Single `ownership-analyzer.sh` tool replaces separate basic/Claude versions
+- Single `ownership-analyser.sh` tool replaces separate basic/Claude versions
 - `--claude` flag enables AI-powered analysis
 - Cost tracking automatically displays when using Claude
 - Note: Claude features fully tested

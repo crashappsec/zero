@@ -93,26 +93,26 @@ Timeline: 3 months
 
 The skill includes bash scripts for automated analysis:
 
-#### dora-analyzer.sh
+#### dora-analyser.sh
 
 Basic DORA metrics calculation without AI enhancement.
 
 ```bash
 # Analyze deployment data
-./dora-analyzer.sh deployment-data.json
+./dora-analyser.sh deployment-data.json
 
 # Export to JSON
-./dora-analyzer.sh --format json --output metrics.json deployment-data.json
+./dora-analyser.sh --format json --output metrics.json deployment-data.json
 
 # Export to CSV
-./dora-analyzer.sh --format csv --output metrics.csv deployment-data.json
+./dora-analyser.sh --format csv --output metrics.csv deployment-data.json
 ```
 
 **Requirements:**
 - jq: `brew install jq`
 - bc: `brew install bc`
 
-#### dora-analyzer-claude.sh
+#### dora-analyser-claude.sh
 
 AI-enhanced analysis with insights and recommendations.
 
@@ -121,10 +121,10 @@ AI-enhanced analysis with insights and recommendations.
 export ANTHROPIC_API_KEY=sk-ant-xxx
 
 # Analyze with AI insights
-./dora-analyzer-claude.sh deployment-data.json
+./dora-analyser-claude.sh deployment-data.json
 
 # Specify API key directly
-./dora-analyzer-claude.sh --api-key sk-ant-xxx deployment-data.json
+./dora-analyser-claude.sh --api-key sk-ant-xxx deployment-data.json
 ```
 
 **Output Includes:**
@@ -135,16 +135,16 @@ export ANTHROPIC_API_KEY=sk-ant-xxx
 5. Roadmap - Short/medium/long-term actions
 
 **Requirements:**
-- Same as basic analyzer
+- Same as basic analyser
 - Anthropic API key
 
-#### compare-analyzers.sh
+#### compare-analysers.sh
 
 Comparison tool showing value-add of AI enhancement.
 
 ```bash
 # Compare basic vs Claude analysis
-./compare-analyzers.sh deployment-data.json
+./compare-analysers.sh deployment-data.json
 ```
 
 ### Test with Safe Repositories
@@ -155,10 +155,10 @@ The [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org)
 
 ```bash
 # Analyze test repository deployment patterns
-./dora-analyzer.sh --repo https://github.com/Gibson-Powers-Test-Org/sample-repo
+./dora-analyser.sh --repo https://github.com/Gibson-Powers-Test-Org/sample-repo
 
 # Generate sample deployment data from test repo
-./dora-analyzer-claude.sh \
+./dora-analyser-claude.sh \
   --extract-from-git https://github.com/Gibson-Powers-Test-Org/sample-repo
 ```
 
@@ -267,14 +267,14 @@ Identify best practices to share and areas needing help.
 ```yaml
 - name: Calculate DORA Metrics
   run: |
-    ./dora-analyzer.sh --format json --output metrics.json deployment-data.json
+    ./dora-analyser.sh --format json --output metrics.json deployment-data.json
 
 - name: AI Analysis (on main)
   if: github.ref == 'refs/heads/main'
   env:
     ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
   run: |
-    ./dora-analyzer-claude.sh deployment-data.json > dora-report.txt
+    ./dora-analyser-claude.sh deployment-data.json > dora-report.txt
 ```
 
 ### GitLab CI
@@ -282,7 +282,7 @@ Identify best practices to share and areas needing help.
 ```yaml
 dora_metrics:
   script:
-    - ./dora-analyzer.sh deployment-data.json
+    - ./dora-analyser.sh deployment-data.json
   artifacts:
     reports:
       metrics: metrics.json
@@ -329,9 +329,9 @@ dora_metrics:
 - [Accelerate book](https://www.oreilly.com/library/view/accelerate/9781457191435/) - Foundational research
 
 ### Related Skills
-- [Chalk Build Analyzer](../chalk-build-analyzer/) - Build performance metrics
-- [SBOM Analyzer](../sbom-analyzer/) - Supply chain security
-- [Certificate Analyzer](../certificate-analyzer/) - TLS/SSL analysis
+- [Chalk Build Analyser](../chalk-build-analyser/) - Build performance metrics
+- [SBOM Analyser](../sbom-analyser/) - Supply chain security
+- [Certificate Analyser](../certificate-analyser/) - TLS/SSL analysis
 
 ## Contributing
 
@@ -360,7 +360,7 @@ This skill is licensed under GPL-3.0. See [LICENSE](../../LICENSE) for details.
 ## 🔄 Recent Updates (v3.1)
 
 **Tool Consolidation:**
-- Single `dora-analyzer.sh` tool replaces separate versions
+- Single `dora-analyser.sh` tool replaces separate versions
 - `--claude` flag enables AI-powered analysis
 - Cost tracking automatically displays when using Claude
 - Note: Claude features fully tested
@@ -368,8 +368,8 @@ This skill is licensed under GPL-3.0. See [LICENSE](../../LICENSE) for details.
 **Usage:**
 ```bash
 # Basic DORA metrics
-./dora-analyzer.sh deployment-data.json
+./dora-analyser.sh deployment-data.json
 
 # AI-enhanced with cost tracking
-./dora-analyzer.sh --claude deployment-data.json
+./dora-analyser.sh --claude deployment-data.json
 ```

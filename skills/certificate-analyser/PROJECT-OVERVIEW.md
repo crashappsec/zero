@@ -15,13 +15,13 @@ A complete certificate analysis system consisting of:
    - Detailed instructions on data retrieval, analysis criteria, and report generation
    - Can be used standalone with Claude or as a skill
 
-2. **Bash Script** (`cert-analyzer.sh`)
+2. **Bash Script** (`cert-analyser.sh`)
    - Production-ready executable script
    - Automated certificate retrieval and analysis
    - Generates professional markdown reports
    - ~600 lines of robust bash with error handling
 
-3. **Documentation** (`cert-analyzer-README.md`)
+3. **Documentation** (`cert-analyser-README.md`)
    - Complete usage guide with examples
    - Troubleshooting section
    - Integration examples (CI/CD, Kubernetes, scheduled monitoring)
@@ -63,10 +63,10 @@ A complete certificate analysis system consisting of:
 
 ```bash
 # Make the script executable
-chmod +x cert-analyzer.sh
+chmod +x cert-analyser.sh
 
 # Analyze a domain
-./cert-analyzer.sh example.com
+./cert-analyser.sh example.com
 
 # View the generated report
 cat certificate-analysis-example.com-*.md
@@ -148,7 +148,7 @@ Each report contains 7 major sections:
 ### 1. Security Audits
 Run before audits to identify certificate issues proactively:
 ```bash
-./cert-analyzer.sh production-domain.com
+./cert-analyser.sh production-domain.com
 grep -E "❌|⚠️" certificate-analysis-*.md
 ```
 
@@ -156,7 +156,7 @@ grep -E "❌|⚠️" certificate-analysis-*.md
 Generate evidence of certificate compliance:
 ```bash
 for domain in $(cat domains.txt); do
-    ./cert-analyzer.sh "$domain"
+    ./cert-analyser.sh "$domain"
 done
 # Aggregate reports for compliance documentation
 ```
@@ -164,7 +164,7 @@ done
 ### 3. Incident Response
 Quickly analyze certificates during security incidents:
 ```bash
-./cert-analyzer.sh suspicious-domain.com
+./cert-analyser.sh suspicious-domain.com
 # Review signature algorithms, issuers, CT logs
 ```
 
@@ -172,9 +172,9 @@ Quickly analyze certificates during security incidents:
 Build comprehensive certificate inventory:
 ```bash
 # Scan all production domains
-./cert-analyzer.sh api.example.com
-./cert-analyzer.sh www.example.com
-./cert-analyzer.sh admin.example.com
+./cert-analyser.sh api.example.com
+./cert-analyser.sh www.example.com
+./cert-analyser.sh admin.example.com
 # Store reports in git for historical tracking
 ```
 
@@ -182,7 +182,7 @@ Build comprehensive certificate inventory:
 Proactive certificate lifecycle management:
 ```bash
 # Daily cron job
-0 6 * * * /usr/local/bin/cert-analyzer.sh production.com | grep "⚠️\|❌"
+0 6 * * * /usr/local/bin/cert-analyser.sh production.com | grep "⚠️\|❌"
 ```
 
 ## Integration Patterns
@@ -193,7 +193,7 @@ Proactive certificate lifecycle management:
 certificate-check:
   stage: test
   script:
-    - ./cert-analyzer.sh $CI_ENVIRONMENT_URL
+    - ./cert-analyser.sh $CI_ENVIRONMENT_URL
     - if grep -q "❌" certificate-*.md; then exit 1; fi
   artifacts:
     paths:
@@ -213,14 +213,14 @@ spec:
       template:
         spec:
           containers:
-          - name: cert-analyzer
+          - name: cert-analyser
             image: alpine:latest
             command: ["/bin/sh", "-c"]
             args:
               - apk add --no-cache bash openssl curl;
-                curl -o cert-analyzer.sh https://your-repo/cert-analyzer.sh;
-                chmod +x cert-analyzer.sh;
-                ./cert-analyzer.sh your-domain.com;
+                curl -o cert-analyser.sh https://your-repo/cert-analyser.sh;
+                chmod +x cert-analyser.sh;
+                ./cert-analyser.sh your-domain.com;
 ```
 
 ### Slack Notifications
@@ -231,7 +231,7 @@ spec:
 DOMAIN="$1"
 WEBHOOK_URL="$2"
 
-./cert-analyzer.sh "$DOMAIN"
+./cert-analyser.sh "$DOMAIN"
 
 if grep -q "❌" certificate-*.md; then
     curl -X POST "$WEBHOOK_URL" \
@@ -373,15 +373,15 @@ Potential improvements (contributions welcome):
 
 ### Command Syntax
 ```bash
-./cert-analyzer.sh <domain>
+./cert-analyser.sh <domain>
 ```
 
 ### Example Domains
 ```bash
-./cert-analyzer.sh example.com          # Basic usage
-./cert-analyzer.sh www.github.com       # With subdomain
-./cert-analyzer.sh api.stripe.com       # API endpoint
-./cert-analyzer.sh https://google.com   # Auto-strips protocol
+./cert-analyser.sh example.com          # Basic usage
+./cert-analyser.sh www.github.com       # With subdomain
+./cert-analyser.sh api.stripe.com       # API endpoint
+./cert-analyser.sh https://google.com   # Auto-strips protocol
 ```
 
 ### Report File Naming
@@ -400,17 +400,17 @@ certificate-analysis-{domain}-{YYYYMMDD-HHMMSS}.md
 ```
 certificate-analysis-system/
 ├── certificate-analysis-prompt.md     # Technical prompt for Claude
-├── cert-analyzer.sh                   # Executable bash script
-├── cert-analyzer-README.md            # Usage documentation
+├── cert-analyser.sh                   # Executable bash script
+├── cert-analyser-README.md            # Usage documentation
 ├── sample-certificate-analysis-report.md  # Example output
 └── PROJECT-OVERVIEW.md                # This file
 ```
 
 ## Getting Started Checklist
 
-- [ ] Download `cert-analyzer.sh`
-- [ ] Make executable: `chmod +x cert-analyzer.sh`
-- [ ] Test on a domain: `./cert-analyzer.sh example.com`
+- [ ] Download `cert-analyser.sh`
+- [ ] Make executable: `chmod +x cert-analyser.sh`
+- [ ] Test on a domain: `./cert-analyser.sh example.com`
 - [ ] Review generated report
 - [ ] Set up scheduled monitoring
 - [ ] Integrate into CI/CD
@@ -423,7 +423,7 @@ This tool was created to help teams manage certificates in light of CA/Browser F
 
 **Version**: 1.0  
 **Last Updated**: November 2024  
-**Author**: Certificate Security Analyzer Project
+**Author**: Certificate Security Analyser Project
 
 ---
 

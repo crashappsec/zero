@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# BUILD: Package Health Analyzer Implementation Prompt
+# BUILD: Package Health Analyser Implementation Prompt
 
 **Purpose**: Build a comprehensive package health analysis system for identifying risks and operational improvement opportunities across an organization's software packages.
 
@@ -23,13 +23,13 @@ Build tools that analyze package health across repositories to identify:
 
 ### Two-Tiered Analysis System
 
-**1. Base Scanner** (`package-health-analyzer.sh`):
+**1. Base Scanner** (`package-health-analyser.sh`):
 - Collects package health data from multiple sources
 - Performs basic analysis and scoring
 - Generates structured reports
 - Fast, automated, suitable for CI/CD
 
-**2. AI-Enhanced Analyzer** (`package-health-analyzer-claude.sh`):
+**2. AI-Enhanced Analyser** (`package-health-analyser-claude.sh`):
 - Deep analysis using Claude
 - Contextual recommendations
 - Chain of reasoning with other supply chain tools
@@ -40,13 +40,13 @@ Build tools that analyze package health across repositories to identify:
 
 **Chain of Reasoning Pattern**:
 ```bash
-# The package health analyzer should orchestrate other tools:
+# The package health analyser should orchestrate other tools:
 
 1. Generate/use existing SBOM → supply-chain-scanner.sh
-2. Analyze vulnerabilities → vulnerability-analyzer.sh
-3. Check provenance → provenance-analyzer.sh (if needed)
-4. Assess package health → package-health-analyzer.sh (new)
-5. AI synthesis → package-health-analyzer-claude.sh (new)
+2. Analyze vulnerabilities → vulnerability-analyser.sh
+3. Check provenance → provenance-analyser.sh (if needed)
+4. Assess package health → package-health-analyser.sh (new)
+5. AI synthesis → package-health-analyser-claude.sh (new)
 ```
 
 ## Directory Structure
@@ -55,9 +55,9 @@ Create the following structure in `utils/supply-chain/package-health-analysis/`:
 
 ```
 utils/supply-chain/package-health-analysis/
-├── package-health-analyzer.sh          # Base health analyzer
-├── package-health-analyzer-claude.sh   # AI-enhanced analyzer
-├── compare-analyzers.sh                # Compare base vs AI results
+├── package-health-analyser.sh          # Base health analyser
+├── package-health-analyser-claude.sh   # AI-enhanced analyser
+├── compare-analysers.sh                # Compare base vs AI results
 ├── lib/
 │   ├── deps-dev-client.sh              # deps.dev API client
 │   ├── health-scoring.sh               # Health score calculation
@@ -72,12 +72,12 @@ Also create skill file in `skills/supply-chain/`:
 
 ```
 skills/supply-chain/
-└── package-health-analyzer.skill       # Claude skill file
+└── package-health-analyser.skill       # Claude skill file
 ```
 
 ## Implementation Specifications
 
-### 1. Base Analyzer (`package-health-analyzer.sh`)
+### 1. Base Analyser (`package-health-analyser.sh`)
 
 **Input Sources**:
 - SBOM files (CycloneDX/SPDX)
@@ -153,8 +153,8 @@ Heuristics:
 - Dev dependencies in production manifests
 - Leftover from removed features
 
-Note: Base analyzer flags potential unused packages
-      AI analyzer provides deeper code analysis
+Note: Base analyser flags potential unused packages
+      AI analyser provides deeper code analysis
 ```
 
 **Output Format**:
@@ -164,7 +164,7 @@ Note: Base analyzer flags potential unused packages
     "timestamp": "2024-11-21T10:30:00Z",
     "repositories_scanned": 15,
     "packages_analyzed": 342,
-    "analyzer_version": "1.0.0"
+    "analyser_version": "1.0.0"
   },
   "summary": {
     "total_packages": 342,
@@ -228,7 +228,7 @@ Note: Base analyzer flags potential unused packages
 }
 ```
 
-### 2. AI-Enhanced Analyzer (`package-health-analyzer-claude.sh`)
+### 2. AI-Enhanced Analyser (`package-health-analyser-claude.sh`)
 
 **Purpose**: Provide deep analysis and actionable recommendations using Claude with chain of reasoning.
 
@@ -236,19 +236,19 @@ Note: Base analyzer flags potential unused packages
 
 ```bash
 #!/bin/bash
-# package-health-analyzer-claude.sh
+# package-health-analyser-claude.sh
 
 # Step 1: Generate base analysis
 echo "Step 1/5: Running base package health analysis..."
-BASE_RESULTS=$(./package-health-analyzer.sh "$@")
+BASE_RESULTS=$(./package-health-analyser.sh "$@")
 
 # Step 2: Integrate vulnerability analysis
 echo "Step 2/5: Analyzing vulnerabilities..."
-VULN_RESULTS=$(../vulnerability-analysis/vulnerability-analyzer.sh --sbom "$SBOM")
+VULN_RESULTS=$(../vulnerability-analysis/vulnerability-analyser.sh --sbom "$SBOM")
 
 # Step 3: Check provenance (if needed)
 echo "Step 3/5: Checking provenance..."
-PROV_RESULTS=$(../provenance-analysis/provenance-analyzer.sh --sbom "$SBOM")
+PROV_RESULTS=$(../provenance-analysis/provenance-analyser.sh --sbom "$SBOM")
 
 # Step 4: Prepare context for Claude
 echo "Step 4/5: Preparing analysis context..."
@@ -407,19 +407,19 @@ Provide a comprehensive markdown report with:
 Use clear sections, bullet points, and code examples where helpful.
 ````
 
-### 3. Integration Skill (`package-health-analyzer.skill`)
+### 3. Integration Skill (`package-health-analyser.skill`)
 
 **Skill File Structure**:
 
 ```markdown
 ---
-name: package-health-analyzer
+name: package-health-analyser
 description: Analyze package health across repositories to identify risks and operational improvements
 version: 1.0.0
 status: experimental
 ---
 
-# Package Health Analyzer
+# Package Health Analyser
 
 Comprehensive analysis of software packages across your organization to identify:
 - Deprecated packages requiring migration
@@ -433,11 +433,11 @@ Comprehensive analysis of software packages across your organization to identify
 ### Quick Start
 ```bash
 # Analyze single repository
-./utils/supply-chain/package-health-analysis/package-health-analyzer-claude.sh \
+./utils/supply-chain/package-health-analysis/package-health-analyser-claude.sh \
   --repo owner/repo
 
 # Analyze entire organization
-./utils/supply-chain/package-health-analysis/package-health-analyzer-claude.sh \
+./utils/supply-chain/package-health-analysis/package-health-analyser-claude.sh \
   --org myorg
 ```
 
@@ -522,9 +522,9 @@ See `utils/supply-chain/package-health-analysis/config.example.json`:
 **User**: "Analyze package health across my organization and identify the top risks"
 
 **Assistant**:
-I'll analyze your organization's packages using the package health analyzer with AI enhancements.
+I'll analyze your organization's packages using the package health analyser with AI enhancements.
 
-*Runs: package-health-analyzer-claude.sh --org your-org*
+*Runs: package-health-analyser-claude.sh --org your-org*
 
 Based on the analysis of 342 packages across 15 repositories:
 
@@ -580,7 +580,7 @@ jobs:
 
       - name: Run Package Health Analysis
         run: |
-          ./utils/supply-chain/package-health-analysis/package-health-analyzer.sh \
+          ./utils/supply-chain/package-health-analysis/package-health-analyser.sh \
             --repo ${{ github.repository }} \
             --format json > health-report.json
 
@@ -595,19 +595,19 @@ jobs:
 
 ## References
 
-- [Requirements Document](../../prompts/supply-chain/package-health-analyzer-requirements.md)
+- [Requirements Document](../../prompts/supply-chain/package-health-analyser-requirements.md)
 - [deps.dev API Documentation](../../rag/supply-chain/package-health/deps-dev-api.md)
 - [Best Practices](../../rag/supply-chain/package-health/package-management-best-practices.md)
-- [Supply Chain Scanner](./supply-chain-analyzer.skill)
+- [Supply Chain Scanner](./supply-chain-analyser.skill)
 ```
 
 ## Implementation Checklist
 
-### Phase 1: Base Analyzer (Week 1-2)
+### Phase 1: Base Analyser (Week 1-2)
 - [ ] Create directory structure
 - [ ] Implement deps.dev API client (`lib/deps-dev-client.sh`)
 - [ ] Build health scoring engine (`lib/health-scoring.sh`)
-- [ ] Implement base analyzer script (`package-health-analyzer.sh`)
+- [ ] Implement base analyser script (`package-health-analyser.sh`)
 - [ ] Add multi-repo scanning support
 - [ ] Create JSON output format
 - [ ] Write basic tests
@@ -616,12 +616,12 @@ jobs:
 - [ ] Build version analysis module (`lib/version-analysis.sh`)
 - [ ] Implement deprecation checker (`lib/deprecation-checker.sh`)
 - [ ] Add unused package detection
-- [ ] Create comparison tool (`compare-analyzers.sh`)
+- [ ] Create comparison tool (`compare-analysers.sh`)
 - [ ] Add configuration system
 - [ ] Write documentation
 
 ### Phase 3: AI Enhancement (Week 3-4)
-- [ ] Implement Claude integration (`package-health-analyzer-claude.sh`)
+- [ ] Implement Claude integration (`package-health-analyser-claude.sh`)
 - [ ] Build chain of reasoning workflow
 - [ ] Create AI prompt templates
 - [ ] Add context preparation logic
@@ -629,7 +629,7 @@ jobs:
 - [ ] Test with real scenarios
 
 ### Phase 4: Skill Integration (Week 4)
-- [ ] Create skill file (`package-health-analyzer.skill`)
+- [ ] Create skill file (`package-health-analyser.skill`)
 - [ ] Write comprehensive README
 - [ ] Add usage examples
 - [ ] Create CHANGELOG
@@ -654,7 +654,7 @@ if [ ! -f "$SBOM_FILE" ]; then
 fi
 
 # Reuse vulnerability analysis
-VULNS=$(../vulnerability-analysis/vulnerability-analyzer.sh --sbom "$SBOM_FILE")
+VULNS=$(../vulnerability-analysis/vulnerability-analyser.sh --sbom "$SBOM_FILE")
 
 # Build on existing config system
 CONFIG=$(../../lib/config-loader.sh load package-health-analysis)
@@ -662,7 +662,7 @@ CONFIG=$(../../lib/config-loader.sh load package-health-analysis)
 
 ### 2. Chain of Reasoning Pattern
 ```bash
-# Each analyzer should:
+# Each analyser should:
 1. Accept input from previous stage
 2. Perform its specific analysis
 3. Output structured JSON
@@ -685,11 +685,11 @@ JSON     + JSON        + JSON      + JSON    = Final Report
 
 ### 4. Progressive Enhancement
 ```bash
-# Base analyzer: Fast, automated, basic insights
-./package-health-analyzer.sh  # 30 seconds
+# Base analyser: Fast, automated, basic insights
+./package-health-analyser.sh  # 30 seconds
 
-# AI analyzer: Deeper, contextual, actionable
-./package-health-analyzer-claude.sh  # 2-3 minutes
+# AI analyser: Deeper, contextual, actionable
+./package-health-analyser-claude.sh  # 2-3 minutes
 ```
 
 ## API Integration Requirements
@@ -759,14 +759,14 @@ e2e-tests/
 
 ## Success Criteria
 
-**Base Analyzer**:
+**Base Analyser**:
 - [ ] Scans 100+ packages in < 2 minutes
 - [ ] Accurate health scoring (validated against manual assessment)
 - [ ] Deprecation detection for major ecosystems (npm, PyPI, Maven)
 - [ ] Version inconsistency detection across repos
 - [ ] Clean JSON output format
 
-**AI Analyzer**:
+**AI Analyser**:
 - [ ] Provides actionable recommendations
 - [ ] Accurate risk assessment
 - [ ] Practical migration guides
@@ -784,7 +784,7 @@ e2e-tests/
 ### Use Case 1: Security Audit
 ```bash
 # Find all packages with security concerns
-./package-health-analyzer-claude.sh \
+./package-health-analyser-claude.sh \
   --org myorg \
   --filter "deprecated=true OR health_score<60" \
   --output security-audit.md
@@ -793,7 +793,7 @@ e2e-tests/
 ### Use Case 2: Version Standardization
 ```bash
 # Identify version inconsistencies
-./package-health-analyzer.sh \
+./package-health-analyser.sh \
   --org myorg \
   --analyze-versions \
   --output version-report.json
@@ -802,7 +802,7 @@ e2e-tests/
 ### Use Case 3: Tech Debt Reduction
 ```bash
 # Full analysis with recommendations
-./package-health-analyzer-claude.sh \
+./package-health-analyser-claude.sh \
   --org myorg \
   --include-unused \
   --include-recommendations \
@@ -829,11 +829,11 @@ e2e-tests/
 
 ## References
 
-- [Complete Requirements](./package-health-analyzer-requirements.md)
+- [Complete Requirements](./package-health-analyser-requirements.md)
 - [deps.dev API Reference](../../rag/supply-chain/package-health/deps-dev-api.md)
 - [Package Management Best Practices](../../rag/supply-chain/package-health/package-management-best-practices.md)
 - [Supply Chain Scanner](../../utils/supply-chain/supply-chain-scanner.sh)
-- [Vulnerability Analyzer](../../utils/supply-chain/vulnerability-analysis/)
+- [Vulnerability Analyser](../../utils/supply-chain/vulnerability-analysis/)
 
 ---
 

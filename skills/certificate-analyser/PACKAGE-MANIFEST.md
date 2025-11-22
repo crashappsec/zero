@@ -4,18 +4,18 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# 📦 Certificate Analyzer with Claude AI - Complete Package Manifest
+# 📦 Certificate Analyser with Claude AI - Complete Package Manifest
 
 ## 🎯 START HERE
 
-### **🌟 certificate-analyzer.skill** (16 KB) - RECOMMENDED
+### **🌟 certificate-analyser.skill** (16 KB) - RECOMMENDED
 **The complete skill package for Claude**
 
 Import this file into Claude for the easiest, most powerful experience. Just upload the .skill file and ask Claude to analyze any domain - that's it!
 
 **Installation:**
 ```
-Claude Settings → Skills → Import Skill → Upload certificate-analyzer.skill
+Claude Settings → Skills → Import Skill → Upload certificate-analyser.skill
 ```
 
 **Usage:**
@@ -29,19 +29,19 @@ Claude Settings → Skills → Import Skill → Upload certificate-analyzer.skil
 
 ### Core Files
 
-#### **certificate-analyzer.skill** ⭐ (16 KB)
+#### **certificate-analyser.skill** ⭐ (16 KB)
 - **Type**: Distributable skill package (ZIP format)
-- **Contains**: SKILL.md + cert-analyzer script + analysis guidelines
+- **Contains**: SKILL.md + cert-analyser script + analysis guidelines
 - **Use**: Import into Claude for AI-powered certificate analysis
 - **Best for**: Claude users who want seamless integration
 
-#### **cert-analyzer-claude.sh** 🚀 (23 KB)
+#### **cert-analyser-claude.sh** 🚀 (23 KB)
 - **Type**: Bash script with Claude API integration
 - **Requires**: ANTHROPIC_API_KEY environment variable
-- **Use**: Standalone command-line certificate analyzer
+- **Use**: Standalone command-line certificate analyser
 - **Best for**: CI/CD pipelines, automation, scheduled monitoring
 
-#### **cert-analyzer.sh** 📊 (24 KB)
+#### **cert-analyser.sh** 📊 (24 KB)
 - **Type**: Basic bash script (no Claude integration)
 - **Requires**: Only openssl, curl, standard utilities
 - **Use**: Quick certificate checks without API key
@@ -78,7 +78,7 @@ Claude Settings → Skills → Import Skill → Upload certificate-analyzer.skil
 - Integration patterns
 - Roadmap
 
-#### **cert-analyzer-README.md** 📄 (10 KB)
+#### **cert-analyser-README.md** 📄 (10 KB)
 **Original documentation:**
 - Detailed script usage
 - Network configuration
@@ -103,24 +103,24 @@ Claude Settings → Skills → Import Skill → Upload certificate-analyzer.skil
 
 ## 🎬 Quick Start by Preference
 
-### "I Use Claude" → certificate-analyzer.skill
+### "I Use Claude" → certificate-analyser.skill
 ```
 1. Import into Claude (Settings → Skills)
 2. Ask: "Analyze the certificate for example.com"
 3. Get comprehensive AI-powered report
 ```
 
-### "I Want CLI Control" → cert-analyzer-claude.sh
+### "I Want CLI Control" → cert-analyser-claude.sh
 ```bash
 export ANTHROPIC_API_KEY="sk-ant-..."
-chmod +x cert-analyzer-claude.sh
-./cert-analyzer-claude.sh example.com
+chmod +x cert-analyser-claude.sh
+./cert-analyser-claude.sh example.com
 ```
 
-### "I Don't Have API Key" → cert-analyzer.sh
+### "I Don't Have API Key" → cert-analyser.sh
 ```bash
-chmod +x cert-analyzer.sh
-./cert-analyzer.sh example.com
+chmod +x cert-analyser.sh
+./cert-analyser.sh example.com
 ```
 
 ---
@@ -129,9 +129,9 @@ chmod +x cert-analyzer.sh
 
 | File | API Key Required? | Where Set |
 |------|-------------------|-----------|
-| certificate-analyzer.skill | ❌ No (handled by Claude) | N/A |
-| cert-analyzer-claude.sh | ✅ Yes | Environment variable |
-| cert-analyzer.sh | ❌ No | N/A |
+| certificate-analyser.skill | ❌ No (handled by Claude) | N/A |
+| cert-analyser-claude.sh | ✅ Yes | Environment variable |
+| cert-analyser.sh | ❌ No | N/A |
 
 **Getting API Key:**
 1. Visit https://console.anthropic.com
@@ -160,19 +160,19 @@ chmod +x cert-analyzer.sh
 ## 🎯 Use Case → File Mapping
 
 ### Security Audits
-→ Use **skill** or **cert-analyzer-claude.sh** for comprehensive AI analysis
+→ Use **skill** or **cert-analyser-claude.sh** for comprehensive AI analysis
 
 ### Expiration Monitoring
-→ Use **cert-analyzer-claude.sh** in cron jobs
+→ Use **cert-analyser-claude.sh** in cron jobs
 
 ### CI/CD Pipeline
-→ Use **cert-analyzer-claude.sh** or **cert-analyzer.sh**
+→ Use **cert-analyser-claude.sh** or **cert-analyser.sh**
 
 ### Quick Manual Check
-→ Use **skill** (easiest) or **cert-analyzer.sh** (fastest)
+→ Use **skill** (easiest) or **cert-analyser.sh** (fastest)
 
 ### Compliance Reporting
-→ Use **skill** or **cert-analyzer-claude.sh** for detailed recommendations
+→ Use **skill** or **cert-analyser-claude.sh** for detailed recommendations
 
 ---
 
@@ -252,7 +252,7 @@ yum install openssl curl jq            # RHEL/CentOS
 export ANTHROPIC_API_KEY="sk-ant-..."
 domains=(api.example.com www.example.com)
 for d in "${domains[@]}"; do
-    ./cert-analyzer-claude.sh "$d"
+    ./cert-analyser-claude.sh "$d"
 done
 ```
 
@@ -260,14 +260,14 @@ done
 ```yaml
 certificate-check:
   script:
-    - ./cert-analyzer-claude.sh $PROD_DOMAIN
+    - ./cert-analyser-claude.sh $PROD_DOMAIN
     - if grep -q "❌" *.md; then exit 1; fi
 ```
 
 ### Bulk Analysis
 ```bash
 cat domains.txt | while read domain; do
-    ./cert-analyzer-claude.sh "$domain"
+    ./cert-analyser-claude.sh "$domain"
     sleep 2  # Rate limiting
 done
 ```
@@ -336,7 +336,7 @@ Before you start:
 
 ### Operations Teams
 - Use **skill** for ad-hoc checks
-- Use **cert-analyzer-claude.sh** for scheduled monitoring
+- Use **cert-analyser-claude.sh** for scheduled monitoring
 - Set up alerts for 30/14/7 day expiration
 - Document renewal procedures
 
@@ -347,7 +347,7 @@ Before you start:
 - Use AI recommendations for policy updates
 
 ### Development Teams
-- Integrate **cert-analyzer-claude.sh** in CI/CD
+- Integrate **cert-analyser-claude.sh** in CI/CD
 - Test certificate renewals in staging
 - Plan ACME protocol adoption
 - Infrastructure as Code for cert management
@@ -360,15 +360,15 @@ Before you start:
 Total Package: ~120 KB
 
 Core Files:
-  certificate-analyzer.skill      16 KB  ⭐
-  cert-analyzer-claude.sh         23 KB  🚀
-  cert-analyzer.sh                24 KB  📊
+  certificate-analyser.skill      16 KB  ⭐
+  cert-analyser-claude.sh         23 KB  🚀
+  cert-analyser.sh                24 KB  📊
 
 Documentation:
   README.md                       14 KB  📖
   PROJECT-OVERVIEW.md             12 KB  🔍
   sample-certificate-report.md    11 KB  📊
-  cert-analyzer-README.md         10 KB  📄
+  cert-analyser-README.md         10 KB  📄
   certificate-analysis-prompt.md   8 KB  📝
   QUICK-START.md                   2 KB  ⚡
 ```
@@ -385,7 +385,7 @@ Everything you need is in this package:
 ✅ Integration guides  
 ✅ Troubleshooting help  
 
-**Start with certificate-analyzer.skill for the easiest experience!**
+**Start with certificate-analyser.skill for the easiest experience!**
 
 Questions? Check README.md for detailed guidance.
 

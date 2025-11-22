@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Supply Chain Security Analyzer
+# Supply Chain Security Analyser
 
 **Status**: 🚀 Beta
 
@@ -14,7 +14,7 @@ Feature-complete with comprehensive testing. Ready for broader use with active d
 
 ## Overview
 
-The Supply Chain Security Analyzer provides modular analysis capabilities for software supply chain security:
+The Supply Chain Security Analyser provides modular analysis capabilities for software supply chain security:
 
 - **Vulnerability Analysis**: Identifies security vulnerabilities in dependencies using OSV and deps.dev
 - **Provenance Analysis**: Verifies SLSA build provenance and cryptographic signatures
@@ -64,14 +64,14 @@ Test with the [Gibson Powers Test Organization](https://github.com/Gibson-Powers
 
 ```bash
 # Test vulnerability analysis
-./vulnerability-analysis/vulnerability-analyzer.sh --org Gibson-Powers-Test-Org
+./vulnerability-analysis/vulnerability-analyser.sh --org Gibson-Powers-Test-Org
 
 # Test with Claude AI analysis
 export ANTHROPIC_API_KEY="your-key"
-./vulnerability-analysis/vulnerability-analyzer.sh --claude --org Gibson-Powers-Test-Org
+./vulnerability-analysis/vulnerability-analyser.sh --claude --org Gibson-Powers-Test-Org
 
 # Test provenance analysis
-./provenance-analysis/provenance-analyzer.sh --org Gibson-Powers-Test-Org
+./provenance-analysis/provenance-analyser.sh --org Gibson-Powers-Test-Org
 ```
 
 ## Architecture
@@ -81,14 +81,14 @@ supply-chain/
 ├── supply-chain-scanner.sh          # Central orchestrator
 ├── config.example.json              # Module configuration template
 ├── vulnerability-analysis/
-│   └── vulnerability-analyzer.sh    # Unified analyzer (base + --claude mode)
+│   └── vulnerability-analyser.sh    # Unified analyser (base + --claude mode)
 ├── provenance-analysis/
-│   └── provenance-analyzer.sh       # Unified analyzer (base + --claude mode)
+│   └── provenance-analyser.sh       # Unified analyser (base + --claude mode)
 └── package-health-analysis/
-    └── package-health-analyzer.sh   # Unified analyzer (base + --claude mode)
+    └── package-health-analyser.sh   # Unified analyser (base + --claude mode)
 ```
 
-All analyzers support dual modes:
+All analysers support dual modes:
 - **Base mode** (default): Standard analysis without API costs
 - **Claude mode** (`--claude`): AI-enhanced insights with cost tracking
 
@@ -109,20 +109,20 @@ Identifies and prioritizes security vulnerabilities in software dependencies.
 **Usage**:
 ```bash
 # Basic analysis (no API costs)
-./vulnerability-analysis/vulnerability-analyzer.sh --prioritize owner/repo
+./vulnerability-analysis/vulnerability-analyser.sh --prioritize owner/repo
 
 # AI-enhanced analysis with Claude
 export ANTHROPIC_API_KEY="your-key"
-./vulnerability-analysis/vulnerability-analyzer.sh --claude --prioritize owner/repo
+./vulnerability-analysis/vulnerability-analyser.sh --claude --prioritize owner/repo
 
 # Scan entire organization
-./vulnerability-analysis/vulnerability-analyzer.sh --claude --org myorg
+./vulnerability-analysis/vulnerability-analyser.sh --claude --org myorg
 
 # Generate JSON output
-./vulnerability-analysis/vulnerability-analyzer.sh --format json owner/repo
+./vulnerability-analysis/vulnerability-analyser.sh --format json owner/repo
 
 # All options
-./vulnerability-analysis/vulnerability-analyzer.sh --help
+./vulnerability-analysis/vulnerability-analyser.sh --help
 ```
 
 **Arguments**:
@@ -150,23 +150,23 @@ Verifies SLSA build provenance and supply chain attestations.
 **Usage**:
 ```bash
 # Basic SLSA provenance analysis
-./provenance-analysis/provenance-analyzer.sh owner/repo
+./provenance-analysis/provenance-analyser.sh owner/repo
 
 # AI-enhanced analysis with Claude
 export ANTHROPIC_API_KEY="your-key"
-./provenance-analysis/provenance-analyzer.sh --claude owner/repo
+./provenance-analysis/provenance-analyser.sh --claude owner/repo
 
 # Verify cryptographic signatures
-./provenance-analysis/provenance-analyzer.sh --verify-signatures owner/repo
+./provenance-analysis/provenance-analyser.sh --verify-signatures owner/repo
 
 # Require minimum SLSA level
-./provenance-analysis/provenance-analyzer.sh --min-level 2 --strict owner/repo
+./provenance-analysis/provenance-analyser.sh --min-level 2 --strict owner/repo
 
 # Scan entire organization
-./provenance-analysis/provenance-analyzer.sh --claude --org myorg
+./provenance-analysis/provenance-analyser.sh --claude --org myorg
 
 # All options
-./provenance-analysis/provenance-analyzer.sh --help
+./provenance-analysis/provenance-analyser.sh --help
 ```
 
 **Arguments**:
@@ -308,13 +308,13 @@ echo 'export ANTHROPIC_API_KEY="your-key"' >> ~/.zshrc
 
 ### Features
 
-**Base Analyzers** provide:
+**Base Analysers** provide:
 - Data-driven vulnerability identification
 - CVSS scoring and KEV checking
 - SLSA level assessment
 - Statistical summaries
 
-**Claude-Enhanced Analyzers** add:
+**Claude-Enhanced Analysers** add:
 - Pattern recognition across vulnerabilities
 - Supply chain risk narratives
 - Trust assessment and builder analysis
@@ -323,7 +323,7 @@ echo 'export ANTHROPIC_API_KEY="your-key"' >> ~/.zshrc
 
 ### When to Use Each
 
-**Use Base Analyzers** when:
+**Use Base Analysers** when:
 - You need fast, automated scanning
 - Running in CI/CD pipelines
 - Processing many repositories
@@ -371,14 +371,14 @@ gh auth login
 ./supply-chain-scanner.sh --all
 
 # Review AI insights for critical findings
-./vulnerability-analysis/vulnerability-analyzer-claude.sh owner/repo
+./vulnerability-analysis/vulnerability-analyser-claude.sh owner/repo
 ```
 
 ### Example 2: CI/CD Integration
 
 ```bash
 # Fast vulnerability check with strict mode
-./vulnerability-analysis/vulnerability-analyzer.sh \
+./vulnerability-analysis/vulnerability-analyser.sh \
   --prioritize \
   --min-cvss 7.0 \
   --format json \
@@ -392,7 +392,7 @@ gh auth login
 
 ```bash
 # Verify provenance meets SLSA Level 2
-./provenance-analysis/provenance-analyzer.sh \
+./provenance-analysis/provenance-analyser.sh \
   --min-slsa 2 \
   --verify-signatures \
   --strict \
@@ -409,7 +409,7 @@ gh auth login
   --output ./security-reports/
 
 # Generate executive summary
-./vulnerability-analysis/vulnerability-analyzer-claude.sh \
+./vulnerability-analysis/vulnerability-analyser-claude.sh \
   --org myorg \
   --summarize
 ```
@@ -426,7 +426,7 @@ gh auth login
 cd /path/to/repo
 syft . -o cyclonedx-json > bom.json
 
-# Or analyzer will auto-generate if syft is installed
+# Or analyser will auto-generate if syft is installed
 ```
 
 ### GitHub Authentication Failed
@@ -509,7 +509,7 @@ cosign version
 
 ## Testing
 
-The supply chain analyzer is comprehensively tested and ready for Beta use.
+The supply chain analyser is comprehensively tested and ready for Beta use.
 
 ### Run Tests
 
@@ -521,10 +521,10 @@ The supply chain analyzer is comprehensively tested and ready for Beta use.
 ./supply-chain-scanner.sh --setup
 
 # Test vulnerability analysis
-./vulnerability-analysis/vulnerability-analyzer.sh --help
+./vulnerability-analysis/vulnerability-analyser.sh --help
 
 # Test provenance analysis
-./provenance-analysis/provenance-analyzer.sh --help
+./provenance-analysis/provenance-analyser.sh --help
 
 # Test on known repository
 ./supply-chain-scanner.sh --all --repo crashappsec/chalk
@@ -561,7 +561,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./utils/supply-chain/vulnerability-analysis/vulnerability-analyzer.sh \
+          ./utils/supply-chain/vulnerability-analysis/vulnerability-analyser.sh \
             --prioritize \
             --min-cvss 7.0 \
             --format json \

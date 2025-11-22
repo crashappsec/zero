@@ -6,7 +6,7 @@
 #############################################################################
 # Certificate Analysis Script
 # Analyzes digital certificates for compliance with CA/Browser Forum policies
-# Usage: ./cert-analyzer.sh <domain>
+# Usage: ./cert-analyser.sh <domain>
 #############################################################################
 
 set -euo pipefail
@@ -273,7 +273,7 @@ write_report_header() {
 
 **Domain**: ${DOMAIN}  
 **Analysis Date**: ${ANALYSIS_DATE}  
-**Analyst**: Certificate Security Analyzer v1.0
+**Analyst**: Certificate Security Analyser v1.0
 
 ---
 

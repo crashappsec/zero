@@ -1101,7 +1101,7 @@ Would you like me to explain any specific assignments or adjust the ownership st
 
 ## Deliverables
 
-1. **Skill File** (`code-ownership-analyzer.skill`)
+1. **Skill File** (`code-ownership-analyser.skill`)
    - Complete ownership analysis capability
    - CODEOWNERS validation and generation
    - Risk and health assessment
@@ -1121,8 +1121,8 @@ Would you like me to explain any specific assignments or adjust the ownership st
    - Knowledge transfer plans
 
 4. **Automation Scripts** (`skills/code-ownership/`)
-   - `ownership-analyzer.sh` - Basic CLI analysis
-   - `ownership-analyzer-claude.sh` - AI-enhanced analysis
+   - `ownership-analyser.sh` - Basic CLI analysis
+   - `ownership-analyser-claude.sh` - AI-enhanced analysis
    - `codeowners-validator.sh` - Validation tool
 
 5. **Sample Prompts** (`prompts/code-ownership/`)

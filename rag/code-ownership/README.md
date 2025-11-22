@@ -220,11 +220,11 @@ This documentation synthesizes research from:
 
 ## Integration with Tools
 
-### Code Ownership Analyzer Scripts
+### Code Ownership Analyser Scripts
 
 The RAG documentation informs:
-- `ownership-analyzer.sh` - Basic ownership calculation
-- `ownership-analyzer-claude.sh` - AI-enhanced analysis with RAG context
+- `ownership-analyser.sh` - Basic ownership calculation
+- `ownership-analyser-claude.sh` - AI-enhanced analysis with RAG context
 
 Scripts use these documents to:
 - Calculate metrics using proven formulas
@@ -234,7 +234,7 @@ Scripts use these documents to:
 
 ### Claude Code Skill
 
-The [Code Ownership Analysis Skill](../../skills/code-ownership/code-ownership-analyzer.skill) leverages this RAG documentation to provide expert analysis and recommendations.
+The [Code Ownership Analysis Skill](../../skills/code-ownership/code-ownership-analyser.skill) leverages this RAG documentation to provide expert analysis and recommendations.
 
 ### Prompts
 
@@ -256,7 +256,7 @@ To contribute or update documentation:
 2. Maintain consistent format and structure
 3. Add citations and references
 4. Update this README with new insights
-5. Test with ownership analyzer scripts
+5. Test with ownership analyser scripts
 6. Submit PR with rationale
 
 See [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines.
@@ -275,7 +275,7 @@ See [CONTRIBUTING.md](../../CONTRIBUTING.md) for guidelines.
 
 - [Code Ownership Skill](../../skills/code-ownership/)
 - [Code Ownership Prompts](../../prompts/code-ownership/)
-- [Ownership Analyzer Scripts](../../utils/code-ownership/)
+- [Ownership Analyser Scripts](../../utils/code-ownership/)
 
 ### External Resources
 

@@ -4,7 +4,7 @@ Copyright (c) 2024 Gibson Powers Contributors
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# DORA Metrics Analyzer
+# DORA Metrics Analyser
 
 **Status**: 🔬 Experimental
 
@@ -12,7 +12,7 @@ Calculates and analyzes DevOps Research and Assessment (DORA) metrics for softwa
 
 ## ⚠️ Development Status
 
-This utility is in **early development** and is not yet ready for Beta or production use. It provides basic DORA metrics calculation but lacks the comprehensive testing, documentation, and features of the Beta supply chain analyzer.
+This utility is in **early development** and is not yet ready for Beta or production use. It provides basic DORA metrics calculation but lacks the comprehensive testing, documentation, and features of the Beta supply chain analyser.
 
 ### What Works
 - ✅ Basic DORA metrics calculation (Deployment Frequency, Lead Time, MTTR, Change Failure Rate)
@@ -29,7 +29,7 @@ This utility is in **early development** and is not yet ready for Beta or produc
 - ❌ Extensive testing
 - ❌ Complete documentation
 
-**Use at your own risk**. For Beta-quality analysis, use the [Supply Chain Security Analyzer](../supply-chain/).
+**Use at your own risk**. For Beta-quality analysis, use the [Supply Chain Security Analyser](../supply-chain/).
 
 ## Overview
 
@@ -56,22 +56,22 @@ gh auth login
 
 ```bash
 # Basic analysis (no API key required)
-./dora-analyzer.sh deployment-data.json
+./dora-analyser.sh deployment-data.json
 
 # AI-enhanced analysis with insights and cost tracking
 export ANTHROPIC_API_KEY="your-key"
-./dora-analyzer.sh --claude deployment-data.json
-./dora-analyzer-claude.sh owner/repo
+./dora-analyser.sh --claude deployment-data.json
+./dora-analyser-claude.sh owner/repo
 
 # Compare base vs Claude analysis
-./compare-analyzers.sh owner/repo
+./compare-analysers.sh owner/repo
 ```
 
 ## Available Scripts
 
-### dora-analyzer.sh
+### dora-analyser.sh
 
-Base analyzer that calculates DORA metrics from Git history and GitHub API.
+Base analyser that calculates DORA metrics from Git history and GitHub API.
 
 **Features**:
 - Calculates all four DORA metrics
@@ -81,7 +81,7 @@ Base analyzer that calculates DORA metrics from Git history and GitHub API.
 
 **Usage**:
 ```bash
-./dora-analyzer.sh <owner>/<repo>
+./dora-analyser.sh <owner>/<repo>
 ```
 
 **Output**:
@@ -100,12 +100,12 @@ Change Failure Rate: 5.2% (Elite)
 Overall Performance: Elite
 ```
 
-### dora-analyzer-claude.sh
+### dora-analyser-claude.sh
 
-AI-enhanced analyzer that provides contextual insights and recommendations.
+AI-enhanced analyser that provides contextual insights and recommendations.
 
 **Features**:
-- All base analyzer features
+- All base analyser features
 - Pattern recognition
 - Contextual insights
 - Performance recommendations
@@ -116,16 +116,16 @@ AI-enhanced analyzer that provides contextual insights and recommendations.
 **Usage**:
 ```bash
 export ANTHROPIC_API_KEY="your-key"
-./dora-analyzer-claude.sh owner/repo
+./dora-analyser-claude.sh owner/repo
 ```
 
-### compare-analyzers.sh
+### compare-analysers.sh
 
 Compare base and AI-enhanced analysis side-by-side.
 
 **Usage**:
 ```bash
-./compare-analyzers.sh owner/repo
+./compare-analysers.sh owner/repo
 ```
 
 ## DORA Performance Levels
@@ -190,9 +190,9 @@ Compare base and AI-enhanced analysis side-by-side.
 
 ```
 dora-metrics/
-├── dora-analyzer.sh              # Base analyzer
-├── dora-analyzer-claude.sh       # AI-enhanced analyzer
-└── compare-analyzers.sh          # Comparison tool
+├── dora-analyser.sh              # Base analyser
+├── dora-analyser-claude.sh       # AI-enhanced analyser
+└── compare-analysers.sh          # Comparison tool
 ```
 
 ### Adding Features
@@ -239,7 +239,7 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 - Single tool with dual modes (basic + Claude AI)
 - Use `--claude` flag for AI-powered insights
 - Cost tracking automatically displays API usage
-- Removed separate `dora-analyzer-claude.sh` file
+- Removed separate `dora-analyser-claude.sh` file
 
 **Testing Status:**
 - ✅ DORA Metrics: Fully tested with both modes
@@ -248,10 +248,10 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 **Example:**
 ```bash
 # Basic mode
-./dora-analyzer.sh deployment-data.json
+./dora-analyser.sh deployment-data.json
 
 # Claude AI mode
-./dora-analyzer.sh --claude deployment-data.json
+./dora-analyser.sh --claude deployment-data.json
 ```
 
 ### Test Organization
@@ -260,10 +260,10 @@ The [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org)
 
 ```bash
 # Test with sample data
-./dora-analyzer.sh deployment-data.json
+./dora-analyser.sh deployment-data.json
 
 # Test with Claude AI
-./dora-analyzer.sh --claude deployment-data.json
+./dora-analyser.sh --claude deployment-data.json
 ```
 
 ### All Arguments
