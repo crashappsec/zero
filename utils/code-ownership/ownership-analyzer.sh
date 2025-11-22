@@ -212,7 +212,7 @@ analyze_ownership() {
     local repo_path="$1"
     local days="$2"
 
-    cd "$repo_path" || exit 1
+    cd "$repo_path" || return 1
 
     echo -e "${BLUE}Analyzing repository: $(basename "$repo_path")${NC}"
     echo -e "${BLUE}Time period: Last $days days${NC}"
@@ -613,7 +613,7 @@ collect_repository_data_for_claude() {
     local repo_path="$1"
     local days="$2"
 
-    cd "$repo_path" || exit 1
+    cd "$repo_path" || return 1
 
     local repo_name=$(basename "$(git rev-parse --show-toplevel)")
     local since_date=$(date -v-${days}d +%Y-%m-%d 2>/dev/null || date -d "${days} days ago" +%Y-%m-%d)
@@ -971,16 +971,25 @@ analyze_single_target() {
     # Run analysis based on mode
     if [[ "$USE_CLAUDE" == "true" ]]; then
         # Claude AI analysis mode
-        data=$(collect_repository_data_for_claude "$actual_path" "$DAYS")
+        if ! data=$(collect_repository_data_for_claude "$actual_path" "$DAYS"); then
+            echo -e "${RED}Error: Failed to collect repository data${NC}"
+            return 1
+        fi
         analyze_with_claude "$data"
     else
         # Standard analysis mode
         if [[ -n "$OUTPUT_FILE" ]]; then
-            analyze_ownership "$actual_path" "$DAYS" > "$OUTPUT_FILE"
+            if ! analyze_ownership "$actual_path" "$DAYS" > "$OUTPUT_FILE"; then
+                echo -e "${RED}Error: Analysis failed${NC}"
+                return 1
+            fi
             echo -e "${GREEN}✓ Analysis complete${NC}"
             echo -e "Output written to: $OUTPUT_FILE"
         else
-            analyze_ownership "$actual_path" "$DAYS"
+            if ! analyze_ownership "$actual_path" "$DAYS"; then
+                echo -e "${RED}Error: Analysis failed${NC}"
+                return 1
+            fi
         fi
     fi
 }
