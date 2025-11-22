@@ -1,6 +1,6 @@
 <!--
-Copyright (c) 2024 Crash Override Inc
-101 Fulton St, 416, New York 10038
+Copyright (c) 2024 Gibson Powers Contributors
+
 SPDX-License-Identifier: GPL-3.0
 -->
 
@@ -256,5 +256,5 @@ See [README.md](README.md) for installation and usage instructions.
 
 ---
 
-[1.0.0]: https://github.com/crashappsec/skills-and-prompts-and-rag/releases/tag/package-health-v1.0.0
-[Unreleased]: https://github.com/crashappsec/skills-and-prompts-and-rag/compare/package-health-v1.0.0...HEAD
+[1.0.0]: https://github.com/crashappsec/gibson-powers/releases/tag/package-health-v1.0.0
+[Unreleased]: https://github.com/crashappsec/gibson-powers/compare/package-health-v1.0.0...HEAD

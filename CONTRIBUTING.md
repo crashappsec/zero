@@ -1,12 +1,12 @@
 <!--
-Copyright (c) 2024 Crash Override Inc
-101 Fulton St, 416, New York 10038
+Copyright (c) 2024 Gibson Powers Contributors
+
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Contributing to Skills and Prompts
+# Contributing to Gibson Powers
 
-Thank you for your interest in contributing to the Skills and Prompts repository! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to the Gibson Powers repository! This document provides guidelines and instructions for contributing.
 
 ## Table of Contents
 
@@ -33,7 +33,7 @@ Before creating bug reports, please check existing issues to avoid duplicates. W
 - **Steps to reproduce** the issue
 - **Expected behavior** vs actual behavior
 - **Screenshots** if applicable
-- **Environment details** (OS, Crash Override version, etc.)
+- **Environment details** (OS, Gibson Powers version, etc.)
 
 ### Suggesting Enhancements
 
@@ -59,8 +59,8 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/yourusername/skills-and-prompts-and-rag.git
-   cd skills-and-prompts-and-rag
+   git clone https://github.com/yourusername/gibson-powers.git
+   cd gibson-powers
    ```
 3. Create a feature branch:
    ```bash
@@ -323,4 +323,4 @@ If you have questions about contributing, please:
 3. Open a new discussion
 4. Reach out to maintainers
 
-Thank you for contributing to Skills and Prompts!
+Thank you for contributing to Gibson Powers!
