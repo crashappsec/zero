@@ -58,6 +58,22 @@ brew install cosign rekor-cli
 ./supply-chain-scanner.sh --all --org myorg
 ```
 
+### Test Organization
+
+Test with the [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org):
+
+```bash
+# Test vulnerability analysis
+./vulnerability-analysis/vulnerability-analyzer.sh --org Gibson-Powers-Test-Org
+
+# Test with Claude AI analysis
+export ANTHROPIC_API_KEY="your-key"
+./vulnerability-analysis/vulnerability-analyzer.sh --claude --org Gibson-Powers-Test-Org
+
+# Test provenance analysis
+./provenance-analysis/provenance-analyzer.sh --org Gibson-Powers-Test-Org
+```
+
 ## Architecture
 
 ```
@@ -65,13 +81,16 @@ supply-chain/
 ├── supply-chain-scanner.sh          # Central orchestrator
 ├── config.example.json              # Module configuration template
 ├── vulnerability-analysis/
-│   ├── vulnerability-analyzer.sh    # Base vulnerability scanner
-│   ├── vulnerability-analyzer-claude.sh  # AI-enhanced scanner
-│   └── compare-analyzers.sh         # Compare base vs Claude output
-└── provenance-analysis/
-    ├── provenance-analyzer.sh       # Base provenance checker
-    └── provenance-analyzer-claude.sh     # AI-enhanced checker
+│   └── vulnerability-analyzer.sh    # Unified analyzer (base + --claude mode)
+├── provenance-analysis/
+│   └── provenance-analyzer.sh       # Unified analyzer (base + --claude mode)
+└── package-health-analysis/
+    └── package-health-analyzer.sh   # Unified analyzer (base + --claude mode)
 ```
+
+All analyzers support dual modes:
+- **Base mode** (default): Standard analysis without API costs
+- **Claude mode** (`--claude`): AI-enhanced insights with cost tracking
 
 ## Analysis Modules
 
@@ -87,32 +106,34 @@ Identifies and prioritizes security vulnerabilities in software dependencies.
 - Intelligent prioritization
 - Multiple output formats (table, JSON, markdown)
 
-**Base Analyzer** (`vulnerability-analyzer.sh`):
+**Usage**:
 ```bash
-# Analyze repository with prioritization
+# Basic analysis (no API costs)
 ./vulnerability-analysis/vulnerability-analyzer.sh --prioritize owner/repo
+
+# AI-enhanced analysis with Claude
+export ANTHROPIC_API_KEY="your-key"
+./vulnerability-analysis/vulnerability-analyzer.sh --claude --prioritize owner/repo
+
+# Scan entire organization
+./vulnerability-analysis/vulnerability-analyzer.sh --claude --org myorg
 
 # Generate JSON output
 ./vulnerability-analysis/vulnerability-analyzer.sh --format json owner/repo
 
-# Set CVSS threshold
-./vulnerability-analysis/vulnerability-analyzer.sh --min-cvss 7.0 owner/repo
+# All options
+./vulnerability-analysis/vulnerability-analyzer.sh --help
 ```
 
-**Claude-Enhanced** (`vulnerability-analyzer-claude.sh`):
-```bash
-# AI-powered analysis with context and patterns
-./vulnerability-analysis/vulnerability-analyzer-claude.sh owner/repo
-
-# Requires ANTHROPIC_API_KEY environment variable
-export ANTHROPIC_API_KEY="your-key"
-```
-
-**Compare Analyzers**:
-```bash
-# See differences between base and AI analysis
-./vulnerability-analysis/compare-analyzers.sh owner/repo
-```
+**Arguments**:
+- `--org ORG`: Scan all repositories in GitHub organization
+- `--repo OWNER/REPO`: Scan specific repository
+- `--claude`: Enable AI-enhanced analysis (requires ANTHROPIC_API_KEY)
+- `-t, --taint-analysis`: Enable call graph/taint analysis (Go projects)
+- `-p, --prioritize`: Add intelligent prioritization (CISA KEV, CVSS)
+- `-f, --format FORMAT`: Output format (table|json|markdown|sarif)
+- `-o, --output FILE`: Write results to file
+- `-h, --help`: Show help message
 
 ### Provenance Analysis
 
@@ -126,26 +147,38 @@ Verifies SLSA build provenance and supply chain attestations.
 - Trusted builder identification
 - Package URL (purl) analysis
 
-**Base Analyzer** (`provenance-analyzer.sh`):
+**Usage**:
 ```bash
-# Check provenance for repository
+# Basic SLSA provenance analysis
 ./provenance-analysis/provenance-analyzer.sh owner/repo
 
-# Verify signatures
+# AI-enhanced analysis with Claude
+export ANTHROPIC_API_KEY="your-key"
+./provenance-analysis/provenance-analyzer.sh --claude owner/repo
+
+# Verify cryptographic signatures
 ./provenance-analysis/provenance-analyzer.sh --verify-signatures owner/repo
 
-# Set minimum SLSA level
-./provenance-analysis/provenance-analyzer.sh --min-slsa 2 owner/repo
+# Require minimum SLSA level
+./provenance-analysis/provenance-analyzer.sh --min-level 2 --strict owner/repo
+
+# Scan entire organization
+./provenance-analysis/provenance-analyzer.sh --claude --org myorg
+
+# All options
+./provenance-analysis/provenance-analyzer.sh --help
 ```
 
-**Claude-Enhanced** (`provenance-analyzer-claude.sh`):
-```bash
-# AI-powered trust assessment and risk analysis
-./provenance-analysis/provenance-analyzer-claude.sh owner/repo
-
-# Requires ANTHROPIC_API_KEY
-export ANTHROPIC_API_KEY="your-key"
-```
+**Arguments**:
+- `--org ORG`: Scan all repositories in GitHub organization
+- `--repo OWNER/REPO`: Scan specific repository
+- `--claude`: Enable AI-enhanced analysis (requires ANTHROPIC_API_KEY)
+- `--verify-signatures`: Cryptographically verify signatures (requires cosign)
+- `--min-level LEVEL`: Require minimum SLSA level (0-4)
+- `--strict`: Fail on missing provenance or low SLSA level
+- `-f, --format FORMAT`: Output format (table|json|markdown)
+- `-o, --output FILE`: Write results to file
+- `-h, --help`: Show help message
 
 ## Configuration
 
