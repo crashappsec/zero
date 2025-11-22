@@ -245,6 +245,86 @@ echo ""
 echo "Made $SCRIPT_COUNT script(s) executable"
 echo ""
 
+# Show what has changed since last pull/commit
+if git rev-parse --git-dir > /dev/null 2>&1; then
+    echo -e "${BLUE}Checking for recent changes...${NC}"
+    echo ""
+
+    # Check for modified analysers
+    CHANGED_ANALYSERS=$(git status --porcelain utils/ 2>/dev/null | grep -E 'analyser\.sh$' || true)
+    if [ -n "$CHANGED_ANALYSERS" ]; then
+        echo -e "${YELLOW}Analyser Changes:${NC}"
+        echo "$CHANGED_ANALYSERS" | while IFS= read -r line; do
+            STATUS="${line:0:2}"
+            FILE="${line:3}"
+            ANALYSER_NAME=$(basename "$(dirname "$FILE")")
+
+            case "$STATUS" in
+                "M "*)
+                    echo -e "  ${YELLOW}Modified:${NC} $ANALYSER_NAME"
+                    ;;
+                "A "*)
+                    echo -e "  ${GREEN}New:${NC} $ANALYSER_NAME"
+                    ;;
+                *)
+                    echo -e "  ${YELLOW}Changed:${NC} $ANALYSER_NAME"
+                    ;;
+            esac
+        done
+        echo ""
+    fi
+
+    # Check for RAG document changes
+    CHANGED_RAG=$(git status --porcelain rag/ 2>/dev/null | grep -E '\.md$' || true)
+    if [ -n "$CHANGED_RAG" ]; then
+        echo -e "${YELLOW}RAG Document Changes:${NC}"
+        echo "$CHANGED_RAG" | while IFS= read -r line; do
+            STATUS="${line:0:2}"
+            FILE="${line:3}"
+            DOC_NAME=$(basename "$FILE" .md)
+
+            case "$STATUS" in
+                "M "*)
+                    echo -e "  ${YELLOW}Modified:${NC} $DOC_NAME"
+                    ;;
+                "A "*)
+                    echo -e "  ${GREEN}New:${NC} $DOC_NAME"
+                    ;;
+                *)
+                    echo -e "  ${YELLOW}Changed:${NC} $DOC_NAME"
+                    ;;
+            esac
+        done
+        echo ""
+    fi
+
+    # Check for library changes
+    CHANGED_LIBS=$(git status --porcelain utils/lib/ 2>/dev/null | grep -E '\.sh$' || true)
+    if [ -n "$CHANGED_LIBS" ]; then
+        echo -e "${YELLOW}Library Changes:${NC}"
+        echo "$CHANGED_LIBS" | while IFS= read -r line; do
+            STATUS="${line:0:2}"
+            FILE="${line:3}"
+            LIB_NAME=$(basename "$FILE" .sh)
+
+            case "$STATUS" in
+                "M "*)
+                    echo -e "  ${YELLOW}Modified:${NC} $LIB_NAME"
+                    ;;
+                "A "*)
+                    echo -e "  ${GREEN}New:${NC} $LIB_NAME"
+                    ;;
+                *)
+                    echo -e "  ${YELLOW}Changed:${NC} $LIB_NAME"
+                    ;;
+            esac
+        done
+        echo ""
+    fi
+fi
+
+echo ""
+
 # Summary of tool status
 echo "Tool Status:"
 echo "------------"
@@ -374,6 +454,53 @@ echo -e "${BLUE}Configuring Claude Code skills...${NC}"
 if [ -d "$REPO_ROOT/skills" ]; then
     SKILL_COUNT=$(find "$REPO_ROOT/skills" -name "*.skill" -o -name "skill.md" | wc -l | tr -d ' ')
     echo -e "${GREEN}✓${NC} Found $SKILL_COUNT skills in repository"
+
+    # Check for changes to skills files
+    if git rev-parse --git-dir > /dev/null 2>&1; then
+        # Get list of modified, added, or deleted skill files
+        CHANGED_SKILLS=$(git status --porcelain skills/ 2>/dev/null | grep -E '\.(skill|md)$' || true)
+
+        if [ -n "$CHANGED_SKILLS" ]; then
+            echo ""
+            echo -e "${YELLOW}Skill Changes Detected:${NC}"
+            echo "$CHANGED_SKILLS" | while IFS= read -r line; do
+                STATUS="${line:0:2}"
+                FILE="${line:3}"
+                SKILL_NAME=$(basename "$(dirname "$FILE")")
+
+                case "$STATUS" in
+                    "M "*)
+                        echo -e "  ${YELLOW}Modified:${NC} $SKILL_NAME ($(basename "$FILE"))"
+                        ;;
+                    "A "*)
+                        echo -e "  ${GREEN}New:${NC} $SKILL_NAME ($(basename "$FILE"))"
+                        ;;
+                    "D "*)
+                        echo -e "  ${RED}Deleted:${NC} $SKILL_NAME ($(basename "$FILE"))"
+                        ;;
+                    "??")
+                        echo -e "  ${CYAN}Untracked:${NC} $SKILL_NAME ($(basename "$FILE"))"
+                        ;;
+                    *)
+                        echo -e "  ${YELLOW}Changed:${NC} $SKILL_NAME ($(basename "$FILE"))"
+                        ;;
+                esac
+            done
+            echo ""
+        else
+            # Check last commit for skill changes
+            LAST_COMMIT_SKILLS=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | grep -E '^skills/.*\.(skill|md)$' || true)
+            if [ -n "$LAST_COMMIT_SKILLS" ]; then
+                echo ""
+                echo -e "${BLUE}Skills Updated in Last Commit:${NC}"
+                echo "$LAST_COMMIT_SKILLS" | while IFS= read -r file; do
+                    SKILL_NAME=$(basename "$(dirname "$file")")
+                    echo -e "  ${BLUE}•${NC} $SKILL_NAME ($(basename "$file"))"
+                done
+                echo ""
+            fi
+        fi
+    fi
 
     # Create .claude directory if it doesn't exist
     mkdir -p "$REPO_ROOT/.claude"
