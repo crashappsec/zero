@@ -58,3 +58,4 @@ dist/
 build/
 .DS_Store
 .DS_Store
+.claude/skills
