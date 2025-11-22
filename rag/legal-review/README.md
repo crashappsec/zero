@@ -71,6 +71,26 @@ Tools and automation for automated legal review of source code.
 - Policy automation
 - Compliance dashboard creation
 
+### [Claude AI Integration Guide](claude-ai-integration.md) 🤖
+Phase 4 AI-enhanced legal analysis with Claude Sonnet for intelligent recommendations and risk assessment.
+
+**Topics Covered**:
+- Claude AI architecture and integration
+- RAG-enhanced analysis with legal knowledge base
+- License compatibility assessment with AI
+- Context-aware content policy review
+- Risk prioritization and remediation guidance
+- API configuration and usage
+- Cost optimization and best practices
+- Performance benchmarks and troubleshooting
+
+**Use Cases**:
+- Pre-release legal audits with AI insights
+- Complex license compatibility questions
+- Intelligent remediation recommendations
+- Context-aware content policy modernization
+- M&A due diligence with AI analysis
+
 ## Quick Start
 
 ### For Legal Review Analysts
@@ -178,17 +198,23 @@ Tools and automation for automated legal review of source code.
 ### Using with Legal Review Analyser
 
 ```bash
-# Run legal review analyser
-./utils/legal-review/legal-analyser.sh --repo owner/repo
+# Standard scan (no AI)
+./utils/legal-review/legal-analyser.sh --path .
 
-# With Claude AI analysis
-./utils/legal-review/legal-analyser.sh --repo owner/repo --claude
+# With Claude AI analysis (Phase 4)
+export ANTHROPIC_API_KEY='your-key'
+./utils/legal-review/legal-analyser.sh --path . --claude
 
-# Organization-wide scan
-./utils/legal-review/legal-analyser.sh --org myorg
+# License scan only with AI
+./utils/legal-review/legal-analyser.sh --path . --licenses-only --claude
+
+# Content policy with AI
+./utils/legal-review/legal-analyser.sh --path . --content-only --claude
 ```
 
 The legal analyser uses this RAG documentation to provide context-aware recommendations.
+
+**See**: [Claude AI Integration Guide](claude-ai-integration.md) for detailed Phase 4 documentation.
 
 ### Using with Skills
 
