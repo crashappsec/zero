@@ -649,6 +649,13 @@ if [[ "$USE_CLAUDE" == "true" ]]; then
             for target_spec in "${TARGETS_LIST[@]}"; do
                 if [[ "$target_spec" =~ ^org: ]]; then
                     org="${target_spec#org:}"
+                    # Extract org name from URL if provided
+                    if [[ "$org" =~ github\.com/orgs/([^/]+) ]]; then
+                        org="${BASH_REMATCH[1]}"
+                    elif [[ "$org" =~ github\.com/([^/]+) ]]; then
+                        org="${BASH_REMATCH[1]}"
+                    fi
+                    org="${org%/}"  # Remove trailing slashes
                     repos=$(expand_org_repos "$org" 2>&1)
 
                     if [[ -z "$repos" ]]; then

@@ -678,6 +678,16 @@ main() {
     local result=""
     local temp_sbom=""
 
+    # Extract org name from URL if provided
+    if [ -n "$ORG" ]; then
+        if [[ "$ORG" =~ github\.com/orgs/([^/]+) ]]; then
+            ORG="${BASH_REMATCH[1]}"
+        elif [[ "$ORG" =~ github\.com/([^/]+) ]]; then
+            ORG="${BASH_REMATCH[1]}"
+        fi
+        ORG="${ORG%/}"  # Remove trailing slashes
+    fi
+
     # Determine analysis mode
     if [ -n "$SBOM_FILE" ]; then
         result=$(analyze_from_sbom "$SBOM_FILE")
