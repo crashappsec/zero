@@ -75,6 +75,13 @@ Enterprise-grade code ownership analysis with historical tracking, multi-format 
 - Contributor analysis
 - 9 modular libraries + tests
 
+**v3.1 (Current - Partially Tested)**:
+- **Unified tool with --claude flag** (single binary, dual modes)
+- **AI-powered insights** (optional Claude analysis)
+- **Cost tracking** (API usage and cost display)
+- **Organization scanning** (--org flag for bulk analysis)
+- Note: Claude AI features tested with ownership analyzer only
+
 ## Overview
 
 The Code Ownership Analyzer helps teams understand who owns what code in a repository by analyzing Git commit history. It provides:
@@ -97,15 +104,15 @@ git --version
 ### Basic Usage
 
 ```bash
-# Analyze current repository
-./ownership-analyzer.sh
+# Basic analysis (no API key required)
+./ownership-analyzer.sh .
 
 # Analyze specific repository
 ./ownership-analyzer.sh /path/to/repo
 
-# AI-enhanced analysis
+# AI-enhanced analysis with insights and cost tracking
 export ANTHROPIC_API_KEY="your-key"
-./ownership-analyzer-claude.sh
+./ownership-analyzer.sh --claude .
 
 # Compare base vs Claude analysis
 ./compare-analyzers.sh
@@ -808,3 +815,32 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 - **v2.5.0** (Phase 2): Configuration system, succession planning, enhanced metrics, test suite
 - **v2.0.0** (Phase 1): Dual-method analysis, multi-repo, GitHub integration, JSON output
 - **v1.0.0** (Experimental): Basic ownership analysis, CODEOWNERS validation
+
+## 🔄 v3.1 Consolidation (Partially Tested)
+
+**What Changed:**
+- Single tool with dual modes (basic + Claude AI)
+- Use `--claude` flag for AI-powered insights
+- Cost tracking automatically displays API usage
+- Removed separate `ownership-analyzer-claude.sh` file
+
+**Testing Status:**
+- ✅ Code Ownership: Fully tested with both modes
+- ✅ Cost tracking verified
+- ✅ Organization scanning tested
+
+**Example:**
+```bash
+# Basic mode
+./ownership-analyzer.sh .
+
+# Claude AI mode  
+./ownership-analyzer.sh --claude .
+
+# Shows cost at end:
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#   Claude API Usage Summary
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+#   Estimated Cost: $0.020
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```

@@ -22,6 +22,8 @@ NC='\033[0m' # No Color
 # Default options
 OUTPUT_FORMAT="text"
 OUTPUT_FILE=""
+USE_CLAUDE=false
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 
 # Function to print usage
 usage() {
@@ -39,6 +41,8 @@ Usage: $0 [OPTIONS] <deployment-data.json>
 OPTIONS:
     -f, --format FORMAT     Output format: text|json|csv (default: text)
     -o, --output FILE       Write results to file
+    --claude                Use Claude AI for advanced analysis (requires ANTHROPIC_API_KEY)
+    -k, --api-key KEY       Anthropic API key (or set ANTHROPIC_API_KEY env var)
     -h, --help              Show this help message
 
 INPUT FORMAT:
@@ -53,6 +57,9 @@ EXAMPLES:
 
     # Export to CSV for spreadsheet
     $0 --format csv --output metrics.csv deployment-data.json
+
+    # Use Claude AI for advanced insights
+    $0 --claude deployment-data.json
 
 EOF
     exit 1
@@ -337,6 +344,79 @@ EOF
     echo -e "${GREEN}✓ Metrics exported to: $output${NC}"
 }
 
+#############################################################################
+# Claude AI Functions (only used when --claude flag is set)
+#############################################################################
+
+analyze_with_claude() {
+    local data_file="$1"
+    local model="claude-sonnet-4-20250514"
+
+    if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+        echo -e "${RED}Error: ANTHROPIC_API_KEY is required for Claude analysis${NC}"
+        echo "Set it with: export ANTHROPIC_API_KEY=your-key"
+        echo "Or use: --api-key your-key"
+        exit 1
+    fi
+
+    echo ""
+    echo -e "${BLUE}Analyzing DORA metrics with Claude AI...${NC}"
+
+    local data_content=$(cat "$data_file")
+
+    local prompt="I need you to analyze this DORA metrics deployment data.
+
+Data:
+\`\`\`json
+$data_content
+\`\`\`
+
+Please provide:
+
+1. Executive Summary
+2. Metric Analysis
+3. Strengths
+4. Improvement Opportunities
+5. Roadmap
+
+Be specific, actionable, and data-driven."
+
+    local response=$(curl -s https://api.anthropic.com/v1/messages \
+        -H "content-type: application/json" \
+        -H "x-api-key: $ANTHROPIC_API_KEY" \
+        -H "anthropic-version: 2023-06-01" \
+        -d "{
+            \"model\": \"$model\",
+            \"max_tokens\": 4096,
+            \"messages\": [{
+                \"role\": \"user\",
+                \"content\": $(echo "$prompt" | jq -Rs .)
+            }]
+        }")
+
+    # Record API usage for cost tracking
+    if command -v record_api_usage &> /dev/null; then
+        record_api_usage "$response" "$model" > /dev/null
+    fi
+
+    local analysis=$(echo "$response" | jq -r '.content[0].text // empty')
+
+    if [[ -z "$analysis" ]]; then
+        echo -e "${RED}✗ Claude API error${NC}"
+        echo "$response" | jq .
+        return 1
+    fi
+
+    echo -e "${GREEN}✓ Analysis complete${NC}"
+    echo ""
+    echo "========================================="
+    echo "  Claude AI DORA Metrics Analysis"
+    echo "========================================="
+    echo ""
+    echo "$analysis"
+    echo ""
+}
+
 # Parse command line arguments
 DATA_FILE=""
 
@@ -348,6 +428,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         -o|--output)
             OUTPUT_FILE="$2"
+            shift 2
+            ;;
+        --claude)
+            USE_CLAUDE=true
+            shift
+            ;;
+        -k|--api-key)
+            ANTHROPIC_API_KEY="$2"
             shift 2
             ;;
         -h|--help)
@@ -366,16 +454,42 @@ if [[ -z "$DATA_FILE" ]]; then
     usage
 fi
 
+# Load cost tracking library if using Claude
+if [[ "$USE_CLAUDE" == "true" ]]; then
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+    if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
+        source "$REPO_ROOT/utils/lib/claude-cost.sh"
+        init_cost_tracking
+    fi
+fi
+
 # Main
 echo ""
 echo "========================================="
-echo "  DORA Metrics Analyzer"
+if [[ "$USE_CLAUDE" == "true" ]]; then
+    echo "  DORA Metrics Analyzer (Claude AI Mode)"
+else
+    echo "  DORA Metrics Analyzer"
+fi
 echo "========================================="
 echo ""
 
 check_prerequisites
 validate_input "$DATA_FILE"
-analyze_data "$DATA_FILE"
+
+if [[ "$USE_CLAUDE" == "true" ]]; then
+    # Claude AI analysis mode
+    analyze_with_claude "$DATA_FILE"
+
+    # Display cost summary
+    if command -v display_api_cost_summary &> /dev/null; then
+        display_api_cost_summary
+    fi
+else
+    # Standard analysis mode
+    analyze_data "$DATA_FILE"
+fi
 
 # Export if requested
 if [[ -n "$OUTPUT_FILE" ]]; then

@@ -230,3 +230,28 @@ For questions or issues:
 ---
 
 **Improve your code ownership practices with proven prompt templates!**
+
+## Cost Tracking
+
+All prompts now support cost tracking when used with the `--claude` flag:
+
+```bash
+# Use any prompt with cost tracking
+export ANTHROPIC_API_KEY=your-key
+./ownership-analyzer.sh --claude .
+
+# Automatically displays:
+# - API calls made
+# - Tokens used (input/output)
+# - Estimated cost in USD
+```
+
+**Example Output:**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Claude API Usage Summary
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Model:         claude-sonnet-4-20250514
+  Estimated Cost: $0.042
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```

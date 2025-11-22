@@ -605,3 +605,30 @@ For questions, issues, or feature requests:
 ---
 
 **Understand who owns your code and improve your team's ownership practices today!**
+
+## 🔄 Recent Updates (v3.1)
+
+**Tool Consolidation:**
+- Single `ownership-analyzer.sh` tool replaces separate basic/Claude versions
+- `--claude` flag enables AI-powered analysis
+- Cost tracking automatically displays when using Claude
+- Note: Claude features fully tested
+
+**New Features:**
+- Organization scanning with `--org` flag
+- Multiple repository analysis with `--repos`
+- API cost display after each Claude analysis
+
+**Cost Tracking Example:**
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Claude API Usage Summary
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Model:         claude-sonnet-4-20250514
+  API Calls:     1
+  Input Tokens:  1,234
+  Output Tokens: 2,567
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Estimated Cost: $0.042
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```
