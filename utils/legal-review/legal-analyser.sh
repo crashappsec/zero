@@ -447,18 +447,69 @@ scan_secrets() {
 
     log "Scanning for secrets in $path"
 
-    echo "## Secret Scan"
+    echo "## Secret Detection"
     echo ""
-    echo "⏳ Secret detection implementation pending"
+    echo "ℹ️ Secret detection feature has been moved to the roadmap for future implementation."
     echo ""
-    echo "**TODO**: Implement secret detection using:"
-    echo "- Pattern-based detection (AWS keys, GitHub tokens, etc.)"
-    echo "- Entropy-based detection for random strings"
-    echo "- PII detection (SSN, credit cards, etc.)"
+    echo "**Planned Features**:"
+    echo "- Pattern-based detection (AWS keys, GitHub tokens, private keys)"
+    echo "- Entropy-based detection for high-entropy strings"
+    echo "- PII detection (SSN, credit cards, emails)"
     echo "- Integration with TruffleHog or GitLeaks"
+    echo "- False positive filtering"
     echo ""
-    echo "See \`prompts/legal-review/BUILD-LEGAL-ANALYSER.md\` for implementation details."
+    echo "See \`ROADMAP.md\` for timeline and details."
     echo ""
+}
+
+# Load content policy from config
+load_content_policy() {
+    PROFANITY_TERMS=()
+    INCLUSIVE_TERMS=()
+
+    if [[ ! -f "$LEGAL_CONFIG" ]]; then
+        # Default profanity terms
+        PROFANITY_TERMS=("fuck" "shit" "damn" "wtf")
+        # Default non-inclusive terms
+        INCLUSIVE_TERMS=("master" "slave" "whitelist" "blacklist" "grandfathered" "sanity check")
+        return
+    fi
+
+    # Parse JSON config for profanity
+    if command -v jq &> /dev/null; then
+        while IFS= read -r term; do
+            [[ -n "$term" ]] && PROFANITY_TERMS+=("$term")
+        done < <(jq -r '.legal_review.content_policy.profanity.patterns[]?.term' "$LEGAL_CONFIG" 2>/dev/null)
+
+        # Parse JSON config for inclusive language
+        while IFS= read -r term; do
+            [[ -n "$term" ]] && INCLUSIVE_TERMS+=("$term")
+        done < <(jq -r '.legal_review.content_policy.inclusive_language.replacements[]?.term' "$LEGAL_CONFIG" 2>/dev/null)
+    fi
+}
+
+# Get alternatives for a term
+get_alternatives() {
+    local term="$1"
+    local type="$2"  # "profanity" or "inclusive_language"
+
+    if [[ ! -f "$LEGAL_CONFIG" ]] || ! command -v jq &> /dev/null; then
+        case "$term" in
+            "master") echo "primary, main, leader" ;;
+            "slave") echo "replica, follower, secondary" ;;
+            "whitelist") echo "allowlist, permitted" ;;
+            "blacklist") echo "denylist, blocked" ;;
+            "fuck") echo "broken, problematic" ;;
+            "shit") echo "poor quality, problematic" ;;
+            *) echo "N/A" ;;
+        esac
+        return
+    fi
+
+    local alternatives=$(jq -r ".legal_review.content_policy.$type.replacements[] | select(.term == \"$term\") | .alternatives | join(\", \")" "$LEGAL_CONFIG" 2>/dev/null)
+    [[ -z "$alternatives" ]] && alternatives=$(jq -r ".legal_review.content_policy.$type.patterns[] | select(.term == \"$term\") | .alternatives | join(\", \")" "$LEGAL_CONFIG" 2>/dev/null)
+
+    echo "${alternatives:-N/A}"
 }
 
 # Scan content policy
@@ -466,19 +517,151 @@ scan_content_policy() {
     local path="$1"
 
     log "Scanning content policy in $path"
+    load_content_policy
+
+    local content_status="✅ PASS"
+    local has_issues=false
+    local profanity_count=0
+    local inclusive_count=0
+    local file_count=0
+    local max_files=100
 
     echo "## Content Policy Scan"
     echo ""
-    echo "⏳ Content policy scanning implementation pending"
+
+    # Scan for profanity
+    echo "### Profanity Detection"
     echo ""
-    echo "**TODO**: Implement content policy checks for:"
-    echo "- Profanity in identifiers and comments"
-    echo "- Non-inclusive language (master/slave, whitelist/blacklist, etc.)"
-    echo "- Hate speech detection"
-    echo "- Integration with woke or alex"
+
+    local profanity_findings=()
+
+    # Build grep pattern for profanity (case-insensitive)
+    local profanity_pattern=""
+    for term in "${PROFANITY_TERMS[@]}"; do
+        if [[ -z "$profanity_pattern" ]]; then
+            profanity_pattern="$term"
+        else
+            profanity_pattern="$profanity_pattern\|$term"
+        fi
+    done
+
+    if [[ -n "$profanity_pattern" ]]; then
+        while IFS= read -r -d '' file; do
+            ((file_count++))
+            [[ $file_count -gt $max_files ]] && break
+
+            # Skip binary files and large files
+            [[ ! -f "$file" ]] && continue
+            file -b "$file" | grep -qi "text" || continue
+
+            # Search for profanity terms
+            while IFS=: read -r line_num line_content; do
+                for term in "${PROFANITY_TERMS[@]}"; do
+                    if echo "$line_content" | grep -qi "\b$term\b"; then
+                        ((profanity_count++))
+                        if [[ $profanity_count -le 10 ]]; then
+                            local rel_path="${file#$path/}"
+                            local alternatives=$(get_alternatives "$term" "profanity")
+                            profanity_findings+=("- \`$rel_path:$line_num\` - **$term** → Alternatives: $alternatives")
+                            has_issues=true
+                            content_status="⚠️ WARNING"
+                        fi
+                    fi
+                done
+            done < <(grep -ni "$profanity_pattern" "$file" 2>/dev/null)
+        done < <(find "$path" -type f \( -name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.rs" -o -name "*.go" -o -name "*.sh" -o -name "*.md" -o -name "*.java" -o -name "*.c" -o -name "*.cpp" \) -print0 2>/dev/null)
+    fi
+
+    if [[ ${#profanity_findings[@]} -gt 0 ]]; then
+        printf '%s\n' "${profanity_findings[@]}"
+        if [[ $profanity_count -gt 10 ]]; then
+            echo "- ... and $((profanity_count - 10)) more instances"
+        fi
+        echo ""
+    else
+        echo "✅ No profanity detected"
+        echo ""
+    fi
+
+    # Scan for non-inclusive language
+    echo "### Inclusive Language Check"
     echo ""
-    echo "See \`prompts/legal-review/BUILD-LEGAL-ANALYSER.md\` for implementation details."
+
+    local inclusive_findings=()
+    file_count=0
+
+    # Build grep pattern for inclusive language terms
+    local inclusive_pattern=""
+    for term in "${INCLUSIVE_TERMS[@]}"; do
+        if [[ -z "$inclusive_pattern" ]]; then
+            inclusive_pattern="$term"
+        else
+            inclusive_pattern="$inclusive_pattern\|$term"
+        fi
+    done
+
+    if [[ -n "$inclusive_pattern" ]]; then
+        while IFS= read -r -d '' file; do
+            ((file_count++))
+            [[ $file_count -gt $max_files ]] && break
+
+            # Skip binary files
+            [[ ! -f "$file" ]] && continue
+            file -b "$file" | grep -qi "text" || continue
+
+            # Search for non-inclusive terms
+            while IFS=: read -r line_num line_content; do
+                for term in "${INCLUSIVE_TERMS[@]}"; do
+                    if echo "$line_content" | grep -qi "\b$term\b"; then
+                        # Skip if it's in an exemption context (like "git master")
+                        if echo "$line_content" | grep -qi "git $term\|IDE $term\|Bluetooth $term"; then
+                            continue
+                        fi
+
+                        ((inclusive_count++))
+                        if [[ $inclusive_count -le 10 ]]; then
+                            local rel_path="${file#$path/}"
+                            local alternatives=$(get_alternatives "$term" "inclusive_language")
+                            inclusive_findings+=("- \`$rel_path:$line_num\` - **$term** → Alternatives: $alternatives")
+                            has_issues=true
+                            content_status="⚠️ WARNING"
+                        fi
+                    fi
+                done
+            done < <(grep -ni "$inclusive_pattern" "$file" 2>/dev/null)
+        done < <(find "$path" -type f \( -name "*.js" -o -name "*.ts" -o -name "*.py" -o -name "*.rs" -o -name "*.go" -o -name "*.sh" -o -name "*.md" -o -name "*.java" -o -name "*.c" -o -name "*.cpp" \) -print0 2>/dev/null)
+    fi
+
+    if [[ ${#inclusive_findings[@]} -gt 0 ]]; then
+        printf '%s\n' "${inclusive_findings[@]}"
+        if [[ $inclusive_count -gt 10 ]]; then
+            echo "- ... and $((inclusive_count - 10)) more instances"
+        fi
+        echo ""
+    else
+        echo "✅ All language is inclusive"
+        echo ""
+    fi
+
+    # Summary
+    echo "### Summary"
     echo ""
+    echo "**Status**: $content_status"
+    echo ""
+    echo "**Findings**:"
+    echo "- Profanity instances: $profanity_count"
+    echo "- Non-inclusive terms: $inclusive_count"
+    echo ""
+
+    if [[ "$has_issues" == true ]]; then
+        echo "**⚠️ Action Required**: Review and update flagged content"
+        echo ""
+        echo "**Best Practices**:"
+        echo "- Use professional, inclusive language in all code and comments"
+        echo "- Replace non-inclusive terms with modern alternatives"
+        echo "- Consider audience and context when writing documentation"
+        echo ""
+    fi
 }
 
 # Main analysis
@@ -528,29 +711,6 @@ main() {
         scan_content_policy "$scan_path"
     fi
 
-    echo "## Implementation Status"
-    echo ""
-    echo "✅ Legal review framework complete:"
-    echo "- RAG documentation: 4 comprehensive guides"
-    echo "- Configuration: \`config/legal-review-config.json\`"
-    echo "- Skill: \`skills/legal-review/\`"
-    echo "- Build prompt: \`prompts/legal-review/BUILD-LEGAL-ANALYSER.md\`"
-    echo ""
-    echo "⏳ Analyser implementation: In progress"
-    echo ""
-    echo "**Next Steps**:"
-    echo "1. Review \`prompts/legal-review/BUILD-LEGAL-ANALYSER.md\`"
-    echo "2. Implement license scanning (Phase 1)"
-    echo "3. Implement secret detection (Phase 2)"
-    echo "4. Implement content policy (Phase 3)"
-    echo "5. Add Claude AI integration (Phase 4)"
-    echo ""
-    echo "**Use Claude Code to complete implementation**:"
-    echo "\`\`\`bash"
-    echo "# In Claude Code, use the build prompt to implement the analyser"
-    echo "@legal-review implement the analyser using BUILD-LEGAL-ANALYSER.md"
-    echo "\`\`\`"
-    echo ""
 }
 
 main "$@"
