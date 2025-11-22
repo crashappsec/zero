@@ -227,6 +227,32 @@ Comparison tool showing value-add of AI enhancement.
 - Value-add summary
 - Use case recommendations for each tool
 
+### Test with Safe Repositories
+
+🧪 **Practice code ownership analysis safely:**
+
+The [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org) provides sample repositories with various ownership patterns for testing.
+
+```bash
+# Analyze ownership of test repository
+./ownership-analyzer.sh https://github.com/Gibson-Powers-Test-Org/sample-repo
+
+# Generate AI-enhanced ownership report
+./ownership-analyzer-claude.sh \
+  https://github.com/Gibson-Powers-Test-Org/sample-repo
+
+# Validate CODEOWNERS (if present in test repo)
+./ownership-analyzer.sh --validate \
+  --codeowners .github/CODEOWNERS \
+  https://github.com/Gibson-Powers-Test-Org/sample-repo
+```
+
+Perfect for:
+- Learning ownership analysis
+- Testing CODEOWNERS generation
+- Practicing bus factor assessment
+- Creating tutorial examples
+
 ### CI/CD Integration
 
 **GitHub Actions Example:**

@@ -216,6 +216,8 @@ your software development practices:
 3. Explore the skills in the `skills/` directory
 4. Check out examples for each utility
 
+🧪 **Want to test safely?** Try our tools on the [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org) - sample repositories perfect for learning and experimentation!
+
 ## This is Experimental
 
 Gibson Powers is an experimental preview. We're actively developing and would

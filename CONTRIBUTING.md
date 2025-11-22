@@ -74,6 +74,32 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 3. Update documentation as needed
 4. Commit with clear, descriptive messages
 
+### Testing Your Changes
+
+🧪 **Use the Test Organization for safe testing:**
+
+The [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org) provides sample repositories for testing your changes without affecting real projects.
+
+```bash
+# Test your code ownership changes
+./utils/code-ownership/ownership-analyzer.sh \
+  https://github.com/Gibson-Powers-Test-Org/sample-repo
+
+# Test DORA metrics changes
+./utils/dora-metrics/dora-analyzer.sh \
+  --repo https://github.com/Gibson-Powers-Test-Org/sample-repo
+
+# Test supply chain changes
+./utils/supply-chain/vulnerability-analyzer.sh \
+  https://github.com/Gibson-Powers-Test-Org/sample-repo
+```
+
+This ensures:
+- Your changes work with realistic repositories
+- No accidental modifications to real projects
+- Consistent test environment for all contributors
+- Example outputs for documentation
+
 ### Commit Message Format
 
 Use conventional commit format:

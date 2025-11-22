@@ -74,13 +74,40 @@ cd gibson-powers
 # Make scripts executable
 chmod +x utils/**/*.sh
 
-# Try a standalone analysis
+# Try a standalone analysis on this repository
 ./utils/code-ownership/ownership-analyzer-v2.sh .
 
 # Try an AI-enhanced analysis (requires ANTHROPIC_API_KEY)
 export ANTHROPIC_API_KEY="your-key"
 ./utils/code-ownership/ownership-analyzer-claude.sh .
 ```
+
+### Test Organization
+
+🧪 **Want to try Gibson Powers on safe test repositories?**
+
+We've created the [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org) with sample repositories you can safely analyze without affecting real projects.
+
+```bash
+# Test Code Ownership Analysis
+./utils/code-ownership/ownership-analyzer.sh \
+  https://github.com/Gibson-Powers-Test-Org/sample-repo
+
+# Test DORA Metrics (if you have test data)
+./utils/dora-metrics/dora-analyzer.sh \
+  --repo https://github.com/Gibson-Powers-Test-Org/sample-repo
+
+# Test Supply Chain Analysis
+./utils/supply-chain/supply-chain-scanner.sh \
+  https://github.com/Gibson-Powers-Test-Org/sample-repo
+```
+
+**Perfect for:**
+- Learning how the tools work
+- Testing configurations
+- Experimenting with features
+- Contributing examples
+- Creating tutorials
 
 ## Repository Structure
 
