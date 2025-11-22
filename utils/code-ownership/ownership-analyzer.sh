@@ -648,6 +648,15 @@ fi
 
 # Handle organization scanning
 if [[ -n "$ORG" ]]; then
+    # Extract org name from URL if provided
+    if [[ "$ORG" =~ github\.com/orgs/([^/]+) ]]; then
+        ORG="${BASH_REMATCH[1]}"
+    elif [[ "$ORG" =~ github\.com/([^/]+) ]]; then
+        ORG="${BASH_REMATCH[1]}"
+    fi
+    # Remove trailing slashes
+    ORG="${ORG%/}"
+
     echo -e "${BLUE}Fetching repositories for organization: $ORG${NC}"
 
     if ! command -v list_org_repos &> /dev/null; then
