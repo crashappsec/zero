@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0
 
 # Legal Review Prompts
 
-Prompts for legal review of source code, including license compliance, secret detection, and content policy enforcement.
+Prompts for legal review of source code, including license compliance and content policy enforcement.
 
 ## Build Prompts
 
@@ -28,18 +28,6 @@ Comprehensive prompt for building the legal review analyser tool.
 
 # Generate attribution file
 @legal-review create NOTICE file with all required attributions
-```
-
-### Secret Detection
-```bash
-# Scan for secrets
-@legal-review scan for hardcoded secrets and credentials
-
-# Check specific file
-@legal-review check config.py for exposed secrets
-
-# Git history scan
-@legal-review scan git history for accidentally committed secrets
 ```
 
 ### Content Policy
@@ -73,16 +61,17 @@ Comprehensive prompt for building the legal review analyser tool.
 | Task | Prompt File | Command |
 |------|-------------|---------|
 | Build analyser | BUILD-LEGAL-ANALYSER.md | Use to create tool |
-| License audit | N/A | `./legal-analyser.sh --licenses` |
-| Secret scan | N/A | `./legal-analyser.sh --secrets` |
-| Full review | N/A | `./legal-analyser.sh --all` |
+| License audit | N/A | `./legal-analyser.sh --path . --licenses-only` |
+| Content policy | N/A | `./legal-analyser.sh --path . --content-only` |
+| Full review | N/A | `./legal-analyser.sh --path .` |
+| With Claude AI | N/A | `./legal-analyser.sh --path . --claude` |
 
 ### Severity Levels
 
-- **Critical**: Hardcoded secrets, severe license violations
-- **High**: Denied licenses, PII exposure
+- **Critical**: Severe license violations (GPL in proprietary code)
+- **High**: Denied licenses, copyleft conflicts
 - **Medium**: Non-inclusive language, unknown licenses
-- **Low**: Style issues, recommendations
+- **Low**: Profanity, style issues, recommendations
 
 ## Integration
 
@@ -97,8 +86,8 @@ These prompts work with:
 ```
 Please perform a comprehensive legal audit of this repository before release:
 1. Check all licenses against our approved list
-2. Scan for any hardcoded secrets or credentials
-3. Review code for inappropriate content
+2. Review code for inappropriate content
+3. Check for non-inclusive language
 4. Generate executive summary for legal team
 ```
 
@@ -109,15 +98,6 @@ I want to add the package "example-lib" to our project. Please:
 2. Check compatibility with our MIT license
 3. Review any patent or attribution requirements
 4. Advise if it's safe to use
-```
-
-### Example 3: Incident Response
-```
-A developer accidentally committed AWS credentials. Please:
-1. Scan git history to find all occurrences
-2. Identify which commits need remediation
-3. Generate list of secrets to rotate
-4. Provide step-by-step cleanup instructions
 ```
 
 ## Related Documentation

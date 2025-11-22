@@ -6,14 +6,13 @@ SPDX-License-Identifier: GPL-3.0
 
 # Legal Review Skill
 
-Expert legal review of source code for license compliance, secret detection, and content policy enforcement.
+Expert legal review of source code for license compliance and content policy enforcement.
 
 ## Capabilities
 
 This skill provides:
 - **License compliance analysis** - Detect and analyze open source licenses
 - **License compatibility checking** - Evaluate license combinations
-- **Secret detection guidance** - Identify hardcoded credentials and sensitive data
 - **Content policy enforcement** - Check for inappropriate content
 - **Compliance reporting** - Generate legal review reports
 - **Risk assessment** - Evaluate legal risks in code
@@ -31,18 +30,6 @@ This skill provides:
 
 # Generate attribution file
 @legal-review create NOTICE file with all required attributions
-```
-
-### Secret Detection
-```bash
-# Scan for secrets
-@legal-review scan for hardcoded secrets and credentials
-
-# Check specific file
-@legal-review does config.py contain any exposed secrets?
-
-# Remediation
-@legal-review how do I safely remove committed secrets from git history?
 ```
 
 ### Content Policy
@@ -90,28 +77,7 @@ I want to add the package "axios" to our project. Our project is MIT licensed. P
 - Attribution requirements (copyright notice, license text)
 - Recommendation (approved for use)
 
-### Example 2: Secret Detection in PR
-
-**Scenario**: A pull request may contain hardcoded credentials.
-
-**Prompt**:
-```
-Please review the changes in src/config/database.js for:
-1. Hardcoded passwords or API keys
-2. Database connection strings with credentials
-3. Any other sensitive information
-4. Recommend secure alternatives
-
-[Paste code]
-```
-
-**Expected Analysis**:
-- Identify hardcoded secrets
-- Assess severity
-- Recommend environment variables or secret management
-- Provide code examples for fixes
-
-### Example 3: License Violation Investigation
+### Example 2: License Violation Investigation
 
 **Scenario**: Dependency scan flagged a GPL license.
 
@@ -133,7 +99,7 @@ Please analyze:
 - Options: remove dependency, find alternative, get commercial license, release as open source
 - Suggest MIT/Apache licensed alternatives
 
-### Example 4: Content Policy Review
+### Example 3: Content Policy Review
 
 **Scenario**: Code review found potentially offensive variable names.
 
@@ -156,17 +122,17 @@ Please:
 - Suggest alternatives (poor_workaround, unexpected_counter, primary_db/replica_db)
 - Explain professional standards and inclusive language importance
 
-### Example 5: Compliance Audit
+### Example 4: Compliance Audit
 
-**Scenario**: Preparing for SOC 2 audit.
+**Scenario**: Preparing for a code review and release.
 
 **Prompt**:
 ```
-We're preparing for SOC 2 audit. Please review our codebase for:
-1. Hardcoded secrets or credentials
-2. PII handling without encryption
-3. Missing audit logs for sensitive operations
-4. Insecure data retention practices
+We're preparing for a major release. Please review our codebase for:
+1. License compliance issues
+2. Profanity or unprofessional language
+3. Non-inclusive terminology
+4. Missing license attributions
 
 Generate a compliance checklist and highlight any critical issues.
 ```
@@ -204,18 +170,29 @@ This skill has access to comprehensive legal review documentation:
 
 Run automated scans with the legal analyser:
 ```bash
-# Full scan
+# Full scan (licenses + content policy)
+./utils/legal-review/legal-analyser.sh --path .
+
+# License scan only
+./utils/legal-review/legal-analyser.sh --path . --licenses-only
+
+# Content policy scan only
+./utils/legal-review/legal-analyser.sh --path . --content-only
+
+# GitHub repository scan
 ./utils/legal-review/legal-analyser.sh --repo owner/repo
 
-# License only
-./utils/legal-review/legal-analyser.sh --licenses-only
-
-# Secrets only
-./utils/legal-review/legal-analyser.sh --secrets-only
-
-# With AI analysis
-./utils/legal-review/legal-analyser.sh --repo owner/repo --claude
+# With Claude AI enhancement (Phase 4)
+export ANTHROPIC_API_KEY='your-api-key'
+./utils/legal-review/legal-analyser.sh --path . --claude
 ```
+
+**Claude AI Features** (when using --claude):
+- License compatibility analysis with RAG context
+- Risk assessment and prioritization
+- Specific remediation recommendations
+- Policy exception evaluation
+- Content policy enhancement with context-aware analysis
 
 ### Pre-commit Hooks
 
@@ -242,7 +219,6 @@ Run automated scans with the legal analyser:
 |----------|---------|------------------|
 | Check new dependency | `@legal-review can I use package X?` | License analysis, compatibility |
 | Pre-release audit | `@legal-review audit this repo` | Comprehensive report |
-| Secret in commit | `@legal-review scan for secrets` | Secret detection, remediation |
 | Content policy | `@legal-review check language` | Profanity/inclusivity check |
 | License conflict | `@legal-review GPL + MIT compatible?` | Compatibility analysis |
 | M&A due diligence | `@legal-review due diligence report` | Legal risk assessment |
@@ -269,17 +245,6 @@ Configure your organization's legal policies in `config/legal-review-config.json
   "content_policy": {
     "profanity": {"severity": "medium"},
     "inclusive_language": {"severity": "high"}
-  }
-}
-```
-
-### Secret Patterns
-```json
-{
-  "secrets": {
-    "patterns": [
-      {"name": "AWS Key", "pattern": "AKIA[0-9A-Z]{16}"}
-    ]
   }
 }
 ```

@@ -224,7 +224,9 @@ detect_license_files() {
         done < <(find "$path" -maxdepth 2 -iname "$pattern" -type f -print0 2>/dev/null)
     done
 
-    printf '%s\n' "${license_files[@]}"
+    if [[ ${#license_files[@]} -gt 0 ]]; then
+        printf '%s\n' "${license_files[@]}"
+    fi
 }
 
 # Extract SPDX identifier from file
