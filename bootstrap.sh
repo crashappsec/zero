@@ -138,6 +138,24 @@ else
     echo -e "${YELLOW}⚠${NC} syft is not installed (required for SBOM generation)"
     TOOLS_TO_INSTALL+=("syft")
 fi
+
+# Check for cosign (provenance verification)
+if command -v cosign &> /dev/null; then
+    COSIGN_VERSION=$(cosign version 2>&1 | head -1 || echo "unknown")
+    echo -e "${GREEN}✓${NC} cosign is installed: $COSIGN_VERSION"
+else
+    echo -e "${YELLOW}⚠${NC} cosign is not installed (required for provenance verification)"
+    TOOLS_TO_INSTALL+=("cosign")
+fi
+
+# Check for rekor-cli (transparency log)
+if command -v rekor-cli &> /dev/null; then
+    REKOR_VERSION=$(rekor-cli version 2>&1 | head -1 || echo "unknown")
+    echo -e "${GREEN}✓${NC} rekor-cli is installed: $REKOR_VERSION"
+else
+    echo -e "${YELLOW}⚠${NC} rekor-cli is not installed (required for transparency log checks)"
+    TOOLS_TO_INSTALL+=("rekor-cli")
+fi
 echo ""
 
 # Check for Go (required for osv-scanner)
