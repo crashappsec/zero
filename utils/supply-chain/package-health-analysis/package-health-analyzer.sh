@@ -28,6 +28,21 @@ USE_CLAUDE=false
 COMPARE_MODE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 
+# Track temporary directories for cleanup
+TEMP_DIRS=()
+
+# Cleanup function
+cleanup() {
+    for temp_dir in "${TEMP_DIRS[@]}"; do
+        if [[ -n "$temp_dir" ]] && [[ -d "$temp_dir" ]]; then
+            rm -rf "$temp_dir"
+        fi
+    done
+}
+
+# Ensure cleanup on script exit (normal, error, or interrupt)
+trap cleanup EXIT
+
 # Usage information
 usage() {
     cat <<EOF
@@ -246,6 +261,7 @@ generate_sbom_for_repo() {
 
     # Create temp directory for cloning
     local temp_dir=$(mktemp -d)
+    TEMP_DIRS+=("$temp_dir")
 
     # Convert repo URL to git clone format
     local clone_url="$repo"
@@ -256,7 +272,6 @@ generate_sbom_for_repo() {
 
     log "Cloning repository from $clone_url to $temp_dir"
     if ! git clone --depth 1 --quiet "$clone_url" "$temp_dir/repo" 2>/dev/null; then
-        rm -rf "$temp_dir"
         echo "Error: Failed to clone repository: $clone_url" >&2
         exit 1
     fi
@@ -265,14 +280,10 @@ generate_sbom_for_repo() {
     local sbom_file=$(mktemp)
     log "Running syft scan"
     if ! syft scan "$temp_dir/repo" --output cyclonedx-json="$sbom_file" --quiet 2>/dev/null; then
-        rm -rf "$temp_dir"
         rm -f "$sbom_file"
         echo "Error: Failed to generate SBOM" >&2
         exit 1
     fi
-
-    # Clean up cloned repo but keep SBOM
-    rm -rf "$temp_dir"
 
     echo "$sbom_file"
 }
