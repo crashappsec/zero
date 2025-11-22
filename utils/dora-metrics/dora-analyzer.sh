@@ -23,6 +23,7 @@ NC='\033[0m' # No Color
 OUTPUT_FORMAT="text"
 OUTPUT_FILE=""
 USE_CLAUDE=false
+COMPARE_MODE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 
 # Function to print usage
@@ -42,6 +43,7 @@ OPTIONS:
     -f, --format FORMAT     Output format: text|json|csv (default: text)
     -o, --output FILE       Write results to file
     --claude                Use Claude AI for advanced analysis (requires ANTHROPIC_API_KEY)
+    --compare               Run both basic and Claude modes side-by-side for comparison
     -k, --api-key KEY       Anthropic API key (or set ANTHROPIC_API_KEY env var)
     -h, --help              Show this help message
 
@@ -434,6 +436,10 @@ while [[ $# -gt 0 ]]; do
             USE_CLAUDE=true
             shift
             ;;
+        --compare)
+            COMPARE_MODE=true
+            shift
+            ;;
         -k|--api-key)
             ANTHROPIC_API_KEY="$2"
             shift 2
@@ -454,8 +460,18 @@ if [[ -z "$DATA_FILE" ]]; then
     usage
 fi
 
-# Load cost tracking library if using Claude
-if [[ "$USE_CLAUDE" == "true" ]]; then
+# Check compare mode requirements
+if [[ "$COMPARE_MODE" == "true" ]]; then
+    if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+        echo -e "${RED}Error: --compare mode requires ANTHROPIC_API_KEY${NC}"
+        echo "Set environment variable or use -k flag"
+        exit 1
+    fi
+    USE_CLAUDE=false  # Start with basic
+fi
+
+# Load cost tracking library if using Claude or compare mode
+if [[ "$USE_CLAUDE" == "true" ]] || [[ "$COMPARE_MODE" == "true" ]]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
     if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
@@ -467,7 +483,9 @@ fi
 # Main
 echo ""
 echo "========================================="
-if [[ "$USE_CLAUDE" == "true" ]]; then
+if [[ "$COMPARE_MODE" == "true" ]]; then
+    echo "  DORA Metrics Analyzer (Comparison Mode)"
+elif [[ "$USE_CLAUDE" == "true" ]]; then
     echo "  DORA Metrics Analyzer (Claude AI Mode)"
 else
     echo "  DORA Metrics Analyzer"
@@ -478,7 +496,53 @@ echo ""
 check_prerequisites
 validate_input "$DATA_FILE"
 
-if [[ "$USE_CLAUDE" == "true" ]]; then
+if [[ "$COMPARE_MODE" == "true" ]]; then
+    # Comparison mode: run both basic and Claude
+    echo -e "${BLUE}Running basic DORA analysis...${NC}"
+    echo ""
+    USE_CLAUDE=false
+    analyze_data "$DATA_FILE"
+
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo -e "${BLUE}Running Claude AI analysis...${NC}"
+    echo ""
+    USE_CLAUDE=true
+    analyze_with_claude "$DATA_FILE"
+
+    # Display comparison summary
+    echo ""
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${CYAN}Comparison Summary${NC}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo ""
+    echo "Basic analyzer provides:"
+    echo "  • Four key DORA metrics calculation"
+    echo "  • Performance level classification"
+    echo "  • Benchmark comparison (Elite/High/Medium/Low)"
+    echo "  • Raw metrics and percentiles"
+    echo ""
+    echo "Claude-enhanced analyzer adds:"
+    echo "  • ${GREEN}Contextual insights${NC} and trend interpretation"
+    echo "  • ${GREEN}Pattern recognition${NC} across metrics"
+    echo "  • ${GREEN}Root cause analysis${NC} for performance issues"
+    echo "  • ${GREEN}Specific improvement recommendations${NC}"
+    echo "  • ${GREEN}Industry best practices${NC} application"
+    echo "  • ${GREEN}Prioritized action items${NC}"
+    echo ""
+
+    if command -v display_api_cost_summary &> /dev/null; then
+        echo "API Cost:"
+        display_api_cost_summary
+    fi
+
+    echo ""
+    echo "Use basic for: CI/CD integration, dashboards, trending"
+    echo "Use Claude for: Strategic planning, performance reviews, root cause analysis"
+    echo ""
+
+elif [[ "$USE_CLAUDE" == "true" ]]; then
     # Claude AI analysis mode
     analyze_with_claude "$DATA_FILE"
 
