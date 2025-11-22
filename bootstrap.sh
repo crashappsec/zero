@@ -351,20 +351,34 @@ else
 fi
 echo ""
 
-# Export skills to templates
-echo -e "${BLUE}Exporting Claude Code skills to portable templates...${NC}"
+# Configure Claude Code skills
+echo -e "${BLUE}Configuring Claude Code skills...${NC}"
 if [ -d "$REPO_ROOT/skills" ]; then
     SKILL_COUNT=$(find "$REPO_ROOT/skills" -name "*.skill" -o -name "skill.md" | wc -l | tr -d ' ')
     echo -e "${GREEN}✓${NC} Found $SKILL_COUNT skills in repository"
 
+    # Create .claude directory if it doesn't exist
+    mkdir -p "$REPO_ROOT/.claude"
+
+    # Create symlink to skills directory for Claude Code
+    if [ ! -L "$REPO_ROOT/.claude/skills" ] && [ ! -d "$REPO_ROOT/.claude/skills" ]; then
+        ln -s ../skills "$REPO_ROOT/.claude/skills"
+        echo -e "${GREEN}✓${NC} Created symlink: .claude/skills -> skills/"
+        echo -e "${GREEN}✓${NC} Claude Code will automatically discover all skills"
+    elif [ -L "$REPO_ROOT/.claude/skills" ]; then
+        echo -e "${GREEN}✓${NC} Skills symlink already exists"
+    else
+        echo -e "${YELLOW}⚠${NC} .claude/skills exists but is not a symlink"
+        echo -e "${YELLOW}  You may want to remove it and re-run bootstrap${NC}"
+    fi
+
+    # Export skills to templates (for sharing)
     if [ -x "$REPO_ROOT/export-skills-to-templates.sh" ]; then
         if "$REPO_ROOT/export-skills-to-templates.sh" > /dev/null 2>&1; then
             echo -e "${GREEN}✓${NC} Skills exported to ~/claude-templates"
         else
             echo -e "${YELLOW}⚠${NC} Failed to export skills (non-fatal)"
         fi
-    else
-        echo -e "${YELLOW}⚠${NC} export-skills-to-templates.sh not executable"
     fi
 else
     echo -e "${YELLOW}⚠${NC} No skills directory found"
