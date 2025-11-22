@@ -1,6 +1,7 @@
 #!/bin/bash
 # Package Health Analyser - Base Scanner
-# Copyright (c) 2024 Gibson Powers Contributors
+# Copyright (c) 2025 Crash Override Inc.
+# https://crashoverride.com
 # SPDX-License-Identifier: GPL-3.0
 
 set -euo pipefail
@@ -8,8 +9,12 @@ set -euo pipefail
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UTILS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$UTILS_ROOT/.." && pwd)"
 
-# Load libraries
+# Load global libraries
+source "$REPO_ROOT/utils/lib/sbom.sh"
+
+# Load local libraries
 source "$SCRIPT_DIR/lib/deps-dev-client.sh"
 source "$SCRIPT_DIR/lib/health-scoring.sh"
 source "$SCRIPT_DIR/lib/version-analysis.sh"
@@ -254,13 +259,6 @@ generate_sbom_for_repo() {
 
     log "Generating SBOM for $repo"
 
-    # Check if syft is available
-    if ! command -v syft &> /dev/null; then
-        echo "Error: syft is required but not installed" >&2
-        echo "Install: https://github.com/anchore/syft" >&2
-        exit 1
-    fi
-
     # Create temp directory for cloning
     local temp_dir=$(mktemp -d)
     TEMP_DIRS+=("$temp_dir")
@@ -278,10 +276,12 @@ generate_sbom_for_repo() {
         exit 1
     fi
 
-    # Generate SBOM to a persistent temp file (caller will clean up)
+    # Generate SBOM using global SBOM library
     local sbom_file=$(mktemp)
-    log "Running syft scan"
-    if ! syft scan "$temp_dir/repo" --output cyclonedx-json="$sbom_file" --quiet 2>/dev/null; then
+    log "Generating SBOM using global library"
+
+    # Use the generate_sbom function from utils/lib/sbom.sh
+    if ! generate_sbom "$temp_dir/repo" "$sbom_file" "true" >&2; then
         rm -f "$sbom_file"
         echo "Error: Failed to generate SBOM" >&2
         exit 1

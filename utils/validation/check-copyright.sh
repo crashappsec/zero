@@ -1,5 +1,6 @@
 #!/bin/bash
-# Copyright (c) 2024 Gibson Powers Contributors
+# Copyright (c) 2025 Crash Override Inc.
+# https://crashoverride.com
 # 
 # SPDX-License-Identifier: GPL-3.0
 
@@ -24,14 +25,15 @@ fi
 
 # Copyright header templates
 MD_HEADER='<!--
-Copyright (c) 2024 Gibson Powers Contributors
+Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 
 SPDX-License-Identifier: GPL-3.0
 -->
 '
 
-SH_HEADER='# Copyright (c) 2024 Gibson Powers Contributors
-# 
+SH_HEADER='# Copyright (c) 2025 Crash Override Inc.
+# https://crashoverride.com
+#
 # SPDX-License-Identifier: GPL-3.0
 '
 
@@ -62,7 +64,7 @@ check_file() {
     local header_pattern="$2"
     local fix_header="$3"
 
-    if ! head -n 10 "$file" | grep -q "Copyright (c) 2024 Gibson Powers Contributors"; then
+    if ! head -n 10 "$file" | grep -q "Copyright (c) 2025 Crash Override Inc"; then
         if [[ "$FIX_MODE" == true ]]; then
             echo -e "${YELLOW}Fixing: $file${NC}"
 

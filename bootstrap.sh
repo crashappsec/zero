@@ -1,5 +1,6 @@
 #!/bin/bash
-# Copyright (c) 2024 Gibson Powers Contributors
+# Copyright (c) 2025 Crash Override Inc.
+# https://crashoverride.com
 # 
 # SPDX-License-Identifier: GPL-3.0
 
@@ -19,8 +20,13 @@ NC='\033[0m' # No Color
 
 echo ""
 echo "========================================="
-echo "  Skills and Prompts Bootstrap"
+echo "  Gibson Powers Project Bootstrap"
 echo "========================================="
+echo ""
+echo "Bootstrapping complete development environment:"
+echo "- Security analysers and tools"
+echo "- Skills and RAG knowledge base"
+echo "- Dependencies and configuration"
 echo ""
 
 # Get script directory (repo root)

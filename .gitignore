@@ -59,3 +59,10 @@ build/
 .DS_Store
 .DS_Store
 .claude/skills
+
+# SBOM generation
+sbom-output/
+.sbom-cache/
+*.sbom.json
+*.cdx.json
+*.spdx.json

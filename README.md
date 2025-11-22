@@ -1,6 +1,6 @@
 <!--
 SPDX-License-Identifier: GPL-3.0
-Copyright (c) 2024 Gibson Powers Contributors
+Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 -->
 
 # Gibson Powers
@@ -403,7 +403,7 @@ Gibson Powers is built on these principles:
 Gibson Powers is licensed under the [GNU General Public License v3.0](./LICENSE).
 
 ```
-Copyright (c) 2024 Gibson Powers Contributors
+Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
