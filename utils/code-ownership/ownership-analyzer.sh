@@ -29,6 +29,9 @@ TEMP_DIR=""
 CLEANUP=true
 USE_CLAUDE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+ORG=""
+REPOS=()
+MULTI_REPO_MODE=false
 
 usage() {
     cat << EOF
@@ -42,6 +45,8 @@ Usage: $0 [OPTIONS] <target>
 TARGET:
     Local directory path    Analyze local repository
     Git repository URL      Clone and analyze repository
+    --org ORGANIZATION      Analyze all repos in organization (requires GITHUB_TOKEN)
+    --repos REPO1 REPO2...  Analyze multiple repositories
 
 OPTIONS:
     -d, --days N            Analyze last N days of history (default: 90)
@@ -586,6 +591,19 @@ while [[ $# -gt 0 ]]; do
             ANTHROPIC_API_KEY="$2"
             shift 2
             ;;
+        --org)
+            ORG="$2"
+            MULTI_REPO_MODE=true
+            shift 2
+            ;;
+        --repos)
+            MULTI_REPO_MODE=true
+            shift
+            while [[ $# -gt 0 ]] && [[ ! "$1" =~ ^- ]]; do
+                REPOS+=("$1")
+                shift
+            done
+            ;;
         --keep-clone)
             CLEANUP=false
             shift
@@ -600,19 +618,50 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-if [[ -z "$REPO_PATH" ]]; then
-    echo -e "${RED}Error: No repository path specified${NC}"
+if [[ -z "$REPO_PATH" ]] && [[ -z "$ORG" ]] && [[ ${#REPOS[@]} -eq 0 ]]; then
+    echo -e "${RED}Error: No repository path, organization, or repos specified${NC}"
     usage
+fi
+
+# Get script directory and load libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Load GitHub library for org scanning
+if [ -f "$REPO_ROOT/utils/lib/github.sh" ]; then
+    source "$REPO_ROOT/utils/lib/github.sh"
 fi
 
 # Load cost tracking library if using Claude
 if [[ "$USE_CLAUDE" == "true" ]]; then
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
     if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
         source "$REPO_ROOT/utils/lib/claude-cost.sh"
         init_cost_tracking
     fi
+fi
+
+# Handle organization scanning
+if [[ -n "$ORG" ]]; then
+    echo -e "${BLUE}Fetching repositories for organization: $ORG${NC}"
+
+    if ! command -v list_org_repos &> /dev/null; then
+        echo -e "${RED}Error: GitHub library not loaded. Cannot scan organization.${NC}"
+        exit 1
+    fi
+
+    repo_list=$(list_org_repos "$ORG")
+    if [[ -z "$repo_list" ]]; then
+        echo -e "${RED}Error: No repositories found for organization: $ORG${NC}"
+        echo -e "${YELLOW}Make sure the organization exists and is public, or set GITHUB_TOKEN for private orgs${NC}"
+        exit 1
+    fi
+
+    while IFS= read -r repo; do
+        [[ -n "$repo" ]] && REPOS+=("$repo")
+    done <<< "$repo_list"
+
+    echo -e "${GREEN}Found ${#REPOS[@]} repositories${NC}"
+    MULTI_REPO_MODE=true
 fi
 
 # Main execution
@@ -628,54 +677,82 @@ echo ""
 
 check_prerequisites
 
-# Determine target type and set REPO_PATH
-if is_git_url "$REPO_PATH"; then
-    echo -e "${GREEN}Target: Git repository${NC}"
-    if clone_repository "$REPO_PATH"; then
-        ACTUAL_REPO_PATH="$TEMP_DIR"
+# Function to analyze a single target
+analyze_single_target() {
+    local target="$1"
+
+    if is_git_url "$target"; then
+        echo -e "${GREEN}Target: Git repository${NC}"
+        if clone_repository "$target"; then
+            local actual_path="$TEMP_DIR"
+        else
+            return 1
+        fi
     else
-        exit 1
+        echo -e "${GREEN}Target: Local directory${NC}"
+        local actual_path="$target"
     fi
-else
-    echo -e "${GREEN}Target: Local directory${NC}"
-    ACTUAL_REPO_PATH="$REPO_PATH"
-fi
 
-is_git_repository "$ACTUAL_REPO_PATH"
+    is_git_repository "$actual_path"
 
-if [[ "$VALIDATE_CODEOWNERS" == "true" ]]; then
-    validate_codeowners_file "$ACTUAL_REPO_PATH"
-fi
+    if [[ "$VALIDATE_CODEOWNERS" == "true" ]]; then
+        validate_codeowners_file "$actual_path"
+    fi
 
-# Run analysis based on mode
-if [[ "$USE_CLAUDE" == "true" ]]; then
-    # Claude AI analysis mode
-    data=$(collect_repository_data_for_claude "$ACTUAL_REPO_PATH" "$DAYS")
-    if [[ -n "$OUTPUT_FILE" ]]; then
-        analyze_with_claude "$data" > "$OUTPUT_FILE"
-        echo -e "${GREEN}✓ Analysis complete${NC}"
-        echo -e "Output written to: $OUTPUT_FILE"
-    else
+    # Run analysis based on mode
+    if [[ "$USE_CLAUDE" == "true" ]]; then
+        # Claude AI analysis mode
+        data=$(collect_repository_data_for_claude "$actual_path" "$DAYS")
         analyze_with_claude "$data"
+    else
+        # Standard analysis mode
+        if [[ -n "$OUTPUT_FILE" ]]; then
+            analyze_ownership "$actual_path" "$DAYS" > "$OUTPUT_FILE"
+            echo -e "${GREEN}✓ Analysis complete${NC}"
+            echo -e "Output written to: $OUTPUT_FILE"
+        else
+            analyze_ownership "$actual_path" "$DAYS"
+        fi
     fi
 
-    # Display cost summary
-    if command -v display_api_cost_summary &> /dev/null; then
+    cleanup
+}
+
+# Execute analysis
+if [[ "$MULTI_REPO_MODE" == "true" ]]; then
+    # Multi-repository mode
+    for repo in "${REPOS[@]}"; do
+        echo ""
+        echo "========================================="
+        echo -e "${CYAN}Analyzing: $repo${NC}"
+        echo "========================================="
+        echo ""
+
+        # Convert short name to full URL if needed
+        if [[ ! "$repo" =~ ^https:// ]]; then
+            repo="https://github.com/$repo"
+        fi
+
+        analyze_single_target "$repo"
+    done
+
+    # Display cost summary for all repos
+    if [[ "$USE_CLAUDE" == "true" ]] && command -v display_api_cost_summary &> /dev/null; then
+        echo ""
+        echo "========================================="
+        echo -e "${CYAN}Total for all repositories:${NC}"
+        echo "========================================="
         display_api_cost_summary
     fi
 else
-    # Standard analysis mode
-    if [[ -n "$OUTPUT_FILE" ]]; then
-        analyze_ownership "$ACTUAL_REPO_PATH" "$DAYS" > "$OUTPUT_FILE"
-        echo -e "${GREEN}✓ Analysis complete${NC}"
-        echo -e "Output written to: $OUTPUT_FILE"
-    else
-        analyze_ownership "$ACTUAL_REPO_PATH" "$DAYS"
+    # Single repository mode
+    analyze_single_target "$REPO_PATH"
+
+    # Display cost summary
+    if [[ "$USE_CLAUDE" == "true" ]] && command -v display_api_cost_summary &> /dev/null; then
+        display_api_cost_summary
     fi
 fi
-
-# Cleanup if we cloned a repo
-cleanup
 
 echo ""
 echo "========================================="
