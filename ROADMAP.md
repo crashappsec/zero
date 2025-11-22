@@ -302,6 +302,148 @@ Improve test coverage and effectiveness:
 - Mutation testing integration
 - Test gap identification
 
+#### 11. Secret Detection and PII Scanning 💡
+
+Detect and remediate exposed secrets and sensitive data:
+- **Pattern-Based Detection**:
+  - AWS access keys (AKIA[0-9A-Z]{16})
+  - GitHub tokens (ghp_, gho_, ghs_, ghr_)
+  - Private keys (RSA, DSA, EC, SSH)
+  - API keys and bearer tokens
+  - Database connection strings with credentials
+  - Generic secrets (password=, api_key=, etc.)
+
+- **Entropy-Based Detection**:
+  - High-entropy string detection
+  - Base64-encoded secret identification
+  - Hex-encoded credential detection
+  - Configurable entropy thresholds
+
+- **PII Detection**:
+  - Social Security Numbers (SSN)
+  - Credit card numbers
+  - Email addresses in code
+  - Phone numbers
+  - National ID numbers
+
+- **Integration**:
+  - TruffleHog integration
+  - GitLeaks integration
+  - Gitleaks-style rule engine
+  - Custom regex pattern support
+  - False positive filtering
+
+- **Remediation**:
+  - Git history scanning
+  - Secret rotation guidance
+  - Environment variable migration
+  - Secret management tool recommendations
+  - Automated .gitignore updates
+
+- **Reporting**:
+  - Severity-based categorization
+  - Historical trend tracking
+  - Compliance reporting (PCI-DSS, GDPR)
+  - Pre-commit hook generation
+
+**Use Cases:**
+- Pre-release security audit
+- Compliance requirements (SOC 2, PCI-DSS)
+- M&A due diligence
+- Developer education
+- CI/CD security gates
+- Incident response
+
+**Related to**: Legal Review skill (content policy and license compliance)
+
+#### 12. Technology Audit and Stack Analysis 💡
+
+Analyze technology stack, dependencies, and platform usage:
+- **Programming Language Detection**:
+  - Primary and secondary languages
+  - Language version identification
+  - Language-specific best practices
+  - Migration path recommendations
+
+- **Framework and Library Analysis**:
+  - Web frameworks (React, Vue, Angular, Django, Rails, etc.)
+  - Testing frameworks (Jest, pytest, JUnit, etc.)
+  - Build tools (Webpack, Vite, Maven, Gradle, etc.)
+  - Development tools and IDE configurations
+
+- **SaaS Platform Detection**:
+  - Cloud providers (AWS, GCP, Azure, Cloudflare)
+  - CI/CD platforms (GitHub Actions, GitLab CI, CircleCI)
+  - Monitoring and observability (Datadog, New Relic, Sentry)
+  - Authentication providers (Auth0, Okta, Cognito)
+  - Payment processors (Stripe, PayPal)
+  - Email services (SendGrid, Mailgun, SES)
+  - Analytics platforms (Google Analytics, Mixpanel, Amplitude)
+
+- **Development Tools**:
+  - Version control (Git, Git LFS)
+  - Package managers (npm, yarn, pnpm, pip, cargo, etc.)
+  - Containerization (Docker, Podman)
+  - Orchestration (Kubernetes, Docker Compose)
+  - Infrastructure as Code (Terraform, CloudFormation, Pulumi)
+
+- **Code Quality Tools**:
+  - Linters (ESLint, Pylint, Clippy, golangci-lint)
+  - Formatters (Prettier, Black, rustfmt, gofmt)
+  - Type checkers (TypeScript, mypy, Flow)
+  - Security scanners (Snyk, Semgrep, CodeQL)
+
+- **Architecture Patterns**:
+  - Microservices vs monolith detection
+  - API styles (REST, GraphQL, gRPC)
+  - Database types (PostgreSQL, MongoDB, Redis, etc.)
+  - Message queues (Kafka, RabbitMQ, SQS)
+  - Caching layers (Redis, Memcached, CDN)
+
+- **Analysis and Reporting**:
+  - Technology stack visualization
+  - Dependency graph generation
+  - Obsolete technology identification
+  - Security risk scoring by technology
+  - License compatibility checking
+  - Cost analysis by SaaS platform
+  - Vendor lock-in assessment
+  - Migration complexity estimation
+
+- **Recommendations**:
+  - Technology modernization suggestions
+  - Alternative tool recommendations
+  - Cost optimization opportunities
+  - Security hardening guidance
+  - Performance improvement suggestions
+
+**Use Cases:**
+- Onboarding new developers (understand the stack)
+- M&A technical due diligence
+- Technology portfolio management
+- License audit preparation
+- Security posture assessment
+- Cost optimization planning
+- Migration planning
+- Technology debt assessment
+
+**Integration:**
+- Code analysis (AST parsing, pattern matching)
+- Configuration file parsing (package.json, requirements.txt, Cargo.toml, etc.)
+- API/SDK usage detection
+- Import statement analysis
+- Environment variable scanning
+- Infrastructure as Code parsing
+
+**Output Formats:**
+- Markdown reports
+- JSON/YAML for automation
+- SBOM enrichment (technology annotations)
+- Dashboard widgets
+- Comparison reports (before/after migrations)
+
+**Related to**: SBOM analysis, Supply Chain analysis, Security Posture Assessment
+
 ## Community Requests
 
 *This section will be populated with highly-requested features from the community.*
@@ -382,4 +524,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-*Last Updated: 2024-11-20*
+*Last Updated: 2025-11-22*
