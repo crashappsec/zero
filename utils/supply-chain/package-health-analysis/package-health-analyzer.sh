@@ -595,8 +595,62 @@ format_table() {
     ' | head -10
 }
 
+#############################################################################
+# Claude AI Analysis
+#############################################################################
+
+analyze_with_claude() {
+    local data="$1"
+    local model="claude-sonnet-4-20250514"
+
+    if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+        echo "Error: ANTHROPIC_API_KEY required for --claude mode" >&2
+        exit 1
+    fi
+
+    echo "Analyzing with Claude AI..." >&2
+
+    local prompt="Analyze this package health data and provide insights on risks, recommendations, and action items. Focus on:
+1. Critical vulnerabilities and security risks
+2. Deprecated packages requiring immediate attention
+3. Version inconsistencies and dependency conflicts
+4. Overall health assessment
+5. Prioritized remediation plan
+
+Data:
+$data"
+
+    local response=$(curl -s https://api.anthropic.com/v1/messages \
+        -H "content-type: application/json" \
+        -H "x-api-key: $ANTHROPIC_API_KEY" \
+        -H "anthropic-version: 2023-06-01" \
+        -d "{
+            \"model\": \"$model\",
+            \"max_tokens\": 4096,
+            \"messages\": [{
+                \"role\": \"user\",
+                \"content\": $(echo "$prompt" | jq -Rs .)
+            }]
+        }")
+
+    if command -v record_api_usage &> /dev/null; then
+        record_api_usage "$response" "$model" > /dev/null
+    fi
+
+    echo "$response" | jq -r '.content[0].text // empty'
+}
+
 # Main execution
 main() {
+    # Load cost tracking if using Claude
+    if [[ "$USE_CLAUDE" == "true" ]]; then
+        REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+        if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
+            source "$REPO_ROOT/utils/lib/claude-cost.sh"
+            init_cost_tracking
+        fi
+    fi
+
     parse_args "$@"
 
     # Validate input
@@ -620,13 +674,31 @@ main() {
     fi
 
     # Format and output
-    local formatted=$(format_output "$result" "$OUTPUT_FORMAT")
+    if [[ "$USE_CLAUDE" == "true" ]]; then
+        # Claude AI analysis mode
+        local formatted=$(format_output "$result" "$OUTPUT_FORMAT")
+        local claude_analysis=$(analyze_with_claude "$formatted")
 
-    if [ -n "$OUTPUT_FILE" ]; then
-        echo "$formatted" > "$OUTPUT_FILE"
-        log "Report written to $OUTPUT_FILE"
+        echo "========================================="
+        echo "  Package Health Analysis (Claude AI)"
+        echo "========================================="
+        echo ""
+        echo "$claude_analysis"
+
+        # Display cost summary
+        if command -v display_api_cost_summary &> /dev/null; then
+            display_api_cost_summary
+        fi
     else
-        echo "$formatted"
+        # Standard analysis mode
+        local formatted=$(format_output "$result" "$OUTPUT_FORMAT")
+
+        if [ -n "$OUTPUT_FILE" ]; then
+            echo "$formatted" > "$OUTPUT_FILE"
+            log "Report written to $OUTPUT_FILE"
+        else
+            echo "$formatted"
+        fi
     fi
 }
 
