@@ -25,6 +25,7 @@ ANALYZE_VERSIONS=true
 CHECK_DEPRECATION=true
 OUTPUT_FILE=""
 USE_CLAUDE=false
+COMPARE_MODE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 
 # Usage information
@@ -43,6 +44,7 @@ OPTIONS:
     --no-version-analysis      Skip version inconsistency analysis
     --no-deprecation-check     Skip deprecation checking
     --claude                   Use Claude AI for advanced analysis (requires ANTHROPIC_API_KEY)
+    --compare                  Run both basic and Claude modes side-by-side for comparison
     -k, --api-key KEY          Anthropic API key (or set ANTHROPIC_API_KEY env var)
     --verbose                  Enable verbose output
     -h, --help                 Show this help message
@@ -100,6 +102,10 @@ parse_args() {
                 USE_CLAUDE=true
                 shift
                 ;;
+            --compare)
+                COMPARE_MODE=true
+                shift
+                ;;
             -k|--api-key)
                 ANTHROPIC_API_KEY="$2"
                 shift 2
@@ -117,6 +123,16 @@ parse_args() {
                 ;;
         esac
     done
+
+    # Check compare mode requirements
+    if [[ "$COMPARE_MODE" == "true" ]]; then
+        if [[ -z "$ANTHROPIC_API_KEY" ]]; then
+            echo "Error: --compare mode requires ANTHROPIC_API_KEY" >&2
+            echo "Set environment variable or use -k flag" >&2
+            exit 1
+        fi
+        USE_CLAUDE=false  # Start with basic
+    fi
 }
 
 # Log message if verbose
@@ -642,8 +658,8 @@ $data"
 
 # Main execution
 main() {
-    # Load cost tracking if using Claude
-    if [[ "$USE_CLAUDE" == "true" ]]; then
+    # Load cost tracking if using Claude or compare mode
+    if [[ "$USE_CLAUDE" == "true" ]] || [[ "$COMPARE_MODE" == "true" ]]; then
         REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
         if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
             source "$REPO_ROOT/utils/lib/claude-cost.sh"
@@ -674,7 +690,62 @@ main() {
     fi
 
     # Format and output
-    if [[ "$USE_CLAUDE" == "true" ]]; then
+    if [[ "$COMPARE_MODE" == "true" ]]; then
+        # Comparison mode: run both basic and Claude
+        echo "========================================="
+        echo "  Package Health Analysis (Comparison)"
+        echo "========================================="
+        echo ""
+        echo "Running basic analysis..."
+        echo ""
+
+        USE_CLAUDE=false
+        local formatted=$(format_output "$result" "$OUTPUT_FORMAT")
+        echo "$formatted"
+
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "Running Claude AI analysis..."
+        echo ""
+
+        USE_CLAUDE=true
+        local claude_analysis=$(analyze_with_claude "$formatted")
+        echo "$claude_analysis"
+
+        # Display comparison summary
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "Comparison Summary"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "Basic analyzer provides:"
+        echo "  • Package health scores and metrics"
+        echo "  • Vulnerability counts and severity"
+        echo "  • Deprecation status"
+        echo "  • Version analysis"
+        echo "  • Raw data export (JSON/CSV)"
+        echo ""
+        echo "Claude-enhanced analyzer adds:"
+        echo "  • Risk prioritization and assessment"
+        echo "  • Contextual security insights"
+        echo "  • Specific remediation recommendations"
+        echo "  • Upgrade path guidance"
+        echo "  • Impact analysis"
+        echo "  • Prioritized action plan"
+        echo ""
+
+        if command -v display_api_cost_summary &> /dev/null; then
+            echo "API Cost:"
+            display_api_cost_summary
+        fi
+
+        echo ""
+        echo "Use basic for: Automation, CI/CD, dashboards"
+        echo "Use Claude for: Security reviews, upgrade planning, risk assessment"
+        echo ""
+
+    elif [[ "$USE_CLAUDE" == "true" ]]; then
         # Claude AI analysis mode
         local formatted=$(format_output "$result" "$OUTPUT_FORMAT")
         local claude_analysis=$(analyze_with_claude "$formatted")
