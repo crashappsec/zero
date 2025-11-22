@@ -110,9 +110,15 @@ git --version
 # Analyze specific repository
 ./ownership-analyzer.sh /path/to/repo
 
+# Analyze test organization
+./ownership-analyzer.sh --org Gibson-Powers-Test-Org
+
 # AI-enhanced analysis with insights and cost tracking
 export ANTHROPIC_API_KEY="your-key"
 ./ownership-analyzer.sh --claude .
+
+# Get help
+./ownership-analyzer.sh --help
 
 # Compare base vs Claude analysis
 ./compare-analyzers.sh

@@ -321,3 +321,23 @@ GPL-3.0 - See [LICENSE](../../LICENSE) for details.
 Current version: 1.0.0 (Experimental)
 
 See [CHANGELOG.md](./CHANGELOG.md) for version history.
+
+### Test Organization
+
+Test with the [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org):
+
+```bash
+# Basic analysis
+./$(basename $readme) [input]
+
+# Claude AI analysis (when fully implemented)
+./$(basename $readme) --claude [input]
+
+# Get all options
+./$(basename $readme) --help
+```
+
+### Claude AI Support
+
+This tool supports `--claude` flag for AI-powered analysis (implementation in progress).
+Set `ANTHROPIC_API_KEY` environment variable or use `-k` flag.

@@ -253,3 +253,26 @@ See [CHANGELOG.md](./CHANGELOG.md) for version history.
 # Claude AI mode
 ./dora-analyzer.sh --claude deployment-data.json
 ```
+
+### Test Organization
+
+The [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org) provides sample repositories for testing:
+
+```bash
+# Test with sample data
+./dora-analyzer.sh deployment-data.json
+
+# Test with Claude AI
+./dora-analyzer.sh --claude deployment-data.json
+```
+
+### All Arguments
+
+```
+OPTIONS:
+    -f, --format FORMAT     Output format: text|json|csv (default: text)
+    -o, --output FILE       Write results to file
+    --claude                Use Claude AI for advanced analysis
+    -k, --api-key KEY       Anthropic API key
+    -h, --help              Show this help message
+```
