@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0
 
 # Gibson Powers Roadmap
 
-This roadmap outlines planned features, enhancements, and ideas for the gibson-powers repository. Community contributions and suggestions are welcome!
+This roadmap outlines planned features and enhancements for the gibson-powers repository. Community contributions and suggestions are welcome!
 
 ## How to Contribute Ideas
 
@@ -17,78 +17,15 @@ We welcome community input on our roadmap! Here's how you can participate:
 3. **Vote with Reactions**: Use 👍 reactions on issues to help us prioritize
 4. **Contribute Code**: Pick up any roadmap item and submit a PR
 
-## Status Legend
+## Planned Features and Enhancements
 
-- 🎯 **Planned** - On the roadmap, not yet started
-- 🚧 **In Progress** - Actively being worked on
-- ✅ **Completed** - Implemented and available
-- 💡 **Proposed** - Community idea under consideration
-- 🔍 **Researching** - Investigating feasibility
-
-## Current Priorities
-
-### Q1 2025
-
-#### 1. Code Ownership Analysis ✅
-
-**Status**: Completed (v1.0.0 - 2024-11-20)
-**Priority**: High
-**Complexity**: High
-
-A comprehensive skill for analyzing and tracking code ownership across repositories.
-
-**Key Capabilities:**
-- **Smart Ownership Detection**: Analyze git history, commits, and PRs to identify code owners
-  - Most frequent contributors by file/directory
-  - Recent activity weighting (active vs historical owners)
-  - Domain expertise identification
-  - Commit quality metrics (not just quantity)
-
-- **CODEOWNERS File Management**:
-  - Validate CODEOWNERS file accuracy
-  - Identify stale or incorrect entries
-  - Suggest updates based on actual contribution patterns
-  - Generate CODEOWNERS from git history
-  - Support GitHub, GitLab, and Bitbucket formats
-
-- **Ownership Metrics**:
-  - Coverage reports (files with/without owners)
-  - Owner distribution (concentration vs spread)
-  - Ownership staleness indicators
-  - Response time by owner
-  - Review participation rates
-
-- **Integration**:
-  - CI/CD validation of CODEOWNERS changes
-  - Automated ownership reports
-  - Slack/Teams notifications for ownership gaps
-  - Dashboard generation
-
-**Use Cases:**
-- Onboarding new team members (who to ask about what)
-- Identifying knowledge silos
-- Improving code review assignments
-- Maintaining accurate CODEOWNERS files
-- Succession planning
-
-**Technical Requirements:**
-- Git history analysis
-- GitHub/GitLab API integration
-- Support for monorepos and multi-repo analysis
-- Configurable heuristics and weighting
-
-**Related Research:**
-- [GitHub CODEOWNERS documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
-- Code ownership impact on software quality studies
-- Developer expertise modeling research
+Features are organized by category. All items listed here are waiting to be implemented.
 
 ---
 
-#### 2. Bus Factor Analysis 🎯
+### Code Ownership and Knowledge Management
 
-**Status**: Planned
-**Priority**: High
-**Complexity**: Medium-High
+#### Bus Factor Analysis
 
 A skill for calculating and improving the bus factor (truck factor) of software projects - identifying knowledge concentration risks.
 
@@ -162,47 +99,17 @@ A skill for calculating and improving the bus factor (truck factor) of software 
 
 ---
 
-## Future Enhancements
+### Supply Chain Security
 
-### Existing Skills
+#### SBOM/BOM Analyser Enhancements
 
-#### SBOM/BOM Analyser ✅
-**Status**: Completed
-
-Planned enhancements:
 - Additional vulnerability database integrations
 - Automated dependency update suggestions
 - Policy enforcement rules
 - Container image SBOM support
 - Binary analysis and SBOM generation
 
-#### DORA Metrics 🚧
-**Status**: In Progress (Initial trial implementation)
-
-Planned enhancements:
-- Additional data source integrations (Jenkins, CircleCI, Travis CI)
-- Predictive analytics and forecasting
-- Custom benchmark support for industry-specific comparisons
-- Automated data collection scripts
-- Dashboard integration (Grafana, Datadog)
-- Slack/Teams notifications for metric changes
-- Advanced visualization support
-- Value stream mapping integration
-
-#### Chalk Build Analyser ✅
-**Status**: Completed
-
-Planned enhancements:
-- Performance regression detection
-- Build optimization recommendations
-- Historical trend analysis
-- Multi-project comparisons
-- Supply chain visualization
-
-#### Gibson Powers Integration with Chalk 🎯
-**Status**: Planned
-**Priority**: High
-**Complexity**: Medium
+#### Gibson Powers Integration with Chalk
 
 Integrate Gibson Powers analyzers with Chalk (chalkproject.io) to enable automated supply chain security analysis during the build process.
 
@@ -271,43 +178,73 @@ Integrate Gibson Powers analyzers with Chalk (chalkproject.io) to enable automat
 - Improved build confidence
 - Streamlined compliance workflows
 
-**Related to**: SBOM analysis, Supply Chain Security, Provenance Analysis, Chalk Build Analyser
+---
 
-#### Certificate Analyser ✅
-**Status**: Completed
+### Certificate and TLS Security
 
-Planned enhancements:
-- **Feature Parity with certigo** 🎯
-  - Reference: [square/certigo](https://github.com/square/certigo)
-  - PEM/DER format support
-  - Certificate chain validation
-  - OCSP stapling verification
-  - Certificate fingerprint generation
-  - JSON output format
-  - Multiple certificate sources (file, URL, stdin)
-- **Browser Forum Standards Compliance** 🎯
-  - Certificate expiry date validation against CA/Browser Forum Baseline Requirements
-  - Maximum validity period checks (398 days for DV/OV certificates)
-  - Historical validity period enforcement
-  - Compliance reporting for audit purposes
+#### Certificate Analyser Enhancements
+
+**Feature Parity with certigo**
+- Reference: [square/certigo](https://github.com/square/certigo)
+- PEM/DER format support
+- Certificate chain validation
+- OCSP stapling verification
+- Certificate fingerprint generation
+- JSON output format
+- Multiple certificate sources (file, URL, stdin)
+
+**Browser Forum Standards Compliance**
+- Certificate expiry date validation against CA/Browser Forum Baseline Requirements
+- Maximum validity period checks (398 days for DV/OV certificates)
+- Historical validity period enforcement
+- Compliance reporting for audit purposes
+
+**Additional Enhancements**
 - Automated certificate renewal workflows
 - Multi-certificate comparison
 - Security policy compliance checking
 - Certificate transparency log monitoring
 
-#### Better Prompts ✅
-**Status**: Completed
+---
 
-Planned enhancements:
+### Build and Deployment
+
+#### Chalk Build Analyser Enhancements
+
+- Performance regression detection
+- Build optimization recommendations
+- Historical trend analysis
+- Multi-project comparisons
+- Supply chain visualization
+
+#### DORA Metrics Enhancements
+
+- Additional data source integrations (Jenkins, CircleCI, Travis CI)
+- Predictive analytics and forecasting
+- Custom benchmark support for industry-specific comparisons
+- Automated data collection scripts
+- Dashboard integration (Grafana, Datadog)
+- Slack/Teams notifications for metric changes
+- Advanced visualization support
+- Value stream mapping integration
+
+---
+
+### AI and Prompting
+
+#### Better Prompts Enhancements
+
 - Prompt effectiveness metrics
 - A/B testing framework for prompts
 - Industry-specific prompt libraries
 - Prompt chaining patterns
 - Multi-agent conversation patterns
 
-### New Skills (Proposed)
+---
 
-#### 3. Security Posture Assessment 💡
+### New Features
+
+#### Security Posture Assessment
 
 Comprehensive security analysis combining multiple data sources:
 - Vulnerability management (CVE, CISA KEV)
@@ -317,7 +254,7 @@ Comprehensive security analysis combining multiple data sources:
 - Risk scoring and prioritization
 - Remediation tracking
 
-#### 4. Technical Debt Analysis 💡
+#### Technical Debt Analysis
 
 Measure and track technical debt across codebases:
 - Code quality metrics (complexity, duplication, etc.)
@@ -328,7 +265,7 @@ Measure and track technical debt across codebases:
 - Refactoring prioritization
 - ROI calculations for debt reduction
 
-#### 5. Incident Response Automation 💡
+#### Incident Response Automation
 
 Streamline incident response workflows:
 - Incident classification and severity assessment
@@ -338,7 +275,7 @@ Streamline incident response workflows:
 - Communication template generation
 - Blameless culture best practices
 
-#### 6. Developer Experience (DX) Metrics 💡
+#### Developer Experience (DX) Metrics
 
 Measure and improve developer productivity:
 - Build/CI/CD speed metrics
@@ -349,7 +286,7 @@ Measure and improve developer productivity:
 - Onboarding time tracking
 - Tool effectiveness analysis
 
-#### 7. API Design and Documentation 💡
+#### API Design and Documentation
 
 Improve API quality and usability:
 - OpenAPI/Swagger analysis
@@ -359,7 +296,7 @@ Improve API quality and usability:
 - API versioning strategies
 - SDK generation recommendations
 
-#### 8. Infrastructure as Code (IaC) Analysis 💡
+#### Infrastructure as Code (IaC) Analysis
 
 Analyze and improve IaC:
 - Terraform/CloudFormation/Pulumi analysis
@@ -369,7 +306,7 @@ Analyze and improve IaC:
 - Drift detection
 - Best practices validation
 
-#### 9. Release Management 💡
+#### Release Management
 
 Optimize release processes:
 - Release cadence analysis
@@ -379,7 +316,7 @@ Optimize release processes:
 - Rollback risk assessment
 - Feature flag management
 
-#### 10. Testing Strategy Optimization 💡
+#### Testing Strategy Optimization
 
 Improve test coverage and effectiveness:
 - Test coverage analysis
@@ -389,49 +326,50 @@ Improve test coverage and effectiveness:
 - Mutation testing integration
 - Test gap identification
 
-#### 11. Secret Detection and PII Scanning 💡
+#### Secret Detection and PII Scanning
 
 Detect and remediate exposed secrets and sensitive data:
-- **Pattern-Based Detection**:
-  - AWS access keys (AKIA[0-9A-Z]{16})
-  - GitHub tokens (ghp_, gho_, ghs_, ghr_)
-  - Private keys (RSA, DSA, EC, SSH)
-  - API keys and bearer tokens
-  - Database connection strings with credentials
-  - Generic secrets (password=, api_key=, etc.)
 
-- **Entropy-Based Detection**:
-  - High-entropy string detection
-  - Base64-encoded secret identification
-  - Hex-encoded credential detection
-  - Configurable entropy thresholds
+**Pattern-Based Detection**:
+- AWS access keys (AKIA[0-9A-Z]{16})
+- GitHub tokens (ghp_, gho_, ghs_, ghr_)
+- Private keys (RSA, DSA, EC, SSH)
+- API keys and bearer tokens
+- Database connection strings with credentials
+- Generic secrets (password=, api_key=, etc.)
 
-- **PII Detection**:
-  - Social Security Numbers (SSN)
-  - Credit card numbers
-  - Email addresses in code
-  - Phone numbers
-  - National ID numbers
+**Entropy-Based Detection**:
+- High-entropy string detection
+- Base64-encoded secret identification
+- Hex-encoded credential detection
+- Configurable entropy thresholds
 
-- **Integration**:
-  - TruffleHog integration
-  - GitLeaks integration
-  - Gitleaks-style rule engine
-  - Custom regex pattern support
-  - False positive filtering
+**PII Detection**:
+- Social Security Numbers (SSN)
+- Credit card numbers
+- Email addresses in code
+- Phone numbers
+- National ID numbers
 
-- **Remediation**:
-  - Git history scanning
-  - Secret rotation guidance
-  - Environment variable migration
-  - Secret management tool recommendations
-  - Automated .gitignore updates
+**Integration**:
+- TruffleHog integration
+- GitLeaks integration
+- Gitleaks-style rule engine
+- Custom regex pattern support
+- False positive filtering
 
-- **Reporting**:
-  - Severity-based categorization
-  - Historical trend tracking
-  - Compliance reporting (PCI-DSS, GDPR)
-  - Pre-commit hook generation
+**Remediation**:
+- Git history scanning
+- Secret rotation guidance
+- Environment variable migration
+- Secret management tool recommendations
+- Automated .gitignore updates
+
+**Reporting**:
+- Severity-based categorization
+- Historical trend tracking
+- Compliance reporting (PCI-DSS, GDPR)
+- Pre-commit hook generation
 
 **Use Cases:**
 - Pre-release security audit
@@ -443,66 +381,67 @@ Detect and remediate exposed secrets and sensitive data:
 
 **Related to**: Legal Review skill (content policy and license compliance)
 
-#### 12. Technology Audit and Stack Analysis 💡
+#### Technology Audit and Stack Analysis
 
 Analyze technology stack, dependencies, and platform usage:
-- **Programming Language Detection**:
-  - Primary and secondary languages
-  - Language version identification
-  - Language-specific best practices
-  - Migration path recommendations
 
-- **Framework and Library Analysis**:
-  - Web frameworks (React, Vue, Angular, Django, Rails, etc.)
-  - Testing frameworks (Jest, pytest, JUnit, etc.)
-  - Build tools (Webpack, Vite, Maven, Gradle, etc.)
-  - Development tools and IDE configurations
+**Programming Language Detection**:
+- Primary and secondary languages
+- Language version identification
+- Language-specific best practices
+- Migration path recommendations
 
-- **SaaS Platform Detection**:
-  - Cloud providers (AWS, GCP, Azure, Cloudflare)
-  - CI/CD platforms (GitHub Actions, GitLab CI, CircleCI)
-  - Monitoring and observability (Datadog, New Relic, Sentry)
-  - Authentication providers (Auth0, Okta, Cognito)
-  - Payment processors (Stripe, PayPal)
-  - Email services (SendGrid, Mailgun, SES)
-  - Analytics platforms (Google Analytics, Mixpanel, Amplitude)
+**Framework and Library Analysis**:
+- Web frameworks (React, Vue, Angular, Django, Rails, etc.)
+- Testing frameworks (Jest, pytest, JUnit, etc.)
+- Build tools (Webpack, Vite, Maven, Gradle, etc.)
+- Development tools and IDE configurations
 
-- **Development Tools**:
-  - Version control (Git, Git LFS)
-  - Package managers (npm, yarn, pnpm, pip, cargo, etc.)
-  - Containerization (Docker, Podman)
-  - Orchestration (Kubernetes, Docker Compose)
-  - Infrastructure as Code (Terraform, CloudFormation, Pulumi)
+**SaaS Platform Detection**:
+- Cloud providers (AWS, GCP, Azure, Cloudflare)
+- CI/CD platforms (GitHub Actions, GitLab CI, CircleCI)
+- Monitoring and observability (Datadog, New Relic, Sentry)
+- Authentication providers (Auth0, Okta, Cognito)
+- Payment processors (Stripe, PayPal)
+- Email services (SendGrid, Mailgun, SES)
+- Analytics platforms (Google Analytics, Mixpanel, Amplitude)
 
-- **Code Quality Tools**:
-  - Linters (ESLint, Pylint, Clippy, golangci-lint)
-  - Formatters (Prettier, Black, rustfmt, gofmt)
-  - Type checkers (TypeScript, mypy, Flow)
-  - Security scanners (Snyk, Semgrep, CodeQL)
+**Development Tools**:
+- Version control (Git, Git LFS)
+- Package managers (npm, yarn, pnpm, pip, cargo, etc.)
+- Containerization (Docker, Podman)
+- Orchestration (Kubernetes, Docker Compose)
+- Infrastructure as Code (Terraform, CloudFormation, Pulumi)
 
-- **Architecture Patterns**:
-  - Microservices vs monolith detection
-  - API styles (REST, GraphQL, gRPC)
-  - Database types (PostgreSQL, MongoDB, Redis, etc.)
-  - Message queues (Kafka, RabbitMQ, SQS)
-  - Caching layers (Redis, Memcached, CDN)
+**Code Quality Tools**:
+- Linters (ESLint, Pylint, Clippy, golangci-lint)
+- Formatters (Prettier, Black, rustfmt, gofmt)
+- Type checkers (TypeScript, mypy, Flow)
+- Security scanners (Snyk, Semgrep, CodeQL)
 
-- **Analysis and Reporting**:
-  - Technology stack visualization
-  - Dependency graph generation
-  - Obsolete technology identification
-  - Security risk scoring by technology
-  - License compatibility checking
-  - Cost analysis by SaaS platform
-  - Vendor lock-in assessment
-  - Migration complexity estimation
+**Architecture Patterns**:
+- Microservices vs monolith detection
+- API styles (REST, GraphQL, gRPC)
+- Database types (PostgreSQL, MongoDB, Redis, etc.)
+- Message queues (Kafka, RabbitMQ, SQS)
+- Caching layers (Redis, Memcached, CDN)
 
-- **Recommendations**:
-  - Technology modernization suggestions
-  - Alternative tool recommendations
-  - Cost optimization opportunities
-  - Security hardening guidance
-  - Performance improvement suggestions
+**Analysis and Reporting**:
+- Technology stack visualization
+- Dependency graph generation
+- Obsolete technology identification
+- Security risk scoring by technology
+- License compatibility checking
+- Cost analysis by SaaS platform
+- Vendor lock-in assessment
+- Migration complexity estimation
+
+**Recommendations**:
+- Technology modernization suggestions
+- Alternative tool recommendations
+- Cost optimization opportunities
+- Security hardening guidance
+- Performance improvement suggestions
 
 **Use Cases:**
 - Onboarding new developers (understand the stack)
@@ -531,17 +470,7 @@ Analyze technology stack, dependencies, and platform usage:
 
 **Related to**: SBOM analysis, Supply Chain analysis, Security Posture Assessment
 
-## Community Requests
-
-*This section will be populated with highly-requested features from the community.*
-
-<!-- Template for community requests:
-### Feature Name
-- **Requested by**: @username or multiple community members
-- **GitHub Issue**: #123
-- **Use Case**: Brief description
-- **Votes**: 👍 count from issue
--->
+---
 
 ## Research Areas
 
@@ -556,29 +485,21 @@ Ideas being explored for potential future development:
 - **Mobile App Analytics**: Similar to web but for iOS/Android
 - **Green Software**: Carbon footprint tracking for software systems
 
-## Timeline
+---
 
-### Q1 2025 (Jan-Mar)
-- Code Ownership Analysis skill development
-- Bus Factor Analysis skill development
-- DORA Metrics enhancements based on feedback
+## Community Requests
 
-### Q2 2025 (Apr-Jun)
-- Security Posture Assessment skill
-- Technical Debt Analysis skill
-- Enhanced automation for existing skills
+*This section will be populated with highly-requested features from the community.*
 
-### Q3 2025 (Jul-Sep)
-- Developer Experience Metrics skill
-- API Design and Documentation skill
-- Dashboard integration framework
+<!-- Template for community requests:
+### Feature Name
+- **Requested by**: @username or multiple community members
+- **GitHub Issue**: #123
+- **Use Case**: Brief description
+- **Votes**: 👍 count from issue
+-->
 
-### Q4 2025 (Oct-Dec)
-- Infrastructure as Code Analysis skill
-- Testing Strategy Optimization skill
-- Year-end review and 2026 planning
-
-*Timeline is subject to change based on community feedback and priorities.*
+---
 
 ## How We Prioritize
 
@@ -611,4 +532,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-*Last Updated: 2025-11-22*
+*Last Updated: 2025-11-23*
