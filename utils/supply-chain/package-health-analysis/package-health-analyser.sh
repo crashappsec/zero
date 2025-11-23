@@ -140,6 +140,10 @@ parse_args() {
                 USE_CLAUDE=true
                 shift
                 ;;
+            --no-claude)
+                USE_CLAUDE=false
+                shift
+                ;;
             --compare)
                 COMPARE_MODE=true
                 shift
