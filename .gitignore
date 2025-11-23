@@ -66,3 +66,7 @@ sbom-output/
 *.sbom.json
 *.cdx.json
 *.spdx.json
+
+# Analysis reports
+reports/
+*.sequence
