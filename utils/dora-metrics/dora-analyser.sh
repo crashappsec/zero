@@ -518,8 +518,8 @@ fi
 if [[ "$USE_CLAUDE" == "true" ]] || [[ "$COMPARE_MODE" == "true" ]]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-    if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
-        source "$REPO_ROOT/utils/lib/claude-cost.sh"
+    if [ -f "$REPO_ROOT/lib/claude-cost.sh" ]; then
+        source "$REPO_ROOT/lib/claude-cost.sh"
         init_cost_tracking
     fi
 fi

@@ -38,6 +38,25 @@ SETUP_MODE=false
 MODULES=()
 TARGETS=()
 OUTPUT_DIR=""
+SHARED_REPO_DIR=""  # For sharing cloned repo across modules
+SHARED_SBOM_FILE=""  # For sharing SBOM across modules
+USE_CLAUDE=false
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+PARALLEL=false
+
+# Cleanup function
+cleanup_shared_repo() {
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        echo -e "${YELLOW}Cleaning up shared repository...${NC}"
+        rm -rf "$SHARED_REPO_DIR"
+    fi
+    if [[ -n "$SHARED_SBOM_FILE" ]] && [[ -f "$SHARED_SBOM_FILE" ]]; then
+        rm -f "$SHARED_SBOM_FILE"
+    fi
+}
+
+# Ensure cleanup on script exit
+trap cleanup_shared_repo EXIT
 
 # Function to print usage
 usage() {
@@ -53,7 +72,8 @@ MODES:
 MODULES:
     --vulnerability, -v     Run vulnerability analysis
     --provenance, -p        Run provenance analysis (SLSA)
-    --all, -a               Run all analysis modules
+    --package-health        Run package health analysis
+    --all, -a               Run all analysis modules (default if none specified)
 
 TARGETS:
     --org ORG_NAME          Scan all repos in GitHub organization
@@ -63,6 +83,8 @@ TARGETS:
 OPTIONS:
     --output DIR, -o DIR    Output directory for reports
     --config FILE           Use alternate config file
+    --claude                Use Claude AI for enhanced analysis (requires ANTHROPIC_API_KEY)
+    --parallel              Enable batch API processing (faster, recommended)
     -h, --help              Show this help message
 
 EXAMPLES:
@@ -317,9 +339,97 @@ expand_org_repos() {
     echo "$repos"
 }
 
+# Function to normalize target format
+# Converts owner/repo to full GitHub URL if needed
+normalize_target() {
+    local target="$1"
+
+    # If it's already a URL or a path, return as-is
+    if [[ "$target" =~ ^https?:// ]] || [[ "$target" =~ ^git@ ]] || [[ -e "$target" ]]; then
+        echo "$target"
+        return
+    fi
+
+    # If it looks like owner/repo format, convert to GitHub URL
+    if [[ "$target" =~ ^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$ ]]; then
+        echo "https://github.com/$target"
+        return
+    fi
+
+    # Otherwise return as-is
+    echo "$target"
+}
+
+# Function to clone repository once for sharing across modules
+clone_shared_repository() {
+    local repo_url="$1"
+
+    # Only clone if running multiple modules
+    if [[ ${#MODULES[@]} -le 1 ]]; then
+        return 0
+    fi
+
+    # Create temp directory for shared clone
+    SHARED_REPO_DIR=$(mktemp -d)
+
+    echo -e "${BLUE}Cloning repository for shared analysis...${NC}"
+    if git clone --depth 1 --quiet "$repo_url" "$SHARED_REPO_DIR" 2>/dev/null; then
+        # Count files and calculate repo size
+        local file_count=$(find "$SHARED_REPO_DIR" -type f | wc -l | tr -d ' ')
+        local repo_size=$(du -sh "$SHARED_REPO_DIR" 2>/dev/null | cut -f1)
+        echo -e "${GREEN}✓ Repository cloned: ${file_count} files, ${repo_size}${NC}"
+
+        # Generate SBOM for shared use
+        echo -e "${BLUE}Generating SBOM for shared analysis...${NC}"
+
+        # Source SBOM library
+        if [[ -f "$UTILS_ROOT/lib/sbom.sh" ]]; then
+            source "$UTILS_ROOT/lib/sbom.sh"
+
+            # Create temp SBOM file
+            SHARED_SBOM_FILE=$(mktemp)
+
+            # Generate SBOM
+            if generate_sbom "$SHARED_REPO_DIR" "$SHARED_SBOM_FILE" "true" 2>&1 | grep -v "^\["; then
+                # Display SBOM summary
+                local package_count=$(jq '.components | length' "$SHARED_SBOM_FILE" 2>/dev/null || echo "0")
+                local sbom_format=$(jq -r '.bomFormat // "unknown"' "$SHARED_SBOM_FILE" 2>/dev/null || echo "unknown")
+
+                # Count packages by language/type
+                local package_by_lang=$(jq -r '.components[]? | .type + "/" + (.purl // "unknown" | split(":")[0])' "$SHARED_SBOM_FILE" 2>/dev/null | sort | uniq -c | sort -rn)
+
+                echo -e "${GREEN}✓ SBOM generated: ${package_count} components (${sbom_format} format)${NC}"
+
+                # Display language breakdown
+                if [[ -n "$package_by_lang" ]]; then
+                    echo -e "${CYAN}  Package breakdown:${NC}"
+                    while IFS= read -r line; do
+                        local count=$(echo "$line" | awk '{print $1}')
+                        local type=$(echo "$line" | awk '{print $2}')
+                        echo -e "${CYAN}    - ${type}: ${count}${NC}"
+                    done <<< "$package_by_lang"
+                fi
+            else
+                echo -e "${YELLOW}⚠ SBOM generation failed, modules will generate their own${NC}"
+                rm -f "$SHARED_SBOM_FILE"
+                SHARED_SBOM_FILE=""
+            fi
+        else
+            echo -e "${YELLOW}⚠ SBOM library not found, modules will generate their own${NC}"
+        fi
+
+        return 0
+    else
+        echo -e "${RED}✗ Failed to clone repository${NC}"
+        rm -rf "$SHARED_REPO_DIR"
+        SHARED_REPO_DIR=""
+        return 1
+    fi
+}
+
 # Function to run vulnerability analysis
 run_vulnerability_analysis() {
-    local target="$1"
+    local target=$(normalize_target "$1")
     local analyser="$SCRIPT_DIR/vulnerability-analysis/vulnerability-analyser.sh"
 
     if [[ ! -f "$analyser" ]]; then
@@ -327,12 +437,26 @@ run_vulnerability_analysis() {
         return 1
     fi
 
-    "$analyser" --prioritize "$target"
+    # Build command with optional flags
+    local cmd="$analyser --prioritize"
+
+    # Add Claude flag if enabled
+    if [[ "$USE_CLAUDE" == "true" ]]; then
+        cmd="$cmd --claude"
+    fi
+
+    # Use shared repository if available
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        cmd="$cmd --local-path $SHARED_REPO_DIR"
+    fi
+
+    cmd="$cmd $target"
+    eval "$cmd"
 }
 
 # Function to run provenance analysis
 run_provenance_analysis() {
-    local target="$1"
+    local target=$(normalize_target "$1")
     local analyser="$SCRIPT_DIR/provenance-analysis/provenance-analyser.sh"
 
     if [[ ! -f "$analyser" ]]; then
@@ -340,7 +464,71 @@ run_provenance_analysis() {
         return 1
     fi
 
-    "$analyser" "$target"
+    # Build command with optional flags
+    local cmd="$analyser"
+
+    # Add Claude flag if enabled
+    if [[ "$USE_CLAUDE" == "true" ]]; then
+        cmd="$cmd --claude"
+    fi
+
+    # Use shared SBOM if available
+    if [[ -n "$SHARED_SBOM_FILE" ]] && [[ -f "$SHARED_SBOM_FILE" ]]; then
+        cmd="$cmd --sbom-file $SHARED_SBOM_FILE"
+    fi
+
+    # Use shared repository if available
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        cmd="$cmd --local-path $SHARED_REPO_DIR $target"
+    else
+        cmd="$cmd --repo $target"
+    fi
+
+    eval "$cmd"
+}
+
+# Function to run package health analysis
+run_package_health_analysis() {
+    local target=$(normalize_target "$1")
+    local analyser="$SCRIPT_DIR/package-health-analysis/package-health-analyser.sh"
+
+    if [[ ! -f "$analyser" ]]; then
+        echo -e "${RED}✗ Package health analyser not found${NC}"
+        return 1
+    fi
+
+    # Build command with optional flags
+    local cmd="$analyser"
+
+    # Add Claude flag if enabled
+    if [[ "$USE_CLAUDE" == "true" ]]; then
+        cmd="$cmd --claude"
+    fi
+
+    # Add parallel flag if enabled
+    if [[ "$PARALLEL" == "true" ]]; then
+        cmd="$cmd --parallel"
+    fi
+
+    # Use shared SBOM if available
+    if [[ -n "$SHARED_SBOM_FILE" ]] && [[ -f "$SHARED_SBOM_FILE" ]]; then
+        cmd="$cmd --sbom-file $SHARED_SBOM_FILE"
+    fi
+
+    # Use shared repository if available
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        # Package health analyser expects just the owner/repo format for the repo name
+        # Strip the https://github.com/ prefix if present
+        local repo_name="${target#https://github.com/}"
+        cmd="$cmd --repo $repo_name --local-path $SHARED_REPO_DIR"
+    else
+        # Package health analyser expects just the owner/repo format
+        # Strip the https://github.com/ prefix if present
+        target="${target#https://github.com/}"
+        cmd="$cmd --repo $target"
+    fi
+
+    eval "$cmd"
 }
 
 # Function to run analysis on target
@@ -351,8 +539,19 @@ analyze_target() {
     echo -e "${CYAN}=========================================${NC}"
     echo -e "${CYAN}Analyzing: $target${NC}"
     echo -e "${CYAN}=========================================${NC}"
+    echo ""
+
+    # If running multiple modules, clone repository once for sharing
+    if [[ ${#MODULES[@]} -gt 1 ]]; then
+        local normalized=$(normalize_target "$target")
+        # Only clone if it's a git URL (not a local directory or file)
+        if [[ "$normalized" =~ ^https?:// ]] || [[ "$normalized" =~ ^git@ ]]; then
+            clone_shared_repository "$normalized"
+        fi
+    fi
 
     for module in "${MODULES[@]}"; do
+        echo ""
         case "$module" in
             vulnerability)
                 run_vulnerability_analysis "$target"
@@ -360,11 +559,21 @@ analyze_target() {
             provenance)
                 run_provenance_analysis "$target"
                 ;;
+            package-health)
+                run_package_health_analysis "$target"
+                ;;
             *)
                 echo -e "${YELLOW}⚠ Unknown module: $module${NC}"
                 ;;
         esac
     done
+
+    # Clean up shared repository after all modules complete
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        cleanup_shared_repo
+        SHARED_REPO_DIR=""  # Reset for next target
+        SHARED_SBOM_FILE=""  # Reset for next target
+    fi
 }
 
 # Parse command line arguments
@@ -386,8 +595,12 @@ while [[ $# -gt 0 ]]; do
             MODULES+=("provenance")
             shift
             ;;
+        --package-health)
+            MODULES+=("package-health")
+            shift
+            ;;
         -a|--all)
-            MODULES=("vulnerability" "provenance")
+            MODULES=("vulnerability" "provenance" "package-health")
             shift
             ;;
         --org)
@@ -405,6 +618,14 @@ while [[ $# -gt 0 ]]; do
         --config)
             CONFIG_FILE="$2"
             shift 2
+            ;;
+        --claude)
+            USE_CLAUDE=true
+            shift
+            ;;
+        --parallel)
+            PARALLEL=true
+            shift
             ;;
         -h|--help)
             usage
@@ -431,7 +652,7 @@ if [[ "$SETUP_MODE" == "true" ]]; then
     exit 0
 fi
 
-# Validate modules - use defaults from config if none specified
+# Validate modules - default to --all if none specified
 if [[ ${#MODULES[@]} -eq 0 ]]; then
     # Try to load default modules from config
     if load_config "supply-chain" "$CONFIG_FILE" 2>/dev/null; then
@@ -444,12 +665,10 @@ if [[ ${#MODULES[@]} -eq 0 ]]; then
         fi
     fi
 
-    # If still no modules, error
+    # If still no modules, default to all
     if [[ ${#MODULES[@]} -eq 0 ]]; then
-        echo -e "${RED}Error: No analysis modules specified${NC}"
-        echo "Use --vulnerability, --provenance, --all, or configure default_modules in config"
-        echo ""
-        usage
+        echo -e "${BLUE}No modules specified, running all modules${NC}"
+        MODULES=("vulnerability" "provenance" "package-health")
     fi
 fi
 

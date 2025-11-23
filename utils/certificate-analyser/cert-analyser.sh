@@ -38,8 +38,8 @@ ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 # Load cost tracking if using Claude
 if [[ "$USE_CLAUDE" == "true" ]]; then
     REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
-    if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
-        source "$REPO_ROOT/utils/lib/claude-cost.sh"
+    if [ -f "$REPO_ROOT/lib/claude-cost.sh" ]; then
+        source "$REPO_ROOT/lib/claude-cost.sh"
         init_cost_tracking
     fi
 fi
