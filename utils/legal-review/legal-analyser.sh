@@ -959,17 +959,24 @@ scan_content_policy_parallel() {
 load_rag_context() {
     local context=""
 
+    # Load supply chain best practices (relevant for all analysis)
+    if [[ -f "$REPO_ROOT/rag/supply-chain/supply-chain-best-practices.md" ]]; then
+        context+="# Supply Chain Best Practices\n\n"
+        context+=$(head -300 "$REPO_ROOT/rag/supply-chain/supply-chain-best-practices.md")
+        context+="\n\n"
+    fi
+
     # Load license compliance guide
     if [[ -f "$REPO_ROOT/rag/legal-review/license-compliance-guide.md" ]]; then
         context+="# License Compliance Guide\n\n"
-        context+=$(head -500 "$REPO_ROOT/rag/legal-review/license-compliance-guide.md")
+        context+=$(head -400 "$REPO_ROOT/rag/legal-review/license-compliance-guide.md")
         context+="\n\n"
     fi
 
     # Load content policy guide
     if [[ -f "$REPO_ROOT/rag/legal-review/content-policy-guide.md" ]]; then
         context+="# Content Policy Guide\n\n"
-        context+=$(head -500 "$REPO_ROOT/rag/legal-review/content-policy-guide.md")
+        context+=$(head -300 "$REPO_ROOT/rag/legal-review/content-policy-guide.md")
         context+="\n\n"
     fi
 
@@ -1288,34 +1295,61 @@ claude_enhanced_analysis() {
 - Critical issues: $(echo "${LICENSE_VIOLATIONS[@]}" | grep -c "GPL" || echo "0")
 
 Violations:
-$(for violation in "${LICENSE_VIOLATIONS[@]}"; do echo "- $violation"; done)
+$(if [[ ${#LICENSE_VIOLATIONS[@]} -gt 0 ]]; then
+    for violation in "${LICENSE_VIOLATIONS[@]}"; do echo "- $violation"; done
+else
+    echo "- None detected"
+fi)
 
 ## Content Policy Findings
 - Total issues: ${#CONTENT_ISSUES[@]}
 
 Issues:
-$(for issue in "${CONTENT_ISSUES[@]}"; do echo "- $issue"; done)
+$(if [[ ${#CONTENT_ISSUES[@]} -gt 0 ]]; then
+    for issue in "${CONTENT_ISSUES[@]}"; do echo "- $issue"; done
+else
+    echo "- None detected"
+fi)
+
+## Repository Context
+- Path: $scan_path
+- Scan types: $(
+    local types=""
+    [[ "$SCAN_LICENSES" == true ]] && types="${types}licenses, "
+    [[ "$SCAN_SECRETS" == true ]] && types="${types}secrets, "
+    [[ "$SCAN_CONTENT" == true ]] && types="${types}content policy, "
+    echo "${types%, }"
+)
 "
 
-    # Get Claude's analysis
-    if [[ ${#LICENSE_VIOLATIONS[@]} -gt 0 ]]; then
-        echo "### 📋 License Compliance Analysis"
-        echo ""
-        local license_analysis=$(claude_analyze_licenses "$scan_summary")
-        echo "$license_analysis"
-        echo ""
-    fi
-
-    if [[ ${#CONTENT_ISSUES[@]} -gt 0 ]]; then
-        echo "### ✍️ Content Policy Analysis"
-        echo ""
-        local content_analysis=$(claude_analyze_content "$scan_summary")
-        echo "$content_analysis"
-        echo ""
-    fi
-
+    # Always run Claude analysis for comprehensive insights
+    echo "### 📋 License Compliance Analysis"
     echo ""
-    echo "**Note**: Token usage and cost information available in API response headers"
+    if [[ ${#LICENSE_VIOLATIONS[@]} -gt 0 ]]; then
+        echo "**Analysis of detected violations and recommendations:**"
+        echo ""
+    else
+        echo "**No violations detected. Validating best practices:**"
+        echo ""
+    fi
+    local license_analysis=$(claude_analyze_licenses "$scan_summary")
+    echo "$license_analysis"
+    echo ""
+
+    echo "### ✍️ Content Policy Analysis"
+    echo ""
+    if [[ ${#CONTENT_ISSUES[@]} -gt 0 ]]; then
+        echo "**Analysis of detected issues and remediation:**"
+        echo ""
+    else
+        echo "**No issues detected. Reviewing for best practices:**"
+        echo ""
+    fi
+    local content_analysis=$(claude_analyze_content "$scan_summary")
+    echo "$content_analysis"
+    echo ""
+
+    echo "**Note**: Analysis includes supply chain best practices from RAG knowledge base"
     echo ""
 }
 

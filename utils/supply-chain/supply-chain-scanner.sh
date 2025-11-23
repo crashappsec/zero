@@ -653,7 +653,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -a|--all)
-            MODULES=("vulnerability" "provenance" "package-health" "legal")
+            MODULES=("vulnerability" "provenance" "package-health")
             shift
             ;;
         --org)
