@@ -56,6 +56,10 @@ brew install cosign rekor-cli
 
 # Scan entire organization
 ./supply-chain-scanner.sh --all --org myorg
+
+# With Claude AI enhancement (requires ANTHROPIC_API_KEY)
+export ANTHROPIC_API_KEY="your-api-key"
+./supply-chain-scanner.sh --claude --all --repo owner/repo
 ```
 
 ### Test Organization
@@ -298,12 +302,24 @@ Scan all repositories in a GitHub organization:
 
 ### Setup
 
+**IMPORTANT**: The `--claude` flag requires an Anthropic API key to be set. The scanner will validate this and provide a clear error message if missing.
+
 ```bash
-# Set Anthropic API key
+# Set Anthropic API key (required for --claude)
 export ANTHROPIC_API_KEY="your-api-key"
 
-# Or add to shell profile
+# Or add to shell profile for persistence
 echo 'export ANTHROPIC_API_KEY="your-key"' >> ~/.zshrc
+
+# Get your API key at: https://console.anthropic.com/settings/keys
+```
+
+**Using Claude AI**:
+```bash
+# With API key set, use --claude flag
+./supply-chain-scanner.sh --claude --all --repo owner/repo
+
+# The scanner will validate the API key before starting analysis
 ```
 
 ### Features
