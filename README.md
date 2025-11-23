@@ -39,6 +39,8 @@ This repository focuses on **Tiers 1 & 2**, giving you powerful standalone tools
 ## Features
 
 - 🔒 **Supply Chain Security**: SBOM analysis, vulnerability scanning, provenance verification
+- 🔍 **Technology Identification**: Automated technology stack detection and risk assessment
+- ⚖️ **Legal Review**: License compliance, secret scanning, content safety analysis
 - 📊 **DORA Metrics**: DevOps performance measurement (deployment frequency, lead time, etc.)
 - 👥 **Code Ownership**: Bus factor analysis, knowledge transfer planning, CODEOWNERS generation
 - 🔐 **Certificate Analysis**: X.509/TLS security review, expiration monitoring
@@ -115,6 +117,8 @@ We've created the [Gibson Powers Test Organization](https://github.com/Gibson-Po
 gibson-powers/
 ├── skills/                          # Claude Code skills (.skill files)
 │   ├── supply-chain/                # Supply chain security skill
+│   ├── technology-identification/   # Technology stack detection skill
+│   ├── legal-review/                # Legal compliance skill
 │   ├── dora-metrics/                # DORA metrics skill
 │   ├── code-ownership/              # Code ownership skill
 │   ├── certificate-analyser/        # Certificate analysis skill
@@ -124,25 +128,30 @@ gibson-powers/
 ├── utils/                           # Executable utilities (Tiers 1 & 2)
 │   ├── supply-chain/                # Supply chain analysis tools
 │   │   ├── supply-chain-scanner.sh      # Tier 1: Standalone scanner
-│   │   ├── supply-chain-scanner-claude.sh # Tier 2: AI-enhanced
 │   │   ├── vulnerability-analysis/      # CVE scanning module
 │   │   ├── provenance-analysis/         # SLSA/Sigstore verification
 │   │   └── package-health-analysis/     # Dependency health checks
+│   ├── technology-identification/   # Technology stack detection
+│   │   └── technology-identification-analyser.sh
+│   ├── legal-review/                # Legal compliance analysis
+│   │   └── legal-analyser.sh
 │   ├── dora-metrics/                # DORA metrics calculation
 │   ├── code-ownership/              # Code ownership analysis
-│   │   ├── ownership-analyser-v2.sh     # Tier 1: Advanced analyser
-│   │   └── ownership-analyser-claude.sh # Tier 2: AI-enhanced
 │   ├── certificate-analyser/        # X.509/TLS security analysis
 │   ├── chalk-build-analyser/        # Build attestation verification
 │   └── cocomo/                      # Software estimation tools
 │
 ├── prompts/                         # Reusable prompt templates
 │   ├── supply-chain/                # Supply chain prompts
+│   ├── technology-identification/   # Technology detection prompts
+│   ├── legal-review/                # Legal review prompts
 │   ├── dora/                        # DORA metrics prompts
 │   └── code-ownership/              # Code ownership prompts
 │
 ├── rag/                             # RAG knowledge base
 │   ├── supply-chain/                # Supply chain references
+│   ├── technology-identification/   # Technology patterns
+│   ├── legal-review/                # Legal compliance references
 │   ├── dora-metrics/                # DORA best practices
 │   └── code-ownership/              # Ownership patterns
 │
@@ -173,6 +182,53 @@ Comprehensive software supply chain analysis with SBOM generation, vulnerability
 - Dependency health assessment
 
 [📖 Full Documentation](./utils/supply-chain/README.md)
+
+### Technology Identification (🚀 Beta)
+
+Automated detection and analysis of technology stacks across repositories.
+
+```bash
+# Standalone technology stack analysis
+cd utils/technology-identification
+./technology-identification-analyser.sh --repo owner/repo
+
+# AI-enhanced with risk assessment and recommendations
+export ANTHROPIC_API_KEY="your-key"
+./technology-identification-analyser.sh --claude --repo owner/repo
+```
+
+**Features**:
+- Multi-layered detection (6 layers with confidence scoring)
+- Technology categorization (business tools, dev tools, languages, crypto, cloud)
+- Version tracking and EOL detection
+- Risk assessment (Critical → High → Medium → Low)
+- Compliance implications (export control, licenses, data privacy)
+- Executive and audit-focused reporting
+
+[📖 Full Documentation](./utils/technology-identification/README.md)
+
+### Legal Review (🚀 Production-Ready)
+
+Comprehensive legal compliance analysis including licenses, secrets, and content safety.
+
+```bash
+# Standalone legal compliance scan
+./utils/legal-review/legal-analyser.sh --repo owner/repo
+
+# AI-enhanced with compliance recommendations
+export ANTHROPIC_API_KEY="your-key"
+./utils/legal-review/legal-analyser.sh --claude --repo owner/repo
+```
+
+**Features**:
+- License compliance checking (SPDX, GPL, MIT, etc.)
+- Secret scanning (API keys, credentials, tokens)
+- Content safety analysis (inappropriate content detection)
+- Export control compliance (ITAR/EAR)
+- SBOM license extraction
+- Audit-ready reporting
+
+[📖 Full Documentation](./utils/legal-review/README.md)
 
 ### DORA Metrics (🔬 Experimental)
 

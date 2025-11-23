@@ -18,9 +18,17 @@ rag/
 │   ├── cyclonedx/               # CycloneDX SBOM format
 │   ├── spdx/                    # SPDX SBOM format
 │   ├── sigstore/                # Sigstore signing/verification
-│   └── osv/                     # OSV vulnerability database
-├── dora/                        # DORA metrics documentation
-└── code-ownership/              # Code ownership standards
+│   ├── osv/                     # OSV vulnerability database
+│   └── package-health/          # Package health best practices
+├── technology-identification/
+│   ├── business-tools/          # CRM, payment, communication patterns
+│   ├── developer-tools/         # IaC, containers, CI/CD patterns
+│   ├── cryptographic-libraries/ # TLS/SSL, crypto patterns
+│   └── cloud-providers/         # AWS, GCP, Azure patterns
+├── legal-review/                # License compliance, legal patterns
+├── dora-metrics/                # DORA metrics documentation
+├── code-ownership/              # Code ownership standards
+└── cocomo/                      # COCOMO estimation models
 ```
 
 ## Content Guidelines
