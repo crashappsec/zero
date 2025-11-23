@@ -172,7 +172,7 @@ scan_sbom_packages() {
     local findings=()
 
     # Extract components from SBOM
-    local components=$(jq -r '.components[]? | @json' "$sbom_file" 2>/dev/null)
+    local components=$(jq -c '.components[]?' "$sbom_file" 2>/dev/null)
 
     if [[ -z "$components" ]]; then
         echo "[]"
@@ -694,7 +694,7 @@ aggregate_findings() {
         <(echo "$layer2") \
         <(echo "$layer3") \
         <(echo "$layer4") \
-        <(echo "$layer5"))
+        <(echo "$layer5") 2>/dev/null)
 
     # Handle case where all_findings might be null
     if [[ "$all_findings" == "null" ]] || [[ -z "$all_findings" ]]; then
@@ -718,7 +718,7 @@ aggregate_findings() {
             evidence: map(.evidence[]) | unique
         }) |
         sort_by(-.confidence)
-    '
+    ' 2>/dev/null || echo "[]"
 }
 
 # Analyze repository or SBOM
@@ -792,7 +792,7 @@ analyze_target() {
     local results=$(aggregate_findings "$layer1" "$layer2" "$layer3" "$layer4" "$layer5")
 
     # Filter by confidence threshold
-    results=$(echo "$results" | jq --argjson threshold "$CONFIDENCE_THRESHOLD" 'map(select(.confidence >= $threshold))')
+    results=$(echo "$results" | jq --argjson threshold "$CONFIDENCE_THRESHOLD" 'map(select(.confidence >= $threshold))' 2>/dev/null || echo "[]")
 
     echo "$results"
 }
@@ -807,7 +807,7 @@ generate_markdown_report() {
 
 **Repository**: $target
 **Scan Date**: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-**Total Technologies**: $(echo "$findings" | jq 'length')
+**Total Technologies**: $(echo "$findings" | jq 'length' 2>/dev/null || echo "0")
 
 ## Executive Summary
 
@@ -818,7 +818,7 @@ This report identifies technologies detected across multiple layers of analysis,
 EOF
 
     # Group by category
-    local categories=$(echo "$findings" | jq -r '[.[].category] | unique | .[]' | sort)
+    local categories=$(echo "$findings" | jq -r '[.[].category] | unique | .[]' 2>/dev/null | sort)
 
     while IFS= read -r category; do
         if [[ -z "$category" ]]; then
@@ -837,7 +837,7 @@ EOF
 - **Detection Methods**: \(.detection_methods | join(", "))
 - **Evidence**: \(.evidence | map("  - \(.)") | join("\n"))
 "
-        '
+        ' 2>/dev/null
     done <<< "$categories"
 
     echo ""
@@ -851,15 +851,15 @@ EOF
         map({category: .[0].category, count: length}) |
         .[] |
         "| \(.category) | \(.count) |"
-    '
+    ' 2>/dev/null
 
     echo ""
     echo "## Confidence Distribution"
     echo ""
 
-    local high=$(echo "$findings" | jq '[.[] | select(.confidence >= 80)] | length')
-    local medium=$(echo "$findings" | jq '[.[] | select(.confidence >= 60 and .confidence < 80)] | length')
-    local low=$(echo "$findings" | jq '[.[] | select(.confidence < 60)] | length')
+    local high=$(echo "$findings" | jq '[.[] | select(.confidence >= 80)] | length' 2>/dev/null || echo "0")
+    local medium=$(echo "$findings" | jq '[.[] | select(.confidence >= 60 and .confidence < 80)] | length' 2>/dev/null || echo "0")
+    local low=$(echo "$findings" | jq '[.[] | select(.confidence < 60)] | length' 2>/dev/null || echo "0")
 
     echo "- **High Confidence (80-100%)**: $high technologies"
     echo "- **Medium Confidence (60-79%)**: $medium technologies"
@@ -896,7 +896,7 @@ generate_json_report() {
                 }
             },
             technologies: $technologies
-        }'
+        }' 2>/dev/null || echo '{"error": "Failed to generate JSON report"}'
 }
 
 # Claude AI Analysis
@@ -962,7 +962,7 @@ $data"
         record_api_usage "$response" "$model" > /dev/null
     fi
 
-    echo "$response" | jq -r '.content[0].text // empty'
+    echo "$response" | jq -r '.content[0].text // empty' 2>/dev/null
 }
 
 # Load cost tracking if using Claude
