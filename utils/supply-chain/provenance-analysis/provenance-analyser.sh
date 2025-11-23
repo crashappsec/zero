@@ -779,6 +779,14 @@ echo "  Provenance Analyser (SLSA)"
 echo "========================================="
 echo ""
 
+# Inform about Claude AI availability if API key not set
+if [[ -z "$ANTHROPIC_API_KEY" ]] && [[ "$USE_CLAUDE" != "true" ]]; then
+    echo -e "${CYAN}💡 Claude AI analysis available with --claude flag${NC}"
+    echo -e "${CYAN}   Set ANTHROPIC_API_KEY to enable AI-enhanced insights${NC}"
+    echo -e "${CYAN}   Get your key at: https://console.anthropic.com/settings/keys${NC}"
+    echo ""
+fi
+
 # Check prerequisites
 if [[ "$VERIFY_SIGNATURES" == "true" ]]; then
     check_cosign || VERIFY_SIGNATURES=false
