@@ -277,6 +277,14 @@ Integrate Gibson Powers analyzers with Chalk (chalkproject.io) to enable automat
 **Status**: Completed
 
 Planned enhancements:
+- **Feature Parity with certigo** 🎯
+  - Reference: [square/certigo](https://github.com/square/certigo)
+  - PEM/DER format support
+  - Certificate chain validation
+  - OCSP stapling verification
+  - Certificate fingerprint generation
+  - JSON output format
+  - Multiple certificate sources (file, URL, stdin)
 - Automated certificate renewal workflows
 - Multi-certificate comparison
 - Security policy compliance checking
