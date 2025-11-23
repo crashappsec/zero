@@ -145,24 +145,24 @@ get_or_generate_sbom() {
 
     # If SBOM_FILE is already set (from shared env), use it
     if [[ -n "$SBOM_FILE" ]] && [[ -f "$SBOM_FILE" ]]; then
-        echo -e "${GREEN}Using shared SBOM file${NC}"
+        echo -e "${GREEN}Using shared SBOM file${NC}" >&2
         echo "$SBOM_FILE"
         return 0
     fi
 
     # Generate new SBOM
     local sbom_file=$(mktemp)
-    echo -e "${BLUE}Generating SBOM...${NC}"
+    echo -e "${BLUE}Generating SBOM...${NC}" >&2
 
-    if generate_sbom "$target_dir" "$sbom_file" "true" 2>&1 | grep -v "^$"; then
+    if generate_sbom "$target_dir" "$sbom_file" "true" 2>&1 | grep -v "^$" >&2; then
         if [[ -f "$sbom_file" ]]; then
-            echo -e "${GREEN}✓ SBOM generated${NC}"
+            echo -e "${GREEN}✓ SBOM generated${NC}" >&2
             echo "$sbom_file"
             return 0
         fi
     fi
 
-    echo -e "${RED}✗ SBOM generation failed${NC}"
+    echo -e "${RED}✗ SBOM generation failed${NC}" >&2
     return 1
 }
 
