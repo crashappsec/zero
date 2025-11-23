@@ -288,7 +288,7 @@ scan_sbom_packages() {
     if [[ ${#findings[@]} -eq 0 ]]; then
         echo "[]"
     else
-        printf '%s\n' "${findings[@]}" | jq -s '.'
+        printf '%s\n' "${findings[@]}" | jq -s '.' 2>/dev/null || echo "[]"
     fi
 }
 
@@ -417,7 +417,7 @@ scan_config_files() {
     if [[ ${#findings[@]} -eq 0 ]]; then
         echo "[]"
     else
-        printf '%s\n' "${findings[@]}" | jq -s '.'
+        printf '%s\n' "${findings[@]}" | jq -s '.' 2>/dev/null || echo "[]"
     fi
 }
 
@@ -517,7 +517,7 @@ scan_imports() {
     if [[ ${#findings[@]} -eq 0 ]]; then
         echo "[]"
     else
-        printf '%s\n' "${findings[@]}" | jq -s '.'
+        printf '%s\n' "${findings[@]}" | jq -s '.' 2>/dev/null || echo "[]"
     fi
 }
 
@@ -590,7 +590,7 @@ scan_api_endpoints() {
     if [[ ${#findings[@]} -eq 0 ]]; then
         echo "[]"
     else
-        printf '%s\n' "${findings[@]}" | jq -s '.'
+        printf '%s\n' "${findings[@]}" | jq -s '.' 2>/dev/null || echo "[]"
     fi
 }
 
@@ -676,7 +676,7 @@ scan_env_variables() {
     if [[ ${#findings[@]} -eq 0 ]]; then
         echo "[]"
     else
-        printf '%s\n' "${findings[@]}" | jq -s '.'
+        printf '%s\n' "${findings[@]}" | jq -s '.' 2>/dev/null || echo "[]"
     fi
 }
 
@@ -1058,9 +1058,17 @@ if [[ "$MULTI_REPO_MODE" == true ]] && [[ ${#TARGETS_LIST[@]} -eq 1 ]]; then
     if [[ "$target_spec" == repo:* ]]; then
         # Extract repo name (e.g., "repo:owner/repo" -> "owner/repo")
         repo_name="${target_spec#repo:}"
-        TARGET="https://github.com/$repo_name"
+
+        # Check if it's already a full URL
+        if [[ "$repo_name" =~ ^https?:// ]] || [[ "$repo_name" =~ ^git@ ]]; then
+            TARGET="$repo_name"
+        else
+            # Convert owner/repo to full GitHub URL
+            TARGET="https://github.com/$repo_name"
+        fi
+
         MULTI_REPO_MODE=false
-        echo -e "${CYAN}Converted --repo $repo_name to $TARGET${NC}"
+        echo -e "${CYAN}Using repository: $TARGET${NC}"
         echo ""
     fi
 fi
