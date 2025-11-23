@@ -445,10 +445,8 @@ run_vulnerability_analysis() {
     # Build command with optional flags
     local cmd="$analyser --prioritize"
 
-    # Add Claude flag if enabled
-    if [[ "$USE_CLAUDE" == "true" ]]; then
-        cmd="$cmd --claude"
-    fi
+    # Disable Claude in individual analyzer - we'll run it once at the end
+    cmd="$cmd --no-claude"
 
     # Use shared repository if available
     if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
@@ -472,10 +470,8 @@ run_provenance_analysis() {
     # Build command with optional flags
     local cmd="$analyser"
 
-    # Add Claude flag if enabled
-    if [[ "$USE_CLAUDE" == "true" ]]; then
-        cmd="$cmd --claude"
-    fi
+    # Disable Claude in individual analyzer - we'll run it once at the end
+    cmd="$cmd --no-claude"
 
     # Add parallel flag if enabled
     if [[ "$PARALLEL" == "true" ]]; then
@@ -510,10 +506,8 @@ run_package_health_analysis() {
     # Build command with optional flags
     local cmd="$analyser"
 
-    # Add Claude flag if enabled
-    if [[ "$USE_CLAUDE" == "true" ]]; then
-        cmd="$cmd --claude"
-    fi
+    # Disable Claude in individual analyzer - we'll run it once at the end
+    cmd="$cmd --no-claude"
 
     # Add parallel flag if enabled
     if [[ "$PARALLEL" == "true" ]]; then
@@ -581,6 +575,171 @@ run_legal_analysis() {
     eval "$cmd"
 }
 
+#############################################################################
+# Unified Claude AI Analysis
+#############################################################################
+
+run_unified_claude_analysis() {
+    local all_data="$1"
+    local target="$2"
+    local model="claude-sonnet-4-20250514"
+
+    echo -e "${BLUE}Analyzing with Claude AI...${NC}"
+
+    # Load RAG knowledge for comprehensive supply chain security
+    local rag_context=""
+    local repo_root="$(cd "$SCRIPT_DIR/.." && pwd)"
+    local rag_dir="$repo_root/rag/supply-chain"
+
+    # Load all relevant RAG documents
+    if [[ -f "$rag_dir/sbom-generation-best-practices.md" ]]; then
+        rag_context+="# SBOM Best Practices\n\n"
+        rag_context+=$(head -150 "$rag_dir/sbom-generation-best-practices.md" | tail -n +1)
+        rag_context+="\n\n"
+    fi
+
+    if [[ -f "$rag_dir/slsa/slsa-specification.md" ]]; then
+        rag_context+="# SLSA Specification\n\n"
+        rag_context+=$(head -150 "$rag_dir/slsa/slsa-specification.md" | tail -n +1)
+        rag_context+="\n\n"
+    fi
+
+    if [[ -f "$rag_dir/package-health/package-management-best-practices.md" ]]; then
+        rag_context+="# Package Management Best Practices\n\n"
+        rag_context+=$(head -150 "$rag_dir/package-health/package-management-best-practices.md" | tail -n +1)
+        rag_context+="\n\n"
+    fi
+
+    local prompt="You are a supply chain security expert analyzing MULTIPLE security scans for repository: $target
+
+# Supply Chain Security Knowledge Base
+$rag_context
+
+# Your Task
+Analyze ALL the scan results together to provide a HOLISTIC, PRIORITY-BASED ACTION REPORT.
+
+**CRITICAL**: Correlate findings across scans. For example:
+- A package with vulnerabilities + poor health + no provenance = CRITICAL PRIORITY
+- A package with only poor health but good provenance = LOWER PRIORITY
+- Multiple issues on same package = consolidate into single high-priority action
+
+# Analysis Requirements
+
+For each finding, you MUST:
+1. **Explain the issue** - What's wrong across all dimensions (vulnerability + health + provenance)?
+2. **Correlate findings** - How do issues compound? (e.g., \"lodash has CVE-2021-23337 AND health score of 45 AND no SLSA provenance\")
+3. **Justify priority** - Why this specific combination makes it critical/high/medium/low
+4. **Reference knowledge base** - Cite relevant best practices
+5. **Provide consolidated actions** - Single action plan addressing all issues for that package
+
+# Output Format
+
+## 🔴 CRITICAL PRIORITY (Immediate - 0-24 hours)
+
+For each critical issue, provide:
+
+**Package**: [name@version]
+
+**Combined Issues**:
+- 🚨 Vulnerability: [CVE details, CVSS score, KEV status]
+- 💊 Health: [Score, specific health concerns]
+- 🔒 Provenance: [SLSA level, attestation status]
+
+**Why Critical**: [Explain how these issues compound - e.g., \"This package is exploitable (KEV listed), unmaintained (health score 35), and has no verifiable build provenance (SLSA 0). This represents a complete supply chain failure.\"]
+
+**Best Practice References**: [Cite from knowledge base]
+
+**Consolidated Action Plan**:
+```bash
+# Step 1: Immediate mitigation
+[specific commands]
+
+# Step 2: Upgrade path
+[specific version/alternative]
+
+# Step 3: Verification
+[how to verify fix addresses all issues]
+```
+
+**Timeline**: Immediate (0-24h)
+
+---
+
+## 🟠 HIGH PRIORITY (Urgent - 1-7 days)
+[Same structured format]
+
+## 🟡 MEDIUM PRIORITY (Important - 1-30 days)
+[Same structured format]
+
+## 🟢 LOW PRIORITY (Monitor - 30+ days)
+[Same structured format]
+
+## 📊 Holistic Assessment & Strategic Recommendations
+
+### Overall Supply Chain Posture
+- Vulnerability Management: [assessment across all packages]
+- Package Health: [overall health score distribution]
+- Provenance Maturity: [SLSA level distribution]
+- **Combined Risk Score**: [Critical/High/Medium/Low]
+
+### Systemic Improvements
+Based on patterns across ALL scans:
+1. [e.g., \"80% of packages lack provenance - implement GitHub attestations org-wide\"]
+2. [e.g., \"3 critical vulnerabilities in unmaintained packages - establish deprecation policy\"]
+3. [e.g., \"Version inconsistencies across 12 packages - run npm dedupe\"]
+
+### Automation Opportunities
+- CI/CD Integration: [specific tools based on findings]
+- Dependency Management: [Dependabot, Renovate, etc.]
+- SLSA Compliance: [path to Level 3+]
+
+### Effort Estimation
+- Immediate fixes: [X hours]
+- Short-term improvements: [X days]
+- Long-term hardening: [X weeks]
+
+# All Scan Results:
+
+$all_data"
+
+    local response=$(curl -s https://api.anthropic.com/v1/messages \
+        -H "content-type: application/json" \
+        -H "x-api-key: $ANTHROPIC_API_KEY" \
+        -H "anthropic-version: 2023-06-01" \
+        -d "{
+            \"model\": \"$model\",
+            \"max_tokens\": 8192,
+            \"messages\": [{
+                \"role\": \"user\",
+                \"content\": $(echo "$prompt" | jq -Rs .)
+            }]
+        }")
+
+    # Load cost tracking if available
+    if [ -f "$repo_root/lib/claude-cost.sh" ]; then
+        source "$repo_root/lib/claude-cost.sh"
+        if command -v record_api_usage &> /dev/null; then
+            record_api_usage "$response" "$model" > /dev/null
+        fi
+    fi
+
+    # Extract and display analysis
+    local analysis=$(echo "$response" | jq -r '.content[0].text // empty')
+
+    if [[ -n "$analysis" ]]; then
+        echo "$analysis"
+
+        # Display cost summary if available
+        if command -v display_api_cost_summary &> /dev/null; then
+            echo ""
+            display_api_cost_summary
+        fi
+    else
+        echo -e "${RED}Error: No analysis returned from Claude API${NC}"
+        echo "Response: $response"
+    fi
+}
+
 # Function to run analysis on target
 analyze_target() {
     local target="$1"
@@ -589,7 +748,7 @@ analyze_target() {
     echo -e "${CYAN}=========================================${NC}"
     echo -e "${CYAN}Analyzing: $target${NC}"
     if [[ "$USE_CLAUDE" == "true" ]] && [[ -n "$ANTHROPIC_API_KEY" ]]; then
-        echo -e "${GREEN}Claude AI: ENABLED${NC}"
+        echo -e "${GREEN}Claude AI: ENABLED (will run after all scans)${NC}"
     elif [[ -z "$ANTHROPIC_API_KEY" ]]; then
         echo -e "${YELLOW}Claude AI: DISABLED (no API key)${NC}"
     fi
@@ -608,28 +767,59 @@ analyze_target() {
         fi
     fi
 
+    # Capture all analysis outputs for unified Claude analysis
+    local all_results=""
+
     for module in "${MODULES[@]}"; do
         echo ""
         echo -e "${BLUE}▶ Running ${module} analysis...${NC}"
         echo ""
+
+        local module_output=""
         case "$module" in
             vulnerability)
-                run_vulnerability_analysis "$target"
+                module_output=$(run_vulnerability_analysis "$target" 2>&1)
                 ;;
             provenance)
-                run_provenance_analysis "$target"
+                module_output=$(run_provenance_analysis "$target" 2>&1)
                 ;;
             package-health)
-                run_package_health_analysis "$target"
+                module_output=$(run_package_health_analysis "$target" 2>&1)
                 ;;
             legal)
-                run_legal_analysis "$target"
+                module_output=$(run_legal_analysis "$target" 2>&1)
                 ;;
             *)
                 echo -e "${YELLOW}⚠ Unknown module: $module${NC}"
                 ;;
         esac
+
+        # Display the module output
+        echo "$module_output"
+
+        # Append to combined results for Claude
+        if [[ -n "$module_output" ]]; then
+            all_results+="
+========================================
+${module} Analysis Results
+========================================
+$module_output
+
+"
+        fi
     done
+
+    # Run unified Claude analysis on ALL results
+    if [[ "$USE_CLAUDE" == "true" ]] && [[ -n "$ANTHROPIC_API_KEY" ]] && [[ -n "$all_results" ]]; then
+        echo ""
+        echo -e "${GREEN}=========================================${NC}"
+        echo -e "${GREEN}  🤖 Claude AI Unified Analysis${NC}"
+        echo -e "${GREEN}  Analyzing ALL scan results together${NC}"
+        echo -e "${GREEN}=========================================${NC}"
+        echo ""
+
+        run_unified_claude_analysis "$all_results" "$target"
+    fi
 
     # Clean up shared repository after all modules complete
     if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then

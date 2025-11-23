@@ -793,6 +793,10 @@ while [[ $# -gt 0 ]]; do
             USE_CLAUDE=true
             shift
             ;;
+        --no-claude)
+            USE_CLAUDE=false
+            shift
+            ;;
         --parallel)
             PARALLEL=true
             shift
