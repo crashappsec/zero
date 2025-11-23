@@ -302,10 +302,10 @@ Scan all repositories in a GitHub organization:
 
 ### Setup
 
-**IMPORTANT**: The `--claude` flag requires an Anthropic API key to be set. The scanner will validate this and provide a clear error message if missing.
+**Claude AI is now enabled by default** when you set your API key. No `--claude` flag needed!
 
 ```bash
-# Set Anthropic API key (required for --claude)
+# Set Anthropic API key to enable Claude AI automatically
 export ANTHROPIC_API_KEY="your-api-key"
 
 # Or add to shell profile for persistence
@@ -314,13 +314,30 @@ echo 'export ANTHROPIC_API_KEY="your-key"' >> ~/.zshrc
 # Get your API key at: https://console.anthropic.com/settings/keys
 ```
 
-**Using Claude AI**:
+**How it works**:
 ```bash
-# With API key set, use --claude flag
-./supply-chain-scanner.sh --claude --all --repo owner/repo
+# With API key set - Claude runs automatically
+export ANTHROPIC_API_KEY="your-key"
+./supply-chain-scanner.sh --all --repo owner/repo
 
-# The scanner will validate the API key before starting analysis
+# Output:
+#   🤖 Claude AI: ENABLED (analyzing results with AI)
+#   [standard scans run...]
+#   [Claude AI Enhanced Analysis runs last using all results]
+
+# Without API key - standard analysis only
+unset ANTHROPIC_API_KEY
+./supply-chain-scanner.sh --all --repo owner/repo
+
+# Output:
+#   ℹ️  Claude AI: DISABLED (no API key found)
+#   [standard scans run...]
 ```
+
+**Execution Order**:
+1. ✅ API key check (first thing)
+2. ✅ Standard security scans (vulnerability, provenance, package health)
+3. ✅ Claude AI analysis (LAST - analyzes all previous results)
 
 ### Features
 
