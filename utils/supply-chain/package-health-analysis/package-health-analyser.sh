@@ -845,12 +845,72 @@ analyze_with_claude() {
 
     echo "Analyzing with Claude AI..." >&2
 
-    local prompt="Analyze this package health data and provide insights on risks, recommendations, and action items. Focus on:
-1. Critical vulnerabilities and security risks
-2. Deprecated packages requiring immediate attention
-3. Version inconsistencies and dependency conflicts
-4. Overall health assessment
-5. Prioritized remediation plan
+    local prompt="Analyze this package health data and provide actionable insights following software supply chain best practices.
+
+## Analysis Focus Areas:
+
+### 1. Library Version Standardization (Critical)
+- Identify duplicate packages across different versions
+- Recommend consolidation strategy (npm dedupe, overrides, resolutions)
+- Flag potential conflicts from multiple versions (increased bundle size, maintenance overhead)
+- Suggest using exact version pinning for production dependencies
+
+### 2. Version Management & Pinning
+- Check for wildcard versions (*) or loose ranges (^, ~) in production
+- Recommend lock file usage (package-lock.json, yarn.lock, pnpm-lock.yaml)
+- Identify packages that should use exact version pinning
+- Flag missing or outdated lock files
+
+### 3. Deprecated Packages & Migration
+- List all deprecated packages requiring immediate attention
+- Provide specific migration paths and replacement recommendations:
+  * request → axios or node-fetch
+  * moment → date-fns or dayjs
+  * node-uuid → uuid
+  * colors → chalk or ansi-colors
+- Estimate migration complexity for each deprecated package
+
+### 4. Security Posture & Updates
+- Critical vulnerabilities (response time: <24h)
+- High severity issues (response time: <7d)
+- Medium/Low issues (can be batched in scheduled updates)
+- Recommend security update policy and automation
+
+### 5. Package Health Assessment
+Using weighted scoring:
+- OpenSSF Scorecard (30%)
+- Maintenance activity (25%)
+- Security vulnerabilities (25%)
+- Version freshness (10%)
+- Community adoption (10%)
+
+### 6. Operational Best Practices
+- Lock file management (commit, keep fresh, handle conflicts)
+- Scheduled update strategy (weekly/biweekly for patches, quarterly for majors)
+- Dependency deduplication opportunities
+- Unused dependency cleanup
+- Testing requirements before updates
+
+## Output Format:
+
+### Executive Summary
+- Overall risk level (Critical/High/Medium/Low)
+- Top 3 immediate actions required
+- Estimated remediation effort
+
+### Detailed Findings
+For each issue category, provide:
+1. Specific packages affected
+2. Impact assessment
+3. Remediation steps
+4. Priority level
+
+### Prioritized Remediation Plan
+Ordered by urgency:
+1. Immediate (0-24h): Critical security, blocking issues
+2. Short-term (1-7d): High-priority updates, deprecated packages
+3. Medium-term (1-30d): Version standardization, health improvements
+4. Long-term (30-90d): Technical debt, optimization
 
 Data:
 $data"
@@ -872,7 +932,24 @@ $data"
         record_api_usage "$response" "$model" > /dev/null
     fi
 
-    echo "$response" | jq -r '.content[0].text // empty'
+    # Check for API errors
+    if echo "$response" | jq -e '.error' > /dev/null 2>&1; then
+        local error_type=$(echo "$response" | jq -r '.error.type')
+        local error_message=$(echo "$response" | jq -r '.error.message')
+        echo "Error: Claude API request failed - $error_type: $error_message" >&2
+        return 1
+    fi
+
+    # Extract and return the analysis
+    local analysis=$(echo "$response" | jq -r '.content[0].text // empty')
+
+    if [[ -z "$analysis" ]]; then
+        echo "Error: No analysis returned from Claude API" >&2
+        echo "Response: $response" >&2
+        return 1
+    fi
+
+    echo "$analysis"
 }
 
 # Main execution
