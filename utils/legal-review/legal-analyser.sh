@@ -742,6 +742,217 @@ scan_content_policy() {
     fi
 }
 
+# Parallel content policy scanner
+scan_content_policy_parallel() {
+    local path="$1"
+    local jobs="$2"
+
+    log "Scanning content policy in $path (parallel mode with $jobs workers)"
+    load_content_policy
+
+    local content_status="✅ PASS"
+    local has_issues=false
+    local profanity_count=0
+    local inclusive_count=0
+
+    echo "## Content Policy Scan (Parallel Mode)"
+    echo ""
+
+    # Create temp directory for results
+    local results_dir=$(mktemp -d)
+    TEMP_DIRS+=("$results_dir")
+
+    # Find all relevant files first
+    local file_list="$results_dir/files.txt"
+    find "$path" -type f \( \
+        -name "*.js" -o -name "*.ts" -o -name "*.py" -o \
+        -name "*.rs" -o -name "*.go" -o -name "*.sh" -o \
+        -name "*.md" -o -name "*.java" -o -name "*.c" -o -name "*.cpp" \
+    \) > "$file_list" 2>/dev/null
+
+    local total_files=$(wc -l < "$file_list")
+    log "Found $total_files files to scan"
+
+    # Export variables and functions for parallel execution
+    export -f get_alternatives
+    export PROFANITY_TERMS
+    export INCLUSIVE_TERMS
+    export LEGAL_CONFIG
+    export REPO_ROOT
+
+    # Build grep patterns
+    local profanity_pattern=""
+    for term in "${PROFANITY_TERMS[@]}"; do
+        if [[ -z "$profanity_pattern" ]]; then
+            profanity_pattern="$term"
+        else
+            profanity_pattern="$profanity_pattern\|$term"
+        fi
+    done
+
+    local inclusive_pattern=""
+    for term in "${INCLUSIVE_TERMS[@]}"; do
+        if [[ -z "$inclusive_pattern" ]]; then
+            inclusive_pattern="$term"
+        else
+            inclusive_pattern="$inclusive_pattern\|$term"
+        fi
+    done
+
+    export profanity_pattern
+    export inclusive_pattern
+    export path
+
+    # Scan for profanity in parallel
+    echo "### Profanity Detection"
+    echo ""
+
+    if [[ -n "$profanity_pattern" ]]; then
+        cat "$file_list" | xargs -P "$jobs" -I {} bash -c '
+            file="$1"
+            results_dir="$2"
+            profanity_pattern="$3"
+
+            # Skip binary files
+            [[ ! -f "$file" ]] && exit 0
+            file -b "$file" | grep -qi "text" || exit 0
+
+            # Create result file for this file
+            result_file="$results_dir/profanity_$(echo "$file" | md5 -q).txt"
+
+            # Search for profanity terms
+            grep -ni "$profanity_pattern" "$file" 2>/dev/null | while IFS=: read -r line_num line_content; do
+                # Check each profanity term
+                for term in '"${PROFANITY_TERMS[@]}"'; do
+                    if echo "$line_content" | grep -qi "\b$term\b"; then
+                        rel_path="${file#$path/}"
+                        echo "PROFANITY|$rel_path|$line_num|$term" >> "$result_file"
+                    fi
+                done
+            done
+        ' bash {} "$results_dir" "$profanity_pattern"
+
+        # Aggregate profanity results
+        local profanity_findings=()
+        for result_file in "$results_dir"/profanity_*.txt; do
+            [[ ! -f "$result_file" ]] && continue
+            while IFS='|' read -r type rel_path line_num term; do
+                ((profanity_count++))
+                if [[ $profanity_count -le 10 ]]; then
+                    local alternatives=$(get_alternatives "$term" "profanity")
+                    profanity_findings+=("- \`$rel_path:$line_num\` - **$term** → Alternatives: $alternatives")
+                    CONTENT_ISSUES+=("$rel_path:$line_num - profanity: $term")
+                    has_issues=true
+                    content_status="⚠️ WARNING"
+                fi
+            done < "$result_file"
+        done
+
+        if [[ ${#profanity_findings[@]} -gt 0 ]]; then
+            printf '%s\n' "${profanity_findings[@]}"
+            if [[ $profanity_count -gt 10 ]]; then
+                echo "- ... and $((profanity_count - 10)) more instances"
+            fi
+            echo ""
+        else
+            echo "✅ No profanity detected"
+            echo ""
+        fi
+    else
+        echo "✅ No profanity patterns configured"
+        echo ""
+    fi
+
+    # Scan for non-inclusive language in parallel
+    echo "### Inclusive Language Check"
+    echo ""
+
+    if [[ -n "$inclusive_pattern" ]]; then
+        # Clean up previous profanity results
+        rm -f "$results_dir"/profanity_*.txt
+
+        cat "$file_list" | xargs -P "$jobs" -I {} bash -c '
+            file="$1"
+            results_dir="$2"
+            inclusive_pattern="$3"
+
+            # Skip binary files
+            [[ ! -f "$file" ]] && exit 0
+            file -b "$file" | grep -qi "text" || exit 0
+
+            # Create result file for this file
+            result_file="$results_dir/inclusive_$(echo "$file" | md5 -q).txt"
+
+            # Search for non-inclusive terms
+            grep -ni "$inclusive_pattern" "$file" 2>/dev/null | while IFS=: read -r line_num line_content; do
+                # Skip exemption contexts
+                if echo "$line_content" | grep -qi "git master\|IDE master\|Bluetooth master"; then
+                    continue
+                fi
+
+                # Check each inclusive term
+                for term in '"${INCLUSIVE_TERMS[@]}"'; do
+                    if echo "$line_content" | grep -qi "\b$term\b"; then
+                        rel_path="${file#$path/}"
+                        echo "INCLUSIVE|$rel_path|$line_num|$term" >> "$result_file"
+                    fi
+                done
+            done
+        ' bash {} "$results_dir" "$inclusive_pattern"
+
+        # Aggregate inclusive language results
+        local inclusive_findings=()
+        for result_file in "$results_dir"/inclusive_*.txt; do
+            [[ ! -f "$result_file" ]] && continue
+            while IFS='|' read -r type rel_path line_num term; do
+                ((inclusive_count++))
+                if [[ $inclusive_count -le 10 ]]; then
+                    local alternatives=$(get_alternatives "$term" "inclusive_language")
+                    inclusive_findings+=("- \`$rel_path:$line_num\` - **$term** → Alternatives: $alternatives")
+                    CONTENT_ISSUES+=("$rel_path:$line_num - non-inclusive: $term")
+                    has_issues=true
+                    content_status="⚠️ WARNING"
+                fi
+            done < "$result_file"
+        done
+
+        if [[ ${#inclusive_findings[@]} -gt 0 ]]; then
+            printf '%s\n' "${inclusive_findings[@]}"
+            if [[ $inclusive_count -gt 10 ]]; then
+                echo "- ... and $((inclusive_count - 10)) more instances"
+            fi
+            echo ""
+        else
+            echo "✅ All language is inclusive"
+            echo ""
+        fi
+    else
+        echo "✅ No inclusive language patterns configured"
+        echo ""
+    fi
+
+    # Summary
+    echo "### Summary"
+    echo ""
+    echo "**Status**: $content_status"
+    echo "**Files Scanned**: $total_files"
+    echo ""
+    echo "**Findings**:"
+    echo "- Profanity instances: $profanity_count"
+    echo "- Non-inclusive terms: $inclusive_count"
+    echo ""
+
+    if [[ "$has_issues" == true ]]; then
+        echo "**⚠️ Action Required**: Review and update flagged content"
+        echo ""
+        echo "**Best Practices**:"
+        echo "- Use professional, inclusive language in all code and comments"
+        echo "- Replace non-inclusive terms with modern alternatives"
+        echo "- Consider audience and context when writing documentation"
+        echo ""
+    fi
+}
+
 # Load RAG documentation for Claude context
 load_rag_context() {
     local context=""
@@ -973,6 +1184,10 @@ analyze_single_target() {
     echo "**Generated**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo "**Target**: ${target_name}"
     echo ""
+    if [[ "$PARALLEL" == true ]]; then
+        echo "**Mode**: Parallel processing ($PARALLEL_JOBS workers)"
+        echo ""
+    fi
 
     # Run scans
     if [[ "$SCAN_LICENSES" == true ]]; then
@@ -984,7 +1199,11 @@ analyze_single_target() {
     fi
 
     if [[ "$SCAN_CONTENT" == true ]]; then
-        scan_content_policy "$scan_path"
+        if [[ "$PARALLEL" == true ]]; then
+            scan_content_policy_parallel "$scan_path" "$PARALLEL_JOBS"
+        else
+            scan_content_policy "$scan_path"
+        fi
     fi
 
     # Claude AI enhanced analysis (if enabled)
