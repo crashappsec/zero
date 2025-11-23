@@ -965,6 +965,20 @@ main() {
 
     parse_args "$@"
 
+    echo ""
+    echo "========================================="
+    echo "  Package Health Analysis"
+    echo "========================================="
+    echo ""
+
+    # Inform about Claude AI availability if API key not set
+    if [[ -z "$ANTHROPIC_API_KEY" ]] && [[ "$USE_CLAUDE" != "true" ]] && [[ "$COMPARE_MODE" != "true" ]]; then
+        echo -e "\033[0;36m💡 Claude AI analysis available with --claude flag\033[0m"
+        echo -e "\033[0;36m   Set ANTHROPIC_API_KEY to enable AI-enhanced insights\033[0m"
+        echo -e "\033[0;36m   Get your key at: https://console.anthropic.com/settings/keys\033[0m"
+        echo ""
+    fi
+
     # Validate input
     if [ -z "$REPO" ] && [ -z "$ORG" ] && [ -z "$SBOM_FILE" ]; then
         echo "Error: Must specify --repo, --org, or --sbom" >&2
