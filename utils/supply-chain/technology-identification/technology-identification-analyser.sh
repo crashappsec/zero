@@ -1052,6 +1052,19 @@ fi
 # Check prerequisites
 check_syft
 
+# Handle --repo argument by converting to TARGET
+if [[ "$MULTI_REPO_MODE" == true ]] && [[ ${#TARGETS_LIST[@]} -eq 1 ]]; then
+    target_spec="${TARGETS_LIST[0]}"
+    if [[ "$target_spec" == repo:* ]]; then
+        # Extract repo name (e.g., "repo:owner/repo" -> "owner/repo")
+        repo_name="${target_spec#repo:}"
+        TARGET="https://github.com/$repo_name"
+        MULTI_REPO_MODE=false
+        echo -e "${CYAN}Converted --repo $repo_name to $TARGET${NC}"
+        echo ""
+    fi
+fi
+
 # Single target mode
 if [[ "$MULTI_REPO_MODE" == false ]]; then
     if [[ -z "$TARGET" ]]; then
