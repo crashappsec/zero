@@ -14,21 +14,21 @@ COST_TRACKING_FILE="/tmp/claude_cost_$$.tmp"
 
 # Claude pricing (per million tokens) - Updated as of 2024
 # https://www.anthropic.com/api
-declare -A INPUT_COSTS=(
-    ["claude-3-opus-20240229"]=15.00
-    ["claude-3-sonnet-20240229"]=3.00
-    ["claude-3-haiku-20240307"]=0.25
-    ["claude-3-5-sonnet-20241022"]=3.00
-    ["claude-sonnet-4-5-20250929"]=3.00
-)
+declare -A INPUT_COSTS
+INPUT_COSTS["claude-3-opus-20240229"]=15.00
+INPUT_COSTS["claude-3-sonnet-20240229"]=3.00
+INPUT_COSTS["claude-3-haiku-20240307"]=0.25
+INPUT_COSTS["claude-3-5-sonnet-20241022"]=3.00
+INPUT_COSTS["claude-sonnet-4-5-20250929"]=3.00
+INPUT_COSTS["claude-sonnet-4-20250514"]=3.00
 
-declare -A OUTPUT_COSTS=(
-    ["claude-3-opus-20240229"]=75.00
-    ["claude-3-sonnet-20240229"]=15.00
-    ["claude-3-haiku-20240307"]=1.25
-    ["claude-3-5-sonnet-20241022"]=15.00
-    ["claude-sonnet-4-5-20250929"]=15.00
-)
+declare -A OUTPUT_COSTS
+OUTPUT_COSTS["claude-3-opus-20240229"]=75.00
+OUTPUT_COSTS["claude-3-sonnet-20240229"]=15.00
+OUTPUT_COSTS["claude-3-haiku-20240307"]=1.25
+OUTPUT_COSTS["claude-3-5-sonnet-20241022"]=15.00
+OUTPUT_COSTS["claude-sonnet-4-5-20250929"]=15.00
+OUTPUT_COSTS["claude-sonnet-4-20250514"]=15.00
 
 # Initialize cost tracking
 init_cost_tracking() {
