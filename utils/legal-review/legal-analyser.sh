@@ -26,6 +26,13 @@ SCAN_CONTENT=true
 USE_CLAUDE=false
 TARGET_REPO=""
 TARGET_PATH=""
+TARGET_ORG=""
+LOCAL_PATH=""
+SBOM_FILE=""
+COMPARE_MODE=false
+PARALLEL=false
+PARALLEL_JOBS=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "4")
+ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 
 # Colors
 RED='\033[0;31m'
@@ -64,30 +71,57 @@ Legal Review Analyser - Comprehensive code legal compliance scanner
 
 Usage: $0 [OPTIONS]
 
-OPTIONS:
-    --repo OWNER/REPO          Analyze GitHub repository
+TARGET OPTIONS:
+    --repo OWNER/REPO          Analyze single GitHub repository
+    --org ORG_NAME             Analyze all repositories in GitHub organization
     --path PATH                Analyze local path
+    --local-path PATH          Use pre-cloned repository (skip cloning)
+    --sbom FILE                Use existing SBOM file for dependency analysis
+
+SCAN OPTIONS:
     --licenses-only            Scan licenses only
     --secrets-only             Scan secrets only
     --content-only             Scan content policy only
-    --format FORMAT            Output format: markdown (default), json
+    --parallel                 Enable parallel file processing (faster)
+    --jobs N                   Number of parallel jobs (default: CPU count)
+
+OUTPUT OPTIONS:
+    --format FORMAT            Output format: markdown (default), json, table
     --output FILE              Write output to file
-    --claude                   Use Claude AI for enhanced analysis
     --verbose                  Enable verbose output
+
+CLAUDE AI OPTIONS:
+    --claude                   Use Claude AI for enhanced analysis
+    --compare                  Run both basic and Claude modes side-by-side
+    -k, --api-key KEY          Anthropic API key (or set ANTHROPIC_API_KEY env var)
+
+OTHER OPTIONS:
     -h, --help                 Show this help message
 
 EXAMPLES:
-    # Full analysis
+    # Full analysis of single repository
     $0 --repo owner/repo
 
-    # License scan only
-    $0 --repo owner/repo --licenses-only
+    # Analyze all repos in organization
+    $0 --org my-organization
+
+    # License scan only with parallel processing
+    $0 --repo owner/repo --licenses-only --parallel
 
     # Local path with JSON output
     $0 --path /path/to/code --format json --output report.json
 
-    # Claude AI enhanced
+    # Claude AI enhanced analysis
     $0 --repo owner/repo --claude
+
+    # Compare basic vs Claude analysis
+    $0 --repo owner/repo --compare
+
+    # Use pre-cloned repository
+    $0 --local-path /tmp/cloned-repo
+
+    # Multi-repo analysis with table output
+    $0 --org my-org --format table --parallel
 
 EOF
     exit 0
@@ -101,8 +135,20 @@ parse_args() {
                 TARGET_REPO="$2"
                 shift 2
                 ;;
+            --org)
+                TARGET_ORG="$2"
+                shift 2
+                ;;
             --path)
                 TARGET_PATH="$2"
+                shift 2
+                ;;
+            --local-path)
+                LOCAL_PATH="$2"
+                shift 2
+                ;;
+            --sbom)
+                SBOM_FILE="$2"
                 shift 2
                 ;;
             --licenses-only)
@@ -120,6 +166,14 @@ parse_args() {
                 SCAN_SECRETS=false
                 shift
                 ;;
+            --parallel)
+                PARALLEL=true
+                shift
+                ;;
+            --jobs)
+                PARALLEL_JOBS="$2"
+                shift 2
+                ;;
             --format)
                 OUTPUT_FORMAT="$2"
                 shift 2
@@ -131,6 +185,15 @@ parse_args() {
             --claude)
                 USE_CLAUDE=true
                 shift
+                ;;
+            --compare)
+                COMPARE_MODE=true
+                USE_CLAUDE=true
+                shift
+                ;;
+            -k|--api-key)
+                ANTHROPIC_API_KEY="$2"
+                shift 2
                 ;;
             --verbose)
                 VERBOSE=true
@@ -900,43 +963,16 @@ $(for issue in "${CONTENT_ISSUES[@]}"; do echo "- $issue"; done)
     echo ""
 }
 
-# Main analysis
-main() {
-    parse_args "$@"
-
-    if [[ -z "$TARGET_REPO" ]] && [[ -z "$TARGET_PATH" ]]; then
-        echo "Error: Must specify --repo or --path"
-        usage
-    fi
-
-    load_config
+# Run analysis on a single repository/path
+analyze_single_target() {
+    local scan_path="$1"
+    local target_name="$2"
 
     echo "# Legal Review Analysis Report"
     echo ""
     echo "**Generated**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-    echo "**Target**: ${TARGET_REPO:-${TARGET_PATH}}"
+    echo "**Target**: ${target_name}"
     echo ""
-
-    # Determine scan path
-    local scan_path="$TARGET_PATH"
-
-    if [[ -n "$TARGET_REPO" ]]; then
-        log "Cloning repository $TARGET_REPO"
-        local temp_dir=$(mktemp -d)
-        TEMP_DIRS+=("$temp_dir")
-
-        # Use shared github_clone_repository function from github.sh library
-        local repo_dir="$temp_dir/repo"
-
-        if ! github_clone_repository "$TARGET_REPO" "$repo_dir" --depth 1; then
-            echo ""
-            echo "Error: Failed to clone $TARGET_REPO" >&2
-            exit 1
-        fi
-        echo ""  # Add blank line after clone output
-
-        scan_path="$repo_dir"
-    fi
 
     # Run scans
     if [[ "$SCAN_LICENSES" == true ]]; then
@@ -951,9 +987,161 @@ main() {
         scan_content_policy "$scan_path"
     fi
 
-    # Claude AI enhanced analysis
-    claude_enhanced_analysis "$scan_path"
+    # Claude AI enhanced analysis (if enabled)
+    if [[ "$COMPARE_MODE" != true ]]; then
+        claude_enhanced_analysis "$scan_path"
+    fi
+}
 
+# Main analysis
+main() {
+    parse_args "$@"
+
+    # Validate target options
+    if [[ -z "$TARGET_REPO" ]] && [[ -z "$TARGET_PATH" ]] && [[ -z "$TARGET_ORG" ]] && [[ -z "$LOCAL_PATH" ]]; then
+        echo "Error: Must specify one of: --repo, --org, --path, or --local-path"
+        usage
+    fi
+
+    # Load Claude cost tracking if using Claude
+    if [[ "$USE_CLAUDE" == "true" ]] || [[ "$COMPARE_MODE" == "true" ]]; then
+        if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
+            source "$REPO_ROOT/utils/lib/claude-cost.sh"
+            init_cost_tracking
+        fi
+    fi
+
+    load_config
+
+    # Determine scan path and target name
+    local scan_path=""
+    local target_name=""
+
+    # Priority: LOCAL_PATH > TARGET_PATH > TARGET_REPO > TARGET_ORG
+    if [[ -n "$LOCAL_PATH" ]]; then
+        # Use pre-cloned repository
+        if [[ ! -d "$LOCAL_PATH" ]]; then
+            echo "Error: Local path does not exist: $LOCAL_PATH" >&2
+            exit 1
+        fi
+        scan_path="$LOCAL_PATH"
+        target_name="$LOCAL_PATH"
+        log "Using pre-cloned repository at $LOCAL_PATH"
+
+    elif [[ -n "$TARGET_PATH" ]]; then
+        # Use local path
+        if [[ ! -d "$TARGET_PATH" ]]; then
+            echo "Error: Path does not exist: $TARGET_PATH" >&2
+            exit 1
+        fi
+        scan_path="$TARGET_PATH"
+        target_name="$TARGET_PATH"
+
+    elif [[ -n "$TARGET_REPO" ]]; then
+        # Clone single repository
+        log "Cloning repository $TARGET_REPO"
+        local temp_dir=$(mktemp -d)
+        TEMP_DIRS+=("$temp_dir")
+
+        local repo_dir="$temp_dir/repo"
+        if ! github_clone_repository "$TARGET_REPO" "$repo_dir" --depth 1; then
+            echo "Error: Failed to clone $TARGET_REPO" >&2
+            exit 1
+        fi
+        echo ""  # Add blank line after clone output
+
+        scan_path="$repo_dir"
+        target_name="$TARGET_REPO"
+
+    elif [[ -n "$TARGET_ORG" ]]; then
+        # Analyze all repositories in organization
+        echo "# Legal Review Analysis Report - Organization"
+        echo ""
+        echo "**Generated**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+        echo "**Organization**: ${TARGET_ORG}"
+        echo ""
+
+        log "Fetching repositories for organization: $TARGET_ORG"
+
+        # Get all repos in org using github.sh library
+        local repos=($(github_list_org_repos "$TARGET_ORG"))
+
+        if [[ ${#repos[@]} -eq 0 ]]; then
+            echo "Error: No repositories found for organization $TARGET_ORG" >&2
+            exit 1
+        fi
+
+        echo "Found ${#repos[@]} repositories in organization $TARGET_ORG"
+        echo ""
+
+        # Analyze each repository
+        for repo in "${repos[@]}"; do
+            echo "---"
+            echo ""
+            echo "## Repository: $repo"
+            echo ""
+
+            local temp_dir=$(mktemp -d)
+            TEMP_DIRS+=("$temp_dir")
+
+            local repo_dir="$temp_dir/repo"
+            if github_clone_repository "$TARGET_ORG/$repo" "$repo_dir" --depth 1; then
+                analyze_single_target "$repo_dir" "$TARGET_ORG/$repo"
+            else
+                echo "⚠️ **Warning**: Failed to clone $TARGET_ORG/$repo - skipping"
+            fi
+            echo ""
+        done
+
+        # Display cost summary if using Claude
+        if command -v display_api_cost_summary &> /dev/null; then
+            display_api_cost_summary
+        fi
+
+        return 0
+    fi
+
+    # Single target analysis
+    if [[ "$COMPARE_MODE" == true ]]; then
+        # Run comparison mode: basic vs Claude side-by-side
+        echo "# Legal Review Analysis - Comparison Mode"
+        echo ""
+        echo "**Generated**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+        echo "**Target**: ${target_name}"
+        echo ""
+        echo "---"
+        echo ""
+        echo "## Basic Analysis (Without Claude AI)"
+        echo ""
+
+        # Temporarily disable Claude for basic analysis
+        local original_use_claude="$USE_CLAUDE"
+        USE_CLAUDE=false
+        analyze_single_target "$scan_path" "$target_name"
+        USE_CLAUDE="$original_use_claude"
+
+        echo ""
+        echo "---"
+        echo ""
+        echo "## Claude AI Enhanced Analysis"
+        echo ""
+
+        # Reset violation tracking for Claude analysis
+        LICENSE_VIOLATIONS=()
+        CONTENT_ISSUES=()
+
+        analyze_single_target "$scan_path" "$target_name"
+        claude_enhanced_analysis "$scan_path"
+
+    else
+        # Normal mode
+        analyze_single_target "$scan_path" "$target_name"
+    fi
+
+    # Display cost summary if using Claude
+    if command -v display_api_cost_summary &> /dev/null; then
+        display_api_cost_summary
+    fi
 }
 
 main "$@"
