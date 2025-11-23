@@ -979,6 +979,14 @@ main() {
         echo ""
     fi
 
+    # Inform about batch mode for faster processing
+    if [[ "$PARALLEL" != "true" ]]; then
+        echo -e "\033[0;36m⚡ Batch API mode available with --parallel flag\033[0m"
+        echo -e "\033[0;36m   Processes packages 6-10x faster using deps.dev batch API\033[0m"
+        echo -e "\033[0;36m   Recommended for repositories with many dependencies\033[0m"
+        echo ""
+    fi
+
     # Validate input
     if [ -z "$REPO" ] && [ -z "$ORG" ] && [ -z "$SBOM_FILE" ]; then
         echo "Error: Must specify --repo, --org, or --sbom" >&2
