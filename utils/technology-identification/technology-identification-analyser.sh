@@ -23,12 +23,12 @@ NC='\033[0m' # No Color
 
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PARENT_DIR="$(dirname "$SCRIPT_DIR")"
-REPO_ROOT="$(cd "$PARENT_DIR/.." && pwd)"
+UTILS_ROOT="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(dirname "$UTILS_ROOT")"
 
 # Load global libraries
-source "$REPO_ROOT/lib/sbom.sh"
-source "$REPO_ROOT/lib/github.sh"
+source "$UTILS_ROOT/lib/sbom.sh"
+source "$UTILS_ROOT/lib/github.sh"
 
 # Default options
 OUTPUT_FORMAT="markdown"
@@ -967,8 +967,8 @@ $data"
 
 # Load cost tracking if using Claude
 if [[ "$USE_CLAUDE" == "true" ]]; then
-    if [ -f "$REPO_ROOT/lib/claude-cost.sh" ]; then
-        source "$REPO_ROOT/lib/claude-cost.sh"
+    if [ -f "$UTILS_ROOT/lib/claude-cost.sh" ]; then
+        source "$UTILS_ROOT/lib/claude-cost.sh"
         init_cost_tracking
     fi
 fi

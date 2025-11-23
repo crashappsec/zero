@@ -38,7 +38,10 @@ The Technology Identification System analyzes source code repositories and SBOMs
 
 ```bash
 # Install prerequisites
-# (Most tools already available from supply chain scanner)
+brew install jq gh syft osv-scanner
+
+# Navigate to the util directory
+cd utils/technology-identification
 
 # Run technology identification scan
 ./technology-identification-analyser.sh --repo owner/repo
@@ -52,55 +55,53 @@ export ANTHROPIC_API_KEY="your-api-key"
   --claude \
   --repo owner/repo \
   --format markdown \
-  --output tech-stack-report.md \
-  --executive-summary
+  --output tech-stack-report.md
 ```
 
 ## Architecture
 
-### Integration with Supply Chain Infrastructure
+### Shared Infrastructure
 
-The Technology Identification module **leverages existing supply chain libraries** for consistency:
+The Technology Identification system uses shared utilities for consistency:
 
-- **Repository Management**: Uses `lib/github.sh` for cloning and GitHub API access
-- **SBOM Generation**: Uses `lib/sbom.sh` for consistent package manager detection and SBOM creation
-- **Shared Resources**: Single repository clone and SBOM shared across all analyzers
+- **Repository Management**: Uses `utils/lib/github.sh` for cloning and GitHub API access
+- **SBOM Generation**: Uses `utils/lib/sbom.sh` for consistent package manager detection and SBOM creation
 - **Configuration**: Unified `config.json` hierarchy (module → utils → global)
+- **RAG Patterns**: Reads from `rag/technology-identification/` for detection patterns
 
 ```
-supply-chain-scanner.sh (orchestrator)
-├── Clone repository once (lib/github.sh) → SHARED_REPO_DIR
-├── Generate SBOM once (lib/sbom.sh) → SHARED_SBOM_FILE
-└── Run analyzers in sequence:
-    ├── vulnerability-analyser.sh
-    ├── provenance-analyser.sh
-    ├── package-health-analyser.sh
-    └── technology-identification-analyser.sh ← Uses shared SBOM + repo
+technology-identification-analyser.sh (standalone utility)
+├── Loads: utils/lib/github.sh (repository operations)
+├── Loads: utils/lib/sbom.sh (SBOM generation)
+├── Loads: utils/lib/config-loader.sh (configuration)
+└── Reads: rag/technology-identification/ (detection patterns)
 ```
 
-### Module Structure
+### Directory Structure
 
 ```
-technology-identification/
+utils/technology-identification/
 ├── README.md                          # This file
 ├── DESIGN.md                          # Comprehensive design document
+├── PROGRESS.md                        # Implementation progress tracking
 │
 ├── technology-identification-analyser.sh    # Main analyzer script
-│   ├── Sources: lib/github.sh, lib/sbom.sh, lib/config-loader.sh
-│   └── Uses: SHARED_REPO_DIR, SHARED_SBOM_FILE
 │
 ├── prompts/
 │   ├── pattern-extraction.md         # Extract patterns from docs
 │   ├── technology-analysis.md        # Analyze repositories
 │   └── report-generation.md          # Generate reports
 │
-├── rag-updater/                      # RAG maintenance tools
-│   ├── update-rag.sh                 # Main update script
-│   ├── sources/                      # Data source scrapers
-│   ├── parsers/                      # Documentation parsers
-│   └── generators/                   # Pattern generators
-│
-└── config.json                       # Configuration settings
+└── config.json                       # Configuration settings (optional)
+
+rag/technology-identification/
+├── business-tools/                   # CRM, payment, communication
+├── developer-tools/                  # IaC, containers, CI/CD
+├── cryptographic-libraries/          # TLS/SSL, crypto primitives
+└── cloud-providers/                  # AWS, GCP, Azure services
+
+skills/technology-identification/
+└── technology-identification.skill   # Claude AI skill definition
 ```
 
 ## Detection Strategy
@@ -519,32 +520,6 @@ Technologies are classified into risk levels:
 ### Financial (PCI DSS)
 - Payment processors → Secure key storage
 - Credit card handling → Compliance requirements
-
-## Integration with Supply Chain Scanner
-
-The Technology Identification module integrates with the existing supply chain scanner:
-
-```bash
-# Run as part of supply chain analysis
-./supply-chain-scanner.sh \
-  --all \
-  --technology \
-  --repo owner/repo
-
-# Technology identification + vulnerability analysis
-./supply-chain-scanner.sh \
-  --vulnerability \
-  --technology \
-  --repo owner/repo
-
-# Full stack analysis with Claude AI
-export ANTHROPIC_API_KEY="your-api-key"
-./supply-chain-scanner.sh \
-  --all \
-  --technology \
-  --claude \
-  --repo owner/repo
-```
 
 ## Examples
 
