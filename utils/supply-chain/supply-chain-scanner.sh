@@ -472,6 +472,11 @@ run_provenance_analysis() {
         cmd="$cmd --claude"
     fi
 
+    # Add parallel flag if enabled
+    if [[ "$PARALLEL" == "true" ]]; then
+        cmd="$cmd --parallel"
+    fi
+
     # Use shared SBOM if available
     if [[ -n "$SHARED_SBOM_FILE" ]] && [[ -f "$SHARED_SBOM_FILE" ]]; then
         cmd="$cmd --sbom-file $SHARED_SBOM_FILE"
