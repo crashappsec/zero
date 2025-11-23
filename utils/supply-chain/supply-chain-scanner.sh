@@ -77,6 +77,7 @@ MODULES:
     --vulnerability, -v     Run vulnerability analysis
     --provenance, -p        Run provenance analysis (SLSA)
     --package-health        Run package health analysis
+    --technology, -t        Run technology identification analysis
     --legal                 Run legal compliance analysis (licenses, secrets, content)
     --all, -a               Run all analysis modules (default if none specified)
 
@@ -535,6 +536,49 @@ run_package_health_analysis() {
     eval "$cmd"
 }
 
+# Function to run technology identification analysis
+run_technology_identification() {
+    local target=$(normalize_target "$1")
+    local analyser="$SCRIPT_DIR/technology-identification/technology-identification-analyser.sh"
+
+    if [[ ! -f "$analyser" ]]; then
+        echo -e "${RED}✗ Technology identification analyser not found${NC}"
+        return 1
+    fi
+
+    local cmd="$analyser"
+
+    # Add Claude flag if enabled
+    if [[ "$USE_CLAUDE" == "true" ]]; then
+        cmd="$cmd --claude"
+    fi
+
+    # Use shared SBOM if available
+    if [[ -n "$SHARED_SBOM_FILE" ]] && [[ -f "$SHARED_SBOM_FILE" ]]; then
+        cmd="$cmd --sbom-file $SHARED_SBOM_FILE"
+    fi
+
+    # Use shared repository if available
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        # Technology identification expects full URL or owner/repo format
+        # Strip the https://github.com/ prefix if present
+        local repo_name="${target#https://github.com/}"
+        cmd="$cmd --repo $repo_name --local-path $SHARED_REPO_DIR"
+    else
+        # Strip the https://github.com/ prefix if present
+        target="${target#https://github.com/}"
+        cmd="$cmd --repo $target"
+    fi
+
+    # Add output directory if specified
+    if [[ -n "$OUTPUT_DIR" ]]; then
+        mkdir -p "$OUTPUT_DIR"
+        cmd="$cmd --output $OUTPUT_DIR/technology-report.json"
+    fi
+
+    eval "$cmd"
+}
+
 # Function to run legal compliance analysis
 run_legal_analysis() {
     local target=$(normalize_target "$1")
@@ -786,6 +830,9 @@ analyze_target() {
             package-health)
                 module_output=$(run_package_health_analysis "$target" 2>&1)
                 ;;
+            technology)
+                module_output=$(run_technology_identification "$target" 2>&1)
+                ;;
             legal)
                 module_output=$(run_legal_analysis "$target" 2>&1)
                 ;;
@@ -850,6 +897,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --package-health)
             MODULES+=("package-health")
+            shift
+            ;;
+        -t|--technology)
+            MODULES+=("technology")
             shift
             ;;
         --legal)
