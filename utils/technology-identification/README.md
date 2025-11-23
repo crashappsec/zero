@@ -81,27 +81,22 @@ technology-identification-analyser.sh (standalone utility)
 
 ```
 utils/technology-identification/
-├── README.md                          # This file
-├── DESIGN.md                          # Comprehensive design document
-├── PROGRESS.md                        # Implementation progress tracking
-│
-├── technology-identification-analyser.sh    # Main analyzer script
-│
-├── prompts/
-│   ├── pattern-extraction.md         # Extract patterns from docs
-│   ├── technology-analysis.md        # Analyze repositories
-│   └── report-generation.md          # Generate reports
-│
-└── config.json                       # Configuration settings (optional)
+├── README.md                                # This file
+└── technology-identification-analyser.sh   # Main analyzer script
+
+prompts/technology-identification/
+├── pattern-extraction.md                    # Extract patterns from docs
+├── technology-analysis.md                   # Analyze repositories
+└── report-generation.md                     # Generate reports
 
 rag/technology-identification/
-├── business-tools/                   # CRM, payment, communication
-├── developer-tools/                  # IaC, containers, CI/CD
-├── cryptographic-libraries/          # TLS/SSL, crypto primitives
-└── cloud-providers/                  # AWS, GCP, Azure services
+├── business-tools/                          # CRM, payment, communication
+├── developer-tools/                         # IaC, containers, CI/CD
+├── cryptographic-libraries/                 # TLS/SSL, crypto primitives
+└── cloud-providers/                         # AWS, GCP, Azure services
 
 skills/technology-identification/
-└── technology-identification.skill   # Claude AI skill definition
+└── technology-identification.skill          # Claude AI skill definition
 ```
 
 ## Detection Strategy
@@ -687,11 +682,11 @@ gh auth login
 
 ## Documentation
 
-- [DESIGN.md](./DESIGN.md) - Comprehensive design document
-- [prompts/pattern-extraction.md](./prompts/pattern-extraction.md) - Extract patterns from docs
-- [prompts/technology-analysis.md](./prompts/technology-analysis.md) - Analyze repositories
-- [prompts/report-generation.md](./prompts/report-generation.md) - Generate reports
+- [Pattern Extraction Prompt](../../prompts/technology-identification/pattern-extraction.md) - Extract patterns from docs
+- [Technology Analysis Prompt](../../prompts/technology-identification/technology-analysis.md) - Analyze repositories
+- [Report Generation Prompt](../../prompts/technology-identification/report-generation.md) - Generate reports
 - [Skill File](../../skills/technology-identification/technology-identification.skill) - Claude AI skill definition
+- [RAG Patterns](../../rag/technology-identification/) - Detection pattern library
 
 ## Contributing
 
