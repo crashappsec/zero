@@ -285,6 +285,11 @@ Planned enhancements:
   - Certificate fingerprint generation
   - JSON output format
   - Multiple certificate sources (file, URL, stdin)
+- **Browser Forum Standards Compliance** 🎯
+  - Certificate expiry date validation against CA/Browser Forum Baseline Requirements
+  - Maximum validity period checks (398 days for DV/OV certificates)
+  - Historical validity period enforcement
+  - Compliance reporting for audit purposes
 - Automated certificate renewal workflows
 - Multi-certificate comparison
 - Security policy compliance checking
