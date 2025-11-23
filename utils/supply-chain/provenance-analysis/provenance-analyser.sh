@@ -602,15 +602,66 @@ analyze_with_claude() {
 
     echo -e "${BLUE}Analyzing with Claude AI...${NC}" >&2
 
-    local prompt="Analyze this SLSA provenance analysis data and provide insights on supply chain security. Focus on:
-1. SLSA level compliance and gaps
-2. Provenance verification status and trust
-3. Build attestation quality and completeness
-4. Supply chain security risks and vulnerabilities
-5. Recommendations for improving provenance and SLSA levels
-6. Prioritized action items for hardening the build pipeline
+    # Load RAG knowledge for supply chain security best practices
+    local rag_context=""
+    local repo_root="$( cd "$SCRIPT_DIR/../.." && pwd )"
+    local rag_dir="$repo_root/rag/supply-chain"
 
-Data:
+    if [[ -f "$rag_dir/slsa/slsa-specification.md" ]]; then
+        rag_context+="# SLSA Specification\n\n"
+        rag_context+=$(head -200 "$rag_dir/slsa/slsa-specification.md" | tail -n +1)
+        rag_context+="\n\n"
+    fi
+
+    if [[ -f "$rag_dir/sigstore/sigstore-reference.md" ]]; then
+        rag_context+="# Sigstore Reference\n\n"
+        rag_context+=$(head -200 "$rag_dir/sigstore/sigstore-reference.md" | tail -n +1)
+        rag_context+="\n\n"
+    fi
+
+    local prompt="You are a supply chain security expert. Analyze this SLSA provenance scan data and produce a PRIORITY-BASED ACTION REPORT.
+
+# Supply Chain Security Knowledge Base
+$rag_context
+
+# Analysis Requirements
+
+For each finding, you MUST:
+1. **Explain the issue** - What is the provenance/SLSA gap and why is it a problem?
+2. **Justify the recommendation** - Why this action is needed based on SLSA/supply chain best practices
+3. **Reference knowledge base** - Cite relevant SLSA levels or best practices from the knowledge base above
+4. **Provide specific actions** - Exact configurations, tooling changes, or attestation improvements
+
+# Output Format
+
+## 🔴 CRITICAL PRIORITY (Immediate - 0-24 hours)
+- No provenance, SLSA Level 0 packages, or unverified attestations
+- For each item:
+  * **Issue**: [Description]
+  * **Risk**: [Why this threatens supply chain integrity]
+  * **Best Practice Reference**: [Cite SLSA requirements or best practices]
+  * **Action**: [Specific steps to add provenance/attestations]
+  * **Timeline**: Immediate
+
+## 🟠 HIGH PRIORITY (Urgent - 1-7 days)
+- Low SLSA levels (1-2), missing signatures, or weak build environments
+- Same structured format as above
+
+## 🟡 MEDIUM PRIORITY (Important - 1-30 days)
+- SLSA level improvements (moving from 2→3 or 3→4)
+- Same structured format as above
+
+## 🟢 LOW PRIORITY (Monitor - 30+ days)
+- Documentation improvements, enhanced transparency
+- Same structured format as above
+
+## 📊 Summary & Strategic Recommendations
+- Overall SLSA maturity posture
+- Build pipeline hardening opportunities
+- Automation recommendations (GitHub attestations, Sigstore integration)
+- Path to SLSA Level 3+ compliance
+
+# Scan Data:
 $data"
 
     local response=$(curl -s https://api.anthropic.com/v1/messages \
