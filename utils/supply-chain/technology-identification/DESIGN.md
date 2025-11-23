@@ -1644,24 +1644,177 @@ This repository uses 47 identified technologies across 6 categories.
 - Prioritize vulnerabilities in actively used technologies
 - Highlight end-of-life technologies
 
+## Integration with OSV-Scanner Taint Analysis
+
+### Overview
+
+Integrate OSV-scanner's call graph analysis to enhance technology identification with usage validation.
+
+### Use Cases
+
+#### 1. Validate Actual Technology Usage
+**Problem**: Package declared in package.json but never actually imported/used in code.
+
+**Solution**: Cross-reference technology detections with taint analysis:
+- Technology detected in SBOM (Layer 1): 95% confidence
+- Import statement found (Layer 3): 85% confidence
+- Taint analysis shows "NOT CALLED": Reduce to 40% confidence (likely unused)
+
+**Benefit**: Identify technologies that can be safely removed.
+
+#### 2. Dead Dependency Detection
+**Goal**: Find packages that are imported but never used.
+
+**Process**:
+1. Technology identification detects package (e.g., `moment.js`)
+2. OSV-scanner taint analysis shows: `NOT CALLED` for all moment.js functions
+3. Report as "Unused Dependency - Safe to Remove"
+
+**Output**:
+```markdown
+### Unused Dependencies (Safe to Remove)
+
+#### moment.js v2.29.4
+- **Status**: Declared in package.json but never called
+- **Taint Analysis**: NOT CALLED for all functions
+- **Confidence**: 95% unused
+- **Action**: Remove from package.json
+- **Benefit**: -67KB bundle size reduction
+```
+
+#### 3. Package Hygiene Scoring
+Calculate a "Package Hygiene Score" based on:
+- % of declared dependencies actually used
+- % of imported packages that are actually called
+- Presence of deprecated but unused packages
+
+**Example**:
+```
+Package Hygiene Score: 72/100
+- Total dependencies: 50
+- Actually used: 42 (84%)
+- Declared but unused: 8 (16%)
+  - moment.js (deprecated, unused)
+  - lodash (partially used - 20% of functions)
+  - request (deprecated, unused)
+```
+
+### Implementation
+
+#### Enhanced Technology Detection with Taint Analysis
+
+```bash
+detect_technology_with_taint_analysis() {
+    local technology="$1"
+    local repo_path="$2"
+
+    # Standard detection (6 layers)
+    local base_confidence=$(detect_technology "$technology" "$repo_path")
+
+    # Run taint analysis if osv-scanner available
+    if command -v osv-scanner >/dev/null 2>&1; then
+        local taint_result=$(osv-scanner --call-analysis=all "$repo_path" 2>/dev/null | \
+            grep -i "$technology")
+
+        if echo "$taint_result" | grep -q "NOT CALLED"; then
+            # Technology declared but not used - reduce confidence
+            base_confidence=$((base_confidence * 40 / 100))
+            echo "unused"
+        elif echo "$taint_result" | grep -q "CALLED"; then
+            # Technology actively used - boost confidence
+            base_confidence=$((base_confidence * 105 / 100))
+            base_confidence=$((base_confidence > 100 ? 100 : base_confidence))
+            echo "used"
+        fi
+    fi
+
+    echo "$base_confidence"
+}
+```
+
+#### Unused Dependency Report
+
+```json
+{
+  "unused_dependencies": [
+    {
+      "package": "moment",
+      "version": "2.29.4",
+      "declared_in": "package.json",
+      "imported": false,
+      "taint_analysis": "NOT_CALLED",
+      "confidence_unused": 95,
+      "size": "67KB",
+      "status": "deprecated",
+      "recommendation": "Remove - no usage detected, deprecated library",
+      "alternative": "date-fns or Temporal API",
+      "safe_to_remove": true
+    },
+    {
+      "package": "lodash",
+      "version": "4.17.21",
+      "declared_in": "package.json",
+      "imported": true,
+      "taint_analysis": "PARTIALLY_CALLED (5 of 300 functions)",
+      "confidence_unused": 60,
+      "size": "72KB",
+      "recommendation": "Consider lodash-es with tree-shaking or use only needed functions",
+      "safe_to_remove": false,
+      "note": "Heavy library with minimal usage (1.6%)"
+    }
+  ],
+  "summary": {
+    "total_dependencies": 50,
+    "used": 42,
+    "unused": 8,
+    "partially_used": 5,
+    "hygiene_score": 72,
+    "potential_size_reduction": "245KB"
+  }
+}
+```
+
+### Benefits
+
+1. **Accurate Vulnerability Assessment**: Know if vulnerabilities are actually exploitable
+2. **Package Hygiene**: Identify and remove unused dependencies
+3. **Bundle Size Optimization**: Calculate exact size savings from removing unused packages
+4. **Security Posture**: Reduce attack surface by removing unnecessary code
+5. **Maintenance Reduction**: Fewer dependencies to track and update
+
+### Roadmap Integration
+
+**Phase 2.5: Taint Analysis Integration** (after core implementation)
+1. Add osv-scanner call graph analysis to technology detection
+2. Implement unused dependency detection
+3. Calculate package hygiene scores
+4. Generate "safe to remove" recommendations
+
+**Phase 3.5: Automated Cleanup** (future)
+1. Generate PRs to remove unused dependencies
+2. Automated bundle size optimization suggestions
+3. Dependency usage tracking over time
+
 ## Next Steps
 
 1. ✅ Design RAG library structure
-2. Create initial RAG content for high-value technologies:
+2. ✅ Implement core analyzer script
+3. Debug and test analyzer script
+4. Create initial RAG content for high-value technologies:
    - Stripe (payment)
    - AWS SDK (cloud)
    - OpenSSL (crypto)
    - Terraform (IaC)
    - Docker (containers)
-3. Implement analyzer script
-4. Build RAG update mechanism
-5. Integrate with existing supply chain scanner
-6. Add Claude AI analysis prompts
-7. Test on real repositories
-8. Document and deploy
+5. **NEW**: Integrate OSV-scanner taint analysis
+6. Build RAG update mechanism
+7. Integrate with existing supply chain scanner
+8. Add Claude AI analysis prompts
+9. Test on real repositories
+10. Document and deploy
 
 ---
 
-**Document Version**: 0.1.0
+**Document Version**: 0.2.0
 **Last Updated**: 2025-11-23
-**Status**: Design Phase - Ready for Implementation
+**Status**: Phase 2 - Implementation in Progress

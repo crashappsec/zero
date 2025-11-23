@@ -526,12 +526,38 @@ cosign version
 
 ### 🚧 In Progress
 
+- [ ] Technology Identification System (Phase 2: Implementation)
 - [ ] Additional package ecosystem support (PyPI, Go, Maven)
 - [ ] SBOM diffing and change detection
 - [ ] Dependency update recommendations
 - [ ] Integration with security dashboards
 
 ### 🔮 Planned Features
+
+#### High Priority
+
+- [ ] **OSV-Scanner Taint Analysis Integration**
+  - **Purpose**: Determine if vulnerabilities are actually exploitable
+  - **Use Cases**:
+    1. **Vulnerability Validation**: Identify if vulnerable functions are actually called in codebase
+    2. **Dead Dependency Detection**: Find libraries imported but never used
+    3. **Package Hygiene**: Remove unused dependencies to reduce attack surface
+  - **Benefits**:
+    - Reduce false positives in vulnerability reports
+    - Prioritize remediation on exploitable vulnerabilities only
+    - Clean up package.json/requirements.txt by removing dead code
+    - Improve security posture by minimizing dependencies
+  - **Implementation**:
+    - `osv-scanner --call-analysis=all` for call graph analysis
+    - Cross-reference with SBOM to identify unused packages
+    - Generate "unused dependency" report
+    - Suggest safe-to-remove packages with confidence scores
+  - **Output**:
+    - Vulnerabilities: CALLED | NOT_CALLED | UNKNOWN
+    - Dependencies: USED | UNUSED | UNKNOWN
+    - Recommendations: Safe to remove packages
+
+#### Standard Features
 
 - [ ] Docker image provenance
 - [ ] Container registry scanning
