@@ -732,17 +732,18 @@ code-ownership/
 ├── ownership-analyser-v2.sh           # ⭐ Enhanced v3.0 analyser (recommended)
 ├── ownership-analyser-claude.sh       # AI-enhanced analyser
 ├── compare-analysers.sh               # Comparison tool
-├── lib/                               # Library modules (9 total)
+├── lib/                               # Library modules (8 total)
 │   ├── metrics.sh                     # Research-backed metric calculations
 │   ├── github.sh                      # GitHub API integration
 │   ├── analyser-core.sh               # Dual-method analysis engine
-│   ├── codeowners-validator.sh        # Advanced validation
 │   ├── config.sh                      # Configuration system
 │   ├── succession.sh                  # Succession planning
 │   ├── trends.sh                      # ⭐ Historical trend tracking
 │   ├── markdown.sh                    # ⭐ Markdown report generation
 │   ├── csv.sh                         # ⭐ CSV export functionality
 │   └── codeowners-generator.sh        # ⭐ Strategic CODEOWNERS generation
+│
+│   Note: codeowners-validator.sh moved to ../../lib/ (global utilities)
 └── tests/                             # Test suite
     ├── run-all-tests.sh               # Test runner
     ├── test-metrics.sh                # Metrics unit tests
