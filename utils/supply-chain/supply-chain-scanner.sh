@@ -40,8 +40,12 @@ TARGETS=()
 OUTPUT_DIR=""
 SHARED_REPO_DIR=""  # For sharing cloned repo across modules
 SHARED_SBOM_FILE=""  # For sharing SBOM across modules
-USE_CLAUDE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+# Claude enabled by default if API key is set
+USE_CLAUDE=false
+if [[ -n "$ANTHROPIC_API_KEY" ]]; then
+    USE_CLAUDE=true
+fi
 PARALLEL=false
 
 # Cleanup function
@@ -584,12 +588,10 @@ analyze_target() {
     echo ""
     echo -e "${CYAN}=========================================${NC}"
     echo -e "${CYAN}Analyzing: $target${NC}"
-    if [[ "$USE_CLAUDE" == "true" ]]; then
-        if [[ -n "$ANTHROPIC_API_KEY" ]]; then
-            echo -e "${GREEN}Claude AI: ENABLED${NC}"
-        else
-            echo -e "${YELLOW}Claude AI: REQUESTED but ANTHROPIC_API_KEY not set${NC}"
-        fi
+    if [[ "$USE_CLAUDE" == "true" ]] && [[ -n "$ANTHROPIC_API_KEY" ]]; then
+        echo -e "${GREEN}Claude AI: ENABLED${NC}"
+    elif [[ -z "$ANTHROPIC_API_KEY" ]]; then
+        echo -e "${YELLOW}Claude AI: DISABLED (no API key)${NC}"
     fi
     if [[ "$PARALLEL" == "true" ]]; then
         echo -e "${CYAN}Parallel Mode: ENABLED${NC}"
@@ -701,26 +703,6 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
-
-# Validate Claude API key if --claude is enabled
-if [[ "$USE_CLAUDE" == "true" ]] && [[ -z "$ANTHROPIC_API_KEY" ]]; then
-    echo ""
-    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo -e "${RED}ERROR: Claude AI Analysis Requested But API Key Not Found${NC}"
-    echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-    echo ""
-    echo -e "${YELLOW}The --claude flag was used but ANTHROPIC_API_KEY is not set.${NC}"
-    echo ""
-    echo "To use Claude AI analysis, set your Anthropic API key:"
-    echo ""
-    echo -e "${CYAN}  export ANTHROPIC_API_KEY=your-api-key-here${NC}"
-    echo ""
-    echo "Then run the scanner again with --claude flag."
-    echo ""
-    echo "Get your API key at: https://console.anthropic.com/settings/keys"
-    echo ""
-    exit 1
-fi
 
 # Main execution
 echo ""
