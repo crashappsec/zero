@@ -1079,6 +1079,309 @@ Each technology has a `versions.md`:
   - Fixed in: v12.5.1+
 ```
 
+## Integration with Existing Supply Chain Infrastructure
+
+### Shared Libraries and Architecture
+
+The Technology Identification System leverages the existing supply chain infrastructure to ensure consistency and code reuse.
+
+#### Repository Management (`lib/github.sh`)
+
+**Shared Functionality**:
+- Repository cloning via GitHub API
+- GitHub authentication (gh CLI or PAT)
+- Organization repository enumeration
+- Shared repository cache (avoids duplicate clones)
+
+**Usage**:
+```bash
+# Source GitHub library
+source "$UTILS_ROOT/lib/github.sh"
+
+# Clone repository (uses shared cache if available)
+clone_or_use_cached_repo "owner/repo" "$SHARED_REPO_DIR"
+
+# List organization repositories
+list_org_repos "myorg"
+```
+
+#### SBOM Generation (`lib/sbom.sh`)
+
+**Shared Functionality**:
+- Package manager detection (npm, yarn, pnpm, pip, poetry, cargo, go, maven, gradle, composer, bundler)
+- Lock file identification
+- Syft-based SBOM generation
+- CycloneDX format output
+- Version resolution from lock files
+
+**Usage**:
+```bash
+# Source SBOM library
+source "$UTILS_ROOT/lib/sbom.sh"
+
+# Detect package manager
+package_manager=$(detect_package_manager "$repo_path")
+
+# Get lock file path
+lock_file=$(get_lock_file "$package_manager" "$repo_path")
+
+# Generate SBOM (shared with vulnerability/provenance/health analyzers)
+generate_sbom "$repo_path" "$output_file"
+```
+
+#### Consistency Benefits
+
+1. **Single Repository Clone**: All analyzers share the same cloned repository
+2. **Consistent SBOM**: Technology identification uses the same SBOM as vulnerability/provenance analyzers
+3. **Package Manager Detection**: Shared logic across all supply chain modules
+4. **Configuration**: Unified config.json hierarchy (module → utils → global)
+
+#### Architecture Alignment
+
+```
+supply-chain-scanner.sh (orchestrator)
+├── Clone repository once (lib/github.sh)
+├── Generate SBOM once (lib/sbom.sh)
+└── Run analyzers sequentially:
+    ├── vulnerability-analyser.sh (uses SBOM)
+    ├── provenance-analyser.sh (uses SBOM)
+    ├── package-health-analyser.sh (uses SBOM)
+    └── technology-identification-analyser.sh (uses SBOM + repo)
+```
+
+### Technology Identification Analyzer Architecture
+
+**File**: `utils/supply-chain/technology-identification/technology-identification-analyser.sh`
+
+```bash
+#!/bin/bash
+# Technology Identification Analyser
+# Leverages shared supply chain infrastructure
+
+# Source shared libraries
+UTILS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+source "$UTILS_ROOT/lib/github.sh"
+source "$UTILS_ROOT/lib/sbom.sh"
+source "$UTILS_ROOT/lib/config-loader.sh"
+
+# Main analyzer flow
+technology-identification-analyser.sh
+├── parse_arguments()
+├── load_configuration()          # Uses lib/config-loader.sh
+│
+├── get_or_clone_repository()     # Uses lib/github.sh
+│   ├── clone_or_use_cached_repo()
+│   └── SHARED_REPO_DIR (from supply-chain-scanner.sh)
+│
+├── get_or_generate_sbom()        # Uses lib/sbom.sh
+│   ├── detect_package_manager()
+│   ├── get_lock_file()
+│   ├── generate_sbom()
+│   └── SHARED_SBOM_FILE (from supply-chain-scanner.sh)
+│
+├── detect_technologies()
+│   ├── scan_manifests()          # Layer 1 - Uses SBOM
+│   ├── scan_config_files()       # Layer 2 - Searches repo
+│   ├── scan_imports()            # Layer 3 - Searches source files
+│   ├── scan_api_endpoints()      # Layer 4 - Searches source files
+│   ├── scan_env_variables()      # Layer 5 - Searches .env files
+│   └── scan_documentation()      # Layer 6 - Searches README/docs
+│
+├── load_rag_patterns()           # Load detection patterns from RAG
+├── calculate_confidence()        # Score each detection
+├── aggregate_findings()          # Composite confidence scores
+├── check_policy_compliance()     # Governance checks
+├── detect_consolidation()        # Find duplicate technologies
+├── check_deprecation()           # EOL/deprecated check
+│
+├── generate_report()             # Output findings
+│   ├── format: json|markdown|table
+│   └── audience: executive|audit
+│
+└── run_claude_analysis()         # Optional AI enhancement
+    └── Uses all previous results
+```
+
+#### Data Flow
+
+```
+1. Repository Input
+   ├─→ lib/github.sh: Clone or use shared repo
+   └─→ SHARED_REPO_DIR (e.g., /tmp/repo-owner-repo)
+
+2. SBOM Generation
+   ├─→ lib/sbom.sh: Detect package manager
+   ├─→ lib/sbom.sh: Generate CycloneDX SBOM
+   └─→ SHARED_SBOM_FILE (e.g., /tmp/sbom-owner-repo.json)
+
+3. Technology Detection
+   ├─→ Layer 1: Parse SBOM (package.json deps, etc.)
+   ├─→ Layer 2: Scan repo for config files (Dockerfile, terraform.tf)
+   ├─→ Layer 3: Scan repo for imports (import statements)
+   ├─→ Layer 4: Scan repo for API endpoints (https://api.stripe.com)
+   ├─→ Layer 5: Scan repo for env vars (.env.example)
+   └─→ Layer 6: Scan repo for docs (README.md)
+
+4. Policy & Governance
+   ├─→ Check approved/banned lists
+   ├─→ Detect consolidation opportunities
+   └─→ Flag EOL/deprecated technologies
+
+5. Report Generation
+   ├─→ Aggregate all findings
+   ├─→ Calculate composite confidence
+   ├─→ Apply policy violations
+   └─→ Format for audience (executive/audit)
+
+6. Claude AI (Optional)
+   └─→ Analyze all results for insights
+```
+
+## Report Audience and Tone
+
+### Primary Audience: Head of Engineering
+
+**Characteristics**:
+- Strategic technology decision-maker
+- Needs actionable insights, not raw data
+- Cares about risk, cost, and operational efficiency
+- May not be deeply technical in all areas
+- Accountable for technology standards and governance
+
+**Report Requirements**:
+- **Executive Summary**: High-level findings in 3-5 bullet points
+- **Clear Risk Classification**: Critical → High → Medium → Low
+- **Business Impact**: Why it matters (cost, security, compliance)
+- **Actionable Recommendations**: What to do, when, and why
+- **Effort Estimates**: Complexity and timeline for each action
+
+### Secondary Audience: Internal Audit
+
+**Characteristics**:
+- Compliance and risk focused
+- Needs evidence trail for findings
+- Cares about policy violations and governance
+- Requires documentation for regulatory requirements
+- May share reports with external auditors
+
+**Report Requirements**:
+- **Evidence Documentation**: File paths, line numbers, code snippets
+- **Policy Compliance**: Approved/banned technology violations
+- **Audit Trail**: Confidence scores and detection methods
+- **Regulatory Implications**: Export control, licensing, data privacy
+- **Remediation Tracking**: Timeline and accountability
+
+### Report Tone Guidelines
+
+**Executive Summary** (Non-Technical):
+```markdown
+## Executive Summary
+
+Your application uses **47 technologies** across 6 categories. We identified **1 critical issue** requiring immediate attention.
+
+**Key Findings**:
+- ✅ **Strengths**: Modern frontend (React 18), containerized deployment (Docker/Kubernetes)
+- ⚠️ **Concerns**: Using 3 different payment processors increases complexity and cost
+- 🔴 **Critical**: OpenSSL 1.1.1 reached end-of-life in September 2023, leaving the application vulnerable to unpatched security issues
+
+**Immediate Action Required**:
+Upgrade OpenSSL to version 3.x within 7 days to address critical security vulnerabilities.
+```
+
+**Detailed Findings** (Technical with Context):
+```markdown
+### Critical Finding: End-of-Life Cryptographic Library
+
+**Technology**: OpenSSL 1.1.1q
+**Category**: Cryptographic Library (TLS/SSL)
+**Risk Level**: 🔴 CRITICAL
+
+**What This Means**:
+OpenSSL is the software library that provides secure communication (HTTPS) for your application. Version 1.1.1 stopped receiving security updates on September 11, 2023.
+
+**Business Impact**:
+- All encrypted connections (user logins, payment transactions, API calls) are at risk
+- Known security vulnerabilities will not be patched
+- Potential for data breaches and regulatory violations (PCI DSS, SOC 2)
+
+**Evidence**:
+- Location: /usr/lib/libssl.so.1.1 (system library)
+- Detection Method: Binary version check
+- Confidence: 85%
+
+**Required Action**:
+Upgrade to OpenSSL 3.0.x or 3.1.x immediately (within 7 days)
+
+**Migration Complexity**: Medium
+- Requires system package update
+- Rebuild and redeploy containers
+- Test SSL/TLS connections
+- Estimated effort: 2-3 days
+
+**Accountability**: DevOps team lead
+```
+
+**Policy Compliance** (Audit-Ready):
+```markdown
+## Policy Compliance Report
+
+**Policy Version**: 2.1.0
+**Compliance Score**: 72/100 (C Grade)
+
+### Violations Summary
+- **Critical**: 1 (banned technology in use)
+- **High**: 2 (unapproved technologies)
+- **Medium**: 5 (consolidation violations)
+- **Low**: 10 (advisory-level issues)
+
+### Critical Violation #1: Banned Technology
+
+**Finding**: OpenSSL 1.1.1q detected
+**Policy**: Technology Policy 2.1.0, Section 3.2 - Cryptographic Libraries
+**Status**: Banned since 2023-09-11
+**Reason**: End-of-life with known Common Vulnerabilities and Exposures (CVEs)
+
+**Evidence Trail**:
+- Detection Method: Binary version check (Layer 1)
+- File Path: /usr/lib/libssl.so.1.1
+- Detection Date: 2024-11-23 10:15:32 UTC
+- Confidence Score: 85%
+
+**Policy Requirement**: Only OpenSSL 3.x versions approved for production use
+
+**Remediation**:
+- Action: Upgrade to OpenSSL 3.0.x or 3.1.x
+- Timeline: 0-7 days (immediate)
+- Owner: DevOps team
+- Verification: `openssl version` must show 3.x
+
+**Regulatory Impact**:
+- PCI DSS 4.0: Strong cryptography required
+- SOC 2 Type II: Security patch management
+- Export Control: EAR99 classification maintained with upgrade
+```
+
+### Report Format Guidelines
+
+#### Executive Summary Section
+- **Length**: 1 page maximum
+- **Language**: Business-focused, minimal jargon
+- **Metrics**: Highlight key numbers (47 technologies, 1 critical issue)
+- **Visuals**: Risk summary chart, category breakdown
+- **Action**: Clear next steps with timeline
+
+#### Technical Details Section
+- **Audience**: Engineering managers and technical leads
+- **Depth**: Detailed but contextualized
+- **Evidence**: File paths, versions, detection methods
+- **Recommendations**: Specific, actionable, with effort estimates
+
+#### Audit Trail Section
+- **Audience**: Internal audit, compliance team
+- **Format**: Structured, evidence-based
+- **Compliance**: Map findings to policies and regulations
+- **Traceability**: Confidence scores, detection timestamps
+
 ## Analyzer Implementation
 
 ### High-Level Architecture

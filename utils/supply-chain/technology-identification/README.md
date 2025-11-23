@@ -57,12 +57,37 @@ export ANTHROPIC_API_KEY="your-api-key"
 
 ## Architecture
 
+### Integration with Supply Chain Infrastructure
+
+The Technology Identification module **leverages existing supply chain libraries** for consistency:
+
+- **Repository Management**: Uses `lib/github.sh` for cloning and GitHub API access
+- **SBOM Generation**: Uses `lib/sbom.sh` for consistent package manager detection and SBOM creation
+- **Shared Resources**: Single repository clone and SBOM shared across all analyzers
+- **Configuration**: Unified `config.json` hierarchy (module → utils → global)
+
+```
+supply-chain-scanner.sh (orchestrator)
+├── Clone repository once (lib/github.sh) → SHARED_REPO_DIR
+├── Generate SBOM once (lib/sbom.sh) → SHARED_SBOM_FILE
+└── Run analyzers in sequence:
+    ├── vulnerability-analyser.sh
+    ├── provenance-analyser.sh
+    ├── package-health-analyser.sh
+    └── technology-identification-analyser.sh ← Uses shared SBOM + repo
+```
+
+### Module Structure
+
 ```
 technology-identification/
 ├── README.md                          # This file
 ├── DESIGN.md                          # Comprehensive design document
 │
 ├── technology-identification-analyser.sh    # Main analyzer script
+│   ├── Sources: lib/github.sh, lib/sbom.sh, lib/config-loader.sh
+│   └── Uses: SHARED_REPO_DIR, SHARED_SBOM_FILE
+│
 ├── prompts/
 │   ├── pattern-extraction.md         # Extract patterns from docs
 │   ├── technology-analysis.md        # Analyze repositories
@@ -214,6 +239,27 @@ export ANTHROPIC_API_KEY="your-api-key"
   --executive-summary
 ```
 
+## Report Audience
+
+### Primary: Head of Engineering
+Strategic technology decision-maker who needs:
+- **Executive Summary**: High-level findings in business terms
+- **Clear Risk Classification**: Critical → High → Medium → Low with business impact
+- **Actionable Recommendations**: What to do, when, and why
+- **Effort Estimates**: Complexity and timeline for remediation
+
+### Secondary: Internal Audit
+Compliance and risk-focused team requiring:
+- **Evidence Trail**: File paths, line numbers, detection methods
+- **Policy Compliance**: Approved/banned technology violations
+- **Regulatory Implications**: Export control, licensing, data privacy
+- **Audit-Ready Documentation**: Confidence scores, timestamps, accountability
+
+### Report Characteristics
+- **Executive Summary**: 1 page, non-technical language, business-focused
+- **Technical Details**: Engineering context with evidence and recommendations
+- **Audit Trail**: Structured compliance reporting with policy mapping
+
 ## Output Formats
 
 ### JSON (Machine-Readable)
@@ -266,33 +312,73 @@ export ANTHROPIC_API_KEY="your-api-key"
 }
 ```
 
-### Markdown (Human-Readable)
+### Markdown (Executive-Focused)
 
 ```markdown
 # Technology Stack Report
 
 **Repository**: owner/repo
-**Total Technologies**: 47
+**Prepared For**: Head of Engineering
 **Scan Date**: 2024-11-23
+**Total Technologies**: 47
 
 ## Executive Summary
 
-This repository uses 47 technologies across 6 categories.
-**Critical Risk**: 1 technology requires immediate attention.
+Your application uses **47 technologies** across 6 categories. We identified **1 critical issue** requiring immediate attention.
 
-## Technology Breakdown
+**Key Findings**:
+- ✅ **Strengths**: Modern frontend (React 18), containerized deployment
+- ⚠️ **Concerns**: Using 3 different payment processors increases cost/complexity
+- 🔴 **Critical**: OpenSSL 1.1.1 reached end-of-life in September 2023
+
+**Immediate Action Required**:
+Upgrade OpenSSL to version 3.x within 7 days to address critical security vulnerabilities.
+
+## Technology Inventory
 
 ### Business Tools (5)
-- **Stripe v14.12.0** (94% confidence) - Payment processing
-- **Twilio v4.5.0** (88% confidence) - SMS/Voice
+**Payment Processing**:
+- Stripe v14.12.0 (Primary - 95% of transactions)
+  - Status: ✅ Current version
+  - Risk: Low
+
+**Communication**:
+- Twilio v4.5.0
+  - Status: ✅ Current version
+  - Risk: Low
 
 ### Cryptographic Libraries (2)
-- **OpenSSL 1.1.1** (85% confidence) - ⚠️ CRITICAL: End-of-life
+**TLS/SSL**:
+- OpenSSL 1.1.1q - 🔴 **CRITICAL**
+  - **Issue**: End-of-life since September 2023
+  - **Impact**: All HTTPS connections at risk, no security patches
+  - **Business Risk**: Data breach potential, regulatory violations (PCI DSS, SOC 2)
+  - **Action**: Upgrade to OpenSSL 3.x within 7 days
+  - **Effort**: Medium (2-3 days)
 
-## Risk Assessment
+## Consolidation Opportunities
 
-### Critical (1)
-1. OpenSSL 1.1.1 - End-of-life, upgrade to 3.x immediately
+### Multiple Payment Processors
+**Finding**: 3 payment processors detected
+- Stripe (95% of transactions) - Primary
+- PayPal (5% of transactions) - Legacy
+- Square (unused, legacy integration)
+
+**Recommendation**: Consolidate to Stripe
+- **Benefit**: Reduced PCI compliance scope, lower transaction fees, simplified codebase
+- **Effort**: High - Customer migration required
+- **Timeline**: 120 days
+- **Estimated Savings**: 15-20% reduction in payment processing costs
+
+## Policy Compliance
+
+**Compliance Score**: 72/100 (C Grade)
+- ✅ Approved: 35 technologies (74%)
+- 🔴 Banned: 1 technology (OpenSSL 1.1.1)
+- ⚠️ Review Required: 3 technologies
+- ⚠️ Unapproved: 8 technologies
+
+**Critical Violation**: OpenSSL 1.1.1 (banned since 2023-09-11)
 ```
 
 ### Table (Console)
