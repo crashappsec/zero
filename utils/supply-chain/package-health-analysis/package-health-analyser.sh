@@ -849,74 +849,67 @@ analyze_with_claude() {
 
     echo "Analyzing with Claude AI..." >&2
 
-    local prompt="Analyze this package health data and provide actionable insights following software supply chain best practices.
+    # Load RAG knowledge for supply chain security best practices
+    local rag_context=""
+    local repo_root="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+    local rag_dir="$repo_root/rag/supply-chain"
 
-## Analysis Focus Areas:
+    if [[ -f "$rag_dir/package-health/package-management-best-practices.md" ]]; then
+        rag_context+="# Package Management Best Practices\n\n"
+        rag_context+=$(head -200 "$rag_dir/package-health/package-management-best-practices.md" | tail -n +1)
+        rag_context+="\n\n"
+    fi
 
-### 1. Library Version Standardization (Critical)
-- Identify duplicate packages across different versions
-- Recommend consolidation strategy (npm dedupe, overrides, resolutions)
-- Flag potential conflicts from multiple versions (increased bundle size, maintenance overhead)
-- Suggest using exact version pinning for production dependencies
+    if [[ -f "$rag_dir/sbom-generation-best-practices.md" ]]; then
+        rag_context+="# SBOM Best Practices\n\n"
+        rag_context+=$(head -150 "$rag_dir/sbom-generation-best-practices.md" | tail -n +1)
+        rag_context+="\n\n"
+    fi
 
-### 2. Version Management & Pinning
-- Check for wildcard versions (*) or loose ranges (^, ~) in production
-- Recommend lock file usage (package-lock.json, yarn.lock, pnpm-lock.yaml)
-- Identify packages that should use exact version pinning
-- Flag missing or outdated lock files
+    local prompt="You are a supply chain security expert. Analyze this package health data and produce a PRIORITY-BASED ACTION REPORT.
 
-### 3. Deprecated Packages & Migration
-- List all deprecated packages requiring immediate attention
-- Provide specific migration paths and replacement recommendations:
-  * request → axios or node-fetch
-  * moment → date-fns or dayjs
-  * node-uuid → uuid
-  * colors → chalk or ansi-colors
-- Estimate migration complexity for each deprecated package
+# Supply Chain Security Knowledge Base
+$rag_context
 
-### 4. Security Posture & Updates
-- Critical vulnerabilities (response time: <24h)
-- High severity issues (response time: <7d)
-- Medium/Low issues (can be batched in scheduled updates)
-- Recommend security update policy and automation
+# Analysis Requirements
 
-### 5. Package Health Assessment
-Using weighted scoring:
-- OpenSSF Scorecard (30%)
-- Maintenance activity (25%)
-- Security vulnerabilities (25%)
-- Version freshness (10%)
-- Community adoption (10%)
+For each finding, you MUST:
+1. **Explain the issue** - What is the package health concern and why is it a problem?
+2. **Justify the recommendation** - Why this action is needed based on package management best practices
+3. **Reference knowledge base** - Cite relevant best practices from the knowledge base above
+4. **Provide specific actions** - Exact commands, version numbers, or dependency changes
 
-### 6. Operational Best Practices
-- Lock file management (commit, keep fresh, handle conflicts)
-- Scheduled update strategy (weekly/biweekly for patches, quarterly for majors)
-- Dependency deduplication opportunities
-- Unused dependency cleanup
-- Testing requirements before updates
+# Output Format
 
-## Output Format:
+## 🔴 CRITICAL PRIORITY (Immediate - 0-24 hours)
+- Deprecated packages blocking security, critical health issues (score < 30)
+- For each item:
+  * **Issue**: [Package name, version, and problem]
+  * **Risk**: [Why this is critical for supply chain]
+  * **Best Practice Reference**: [Cite from knowledge base]
+  * **Action**: [Specific migration/update commands]
+  * **Timeline**: Immediate
 
-### Executive Summary
-- Overall risk level (Critical/High/Medium/Low)
-- Top 3 immediate actions required
-- Estimated remediation effort
+## 🟠 HIGH PRIORITY (Urgent - 1-7 days)
+- Low health packages (score 30-60), version inconsistencies, major version drift
+- Same structured format as above
 
-### Detailed Findings
-For each issue category, provide:
-1. Specific packages affected
-2. Impact assessment
-3. Remediation steps
-4. Priority level
+## 🟡 MEDIUM PRIORITY (Important - 1-30 days)
+- Moderate health issues (score 60-75), minor updates, deduplication opportunities
+- Same structured format as above
 
-### Prioritized Remediation Plan
-Ordered by urgency:
-1. Immediate (0-24h): Critical security, blocking issues
-2. Short-term (1-7d): High-priority updates, deprecated packages
-3. Medium-term (1-30d): Version standardization, health improvements
-4. Long-term (30-90d): Technical debt, optimization
+## 🟢 LOW PRIORITY (Monitor - 30+ days)
+- Optimization opportunities, documentation, healthy packages needing minor updates
+- Same structured format as above
 
-Data:
+## 📊 Summary & Strategic Recommendations
+- Overall dependency health posture
+- Version standardization opportunities (npm dedupe, overrides)
+- Lock file management and automation
+- Dependency update policies (Dependabot, Renovate)
+- Testing strategy for updates
+
+# Scan Data:
 $data"
 
     local response=$(curl -s https://api.anthropic.com/v1/messages \
