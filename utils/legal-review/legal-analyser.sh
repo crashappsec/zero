@@ -1317,41 +1317,201 @@ $(for issue in "${CONTENT_ISSUES[@]}"; do echo "- $issue"; done)
     echo ""
 }
 
+# Format results as table
+format_table_output() {
+    local target_name="$1"
+    local license_violations="${#LICENSE_VIOLATIONS[@]}"
+    local content_issues="${#CONTENT_ISSUES[@]}"
+
+    # Calculate overall status
+    local overall_status="PASS"
+    if [[ $license_violations -gt 0 ]] || [[ $content_issues -gt 0 ]]; then
+        overall_status="WARNING"
+    fi
+    if echo "${LICENSE_VIOLATIONS[@]}" | grep -q "GPL"; then
+        overall_status="FAIL"
+    fi
+
+    # Summary table
+    echo "╔════════════════════════════════════════════════════════════════╗"
+    echo "║         Legal Compliance Analysis Summary                      ║"
+    echo "╠════════════════════════════════════════════════════════════════╣"
+    printf "║ %-30s %-30s ║\n" "Target:" "$target_name"
+    printf "║ %-30s %-30s ║\n" "Timestamp:" "$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+    printf "║ %-30s %-30s ║\n" "Overall Status:" "$overall_status"
+    echo "╠════════════════════════════════════════════════════════════════╣"
+    printf "║ %-30s %-30s ║\n" "License Violations:" "$license_violations"
+    printf "║ %-30s %-30s ║\n" "Content Policy Issues:" "$content_issues"
+    printf "║ %-30s %-30s ║\n" "Secret Exposures:" "0 (not implemented)"
+    echo "╚════════════════════════════════════════════════════════════════╝"
+    echo ""
+
+    # Detailed findings
+    if [[ $license_violations -gt 0 ]]; then
+        echo "License Violations:"
+        echo "┌────────────────────────────────────────────────────────────────┐"
+        for violation in "${LICENSE_VIOLATIONS[@]}"; do
+            printf "│ %-62s │\n" "$violation"
+        done
+        echo "└────────────────────────────────────────────────────────────────┘"
+        echo ""
+    fi
+
+    if [[ $content_issues -gt 0 ]]; then
+        echo "Content Policy Issues:"
+        echo "┌────────────────────────────────────────────────────────────────┐"
+        local count=0
+        for issue in "${CONTENT_ISSUES[@]}"; do
+            printf "│ %-62s │\n" "$issue"
+            ((count++))
+            [[ $count -ge 20 ]] && break
+        done
+        if [[ ${#CONTENT_ISSUES[@]} -gt 20 ]]; then
+            printf "│ %-62s │\n" "... and $((${#CONTENT_ISSUES[@]} - 20)) more"
+        fi
+        echo "└────────────────────────────────────────────────────────────────┘"
+        echo ""
+    fi
+}
+
+# Format results as JSON
+format_json_output() {
+    local target_name="$1"
+    local license_violations="${#LICENSE_VIOLATIONS[@]}"
+    local content_issues="${#CONTENT_ISSUES[@]}"
+
+    # Calculate overall status
+    local overall_status="pass"
+    if [[ $license_violations -gt 0 ]] || [[ $content_issues -gt 0 ]]; then
+        overall_status="warning"
+    fi
+    if echo "${LICENSE_VIOLATIONS[@]}" | grep -q "GPL"; then
+        overall_status="fail"
+    fi
+
+    # Build license violations JSON array
+    local license_violations_json="[]"
+    if [[ $license_violations -gt 0 ]]; then
+        license_violations_json=$(printf '%s\n' "${LICENSE_VIOLATIONS[@]}" | jq -R . | jq -s .)
+    fi
+
+    # Build content issues JSON array
+    local content_issues_json="[]"
+    if [[ $content_issues -gt 0 ]]; then
+        content_issues_json=$(printf '%s\n' "${CONTENT_ISSUES[@]}" | jq -R . | jq -s .)
+    fi
+
+    # Build complete JSON structure
+    jq -n \
+        --arg timestamp "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+        --arg target "$target_name" \
+        --arg scan_licenses "$SCAN_LICENSES" \
+        --arg scan_secrets "$SCAN_SECRETS" \
+        --arg scan_content "$SCAN_CONTENT" \
+        --arg use_claude "$USE_CLAUDE" \
+        --arg parallel "$PARALLEL" \
+        --arg overall_status "$overall_status" \
+        --argjson license_count "$license_violations" \
+        --argjson content_count "$content_issues" \
+        --argjson license_violations "$license_violations_json" \
+        --argjson content_issues "$content_issues_json" \
+        '{
+            scan_metadata: {
+                timestamp: $timestamp,
+                target: $target,
+                scan_types: [
+                    (if $scan_licenses == "true" then "licenses" else empty end),
+                    (if $scan_secrets == "true" then "secrets" else empty end),
+                    (if $scan_content == "true" then "content_policy" else empty end)
+                ],
+                analyser_version: "1.0.0",
+                analyser_type: (if $use_claude == "true" then "claude" else "basic" end),
+                parallel_mode: ($parallel == "true")
+            },
+            summary: {
+                overall_status: $overall_status,
+                license_violations: $license_count,
+                content_policy_issues: $content_count,
+                secret_exposures: 0
+            },
+            findings: {
+                license_violations: $license_violations,
+                content_policy_issues: $content_issues,
+                secrets: []
+            }
+        }'
+}
+
 # Run analysis on a single repository/path
 analyze_single_target() {
     local scan_path="$1"
     local target_name="$2"
 
-    echo "# Legal Review Analysis Report"
-    echo ""
-    echo "**Generated**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-    echo "**Target**: ${target_name}"
-    echo ""
-    if [[ "$PARALLEL" == true ]]; then
-        echo "**Mode**: Parallel processing ($PARALLEL_JOBS workers)"
+    # For table and JSON formats, suppress markdown output
+    local suppress_output=false
+    if [[ "$OUTPUT_FORMAT" == "table" ]] || [[ "$OUTPUT_FORMAT" == "json" ]]; then
+        suppress_output=true
+    fi
+
+    # Run scans (with optional output suppression)
+    if [[ "$suppress_output" == true ]]; then
+        # Suppress output, collect results in arrays
+        {
+            if [[ "$SCAN_LICENSES" == true ]]; then
+                scan_licenses "$scan_path"
+            fi
+
+            if [[ "$SCAN_SECRETS" == true ]]; then
+                scan_secrets "$scan_path"
+            fi
+
+            if [[ "$SCAN_CONTENT" == true ]]; then
+                if [[ "$PARALLEL" == true ]]; then
+                    scan_content_policy_parallel "$scan_path" "$PARALLEL_JOBS"
+                else
+                    scan_content_policy "$scan_path"
+                fi
+            fi
+        } > /dev/null 2>&1
+    else
+        # Normal markdown output
+        echo "# Legal Review Analysis Report"
         echo ""
-    fi
-
-    # Run scans
-    if [[ "$SCAN_LICENSES" == true ]]; then
-        scan_licenses "$scan_path"
-    fi
-
-    if [[ "$SCAN_SECRETS" == true ]]; then
-        scan_secrets "$scan_path"
-    fi
-
-    if [[ "$SCAN_CONTENT" == true ]]; then
+        echo "**Generated**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+        echo "**Target**: ${target_name}"
+        echo ""
         if [[ "$PARALLEL" == true ]]; then
-            scan_content_policy_parallel "$scan_path" "$PARALLEL_JOBS"
-        else
-            scan_content_policy "$scan_path"
+            echo "**Mode**: Parallel processing ($PARALLEL_JOBS workers)"
+            echo ""
+        fi
+
+        if [[ "$SCAN_LICENSES" == true ]]; then
+            scan_licenses "$scan_path"
+        fi
+
+        if [[ "$SCAN_SECRETS" == true ]]; then
+            scan_secrets "$scan_path"
+        fi
+
+        if [[ "$SCAN_CONTENT" == true ]]; then
+            if [[ "$PARALLEL" == true ]]; then
+                scan_content_policy_parallel "$scan_path" "$PARALLEL_JOBS"
+            else
+                scan_content_policy "$scan_path"
+            fi
+        fi
+
+        # Claude AI enhanced analysis (if enabled)
+        if [[ "$COMPARE_MODE" != true ]]; then
+            claude_enhanced_analysis "$scan_path"
         fi
     fi
 
-    # Claude AI enhanced analysis (if enabled)
-    if [[ "$COMPARE_MODE" != true ]]; then
-        claude_enhanced_analysis "$scan_path"
+    # Output formatted results
+    if [[ "$OUTPUT_FORMAT" == "table" ]]; then
+        format_table_output "$target_name"
+    elif [[ "$OUTPUT_FORMAT" == "json" ]]; then
+        format_json_output "$target_name"
     fi
 }
 
