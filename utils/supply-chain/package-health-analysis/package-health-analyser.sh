@@ -30,9 +30,13 @@ VERBOSE=false
 ANALYZE_VERSIONS=true
 CHECK_DEPRECATION=true
 OUTPUT_FILE=""
-USE_CLAUDE=false
-COMPARE_MODE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+# Claude enabled by default if API key is set
+USE_CLAUDE=false
+if [[ -n "$ANTHROPIC_API_KEY" ]]; then
+    USE_CLAUDE=true
+fi
+COMPARE_MODE=false
 PARALLEL=false
 BATCH_SIZE=1000  # Process in batches to avoid overwhelming the API
 
@@ -971,12 +975,16 @@ main() {
     echo "========================================="
     echo ""
 
-    # Inform about Claude AI availability if API key not set
-    if [[ -z "$ANTHROPIC_API_KEY" ]] && [[ "$USE_CLAUDE" != "true" ]] && [[ "$COMPARE_MODE" != "true" ]]; then
-        echo -e "\033[0;36m💡 Claude AI analysis available with --claude flag\033[0m"
-        echo -e "\033[0;36m   Set ANTHROPIC_API_KEY to enable AI-enhanced insights\033[0m"
+    # Check Claude AI status first
+    if [[ "$USE_CLAUDE" == "true" ]] && [[ -n "$ANTHROPIC_API_KEY" ]] && [[ "$COMPARE_MODE" != "true" ]]; then
+        echo -e "\033[0;32m🤖 Claude AI: ENABLED (analyzing results with AI)\033[0m"
+        echo ""
+    elif [[ -z "$ANTHROPIC_API_KEY" ]] && [[ "$COMPARE_MODE" != "true" ]]; then
+        echo -e "\033[1;33mℹ️  Claude AI: DISABLED (no API key found)\033[0m"
+        echo -e "\033[0;36m   Set ANTHROPIC_API_KEY to enable AI-enhanced analysis\033[0m"
         echo -e "\033[0;36m   Get your key at: https://console.anthropic.com/settings/keys\033[0m"
         echo ""
+        USE_CLAUDE=false
     fi
 
     # Inform about batch mode for faster processing
