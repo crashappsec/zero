@@ -43,6 +43,8 @@ CLEANUP=true
 STRICT_MODE=false
 MULTI_REPO_MODE=false
 TARGETS_LIST=()
+PARALLEL=false
+PARALLEL_JOBS=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "4")
 
 # Function to print usage
 usage() {
@@ -68,6 +70,8 @@ ANALYSIS OPTIONS:
     --min-level LEVEL       Require minimum SLSA level (0-4)
     --strict                Fail on missing provenance or low SLSA level
     --claude                Use Claude AI for enhanced analysis (requires ANTHROPIC_API_KEY)
+    --parallel              Enable parallel package analysis (faster)
+    --jobs N                Number of parallel jobs (default: CPU count)
     --local-path PATH       Use pre-cloned repository at PATH (skips cloning)
     -f, --format FORMAT     Output format: table|json|markdown (default: markdown)
     -o, --output FILE       Write results to file
@@ -340,57 +344,138 @@ analyze_sbom() {
     echo "==============================================="
     echo ""
 
-    while IFS= read -r component; do
-        ((total++))
-
-        local name=$(echo "$component" | jq -r '.name // "unknown"')
-        local version=$(echo "$component" | jq -r '.version // "unknown"')
-        local purl=$(echo "$component" | jq -r '.purl // empty')
-
-        echo "Package: $name@$version"
-
-        if [[ -n "$purl" ]]; then
-            IFS='|' read -r ecosystem pkg ver <<< "$(parse_purl "$purl")"
-
-            case "$ecosystem" in
-                npm)
-                    IFS='|' read -r status level detail <<< "$(check_npm_provenance "$pkg" "$ver")"
-                    ;;
-                *)
-                    status="UNSUPPORTED"
-                    level="0"
-                    detail="Ecosystem not yet supported"
-                    ;;
-            esac
-
-            echo "  Provenance:    $status"
-            echo "  SLSA Level:    $level"
-            echo "  Details:       $detail"
-
-            if [[ "$status" != "NONE" ]] && [[ "$status" != "UNSUPPORTED" ]]; then
-                ((with_provenance++))
-            fi
-
-            if [[ "$status" == "VERIFIED" ]]; then
-                ((verified++))
-            fi
-
-            case "$level" in
-                0) ((level_0++)) ;;
-                1) ((level_1++)) ;;
-                2) ((level_2++)) ;;
-                3) ((level_3++)) ;;
-                4) ((level_4++)) ;;
-            esac
-
-        else
-            echo "  Provenance:    UNKNOWN (no purl)"
-            echo "  SLSA Level:    0"
-            ((level_0++))
-        fi
-
+    if [[ "$PARALLEL" == "true" ]]; then
+        # Parallel processing mode
+        echo -e "${CYAN}Parallel mode enabled: using $PARALLEL_JOBS workers${NC}"
         echo ""
-    done <<< "$components"
+
+        # Create temp directory for results
+        local results_dir=$(mktemp -d)
+
+        # Export functions for subshells
+        export -f check_npm_provenance
+        export -f parse_purl
+
+        # Process components in parallel
+        echo "$components" | nl -w1 -s'|' | xargs -P "$PARALLEL_JOBS" -I {} bash -c '
+            IFS="|" read -r num component <<< "{}"
+
+            name=$(echo "$component" | jq -r ".name // \"unknown\"")
+            version=$(echo "$component" | jq -r ".version // \"unknown\"")
+            purl=$(echo "$component" | jq -r ".purl // empty")
+
+            echo "Package: $name@$version" >&2
+
+            if [[ -n "$purl" ]]; then
+                IFS="|" read -r ecosystem pkg ver <<< "$(parse_purl "$purl")"
+
+                case "$ecosystem" in
+                    npm)
+                        IFS="|" read -r status level detail <<< "$(check_npm_provenance "$pkg" "$ver")"
+                        ;;
+                    *)
+                        status="UNSUPPORTED"
+                        level="0"
+                        detail="Ecosystem not yet supported"
+                        ;;
+                esac
+
+                echo "  Provenance:    $status" >&2
+                echo "  SLSA Level:    $level" >&2
+                echo "  Details:       $detail" >&2
+
+                # Write results to file
+                echo "$status|$level" > "'"$results_dir"'/result_$num.txt"
+            else
+                echo "  Provenance:    UNKNOWN (no purl)" >&2
+                echo "  SLSA Level:    0" >&2
+                echo "UNKNOWN|0" > "'"$results_dir"'/result_$num.txt"
+            fi
+
+            echo "" >&2
+        '
+
+        # Aggregate results
+        for result_file in "$results_dir"/result_*.txt; do
+            if [[ -f "$result_file" ]]; then
+                ((total++))
+                IFS='|' read -r status level < "$result_file"
+
+                if [[ "$status" != "NONE" ]] && [[ "$status" != "UNSUPPORTED" ]] && [[ "$status" != "UNKNOWN" ]]; then
+                    ((with_provenance++))
+                fi
+
+                if [[ "$status" == "VERIFIED" ]]; then
+                    ((verified++))
+                fi
+
+                case "$level" in
+                    0) ((level_0++)) ;;
+                    1) ((level_1++)) ;;
+                    2) ((level_2++)) ;;
+                    3) ((level_3++)) ;;
+                    4) ((level_4++)) ;;
+                esac
+            fi
+        done
+
+        # Cleanup
+        rm -rf "$results_dir"
+
+    else
+        # Sequential processing mode
+        while IFS= read -r component; do
+            ((total++))
+
+            local name=$(echo "$component" | jq -r '.name // "unknown"')
+            local version=$(echo "$component" | jq -r '.version // "unknown"')
+            local purl=$(echo "$component" | jq -r '.purl // empty')
+
+            echo "Package: $name@$version"
+
+            if [[ -n "$purl" ]]; then
+                IFS='|' read -r ecosystem pkg ver <<< "$(parse_purl "$purl")"
+
+                case "$ecosystem" in
+                    npm)
+                        IFS='|' read -r status level detail <<< "$(check_npm_provenance "$pkg" "$ver")"
+                        ;;
+                    *)
+                        status="UNSUPPORTED"
+                        level="0"
+                        detail="Ecosystem not yet supported"
+                        ;;
+                esac
+
+                echo "  Provenance:    $status"
+                echo "  SLSA Level:    $level"
+                echo "  Details:       $detail"
+
+                if [[ "$status" != "NONE" ]] && [[ "$status" != "UNSUPPORTED" ]]; then
+                    ((with_provenance++))
+                fi
+
+                if [[ "$status" == "VERIFIED" ]]; then
+                    ((verified++))
+                fi
+
+                case "$level" in
+                    0) ((level_0++)) ;;
+                    1) ((level_1++)) ;;
+                    2) ((level_2++)) ;;
+                    3) ((level_3++)) ;;
+                    4) ((level_4++)) ;;
+                esac
+
+            else
+                echo "  Provenance:    UNKNOWN (no purl)"
+                echo "  SLSA Level:    0"
+                ((level_0++))
+            fi
+
+            echo ""
+        done <<< "$components"
+    fi
 
     echo "==============================================="
     echo "Summary:"
@@ -652,6 +737,14 @@ while [[ $# -gt 0 ]]; do
         --claude)
             USE_CLAUDE=true
             shift
+            ;;
+        --parallel)
+            PARALLEL=true
+            shift
+            ;;
+        --jobs)
+            PARALLEL_JOBS="$2"
+            shift 2
             ;;
         -h|--help)
             usage
