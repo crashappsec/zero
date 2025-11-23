@@ -73,6 +73,7 @@ MODULES:
     --vulnerability, -v     Run vulnerability analysis
     --provenance, -p        Run provenance analysis (SLSA)
     --package-health        Run package health analysis
+    --legal                 Run legal compliance analysis (licenses, secrets, content)
     --all, -a               Run all analysis modules (default if none specified)
 
 TARGETS:
@@ -536,6 +537,46 @@ run_package_health_analysis() {
     eval "$cmd"
 }
 
+# Function to run legal compliance analysis
+run_legal_analysis() {
+    local target=$(normalize_target "$1")
+    local analyser="$UTILS_ROOT/legal-review/legal-analyser.sh"
+
+    if [[ ! -f "$analyser" ]]; then
+        echo -e "${RED}✗ Legal analyser not found${NC}"
+        return 1
+    fi
+
+    # Build command with optional flags
+    local cmd="$analyser"
+
+    # Add Claude flag if enabled
+    if [[ "$USE_CLAUDE" == "true" ]]; then
+        cmd="$cmd --claude"
+    fi
+
+    # Add parallel flag if enabled
+    if [[ "$PARALLEL" == "true" ]]; then
+        cmd="$cmd --parallel"
+    fi
+
+    # Use shared SBOM if available (for license extraction)
+    if [[ -n "$SHARED_SBOM_FILE" ]] && [[ -f "$SHARED_SBOM_FILE" ]]; then
+        cmd="$cmd --sbom $SHARED_SBOM_FILE"
+    fi
+
+    # Use shared repository if available
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        cmd="$cmd --local-path $SHARED_REPO_DIR"
+    else
+        # Legal analyser expects just the owner/repo format
+        local repo_name="${target#https://github.com/}"
+        cmd="$cmd --repo $repo_name"
+    fi
+
+    eval "$cmd"
+}
+
 # Function to run analysis on target
 analyze_target() {
     local target="$1"
@@ -566,6 +607,9 @@ analyze_target() {
                 ;;
             package-health)
                 run_package_health_analysis "$target"
+                ;;
+            legal)
+                run_legal_analysis "$target"
                 ;;
             *)
                 echo -e "${YELLOW}⚠ Unknown module: $module${NC}"
@@ -604,8 +648,12 @@ while [[ $# -gt 0 ]]; do
             MODULES+=("package-health")
             shift
             ;;
+        --legal)
+            MODULES+=("legal")
+            shift
+            ;;
         -a|--all)
-            MODULES=("vulnerability" "provenance" "package-health")
+            MODULES=("vulnerability" "provenance" "package-health" "legal")
             shift
             ;;
         --org)
