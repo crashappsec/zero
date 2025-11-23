@@ -33,6 +33,8 @@ COMPARE_MODE=false
 PARALLEL=false
 PARALLEL_JOBS=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "4")
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+REPORTS_DIR="${REPO_ROOT}/reports/legal-review"
+AUTO_SAVE_REPORTS=true
 
 # Colors
 RED='\033[0;31m'
@@ -1447,15 +1449,15 @@ analyze_single_target() {
     local scan_path="$1"
     local target_name="$2"
 
-    # For table and JSON formats, suppress markdown output
-    local suppress_output=false
+    # For table and JSON formats, suppress markdown scan output but show Claude
+    local suppress_scan_output=false
     if [[ "$OUTPUT_FORMAT" == "table" ]] || [[ "$OUTPUT_FORMAT" == "json" ]]; then
-        suppress_output=true
+        suppress_scan_output=true
     fi
 
     # Run scans (with optional output suppression)
-    if [[ "$suppress_output" == true ]]; then
-        # Suppress output, collect results in arrays
+    if [[ "$suppress_scan_output" == true ]]; then
+        # Suppress scan output, collect results in arrays
         {
             if [[ "$SCAN_LICENSES" == true ]]; then
                 scan_licenses "$scan_path"
@@ -1500,11 +1502,11 @@ analyze_single_target() {
                 scan_content_policy "$scan_path"
             fi
         fi
+    fi
 
-        # Claude AI enhanced analysis (if enabled)
-        if [[ "$COMPARE_MODE" != true ]]; then
-            claude_enhanced_analysis "$scan_path"
-        fi
+    # Claude AI enhanced analysis (always run if enabled, regardless of format)
+    if [[ "$COMPARE_MODE" != true ]] && [[ "$USE_CLAUDE" == true ]]; then
+        claude_enhanced_analysis "$scan_path"
     fi
 
     # Output formatted results
@@ -1513,6 +1515,62 @@ analyze_single_target() {
     elif [[ "$OUTPUT_FORMAT" == "json" ]]; then
         format_json_output "$target_name"
     fi
+}
+
+# Save report to reports directory with sequence number
+save_report() {
+    local content="$1"
+    local target_name="$2"
+    local format="$3"
+
+    # Skip if auto-save is disabled or output file is already specified
+    if [[ "$AUTO_SAVE_REPORTS" != true ]] || [[ -n "$OUTPUT_FILE" ]]; then
+        return 0
+    fi
+
+    # Create reports directory if it doesn't exist
+    mkdir -p "$REPORTS_DIR"
+
+    # Get next sequence number
+    local sequence=1
+    if [[ -f "$REPORTS_DIR/.sequence" ]]; then
+        sequence=$(cat "$REPORTS_DIR/.sequence")
+        ((sequence++))
+    fi
+    echo "$sequence" > "$REPORTS_DIR/.sequence"
+
+    # Format timestamp
+    local timestamp=$(date +"%Y%m%d-%H%M%S")
+
+    # Sanitize target name for filename
+    local sanitized_target=$(echo "$target_name" | tr '/' '_' | tr ':' '_')
+
+    # Determine scan types
+    local scan_types=""
+    [[ "$SCAN_LICENSES" == true ]] && scan_types="${scan_types}L"
+    [[ "$SCAN_SECRETS" == true ]] && scan_types="${scan_types}S"
+    [[ "$SCAN_CONTENT" == true ]] && scan_types="${scan_types}C"
+    [[ "$USE_CLAUDE" == true ]] && scan_types="${scan_types}+AI"
+
+    # Determine file extension
+    local extension="md"
+    case "$format" in
+        json) extension="json" ;;
+        table) extension="txt" ;;
+        markdown) extension="md" ;;
+    esac
+
+    # Build filename: {sequence}_{scan_types}_{target}_{timestamp}.{ext}
+    local filename="${sequence}_${scan_types}_${sanitized_target}_${timestamp}.${extension}"
+    local filepath="$REPORTS_DIR/$filename"
+
+    # Save report
+    echo "$content" > "$filepath"
+
+    log "Report saved to: $filepath"
+    echo "" >&2
+    echo -e "${GREEN}✓ Report saved: reports/legal-review/$filename${NC}" >&2
+    echo "" >&2
 }
 
 # Main analysis
@@ -1623,42 +1681,51 @@ main() {
         return 0
     fi
 
-    # Single target analysis
+    # Single target analysis - capture output for saving
+    local report_content=""
+
     if [[ "$COMPARE_MODE" == true ]]; then
         # Run comparison mode: basic vs Claude side-by-side
-        echo "# Legal Review Analysis - Comparison Mode"
-        echo ""
-        echo "**Generated**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-        echo "**Target**: ${target_name}"
-        echo ""
-        echo "---"
-        echo ""
-        echo "## Basic Analysis (Without Claude AI)"
-        echo ""
+        report_content=$(
+            echo "# Legal Review Analysis - Comparison Mode"
+            echo ""
+            echo "**Generated**: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+            echo "**Target**: ${target_name}"
+            echo ""
+            echo "---"
+            echo ""
+            echo "## Basic Analysis (Without Claude AI)"
+            echo ""
 
-        # Temporarily disable Claude for basic analysis
-        local original_use_claude="$USE_CLAUDE"
-        USE_CLAUDE=false
-        analyze_single_target "$scan_path" "$target_name"
-        USE_CLAUDE="$original_use_claude"
+            # Temporarily disable Claude for basic analysis
+            local original_use_claude="$USE_CLAUDE"
+            USE_CLAUDE=false
+            analyze_single_target "$scan_path" "$target_name"
+            USE_CLAUDE="$original_use_claude"
 
-        echo ""
-        echo "---"
-        echo ""
-        echo "## Claude AI Enhanced Analysis"
-        echo ""
+            echo ""
+            echo "---"
+            echo ""
+            echo "## Claude AI Enhanced Analysis"
+            echo ""
 
-        # Reset violation tracking for Claude analysis
-        LICENSE_VIOLATIONS=()
-        CONTENT_ISSUES=()
+            # Reset violation tracking for Claude analysis
+            LICENSE_VIOLATIONS=()
+            CONTENT_ISSUES=()
 
-        analyze_single_target "$scan_path" "$target_name"
-        claude_enhanced_analysis "$scan_path"
-
+            analyze_single_target "$scan_path" "$target_name"
+            claude_enhanced_analysis "$scan_path"
+        )
     else
-        # Normal mode
-        analyze_single_target "$scan_path" "$target_name"
+        # Normal mode - capture output
+        report_content=$(analyze_single_target "$scan_path" "$target_name")
     fi
+
+    # Display the report
+    echo "$report_content"
+
+    # Save report to file
+    save_report "$report_content" "$target_name" "$OUTPUT_FORMAT"
 
     # Display cost summary if using Claude
     if command -v display_api_cost_summary &> /dev/null; then
