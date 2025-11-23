@@ -1034,19 +1034,19 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
 # Load global configuration
-if [ -f "$REPO_ROOT/utils/lib/config.sh" ]; then
-    source "$REPO_ROOT/utils/lib/config.sh"
+if [ -f "$REPO_ROOT/lib/config.sh" ]; then
+    source "$REPO_ROOT/lib/config.sh"
 fi
 
 # Load GitHub library for org scanning
-if [ -f "$REPO_ROOT/utils/lib/github.sh" ]; then
-    source "$REPO_ROOT/utils/lib/github.sh"
+if [ -f "$REPO_ROOT/lib/github.sh" ]; then
+    source "$REPO_ROOT/lib/github.sh"
 fi
 
 # Load cost tracking library if using Claude
 if [[ "$USE_CLAUDE" == "true" ]]; then
-    if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
-        source "$REPO_ROOT/utils/lib/claude-cost.sh"
+    if [ -f "$REPO_ROOT/lib/claude-cost.sh" ]; then
+        source "$REPO_ROOT/lib/claude-cost.sh"
         init_cost_tracking
     fi
 fi

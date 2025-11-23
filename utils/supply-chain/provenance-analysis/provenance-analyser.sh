@@ -20,7 +20,7 @@ REPO_ROOT="$(cd "$PARENT_DIR/.." && pwd)"
 CONFIG_FILE="$PARENT_DIR/config.json"
 
 # Load global libraries
-source "$REPO_ROOT/utils/lib/sbom.sh"
+source "$REPO_ROOT/lib/sbom.sh"
 
 # Colors for output
 RED='\033[0;31m'
@@ -37,6 +37,8 @@ USE_CLAUDE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
 MIN_SLSA_LEVEL=0
 TEMP_DIR=""
+LOCAL_PATH=""
+SBOM_FILE=""
 CLEANUP=true
 STRICT_MODE=false
 MULTI_REPO_MODE=false
@@ -66,6 +68,7 @@ ANALYSIS OPTIONS:
     --min-level LEVEL       Require minimum SLSA level (0-4)
     --strict                Fail on missing provenance or low SLSA level
     --claude                Use Claude AI for enhanced analysis (requires ANTHROPIC_API_KEY)
+    --local-path PATH       Use pre-cloned repository at PATH (skips cloning)
     -f, --format FORMAT     Output format: table|json|markdown (default: markdown)
     -o, --output FILE       Write results to file
     -k, --keep-clone        Keep cloned repository (don't cleanup)
@@ -427,14 +430,31 @@ analyze_repository() {
     echo -e "${BLUE}Analyzing repository for provenance...${NC}"
     echo ""
 
-    # Generate SBOM using global library
-    local sbom_file="$repo_path/generated-sbom.json"
-    if generate_sbom_for_provenance "$repo_path" "$sbom_file"; then
-        analyze_sbom "$sbom_file"
-        rm -f "$sbom_file"
+    # Use shared SBOM if provided, otherwise generate new one
+    local sbom_file=""
+    local cleanup_sbom=false
+
+    if [[ -n "$SBOM_FILE" ]] && [[ -f "$SBOM_FILE" ]]; then
+        echo -e "${GREEN}Using shared SBOM file${NC}"
+        sbom_file="$SBOM_FILE"
+        cleanup_sbom=false
     else
-        echo -e "${RED}Failed to generate SBOM for analysis${NC}"
-        return 1
+        # Generate SBOM using global library
+        sbom_file="$repo_path/generated-sbom.json"
+        if generate_sbom_for_provenance "$repo_path" "$sbom_file"; then
+            cleanup_sbom=true
+        else
+            echo -e "${RED}Failed to generate SBOM for analysis${NC}"
+            return 1
+        fi
+    fi
+
+    # Analyze the SBOM
+    analyze_sbom "$sbom_file"
+
+    # Clean up only if we generated it
+    if [[ "$cleanup_sbom" == "true" ]]; then
+        rm -f "$sbom_file"
     fi
 }
 
@@ -528,6 +548,18 @@ $data"
 analyze_single_target() {
     local target="$1"
 
+    # If LOCAL_PATH is set, use it instead of target
+    if [[ -n "$LOCAL_PATH" ]]; then
+        if [[ ! -d "$LOCAL_PATH" ]]; then
+            echo -e "${RED}Error: Local path does not exist: $LOCAL_PATH${NC}"
+            return 1
+        fi
+        echo -e "${GREEN}Target: Local directory (provided)${NC}"
+        echo ""
+        analyze_repository "$LOCAL_PATH"
+        return $?
+    fi
+
     if is_purl "$target"; then
         analyze_package "$target"
     elif is_sbom_file "$target"; then
@@ -558,8 +590,8 @@ analyze_single_target() {
 # Load cost tracking if using Claude
 if [[ "$USE_CLAUDE" == "true" ]]; then
     REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-    if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
-        source "$REPO_ROOT/utils/lib/claude-cost.sh"
+    if [ -f "$REPO_ROOT/lib/claude-cost.sh" ]; then
+        source "$REPO_ROOT/lib/claude-cost.sh"
         init_cost_tracking
     fi
 fi
@@ -581,6 +613,15 @@ while [[ $# -gt 0 ]]; do
         --strict)
             STRICT_MODE=true
             shift
+            ;;
+        --local-path)
+            LOCAL_PATH="$2"
+            CLEANUP=false  # Don't cleanup externally managed directory
+            shift 2
+            ;;
+        --sbom-file)
+            SBOM_FILE="$2"
+            shift 2
             ;;
         -f|--format)
             OUTPUT_FORMAT="$2"

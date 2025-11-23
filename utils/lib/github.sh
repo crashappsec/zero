@@ -460,6 +460,71 @@ format_contributor_with_github() {
     fi
 }
 
+# Clone a GitHub repository with proper error handling and progress display
+# Usage: github_clone_repository "url" "destination_dir" [--depth N] [--quiet]
+# Returns: 0 on success, 1 on failure
+github_clone_repository() {
+    local repo_url="$1"
+    local dest_dir="$2"
+    local dest_provided=true
+    local depth=""
+    local quiet=""
+    local show_progress=true
+
+    # If no destination provided, create temp directory
+    if [[ -z "$dest_dir" ]]; then
+        dest_dir="$(mktemp -d)"
+        dest_provided=false
+    fi
+
+    # Parse optional arguments
+    shift 2 2>/dev/null || shift $#
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --depth)
+                depth="--depth $2"
+                shift 2
+                ;;
+            --quiet)
+                quiet="--quiet"
+                show_progress=false
+                shift
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    # Normalize URL format
+    if [[ ! "$repo_url" =~ ^https?:// ]] && [[ ! "$repo_url" =~ ^git@ ]]; then
+        # Assume it's in owner/repo format, convert to HTTPS
+        repo_url="https://github.com/$repo_url"
+    fi
+
+    # Show progress
+    if [[ "$show_progress" == true ]]; then
+        echo "Cloning repository from $repo_url..."
+    fi
+
+    # Clone repository
+    if git clone $depth $quiet "$repo_url" "$dest_dir" 2>&1; then
+        if [[ "$show_progress" == true ]]; then
+            echo "✓ Repository cloned successfully to: $dest_dir"
+        fi
+        # Only echo path if it was auto-generated (for programmatic use)
+        if [[ "$dest_provided" == false ]]; then
+            echo "$dest_dir"
+        fi
+        return 0
+    else
+        echo "Error: Failed to clone repository from $repo_url" >&2
+        echo "Note: For private repositories, ensure you have proper SSH keys or authentication" >&2
+        echo "      Large repositories may take longer - consider using --depth 1 for shallow clone" >&2
+        return 1
+    fi
+}
+
 # Export functions
 export -f init_github_cache
 export -f cleanup_github_cache
@@ -480,3 +545,4 @@ export -f calculate_review_score_from_cache
 export -f has_github_token
 export -f get_rate_limit
 export -f format_contributor_with_github
+export -f github_clone_repository

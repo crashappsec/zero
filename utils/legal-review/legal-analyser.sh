@@ -925,13 +925,17 @@ main() {
         local temp_dir=$(mktemp -d)
         TEMP_DIRS+=("$temp_dir")
 
-        local clone_url="https://github.com/$TARGET_REPO"
-        git clone --depth 1 --quiet "$clone_url" "$temp_dir/repo" 2>/dev/null || {
+        # Use shared github_clone_repository function from github.sh library
+        local repo_dir="$temp_dir/repo"
+
+        if ! github_clone_repository "$TARGET_REPO" "$repo_dir" --depth 1; then
+            echo ""
             echo "Error: Failed to clone $TARGET_REPO" >&2
             exit 1
-        }
+        fi
+        echo ""  # Add blank line after clone output
 
-        scan_path="$temp_dir/repo"
+        scan_path="$repo_dir"
     fi
 
     # Run scans

@@ -154,9 +154,6 @@ build_syft_command() {
     local syft_cmd="syft scan"
     local syft_opts=()
 
-    # Output format
-    syft_opts+=("-o" "$SBOM_FORMAT")
-
     # Cataloger selection based on package manager and config
     if [[ "$SBOM_USE_LOCK_FILES" == "true" ]]; then
         case "$package_manager" in
@@ -201,11 +198,12 @@ build_syft_command() {
 
     # Node modules scanning
     if [[ "$SBOM_SCAN_NODE_MODULES" != "true" ]] && [[ "$package_manager" =~ ^(npm|yarn|pnpm|bun)$ ]]; then
-        syft_opts+=("--exclude" "node_modules")
+        syft_opts+=("--exclude" "**/node_modules")
     fi
 
     # Build final command
-    echo "$syft_cmd" "${syft_opts[@]}" "dir:$repo_path" "--file" "$output_file"
+    # Note: Use --output FORMAT=PATH format (new syft syntax)
+    echo "$syft_cmd" "${syft_opts[@]}" "-o" "$SBOM_FORMAT=$output_file" "dir:$repo_path"
 }
 
 # Generate SBOM for repository
@@ -253,12 +251,36 @@ generate_sbom() {
         fi
     fi
 
-    # Build and execute syft command
-    local syft_cmd=$(build_syft_command "$repo_path" "$output_file" "$package_manager")
+    # Extract repository name and version for syft to avoid warnings
+    local repo_name=$(basename "$repo_path")
+    local repo_version="latest"
 
-    echo "Generating SBOM with: $syft_cmd" >&2
+    # Try to get version from git if it's a git repository
+    if [[ -d "$repo_path/.git" ]]; then
+        repo_version=$(cd "$repo_path" && git describe --tags --always 2>/dev/null || echo "latest")
+    fi
 
-    if eval "$syft_cmd" 2>&1; then
+    # Build syft command directly without using build_syft_command
+    local syft_opts=()
+
+    # Add source name and version to avoid warning
+    syft_opts+=("--source-name" "$repo_name")
+    syft_opts+=("--source-version" "$repo_version")
+
+    # Exclude test dependencies if configured
+    if [[ "$SBOM_INCLUDE_TEST_DEPS" != "true" ]]; then
+        syft_opts+=("--exclude" "**/test/**")
+        syft_opts+=("--exclude" "**/tests/**")
+    fi
+
+    # Node modules scanning
+    if [[ "$SBOM_SCAN_NODE_MODULES" != "true" ]] && [[ "$package_manager" =~ ^(npm|yarn|pnpm|bun)$ ]]; then
+        syft_opts+=("--exclude" "**/node_modules")
+    fi
+
+    echo "Generating SBOM with: syft scan ${syft_opts[*]} -o $SBOM_FORMAT=$output_file dir:$repo_path" >&2
+
+    if syft scan "${syft_opts[@]}" -o "$SBOM_FORMAT=$output_file" "dir:$repo_path" 2>&1; then
         echo "SBOM generated: $output_file" >&2
         return 0
     else

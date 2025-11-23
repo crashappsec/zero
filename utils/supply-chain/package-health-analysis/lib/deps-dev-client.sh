@@ -171,6 +171,58 @@ get_package_version() {
     api_request "$url"
 }
 
+# Batch get package versions (up to 5000 packages)
+# Usage: get_versions_batch <json_array_of_packages>
+# Input format: [{"system": "npm", "name": "react", "version": "18.0.0"}, ...]
+# Output format: {"responses": [{version data}, ...]}
+get_versions_batch() {
+    local packages_json=$1
+    local batch_url="${DEPS_DEV_BASE_URL}/versionbatch"
+
+    # Build batch request with proper format
+    local batch_request=$(echo "$packages_json" | jq '{
+        requests: [.[] | {
+            versionKey: {
+                system: (.system | ascii_upcase),
+                name: .name,
+                version: .version
+            }
+        }]
+    }')
+
+    # Make POST request
+    local response=$(curl -s --max-time "$API_TIMEOUT" \
+        -H "Content-Type: application/json" \
+        -d "$batch_request" \
+        "$batch_url" 2>/dev/null || echo '{"error": "batch_request_failed"}')
+
+    # Validate JSON
+    if echo "$response" | jq empty 2>/dev/null; then
+        echo "$response"
+    else
+        echo '{"error": "invalid_batch_response"}'
+    fi
+}
+
+# Batch get package info (using individual requests in parallel batches)
+# Usage: get_packages_batch <json_array_of_packages>
+# Input format: [{"system": "npm", "name": "react"}, ...]
+get_packages_batch() {
+    local packages_json=$1
+    local results="[]"
+
+    # Process each package
+    while IFS= read -r pkg; do
+        local system=$(echo "$pkg" | jq -r '.system')
+        local name=$(echo "$pkg" | jq -r '.name')
+
+        local pkg_info=$(get_package_info "$system" "$name")
+        results=$(echo "$results" | jq --argjson item "$pkg_info" '. + [$item]')
+    done < <(echo "$packages_json" | jq -c '.[]')
+
+    echo "$results"
+}
+
 # Get project information (for OpenSSF Scorecard)
 # Usage: get_project_info <project_key>
 get_project_info() {
@@ -338,6 +390,8 @@ init_cache
 # Export functions
 export -f get_package_info
 export -f get_package_version
+export -f get_versions_batch
+export -f get_packages_batch
 export -f get_project_info
 export -f extract_openssf_score
 export -f extract_openssf_checks

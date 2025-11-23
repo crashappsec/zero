@@ -12,7 +12,7 @@ UTILS_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 REPO_ROOT="$(cd "$UTILS_ROOT/.." && pwd)"
 
 # Load global libraries
-source "$REPO_ROOT/utils/lib/sbom.sh"
+source "$REPO_ROOT/lib/sbom.sh"
 
 # Load local libraries
 source "$SCRIPT_DIR/lib/deps-dev-client.sh"
@@ -24,6 +24,7 @@ source "$SCRIPT_DIR/lib/deprecation-checker.sh"
 REPO=""
 ORG=""
 SBOM_FILE=""
+LOCAL_PATH=""
 OUTPUT_FORMAT="markdown"
 VERBOSE=false
 ANALYZE_VERSIONS=true
@@ -32,6 +33,8 @@ OUTPUT_FILE=""
 USE_CLAUDE=false
 COMPARE_MODE=false
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
+PARALLEL=false
+BATCH_SIZE=1000  # Process in batches to avoid overwhelming the API
 
 # Track temporary directories for cleanup
 TEMP_DIRS=()
@@ -61,6 +64,7 @@ OPTIONS:
     --repo OWNER/REPO          Analyze single repository
     --org ORGANIZATION         Analyze all repositories in organization
     --sbom FILE                Analyze existing SBOM file
+    --local-path PATH          Use pre-cloned repository at PATH (skips cloning)
     --format FORMAT            Output format: json, markdown (default), table
     --output FILE              Write output to file (default: stdout)
     --no-version-analysis      Skip version inconsistency analysis
@@ -68,12 +72,16 @@ OPTIONS:
     --claude                   Use Claude AI for advanced analysis (requires ANTHROPIC_API_KEY)
     --compare                  Run both basic and Claude modes side-by-side for comparison
     -k, --api-key KEY          Anthropic API key (or set ANTHROPIC_API_KEY env var)
+    --parallel                 Enable batch API processing (faster, recommended)
     --verbose                  Enable verbose output
     -h, --help                 Show this help message
 
 EXAMPLES:
     # Analyze single repository
     $0 --repo owner/repo
+
+    # Analyze with batch API (faster, recommended)
+    $0 --repo owner/repo --parallel
 
     # Analyze organization
     $0 --org myorg
@@ -100,8 +108,12 @@ parse_args() {
                 ORG="$2"
                 shift 2
                 ;;
-            --sbom)
+            --sbom|--sbom-file)
                 SBOM_FILE="$2"
+                shift 2
+                ;;
+            --local-path)
+                LOCAL_PATH="$2"
                 shift 2
                 ;;
             --format)
@@ -131,6 +143,10 @@ parse_args() {
             -k|--api-key)
                 ANTHROPIC_API_KEY="$2"
                 shift 2
+                ;;
+            --parallel)
+                PARALLEL=true
+                shift
                 ;;
             --verbose)
                 VERBOSE=true
@@ -257,6 +273,30 @@ map_ecosystem() {
 generate_sbom_for_repo() {
     local repo=$1
 
+    # If LOCAL_PATH is set, use it instead of cloning
+    if [[ -n "$LOCAL_PATH" ]]; then
+        if [[ ! -d "$LOCAL_PATH" ]]; then
+            echo "Error: Local path does not exist: $LOCAL_PATH" >&2
+            exit 1
+        fi
+
+        log "Using pre-cloned repository at $LOCAL_PATH"
+
+        # Generate SBOM using global SBOM library
+        local sbom_file=$(mktemp)
+        log "Generating SBOM using global library"
+
+        # Use the generate_sbom function from utils/lib/sbom.sh
+        if ! generate_sbom "$LOCAL_PATH" "$sbom_file" "true" >&2; then
+            rm -f "$sbom_file"
+            echo "Error: Failed to generate SBOM" >&2
+            exit 1
+        fi
+
+        echo "$sbom_file"
+        return 0
+    fi
+
     log "Generating SBOM for $repo"
 
     # Create temp directory for cloning
@@ -302,7 +342,7 @@ analyze_package() {
     local health_result=$(analyze_package_health "$system" "$package" "$version" 2>/dev/null || echo '{"error": "analysis_failed"}')
 
     # Validate health_result is valid JSON
-    if ! echo "$health_result" | jq empty 2>/dev/null; then
+    if ! jq empty <<< "$health_result" 2>/dev/null; then
         log "Warning: Invalid JSON from health analysis for $package, using error placeholder"
         health_result='{"error": "invalid_response", "package": "'$package'", "system": "'$system'", "version": "'$version'"}'
     fi
@@ -313,7 +353,7 @@ analyze_package() {
         deprecation_result=$(comprehensive_deprecation_check "$system" "$package" 2>/dev/null || echo '{"deprecated": false}')
 
         # Validate deprecation_result is valid JSON
-        if ! echo "$deprecation_result" | jq empty 2>/dev/null; then
+        if ! jq empty <<< "$deprecation_result" 2>/dev/null; then
             log "Warning: Invalid JSON from deprecation check for $package"
             deprecation_result='{"deprecated": false}'
         fi
@@ -335,46 +375,203 @@ analyze_from_sbom() {
     # Extract packages
     local packages=$(extract_packages_from_sbom "$sbom_file")
 
+    # Count total packages for progress tracking
+    local total_packages=$(echo "$packages" | jq -s 'length')
+    local current_package=0
+
     # Analyze each package
     local package_results="[]"
     local package_usage="{}"  # For version analysis: {package: [{repo, version}, ...]}
 
-    while IFS= read -r pkg_info; do
-        [ -z "$pkg_info" ] && continue
+    if [ "$PARALLEL" = true ]; then
+        # Batch API processing mode
+        echo -e "\033[0;32mBatch mode enabled: processing up to $BATCH_SIZE packages per batch\033[0m" >&2
 
-        local package=$(echo "$pkg_info" | jq -r '.package')
-        local version=$(echo "$pkg_info" | jq -r '.version')
-        local ecosystem=$(echo "$pkg_info" | jq -r '.ecosystem')
+        # Prepare packages for batch request
+        local batch_packages=$(echo "$packages" | jq -s 'map({
+            system: ((.ecosystem | ascii_downcase) as $eco |
+                if $eco == "npm" or $eco == "javascript" or $eco == "node" then "npm"
+                elif $eco == "pypi" or $eco == "python" then "pypi"
+                elif $eco == "cargo" or $eco == "rust" or $eco == "crates.io" then "cargo"
+                elif $eco == "maven" or $eco == "java" then "maven"
+                elif $eco == "go" or $eco == "golang" then "go"
+                else $eco end
+            ),
+            name: .package,
+            version: .version
+        }) | map(select(.system != "unknown" and .name != null and .version != "unknown"))')
 
-        # Map ecosystem to deps.dev system
-        local system=$(map_ecosystem "$ecosystem")
+        local valid_packages_count=$(echo "$batch_packages" | jq 'length')
+        echo -e "\033[0;34mFetching version data for $valid_packages_count packages via batch API...\033[0m" >&2
 
-        # Skip if invalid
-        if [ "$system" = "unknown" ] || [ -z "$package" ] || [ "$version" = "unknown" ]; then
-            log "Skipping invalid package: $package"
-            continue
-        fi
+        # Get batch version data
+        local batch_response=$(get_versions_batch "$batch_packages")
 
-        # Analyze package
-        local result=$(analyze_package "$system" "$package" "$version")
-
-        # Validate result before adding
-        if echo "$result" | jq empty 2>/dev/null; then
-            # Add to results only if valid JSON
-            package_results=$(echo "$package_results" | jq --argjson item "$result" '. + [$item]' 2>/dev/null || echo "$package_results")
+        if echo "$batch_response" | jq -e '.error' > /dev/null 2>&1; then
+            echo -e "\033[0;33mWarning: Batch API failed, falling back to sequential processing\033[0m" >&2
+            PARALLEL=false
         else
-            log "Warning: Skipping invalid result for $package@$version"
-        fi
-
-        # Track for version analysis
-        if [ "$ANALYZE_VERSIONS" = true ]; then
-            local usage_item=$(jq -n --arg repo "$repo_name" --arg ver "$version" '{repo: $repo, version: $ver}')
-            package_usage=$(echo "$package_usage" | jq --arg pkg "$package" --argjson item "$usage_item" '
-                .[$pkg] = ((.[$pkg] // []) + [$item])
+            # Build a lookup map of version data: {package@version: data}
+            local version_lookup=$(echo "$batch_response" | jq -r '
+                [.responses[]? | select(.versionKey) | {
+                    key: ("\(.versionKey.name)@\(.versionKey.version)"),
+                    value: .
+                }] | from_entries
             ')
-        fi
 
-    done < <(echo "$packages" | jq -c '.')
+            # Now fetch package summary data (no batch endpoint, use sequential with cache)
+            echo -e "\033[0;34mFetching package metadata...\033[0m" >&2
+            local current_package=0
+
+            while IFS= read -r pkg_info; do
+                [ -z "$pkg_info" ] && continue
+
+                local package=$(jq -r '.package' <<< "$pkg_info")
+                local version=$(jq -r '.version' <<< "$pkg_info")
+                local ecosystem=$(jq -r '.ecosystem' <<< "$pkg_info")
+                local system=$(map_ecosystem "$ecosystem")
+
+                # Skip if invalid
+                if [ "$system" = "unknown" ] || [ -z "$package" ] || [ "$version" = "unknown" ]; then
+                    log "Skipping invalid package: $package"
+                    continue
+                fi
+
+                ((current_package++))
+                if [ $((current_package % 10)) -eq 0 ] || [ $current_package -eq 1 ] || [ $current_package -eq $valid_packages_count ]; then
+                    echo -e "\033[0;34mProcessing package $current_package of $valid_packages_count: ${package}\033[0m" >&2
+                fi
+
+                # Get package summary (uses cache)
+                local package_summary=$(get_package_summary "$system" "$package")
+
+                # Get version info from batch response
+                local lookup_key="${package}@${version}"
+                local version_info=$(echo "$version_lookup" | jq -r --arg key "$lookup_key" '.[$key] // {}')
+
+                # If version info not in batch (shouldn't happen), fetch individually
+                if [ "$version_info" = "{}" ]; then
+                    version_info=$(get_package_version "$system" "$package" "$version")
+                fi
+
+                # Calculate health score
+                local health_score=$(calculate_health_score "$package_summary" "$version_info" "$version")
+                local health_grade=$(get_health_grade "$health_score")
+
+                # Get individual component scores
+                local openssf_raw=$(echo "$package_summary" | jq -r '.openssf_score // null')
+                local openssf_score=$(calculate_openssf_score "$openssf_raw")
+                local maintenance_score=$(calculate_maintenance_score "$package_summary")
+                local security_score=$(calculate_security_score "$version_info")
+                local latest_version=$(echo "$package_summary" | jq -r '.latest_version')
+                local freshness_score=$(calculate_freshness_score "$version" "$latest_version")
+                local dependent_count=$(echo "$package_summary" | jq -r '.dependent_count')
+                local popularity_score=$(calculate_popularity_score "$dependent_count")
+
+                # Check deprecation if enabled
+                local deprecation_result="{\"deprecated\": false}"
+                if [ "$CHECK_DEPRECATION" = true ]; then
+                    deprecation_result=$(comprehensive_deprecation_check "$system" "$package" 2>/dev/null || echo '{"deprecated": false}')
+                fi
+
+                # Build result
+                local result=$(jq -n \
+                    --arg name "$package" \
+                    --arg system "$system" \
+                    --arg version "$version" \
+                    --argjson score "$health_score" \
+                    --arg grade "$health_grade" \
+                    --argjson openssf "$openssf_score" \
+                    --argjson openssf_raw "$openssf_raw" \
+                    --argjson maintenance "$maintenance_score" \
+                    --argjson security "$security_score" \
+                    --argjson freshness "$freshness_score" \
+                    --argjson popularity "$popularity_score" \
+                    --arg latest "$latest_version" \
+                    --argjson deprecated "$(echo "$package_summary" | jq -r '.deprecated')" \
+                    --arg deprecation_msg "$(echo "$package_summary" | jq -r '.deprecation_message // ""')" \
+                    --argjson dependent_count "$dependent_count" \
+                    --argjson deprecation "$deprecation_result" \
+                    '{
+                        package: $name,
+                        system: $system,
+                        version: $version,
+                        health_score: $score,
+                        health_grade: $grade,
+                        component_scores: {
+                            openssf: $openssf,
+                            openssf_raw: $openssf_raw,
+                            maintenance: $maintenance,
+                            security: $security,
+                            freshness: $freshness,
+                            popularity: $popularity
+                        },
+                        latest_version: $latest,
+                        deprecated: $deprecated,
+                        deprecation_message: $deprecation_msg,
+                        dependent_count: $dependent_count,
+                        deprecation: $deprecation
+                    }')
+
+                # Add to results
+                package_results=$(jq --argjson item "$result" '. + [$item]' <<< "$package_results" 2>/dev/null || echo "$package_results")
+
+                # Track for version analysis
+                if [ "$ANALYZE_VERSIONS" = true ]; then
+                    local usage_item=$(jq -n --arg repo "$repo_name" --arg ver "$version" '{repo: $repo, version: $ver}')
+                    package_usage=$(jq --arg pkg "$package" --argjson item "$usage_item" '
+                        .[$pkg] = ((.[$pkg] // []) + [$item])
+                    ' <<< "$package_usage")
+                fi
+
+            done < <(jq -c '.' <<< "$packages")
+        fi
+    fi
+
+    # Sequential processing mode (if not parallel or fallback)
+    if [ "$PARALLEL" = false ]; then
+        # Sequential processing mode (original)
+        while IFS= read -r pkg_info; do
+            [ -z "$pkg_info" ] && continue
+
+            local package=$(jq -r '.package' <<< "$pkg_info")
+            local version=$(jq -r '.version' <<< "$pkg_info")
+            local ecosystem=$(jq -r '.ecosystem' <<< "$pkg_info")
+
+            # Map ecosystem to deps.dev system
+            local system=$(map_ecosystem "$ecosystem")
+
+            # Skip if invalid
+            if [ "$system" = "unknown" ] || [ -z "$package" ] || [ "$version" = "unknown" ]; then
+                log "Skipping invalid package: $package"
+                continue
+            fi
+
+            # Increment counter and display progress
+            ((current_package++))
+            echo -e "\033[0;34mAnalyzing package $current_package of $total_packages: ${package}@${version}\033[0m" >&2
+
+            # Analyze package
+            local result=$(analyze_package "$system" "$package" "$version")
+
+            # Validate result before adding
+            if jq empty <<< "$result" 2>/dev/null; then
+                # Add to results only if valid JSON
+                package_results=$(jq --argjson item "$result" '. + [$item]' <<< "$package_results" 2>/dev/null || echo "$package_results")
+            else
+                log "Warning: Skipping invalid result for $package@$version"
+            fi
+
+            # Track for version analysis
+            if [ "$ANALYZE_VERSIONS" = true ]; then
+                local usage_item=$(jq -n --arg repo "$repo_name" --arg ver "$version" '{repo: $repo, version: $ver}')
+                package_usage=$(jq --arg pkg "$package" --argjson item "$usage_item" '
+                    .[$pkg] = ((.[$pkg] // []) + [$item])
+                ' <<< "$package_usage")
+            fi
+
+        done < <(jq -c '.' <<< "$packages")
+    fi
 
     # Analyze version inconsistencies (if multiple repos)
     local version_analysis="[]"
@@ -383,12 +580,18 @@ analyze_from_sbom() {
     fi
 
     # Generate summary
-    local total_packages=$(echo "$package_results" | jq 'length')
-    local deprecated_count=$(echo "$package_results" | jq '[.[] | select(.deprecation.deprecated == true)] | length')
-    local low_health_count=$(echo "$package_results" | jq '[.[] | select(.health_score < 60)] | length')
-    local critical_count=$(echo "$package_results" | jq '[.[] | select(.health_grade == "Critical")] | length')
+    local total_packages=$(jq 'length' <<< "$package_results")
+    local deprecated_count=$(jq '[.[] | select(.deprecation.deprecated == true)] | length' <<< "$package_results")
+    local low_health_count=$(jq '[.[] | select(.health_score < 60)] | length' <<< "$package_results")
+    local critical_count=$(jq '[.[] | select(.health_grade == "Critical")] | length' <<< "$package_results")
 
-    # Build final result
+    # Use temp files to avoid "Argument list too long" error with large datasets
+    local temp_packages=$(mktemp)
+    local temp_versions=$(mktemp)
+    echo "$package_results" > "$temp_packages"
+    echo "$version_analysis" > "$temp_versions"
+
+    # Build final result using slurpfile to read from temp files
     jq -n \
         --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         --arg repo "$repo_name" \
@@ -396,8 +599,8 @@ analyze_from_sbom() {
         --argjson deprecated "$deprecated_count" \
         --argjson low_health "$low_health_count" \
         --argjson critical "$critical_count" \
-        --argjson packages "$package_results" \
-        --argjson versions "$version_analysis" \
+        --slurpfile packages "$temp_packages" \
+        --slurpfile versions "$temp_versions" \
         '{
             scan_metadata: {
                 timestamp: $timestamp,
@@ -411,7 +614,7 @@ analyze_from_sbom() {
                 deprecated_packages: $deprecated,
                 low_health_packages: $low_health,
                 critical_health_packages: $critical,
-                version_inconsistencies: ($versions | length)
+                version_inconsistencies: ($versions[0] | length)
             },
             repositories: [
                 {
@@ -419,9 +622,12 @@ analyze_from_sbom() {
                     package_count: $total
                 }
             ],
-            packages: $packages,
-            version_inconsistencies: $versions
+            packages: $packages[0],
+            version_inconsistencies: $versions[0]
         }'
+
+    # Clean up temp files
+    rm -f "$temp_packages" "$temp_versions"
 }
 
 # Analyze organization (multiple repositories)
@@ -674,8 +880,8 @@ main() {
     # Load cost tracking if using Claude or compare mode
     if [[ "$USE_CLAUDE" == "true" ]] || [[ "$COMPARE_MODE" == "true" ]]; then
         REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-        if [ -f "$REPO_ROOT/utils/lib/claude-cost.sh" ]; then
-            source "$REPO_ROOT/utils/lib/claude-cost.sh"
+        if [ -f "$REPO_ROOT/lib/claude-cost.sh" ]; then
+            source "$REPO_ROOT/lib/claude-cost.sh"
             init_cost_tracking
         fi
     fi
