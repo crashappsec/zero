@@ -199,6 +199,80 @@ Planned enhancements:
 - Multi-project comparisons
 - Supply chain visualization
 
+#### Gibson Powers Integration with Chalk 🎯
+**Status**: Planned
+**Priority**: High
+**Complexity**: Medium
+
+Integrate Gibson Powers analyzers with Chalk (chalkproject.io) to enable automated supply chain security analysis during the build process.
+
+**Key Capabilities:**
+- **Chalk Profile Integration**:
+  - Create dedicated Chalk profile for Gibson Powers
+  - Configure analyzers to run during build/attestation
+  - Embed analysis results in Chalk marks
+  - Support for custom profile configurations
+
+- **Automated Analysis**:
+  - SBOM generation and analysis
+  - Package health assessment
+  - Vulnerability scanning
+  - Provenance verification
+  - License compliance checking
+  - Certificate validation
+
+- **Build-Time Security Gates**:
+  - Fail builds on critical vulnerabilities
+  - Block deprecated packages
+  - Enforce version pinning policies
+  - Validate SLSA provenance levels
+  - License policy enforcement
+
+- **Attestation Enrichment**:
+  - Add Gibson Powers analysis to Chalk attestations
+  - Include health scores in metadata
+  - Embed remediation recommendations
+  - Link to detailed reports
+
+- **CI/CD Integration**:
+  - GitHub Actions workflow templates
+  - GitLab CI configuration examples
+  - Jenkins pipeline integration
+  - CircleCI configuration samples
+  - Support for containerized builds
+
+**Use Cases:**
+- Shift-left security analysis
+- Automated compliance checking
+- Build quality gates
+- Supply chain risk assessment at build time
+- Continuous security monitoring
+- Policy-as-code enforcement
+
+**Technical Requirements:**
+- Chalk profile definition language
+- Gibson Powers CLI interface
+- Attestation format compatibility
+- Performance optimization for build-time execution
+- Caching strategies for repeated builds
+
+**Integration Points:**
+- Chalk mark metadata
+- SLSA attestation framework
+- In-toto attestations
+- Sigstore/cosign signatures
+- SBOM formats (SPDX, CycloneDX)
+
+**Benefits:**
+- Early detection of supply chain issues
+- Automated security analysis
+- No separate security scanning step
+- Integrated attestation and analysis
+- Improved build confidence
+- Streamlined compliance workflows
+
+**Related to**: SBOM analysis, Supply Chain Security, Provenance Analysis, Chalk Build Analyser
+
 #### Certificate Analyser ✅
 **Status**: Completed
 
