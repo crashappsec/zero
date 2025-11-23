@@ -1007,14 +1007,29 @@ call_claude_api() {
         -H "content-type: application/json" \
         -d "$request_body")
 
-    # Check for errors
-    if echo "$response" | jq -e '.error' >/dev/null 2>&1; then
-        echo "Error calling Claude API: $(echo "$response" | jq -r '.error.message')" >&2
+    # Check for API errors
+    if echo "$response" | jq -e '.error' > /dev/null 2>&1; then
+        local error_type=$(echo "$response" | jq -r '.error.type')
+        local error_message=$(echo "$response" | jq -r '.error.message')
+        echo "Error: Claude API request failed - $error_type: $error_message" >&2
         return 1
     fi
 
-    # Extract content
-    echo "$response" | jq -r '.content[0].text'
+    # Record API usage for cost tracking
+    if command -v record_api_usage &> /dev/null; then
+        record_api_usage "$response" "$model" > /dev/null
+    fi
+
+    # Extract and return the analysis
+    local analysis=$(echo "$response" | jq -r '.content[0].text // empty')
+
+    if [[ -z "$analysis" ]]; then
+        echo "Error: No analysis returned from Claude API" >&2
+        echo "Response: $response" >&2
+        return 1
+    fi
+
+    echo "$analysis"
 }
 
 # Enhanced license analysis with Claude AI
@@ -1026,39 +1041,83 @@ claude_analyze_licenses() {
     # Load RAG context
     local rag_context=$(load_rag_context)
 
-    # Build prompt
-    local prompt="You are an expert in open source license compliance and software legal review.
+    # Build comprehensive prompt with RAG best practices
+    local prompt="Analyze this license compliance data following best practices from our RAG documentation.
 
 ${rag_context}
 
-Based on the scan results below, provide:
+## Analysis Focus Areas:
 
-1. **License Compatibility Analysis**
-   - Identify compatibility issues between detected licenses
-   - Explain copyleft implications
-   - Flag license conflicts
+### 1. License Compatibility & Conflicts
+- Identify incompatible license combinations (e.g., GPL + proprietary, GPL + Apache, AGPL + commercial)
+- Explain copyleft implications for commercial use and distribution
+- Flag viral license risks (AGPL, GPL v3, GPL v2)
+- Check weak copyleft compatibility (LGPL, MPL) - safe if dynamic linking, risky if static
+- Assess permissive license combinations (MIT, Apache, BSD)
 
-2. **Risk Assessment**
-   - Categorize risks (critical, high, medium, low)
-   - Prioritize issues by business impact
-   - Identify compliance violations
+### 2. Risk Assessment by License Category
+- **Permissive** (MIT, Apache-2.0, BSD): Generally safe, attribution required, patent grant considerations
+- **Weak Copyleft** (LGPL, MPL-2.0): Safe if dynamic linking, risky if static linking or modification
+- **Strong Copyleft** (GPL v2/v3): Derivative code must be open-sourced, distribution triggers obligations
+- **Network Copyleft** (AGPL-3.0): Triggers on network use, stricter than GPL
+- **Proprietary/Custom**: Requires detailed legal review, commercial restrictions likely
+- **Unknown/Missing**: Critical compliance risk, blocks deployment
 
-3. **Remediation Recommendations**
-   - Specific actions to address each violation
-   - Alternative libraries with compatible licenses
-   - Migration strategies
+### 3. Compliance Requirements
+- Attribution requirements (copyright notices, license file inclusion, NOTICE files)
+- Source code disclosure obligations (when triggered, what must be disclosed)
+- Patent grant implications (Apache-2.0 patent protection, GPL patent clauses)
+- Trademark restrictions (use of project names, logos)
+- Redistribution conditions (binary vs source, modifications)
+- License file propagation requirements
 
-4. **Policy Evaluation**
-   - Assess if exceptions might be justified
-   - Recommend policy updates if needed
+### 4. Business Impact Assessment
+- Commercial use restrictions (can we sell products using this?)
+- SaaS deployment implications (AGPL network trigger, GPL distribution)
+- Distribution requirements (app stores, customer deployments)
+- Derivative work definitions (what modifications trigger copyleft?)
+- Sublicensing restrictions
+- Vendor lock-in considerations
 
-## Scan Results
+### 5. Remediation Recommendations
+For each violation or high-risk license:
+- **Specific action required**: Remove dependency, replace library, add attribution, refactor code
+- **Alternative libraries**: Suggest compatible replacements with similar functionality
+- **Migration complexity estimate**: Easy (drop-in replacement), Medium (API changes), Hard (architectural changes)
+- **Timeline for remediation**: Immediate (blocking), Short-term (1-7 days), Medium-term (1-4 weeks)
+- **Cost-benefit analysis**: License compliance value vs engineering effort
 
+## Output Format:
+
+### Executive Summary
+- **Overall compliance status**: Pass / Warning / Fail
+- **Critical issues requiring immediate attention** (blocks release, legal exposure)
+- **Total licenses detected and breakdown by category**:
+  - Permissive: X packages
+  - Weak Copyleft: X packages
+  - Strong Copyleft: X packages
+  - Network Copyleft: X packages
+  - Unknown/Proprietary: X packages
+
+### License Inventory
+Present as markdown table:
+| Package | Version | License | Category | Risk Level | Status | Action Required |
+
+### Compatibility Analysis
+- **License conflict matrix**: Which combinations are problematic?
+- **Copyleft implications**: What code must be open-sourced?
+- **Commercial use assessment**: Any restrictions on commercial distribution?
+
+### Prioritized Action Items
+1. **Critical** (0-24h): Violations blocking release, immediate legal exposure
+2. **High** (1-7d): Significant compliance risks, policy violations
+3. **Medium** (1-30d): Attribution fixes, documentation updates, policy clarifications
+4. **Low** (30-90d): Best practice improvements, license optimization, future planning
+
+## Scan Results:
 ${scan_results}
 
-## Analysis
-
-Provide actionable, specific recommendations in markdown format."
+Provide actionable, specific recommendations in markdown format with clear next steps."
 
     # Call Claude API
     call_claude_api "$prompt"
@@ -1073,39 +1132,123 @@ claude_analyze_content() {
     # Load RAG context
     local rag_context=$(load_rag_context)
 
-    # Build prompt
-    local prompt="You are an expert in professional code standards, inclusive language, and content policy enforcement.
+    # Build comprehensive prompt with RAG best practices
+    local prompt="Analyze this content policy compliance data with focus on professional standards and inclusive language.
 
 ${rag_context}
 
-Based on the scan results below, provide:
+## Analysis Focus Areas:
 
-1. **Content Analysis**
-   - Assess severity of flagged terms
-   - Identify patterns and recurring issues
-   - Evaluate context appropriateness
+### 1. Profanity & Offensive Language
+- **Direct profanity** in code, comments, variable names, function names
+- **Inappropriate technical metaphors** (e.g., \"kill\", \"abort\" might be OK in context)
+- **Offensive variable/function names** that lack professionalism
+- **Inappropriate commit messages** visible in git history
+- **Context evaluation**: Distinguish technical necessity from offensive usage
+- **Cultural sensitivity**: Terms that may be offensive in different cultures
 
-2. **Risk Assessment**
-   - Categorize by impact (professional standards, inclusion, legal)
-   - Prioritize remediation by visibility and frequency
+### 2. Non-Inclusive Language
+Common patterns and modern alternatives:
+- **Master/slave** → primary/replica, leader/follower, main/secondary
+- **Whitelist/blacklist** → allowlist/denylist, permitted/blocked
+- **Blackhat/whitehat** → malicious/ethical, adversarial/defensive
+- **Grandfathered** → legacy, established, existing
+- **Sanity check** → validation, verification, consistency check
+- **Gendered terms** (e.g., \"guys\", \"man-hours\") → gender-neutral alternatives
+- **Cultural idioms** that may not translate well globally
 
-3. **Remediation Recommendations**
-   - Specific term replacements with context
-   - Code refactoring suggestions
-   - Communication templates for team education
+### 3. Business Risk Assessment
+- **PR and brand reputation impact**: How would this look in a news article?
+- **Team morale and inclusivity**: Does this create an unwelcoming environment?
+- **Customer perception risks**: Impact on diverse customer base
+- **Legal/HR compliance issues**: Potential harassment or discrimination concerns
+- **Recruitment impact**: Does this deter diverse talent?
+- **Partner/vendor relationships**: Professional image with stakeholders
 
-4. **Best Practices**
-   - Style guide recommendations
-   - Automation opportunities (linters, pre-commit hooks)
-   - Team training suggestions
+### 4. Context-Aware Recommendations
+- **Distinguish technical terms from violations**:
+  - \"git master\" branch (technical, but consider \"main\")
+  - \"master key\" in cryptography (technical term)
+  - \"slave device\" in hardware (legacy term, replace if possible)
+  - Bluetooth \"master/slave\" (spec terminology, but replaceable)
+- **Preserve necessary technical terminology** when no alternative exists
+- **Provide context-appropriate alternatives** that maintain clarity
+- **Suggest gradual migration paths** for large codebases
+- **Consider API stability**: Public APIs require deprecation paths
 
-## Scan Results
+## Best Practices from RAG:
+- Use professional, inclusive language in all code and documentation
+- Update terminology proactively during refactoring (not big-bang changes)
+- Add linter rules (ESLint, Pylint plugins) to prevent future violations
+- Document exceptions with clear justification (e.g., third-party API requirements)
+- Include in code review guidelines
+- Update style guides to reflect modern standards
+- Provide team training on inclusive language
 
+## Output Format:
+
+### Executive Summary
+- **Content policy compliance status**: Pass / Warning / Fail
+- **Total violations by category**:
+  - Profanity/Offensive: X instances
+  - Non-Inclusive Language: X instances
+- **Immediate actions required**
+- **Overall risk level** (reputation, legal, team impact)
+
+### Findings by Category
+
+#### Profanity/Offensive Language
+For each issue:
+- **Location**: file:line
+- **Current term**: The flagged content
+- **Context**: Why it's problematic
+- **Recommended replacement**: Professional alternative
+- **Priority level**: High/Medium/Low based on visibility
+
+#### Non-Inclusive Language
+For each issue:
+- **Location**: file:line
+- **Current term**: The flagged terminology
+- **Recommended replacement**: Modern inclusive alternative
+- **Context analysis**: Is this technical jargon or problematic usage?
+- **Migration path**: Immediate change vs gradual deprecation
+- **Priority level**: High (public API/docs), Medium (internal code), Low (private comments)
+
+### Remediation Plan
+
+1. **High Priority** (Immediate - 1-7 days)
+   - Offensive language in user-facing code/docs
+   - Non-inclusive terms in public APIs
+   - Violations visible to customers/partners
+   - Code review required before merging
+
+2. **Medium Priority** (1-30 days)
+   - Non-inclusive terms in internal code
+   - Comments and documentation
+   - Variable/function names in private modules
+   - Batch updates during planned refactoring
+
+3. **Low Priority** (30-90 days)
+   - Historical code, comments (gradual migration)
+   - Third-party dependencies (influence upstream)
+   - Legacy systems with limited maintenance
+
+### Automation Recommendations
+- **Linter configuration**: Specific rules to add (e.g., ESLint no-profanity plugin)
+- **Pre-commit hooks**: Block new violations from being committed
+- **CI/CD checks**: Fail builds with new violations
+- **IDE integration**: Real-time warnings during development
+
+### Team Enablement
+- **Style guide updates**: Document inclusive language standards
+- **Code review checklist**: Add content policy items
+- **Training resources**: Links to inclusive language guides
+- **Communication template**: How to discuss with team (non-judgmental, educational)
+
+## Scan Results:
 ${scan_results}
 
-## Analysis
-
-Provide practical, actionable guidance in markdown format."
+Provide practical, actionable guidance in markdown format with specific file:line references and clear next steps."
 
     # Call Claude API
     call_claude_api "$prompt"
