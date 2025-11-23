@@ -7,6 +7,8 @@
 #############################################################################
 # Claude API Cost Tracking Library
 # Tracks Claude API usage and calculates costs
+#
+# NOTE: Compatible with bash 3.2+ (macOS default)
 #############################################################################
 
 # Cost tracking file (session-based)
@@ -14,21 +16,33 @@ COST_TRACKING_FILE="/tmp/claude_cost_$$.tmp"
 
 # Claude pricing (per million tokens) - Updated as of 2024
 # https://www.anthropic.com/api
-declare -A INPUT_COSTS
-INPUT_COSTS["claude-3-opus-20240229"]=15.00
-INPUT_COSTS["claude-3-sonnet-20240229"]=3.00
-INPUT_COSTS["claude-3-haiku-20240307"]=0.25
-INPUT_COSTS["claude-3-5-sonnet-20241022"]=3.00
-INPUT_COSTS["claude-sonnet-4-5-20250929"]=3.00
-INPUT_COSTS["claude-sonnet-4-20250514"]=3.00
+# Using functions instead of associative arrays for bash 3.2 compatibility
 
-declare -A OUTPUT_COSTS
-OUTPUT_COSTS["claude-3-opus-20240229"]=75.00
-OUTPUT_COSTS["claude-3-sonnet-20240229"]=15.00
-OUTPUT_COSTS["claude-3-haiku-20240307"]=1.25
-OUTPUT_COSTS["claude-3-5-sonnet-20241022"]=15.00
-OUTPUT_COSTS["claude-sonnet-4-5-20250929"]=15.00
-OUTPUT_COSTS["claude-sonnet-4-20250514"]=15.00
+get_input_cost() {
+    local model="$1"
+    case "$model" in
+        claude-3-opus-20240229) echo "15.00" ;;
+        claude-3-sonnet-20240229) echo "3.00" ;;
+        claude-3-haiku-20240307) echo "0.25" ;;
+        claude-3-5-sonnet-20241022) echo "3.00" ;;
+        claude-sonnet-4-5-20250929) echo "3.00" ;;
+        claude-sonnet-4-20250514) echo "3.00" ;;
+        *) echo "3.00" ;;  # Default to Sonnet pricing
+    esac
+}
+
+get_output_cost() {
+    local model="$1"
+    case "$model" in
+        claude-3-opus-20240229) echo "75.00" ;;
+        claude-3-sonnet-20240229) echo "15.00" ;;
+        claude-3-haiku-20240307) echo "1.25" ;;
+        claude-3-5-sonnet-20241022) echo "15.00" ;;
+        claude-sonnet-4-5-20250929) echo "15.00" ;;
+        claude-sonnet-4-20250514) echo "15.00" ;;
+        *) echo "15.00" ;;  # Default to Sonnet pricing
+    esac
+}
 
 # Initialize cost tracking
 init_cost_tracking() {
@@ -47,8 +61,8 @@ calculate_cost() {
     local output_tokens="$3"
 
     # Get pricing for model (default to Sonnet if not found)
-    local input_price_per_million="${INPUT_COSTS[$model]:-3.00}"
-    local output_price_per_million="${OUTPUT_COSTS[$model]:-15.00}"
+    local input_price_per_million=$(get_input_cost "$model")
+    local output_price_per_million=$(get_output_cost "$model")
 
     # Calculate costs
     local input_cost=$(echo "scale=6; ($input_tokens / 1000000) * $input_price_per_million" | bc -l)
@@ -175,3 +189,5 @@ export -f get_session_cost
 export -f get_session_stats
 export -f display_cost_summary
 export -f export_cost_data_json
+export -f get_input_cost
+export -f get_output_cost
