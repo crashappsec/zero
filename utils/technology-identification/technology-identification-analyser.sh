@@ -180,9 +180,9 @@ scan_sbom_packages() {
     fi
 
     while IFS= read -r component; do
-        local name=$(echo "$component" | jq -r '.name // ""')
-        local version=$(echo "$component" | jq -r '.version // ""')
-        local purl=$(echo "$component" | jq -r '.purl // ""')
+        local name=$(echo "$component" | jq -r '.name // ""' 2>/dev/null || echo "")
+        local version=$(echo "$component" | jq -r '.version // ""' 2>/dev/null || echo "")
+        local purl=$(echo "$component" | jq -r '.purl // ""' 2>/dev/null || echo "")
 
         # Extract ecosystem from purl
         local ecosystem=""
