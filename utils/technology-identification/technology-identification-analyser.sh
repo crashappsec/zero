@@ -292,6 +292,132 @@ scan_sbom_packages() {
     fi
 }
 
+# Layer 1b: Scan manifest files with osv-scanner (supplement to SBOM)
+scan_manifest_files() {
+    local repo_path="$1"
+    local findings=()
+
+    # Check if osv-scanner is available
+    if ! command -v osv-scanner &> /dev/null; then
+        echo "[]"
+        return
+    fi
+
+    # Run osv-scanner to detect packages from manifest files
+    # osv-scanner returns exit 1 when vulnerabilities found, so use || true
+    # Also, it may have progress messages before JSON, so extract JSON portion
+    local temp_output=$(mktemp)
+    osv-scanner --recursive "$repo_path" --format=json > "$temp_output" 2>&1 || true
+
+    # Extract JSON from output (skip progress messages)
+    local osv_output=$(grep -A 999999 "^{" "$temp_output" 2>/dev/null || echo '{"results":[]}')
+    rm -f "$temp_output"
+
+    # Extract packages from osv-scanner output
+    # Structure: .results[].packages[].package
+    local packages=$(echo "$osv_output" | jq -r '.results[]?.packages[]?.package | select(. != null) | @json' 2>/dev/null)
+
+    if [[ -z "$packages" ]]; then
+        echo "[]"
+        return
+    fi
+
+    while IFS= read -r pkg_json; do
+        local name=$(echo "$pkg_json" | jq -r '.name // ""' 2>/dev/null)
+        local version=$(echo "$pkg_json" | jq -r '.version // ""' 2>/dev/null)
+        local ecosystem=$(echo "$pkg_json" | jq -r '.ecosystem // ""' 2>/dev/null)
+
+        [[ -z "$name" ]] && continue
+
+        # Map package names to technology categories (same logic as scan_sbom_packages)
+        local tech_category=""
+        local tech_name=""
+        local confidence=95
+
+        case "$name" in
+            # Business Tools - Payment
+            stripe) tech_category="business-tools/payment"; tech_name="Stripe" ;;
+            paypal|paypal-*) tech_category="business-tools/payment"; tech_name="PayPal" ;;
+            square) tech_category="business-tools/payment"; tech_name="Square" ;;
+            braintree) tech_category="business-tools/payment"; tech_name="Braintree" ;;
+
+            # Business Tools - Communication
+            twilio) tech_category="business-tools/communication"; tech_name="Twilio" ;;
+            sendgrid) tech_category="business-tools/communication"; tech_name="SendGrid" ;;
+            mailgun) tech_category="business-tools/communication"; tech_name="Mailgun" ;;
+
+            # Developer Tools - Infrastructure
+            terraform|terraform-*) tech_category="developer-tools/infrastructure"; tech_name="Terraform" ;;
+            ansible|ansible-*) tech_category="developer-tools/infrastructure"; tech_name="Ansible" ;;
+
+            # Developer Tools - Containers
+            docker|docker-*) tech_category="developer-tools/containers"; tech_name="Docker" ;;
+            kubernetes|kubectl|k8s-*) tech_category="developer-tools/containers"; tech_name="Kubernetes" ;;
+
+            # Web Frameworks - Frontend
+            react|react-dom) tech_category="web-frameworks/frontend"; tech_name="React" ;;
+            vue) tech_category="web-frameworks/frontend"; tech_name="Vue.js" ;;
+            angular|angular-*|@angular/*) tech_category="web-frameworks/frontend"; tech_name="Angular" ;;
+            svelte) tech_category="web-frameworks/frontend"; tech_name="Svelte" ;;
+            next) tech_category="web-frameworks/frontend"; tech_name="Next.js" ;;
+
+            # Web Frameworks - Backend
+            express) tech_category="web-frameworks/backend"; tech_name="Express" ;;
+            fastapi) tech_category="web-frameworks/backend"; tech_name="FastAPI" ;;
+            django) tech_category="web-frameworks/backend"; tech_name="Django" ;;
+            flask) tech_category="web-frameworks/backend"; tech_name="Flask" ;;
+            rails) tech_category="web-frameworks/backend"; tech_name="Ruby on Rails" ;;
+
+            # Databases
+            pg|postgres|postgresql) tech_category="databases/relational"; tech_name="PostgreSQL" ;;
+            mysql|mysql2) tech_category="databases/relational"; tech_name="MySQL" ;;
+            mongodb|mongoose) tech_category="databases/nosql"; tech_name="MongoDB" ;;
+            redis) tech_category="databases/keyvalue"; tech_name="Redis" ;;
+
+            # Cryptographic Libraries
+            openssl|pyopenssl) tech_category="cryptographic-libraries/tls"; tech_name="OpenSSL" ;;
+            cryptography) tech_category="cryptographic-libraries/general"; tech_name="cryptography" ;;
+            pycrypto|pycryptodome) tech_category="cryptographic-libraries/general"; tech_name="PyCrypto" ;;
+            bcrypt|bcrypt-*|bcryptjs) tech_category="cryptographic-libraries/hashing"; tech_name="bcrypt" ;;
+
+            # Message Queues
+            amqp|amqp-*|rabbitmq|rabbitmq-*) tech_category="message-queues"; tech_name="RabbitMQ" ;;
+            kafka|kafka-*|kafkajs) tech_category="message-queues"; tech_name="Apache Kafka" ;;
+
+            *)
+                # Unknown package, skip
+                continue
+                ;;
+        esac
+
+        if [[ -n "$tech_category" ]]; then
+            local finding=$(jq -n \
+                --arg name "$tech_name" \
+                --arg category "$tech_category" \
+                --arg version "$version" \
+                --argjson confidence "$confidence" \
+                --arg method "manifest-file" \
+                --arg evidence "Detected in $ecosystem manifest: $name@$version" \
+                '{
+                    name: $name,
+                    category: $category,
+                    version: $version,
+                    confidence: $confidence,
+                    detection_method: $method,
+                    evidence: [$evidence]
+                }')
+            findings+=("$finding")
+        fi
+    done <<< "$packages"
+
+    # Return findings as JSON array
+    if [[ ${#findings[@]} -eq 0 ]]; then
+        echo "[]"
+    else
+        printf '%s\n' "${findings[@]}" | jq -s '.' 2>/dev/null || echo "[]"
+    fi
+}
+
 # Layer 2: Scan for configuration files
 scan_config_files() {
     local repo_path="$1"
@@ -768,27 +894,39 @@ analyze_target() {
     fi
 
     # Run all detection layers
-    echo ""
-    echo -e "${BLUE}Running multi-layer technology detection...${NC}"
+    echo "" >&2
+    echo -e "${BLUE}Running multi-layer technology detection...${NC}" >&2
 
-    echo -e "${CYAN}Layer 1: Scanning SBOM packages...${NC}"
-    local layer1=$(scan_sbom_packages "$sbom_file")
+    echo -e "${CYAN}Layer 1a: Scanning SBOM packages...${NC}" >&2
+    local layer1a=$(scan_sbom_packages "$sbom_file")
+    local layer1a_count=$(echo "$layer1a" | jq 'length' 2>/dev/null || echo "0")
+    echo -e "${CYAN}  Layer 1a found: $layer1a_count technologies${NC}" >&2
 
-    echo -e "${CYAN}Layer 2: Scanning configuration files...${NC}"
+    echo -e "${CYAN}Layer 1b: Scanning manifest files (osv-scanner)...${NC}" >&2
+    local layer1b=$(scan_manifest_files "$repo_path")
+    local layer1b_count=$(echo "$layer1b" | jq 'length' 2>/dev/null || echo "0")
+    echo -e "${CYAN}  Layer 1b found: $layer1b_count technologies${NC}" >&2
+
+    # Merge layer 1a and 1b results
+    local layer1=$(echo "$layer1a" "$layer1b" | jq -s 'add' 2>/dev/null || echo "[]")
+    local layer1_count=$(echo "$layer1" | jq 'length' 2>/dev/null || echo "0")
+    echo -e "${CYAN}  Layer 1 merged: $layer1_count technologies${NC}" >&2
+
+    echo -e "${CYAN}Layer 2: Scanning configuration files...${NC}" >&2
     local layer2=$(scan_config_files "$repo_path")
 
-    echo -e "${CYAN}Layer 3: Scanning import statements...${NC}"
+    echo -e "${CYAN}Layer 3: Scanning import statements...${NC}" >&2
     local layer3=$(scan_imports "$repo_path")
 
-    echo -e "${CYAN}Layer 4: Scanning API endpoints...${NC}"
+    echo -e "${CYAN}Layer 4: Scanning API endpoints...${NC}" >&2
     local layer4=$(scan_api_endpoints "$repo_path")
 
-    echo -e "${CYAN}Layer 5: Scanning environment variables...${NC}"
+    echo -e "${CYAN}Layer 5: Scanning environment variables...${NC}" >&2
     local layer5=$(scan_env_variables "$repo_path")
 
     # Aggregate and deduplicate findings
-    echo ""
-    echo -e "${BLUE}Aggregating findings...${NC}"
+    echo "" >&2
+    echo -e "${BLUE}Aggregating findings...${NC}" >&2
     local results=$(aggregate_findings "$layer1" "$layer2" "$layer3" "$layer4" "$layer5")
 
     # Filter by confidence threshold
