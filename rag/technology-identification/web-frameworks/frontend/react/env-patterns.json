@@ -1,0 +1,49 @@
+{
+  "technology": "React",
+  "category": "web-frameworks/frontend",
+  "confidence": 60,
+  "patterns": [
+    {
+      "prefix": "REACT_APP_",
+      "description": "Create React App environment variables",
+      "examples": [
+        "REACT_APP_API_URL",
+        "REACT_APP_API_KEY",
+        "REACT_APP_ENVIRONMENT"
+      ],
+      "framework": "Create React App"
+    },
+    {
+      "prefix": "NEXT_PUBLIC_",
+      "description": "Next.js public environment variables",
+      "examples": [
+        "NEXT_PUBLIC_API_URL",
+        "NEXT_PUBLIC_ANALYTICS_ID"
+      ],
+      "framework": "Next.js"
+    },
+    {
+      "prefix": "GATSBY_",
+      "description": "Gatsby environment variables",
+      "examples": [
+        "GATSBY_API_URL",
+        "GATSBY_SITE_URL"
+      ],
+      "framework": "Gatsby"
+    },
+    {
+      "prefix": "VITE_",
+      "description": "Vite environment variables",
+      "examples": [
+        "VITE_API_URL",
+        "VITE_APP_TITLE"
+      ],
+      "framework": "Vite"
+    }
+  ],
+  "detection_notes": [
+    "Environment variable prefixes are framework-specific",
+    "Presence of these patterns indicates React framework usage",
+    "Low confidence as these could be in .env.example only"
+  ]
+}

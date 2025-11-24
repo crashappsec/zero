@@ -1,0 +1,72 @@
+{
+  "technology": "Express",
+  "category": "web-frameworks/backend",
+  "confidence": 80,
+  "patterns": [
+    {
+      "file_patterns": [
+        "app.js",
+        "server.js",
+        "index.js",
+        "src/app.js",
+        "src/server.js"
+      ],
+      "content_patterns": [
+        {
+          "regex": "require\\(['\"]express['\"]\\)",
+          "description": "Express require in main file"
+        },
+        {
+          "regex": "app\\.listen\\(",
+          "description": "Server start in main file"
+        }
+      ]
+    },
+    {
+      "file_patterns": [
+        "routes/*.js",
+        "routes/**/*.js",
+        "api/*.js",
+        "controllers/*.js"
+      ],
+      "content_patterns": [
+        {
+          "regex": "express\\.Router\\(\\)",
+          "description": "Express Router usage"
+        },
+        {
+          "regex": "router\\.(get|post|put|delete)",
+          "description": "Route definitions"
+        }
+      ]
+    },
+    {
+      "file_patterns": [
+        "middleware/*.js",
+        "middlewares/*.js"
+      ],
+      "content_patterns": [
+        {
+          "regex": "function\\s+\\w+\\(req,\\s*res,\\s*next\\)",
+          "description": "Express middleware signature"
+        }
+      ]
+    }
+  ],
+  "directory_conventions": [
+    "routes/",
+    "api/",
+    "controllers/",
+    "middleware/",
+    "models/",
+    "views/",
+    "public/"
+  ],
+  "typical_structure": [
+    "MVC pattern common",
+    "Routes in routes/ directory",
+    "Controllers in controllers/",
+    "Middleware in middleware/",
+    "Static files in public/"
+  ]
+}

@@ -1,0 +1,75 @@
+{
+  "technology": "React",
+  "category": "web-frameworks/frontend",
+  "confidence": 85,
+  "patterns": [
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".jsx", ".mjs"],
+      "patterns": [
+        {
+          "regex": "import\\s+React\\s+from\\s+['\"]react['\"]",
+          "description": "Default React import (ES6)",
+          "example": "import React from 'react';"
+        },
+        {
+          "regex": "import\\s+\\{[^}]+\\}\\s+from\\s+['\"]react['\"]",
+          "description": "Named imports from React",
+          "example": "import { useState, useEffect } from 'react';"
+        },
+        {
+          "regex": "import\\s+\\*\\s+as\\s+React\\s+from\\s+['\"]react['\"]",
+          "description": "Namespace import",
+          "example": "import * as React from 'react';"
+        },
+        {
+          "regex": "const\\s+React\\s*=\\s*require\\(['\"]react['\"]\\)",
+          "description": "CommonJS require",
+          "example": "const React = require('react');"
+        },
+        {
+          "regex": "from\\s+['\"]react-dom['\"]",
+          "description": "React DOM imports",
+          "example": "import ReactDOM from 'react-dom';"
+        }
+      ]
+    },
+    {
+      "language": "typescript",
+      "file_extensions": [".ts", ".tsx"],
+      "patterns": [
+        {
+          "regex": "import\\s+React\\s+from\\s+['\"]react['\"]",
+          "description": "Default React import",
+          "example": "import React from 'react';"
+        },
+        {
+          "regex": "import\\s+type\\s+\\{[^}]+\\}\\s+from\\s+['\"]react['\"]",
+          "description": "Type-only imports",
+          "example": "import type { FC, ReactNode } from 'react';"
+        },
+        {
+          "regex": "import\\s+\\{[^}]+\\}\\s+from\\s+['\"]react['\"]",
+          "description": "Named imports",
+          "example": "import { useState, useEffect } from 'react';"
+        }
+      ]
+    }
+  ],
+  "common_hooks": [
+    "useState",
+    "useEffect",
+    "useContext",
+    "useReducer",
+    "useCallback",
+    "useMemo",
+    "useRef",
+    "useLayoutEffect"
+  ],
+  "jsx_indicators": [
+    "<\\w+[^>]*>",
+    "className=",
+    "onClick=",
+    "onChange="
+  ]
+}

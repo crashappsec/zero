@@ -1,0 +1,93 @@
+{
+  "technology": "Express",
+  "category": "web-frameworks/backend",
+  "current_stable": "4.18.2",
+  "current_major": 4,
+  "release_history": [
+    {
+      "version": "4.18.2",
+      "release_date": "2022-10-08",
+      "status": "stable",
+      "eol_date": null,
+      "features": ["Security updates", "Bug fixes"],
+      "breaking_changes": []
+    },
+    {
+      "version": "4.18.0",
+      "release_date": "2022-04-25",
+      "status": "stable",
+      "eol_date": null,
+      "features": ["Updated dependencies"],
+      "breaking_changes": []
+    },
+    {
+      "version": "4.17.3",
+      "release_date": "2022-02-16",
+      "status": "stable",
+      "eol_date": null,
+      "features": ["Security fixes"],
+      "breaking_changes": []
+    },
+    {
+      "version": "4.17.1",
+      "release_date": "2019-05-25",
+      "status": "maintenance",
+      "eol_date": null,
+      "features": ["Long-term stable version"],
+      "breaking_changes": []
+    },
+    {
+      "version": "3.21.2",
+      "release_date": "2015-09-14",
+      "status": "eol",
+      "eol_date": "2018-02-01",
+      "features": ["Legacy version"],
+      "breaking_changes": []
+    }
+  ],
+  "version_detection": {
+    "package_json": "express",
+    "runtime": "require('express').version"
+  },
+  "upgrade_paths": {
+    "3_to_4": {
+      "difficulty": "medium",
+      "breaking_changes": [
+        "Router changes",
+        "req.param() removed",
+        "JSON parsing changes",
+        "Middleware order matters more"
+      ],
+      "estimated_effort": "1-2 weeks",
+      "migration_guide": "https://expressjs.com/en/guide/migrating-4.html"
+    }
+  },
+  "security_advisories": [
+    {
+      "cve": "CVE-2022-24999",
+      "versions_affected": "<4.17.3",
+      "severity": "high",
+      "description": "qs dependency vulnerability",
+      "fixed_in": "4.17.3"
+    },
+    {
+      "cve": "CVE-2014-6393",
+      "versions_affected": "<3.11",
+      "severity": "medium",
+      "description": "Path traversal vulnerability",
+      "fixed_in": "3.11.0"
+    }
+  ],
+  "official_resources": {
+    "website": "https://expressjs.com",
+    "docs": "https://expressjs.com/en/4x/api.html",
+    "github": "https://github.com/expressjs/express",
+    "npm": "https://www.npmjs.com/package/express"
+  },
+  "version_notes": [
+    "Express 4.x has been stable since 2014",
+    "Express 5.x has been in development for years (not yet stable)",
+    "Most projects use 4.17.x or 4.18.x",
+    "Version 3.x is completely deprecated"
+  ]
+}

@@ -1,0 +1,114 @@
+{
+  "technology": "React",
+  "category": "web-frameworks/frontend",
+  "confidence": 90,
+  "patterns": [
+    {
+      "file_patterns": [
+        ".babelrc",
+        ".babelrc.json",
+        ".babelrc.js",
+        "babel.config.js",
+        "babel.config.json"
+      ],
+      "content_patterns": [
+        {
+          "regex": "@babel/preset-react",
+          "description": "Babel React preset"
+        },
+        {
+          "regex": "react-refresh",
+          "description": "React Fast Refresh plugin"
+        }
+      ]
+    },
+    {
+      "file_patterns": [
+        "webpack.config.js",
+        "webpack.config.ts"
+      ],
+      "content_patterns": [
+        {
+          "regex": "react-refresh",
+          "description": "React Fast Refresh webpack plugin"
+        },
+        {
+          "regex": "\\.jsx?",
+          "description": "JSX file handling in webpack"
+        }
+      ]
+    },
+    {
+      "file_patterns": [
+        "tsconfig.json"
+      ],
+      "content_patterns": [
+        {
+          "regex": "\"jsx\":\\s*\"(react|react-jsx|react-jsxdev|preserve)\"",
+          "description": "TypeScript JSX configuration"
+        }
+      ]
+    },
+    {
+      "file_patterns": [
+        "vite.config.js",
+        "vite.config.ts"
+      ],
+      "content_patterns": [
+        {
+          "regex": "@vitejs/plugin-react",
+          "description": "Vite React plugin"
+        }
+      ]
+    },
+    {
+      "file_patterns": [
+        ".eslintrc",
+        ".eslintrc.json",
+        ".eslintrc.js",
+        "eslint.config.js"
+      ],
+      "content_patterns": [
+        {
+          "regex": "plugin:react/recommended",
+          "description": "ESLint React plugin"
+        },
+        {
+          "regex": "react-hooks",
+          "description": "React Hooks ESLint rules"
+        }
+      ]
+    }
+  ],
+  "framework_configs": [
+    {
+      "name": "Create React App",
+      "indicators": [
+        "react-scripts",
+        "public/index.html with root div"
+      ]
+    },
+    {
+      "name": "Next.js",
+      "indicators": [
+        "next.config.js",
+        "pages/ directory",
+        "app/ directory"
+      ]
+    },
+    {
+      "name": "Gatsby",
+      "indicators": [
+        "gatsby-config.js",
+        "gatsby-node.js"
+      ]
+    },
+    {
+      "name": "Remix",
+      "indicators": [
+        "remix.config.js",
+        "app/root.tsx"
+      ]
+    }
+  ]
+}
