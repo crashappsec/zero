@@ -1,0 +1,38 @@
+{
+  "technology": "AWS Cognito",
+  "category": "authentication",
+  "layer": 4,
+  "description": "API endpoint and usage patterns for AWS Cognito",
+  "patterns": [
+    {
+      "pattern": "cognito-idp\\.[a-z0-9-]+\\.amazonaws\\.com",
+      "description": "Cognito Identity Provider endpoint",
+      "confidence": 95
+    },
+    {
+      "pattern": "cognito-identity\\.[a-z0-9-]+\\.amazonaws\\.com",
+      "description": "Cognito Identity endpoint",
+      "confidence": 95
+    },
+    {
+      "pattern": "[a-z0-9-]+\\.auth\\.[a-z0-9-]+\\.amazoncognito\\.com",
+      "description": "Cognito hosted UI domain",
+      "confidence": 95
+    },
+    {
+      "pattern": "CognitoUserPool|CognitoUser|AuthenticationDetails",
+      "description": "Cognito JS SDK classes",
+      "confidence": 95
+    },
+    {
+      "pattern": "Amplify\\.configure|Auth\\.signIn|Auth\\.signUp",
+      "description": "AWS Amplify Auth methods",
+      "confidence": 90
+    },
+    {
+      "pattern": "us-east-1_[A-Za-z0-9]+",
+      "description": "Cognito User Pool ID format",
+      "confidence": 95
+    }
+  ]
+}

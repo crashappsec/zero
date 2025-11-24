@@ -1,0 +1,64 @@
+{
+  "technology": "Redis",
+  "category": "databases",
+  "layer": 3,
+  "description": "Import patterns for Redis clients",
+  "patterns": {
+    "javascript": [
+      {
+        "pattern": "from\\s+['\"]redis['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "require\\(['\"]redis['\"]\\)",
+        "type": "commonjs_require",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]ioredis['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "require\\(['\"]ioredis['\"]\\)",
+        "type": "commonjs_require",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]@upstash/redis['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      }
+    ],
+    "python": [
+      {
+        "pattern": "import\\s+redis",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+redis",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "import\\s+aioredis",
+        "type": "python_import",
+        "confidence": 95
+      }
+    ],
+    "go": [
+      {
+        "pattern": "\"github\\.com/redis/go-redis",
+        "type": "go_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "\"github\\.com/go-redis/redis",
+        "type": "go_import",
+        "confidence": 95
+      }
+    ]
+  }
+}

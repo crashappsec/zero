@@ -1,0 +1,8 @@
+{
+  "technology": "Prismic",
+  "category": "business-tools/cms",
+  "layer": 3,
+  "patterns": {
+    "javascript": [{"pattern": "from\\s+['\"]@prismicio/", "confidence": 95}]
+  }
+}

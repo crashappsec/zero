@@ -1,0 +1,29 @@
+{
+  "technology": "Mistral AI",
+  "category": "ai-ml/apis",
+  "description": "Mistral AI API client library for open-weight and proprietary large language models",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["@mistralai/mistralai"],
+      "description": "Mistral AI Node.js client"
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["mistralai"],
+      "description": "Mistral AI Python client"
+    }
+  ],
+  "related_packages": [
+    "@langchain/mistralai",
+    "mistral-common"
+  ],
+  "official_registry": "https://www.npmjs.com/package/@mistralai/mistralai",
+  "homepage": "https://mistral.ai",
+  "detection_notes": [
+    "Check for Mistral API key in environment (MISTRAL_API_KEY)",
+    "Look for model names (mistral-large, mistral-medium, mistral-small, codestral)",
+    "Common with LangChain and AI frameworks"
+  ]
+}

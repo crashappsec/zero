@@ -1,0 +1,23 @@
+{
+  "technology": "PostgreSQL",
+  "category": "databases",
+  "layer": 4,
+  "description": "Connection string and API patterns for PostgreSQL",
+  "patterns": [
+    {
+      "pattern": "postgres(ql)?://[^\\s]+",
+      "description": "PostgreSQL connection URL",
+      "confidence": 95
+    },
+    {
+      "pattern": "host=.*port=5432",
+      "description": "PostgreSQL connection parameters",
+      "confidence": 85
+    },
+    {
+      "pattern": "\\.execute\\(.*SELECT|INSERT|UPDATE|DELETE",
+      "description": "SQL query execution",
+      "confidence": 60
+    }
+  ]
+}

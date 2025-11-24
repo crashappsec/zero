@@ -1,0 +1,43 @@
+{
+  "technology": "Replicate",
+  "category": "ai-ml/apis",
+  "description": "Version information for Replicate",
+  "sdk_versions": {
+    "python": {
+      "current": "0.25.0",
+      "min_supported": "0.1.0"
+    },
+    "javascript": {
+      "current": "0.30.0",
+      "min_supported": "0.1.0"
+    }
+  },
+  "api_versions": [
+    {
+      "version": "v1",
+      "status": "current",
+      "notes": "REST API"
+    }
+  ],
+  "popular_models": [
+    {
+      "name": "stability-ai/sdxl",
+      "type": "image-generation",
+      "description": "Stable Diffusion XL"
+    },
+    {
+      "name": "meta/llama-2-70b-chat",
+      "type": "text-generation",
+      "description": "Meta Llama 2 70B Chat"
+    },
+    {
+      "name": "openai/whisper",
+      "type": "speech-to-text",
+      "description": "OpenAI Whisper"
+    }
+  ],
+  "cog_version": {
+    "current": "0.9.0",
+    "description": "Cog - Container framework for ML models"
+  }
+}

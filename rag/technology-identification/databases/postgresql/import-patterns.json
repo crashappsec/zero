@@ -1,0 +1,71 @@
+{
+  "technology": "PostgreSQL",
+  "category": "databases",
+  "layer": 3,
+  "description": "Import patterns for PostgreSQL clients",
+  "patterns": {
+    "javascript": [
+      {
+        "pattern": "from\\s+['\"]pg['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "require\\(['\"]pg['\"]\\)",
+        "type": "commonjs_require",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]postgres['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]pg-promise['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      }
+    ],
+    "python": [
+      {
+        "pattern": "import\\s+psycopg2",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+psycopg2",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "import\\s+asyncpg",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+asyncpg",
+        "type": "python_import",
+        "confidence": 95
+      }
+    ],
+    "go": [
+      {
+        "pattern": "\"github\\.com/lib/pq\"",
+        "type": "go_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "\"github\\.com/jackc/pgx",
+        "type": "go_import",
+        "confidence": 95
+      }
+    ],
+    "ruby": [
+      {
+        "pattern": "require\\s+['\"]pg['\"]",
+        "type": "ruby_require",
+        "confidence": 95
+      }
+    ]
+  }
+}

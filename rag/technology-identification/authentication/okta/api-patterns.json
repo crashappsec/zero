@@ -1,0 +1,33 @@
+{
+  "technology": "Okta",
+  "category": "authentication",
+  "layer": 4,
+  "description": "API endpoint and usage patterns for Okta",
+  "patterns": [
+    {
+      "pattern": "[a-z0-9-]+\\.okta\\.com",
+      "description": "Okta organization domain",
+      "confidence": 95
+    },
+    {
+      "pattern": "[a-z0-9-]+\\.oktapreview\\.com",
+      "description": "Okta preview organization domain",
+      "confidence": 95
+    },
+    {
+      "pattern": "OktaAuth|useOktaAuth|Security",
+      "description": "Okta React components",
+      "confidence": 90
+    },
+    {
+      "pattern": "OktaJwtVerifier",
+      "description": "Okta JWT verification",
+      "confidence": 95
+    },
+    {
+      "pattern": "/oauth2/default|/oauth2/v1",
+      "description": "Okta OAuth endpoints",
+      "confidence": 85
+    }
+  ]
+}

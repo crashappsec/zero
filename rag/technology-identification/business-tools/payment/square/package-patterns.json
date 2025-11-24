@@ -1,0 +1,12 @@
+{
+  "technology": "Square",
+  "category": "business-tools/payment",
+  "description": "Square payment processing",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["square", "@square/web-sdk"], "description": "Square Node.js SDK"},
+    {"ecosystem": "pypi", "names": ["squareup"], "description": "Square Python SDK"},
+    {"ecosystem": "rubygems", "names": ["square.rb"], "description": "Square Ruby SDK"}
+  ],
+  "homepage": "https://developer.squareup.com"
+}

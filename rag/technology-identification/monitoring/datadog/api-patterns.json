@@ -1,0 +1,28 @@
+{
+  "technology": "Datadog",
+  "category": "monitoring",
+  "layer": 4,
+  "description": "API endpoint and usage patterns for Datadog",
+  "patterns": [
+    {
+      "pattern": "api\\.datadoghq\\.(com|eu)",
+      "description": "Datadog API endpoint",
+      "confidence": 95
+    },
+    {
+      "pattern": "tracer\\.init\\(|tracer\\.trace\\(",
+      "description": "Datadog tracer initialization",
+      "confidence": 90
+    },
+    {
+      "pattern": "datadogRum\\.init\\(",
+      "description": "Datadog RUM initialization",
+      "confidence": 95
+    },
+    {
+      "pattern": "statsd\\.increment|statsd\\.gauge",
+      "description": "StatsD metrics",
+      "confidence": 75
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "technology": "Cloudflare",
+  "category": "cloud-providers",
+  "layer": 3,
+  "patterns": {
+    "javascript": [
+      {"pattern": "from\\s+['\"]@cloudflare/", "type": "esm_import", "confidence": 95},
+      {"pattern": "require\\(['\"]wrangler['\"]", "type": "commonjs_require", "confidence": 90}
+    ]
+  }
+}

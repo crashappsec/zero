@@ -1,0 +1,59 @@
+{
+  "technology": "Auth0",
+  "category": "authentication",
+  "layer": 3,
+  "description": "Import patterns for Auth0 SDKs",
+  "patterns": {
+    "javascript": [
+      {
+        "pattern": "from\\s+['\"]@auth0/auth0-react['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]@auth0/nextjs-auth0['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]@auth0/auth0-spa-js['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "require\\(['\"]auth0['\"]\\)",
+        "type": "commonjs_require",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]express-openid-connect['\"]",
+        "type": "esm_import",
+        "confidence": 90
+      }
+    ],
+    "python": [
+      {
+        "pattern": "from\\s+auth0",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "import\\s+auth0",
+        "type": "python_import",
+        "confidence": 95
+      }
+    ],
+    "go": [
+      {
+        "pattern": "\"github\\.com/auth0/go-auth0",
+        "type": "go_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "\"github\\.com/auth0/go-jwt-middleware",
+        "type": "go_import",
+        "confidence": 95
+      }
+    ]
+  }
+}

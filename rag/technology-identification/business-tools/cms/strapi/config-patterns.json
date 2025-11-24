@@ -1,0 +1,9 @@
+{
+  "technology": "Strapi",
+  "category": "business-tools/cms",
+  "layer": 2,
+  "patterns": [
+    {"file": "config/database.js", "pattern": ".*", "confidence": 90},
+    {"file": "src/api/*/", "pattern": ".*", "confidence": 85}
+  ]
+}

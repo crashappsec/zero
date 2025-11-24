@@ -1,0 +1,71 @@
+{
+  "technology": "Apache Kafka",
+  "category": "messaging",
+  "layer": 3,
+  "description": "Import patterns for Kafka clients",
+  "patterns": {
+    "javascript": [
+      {
+        "pattern": "from\\s+['\"]kafkajs['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "require\\(['\"]kafkajs['\"]\\)",
+        "type": "commonjs_require",
+        "confidence": 95
+      },
+      {
+        "pattern": "require\\(['\"]node-rdkafka['\"]\\)",
+        "type": "commonjs_require",
+        "confidence": 95
+      }
+    ],
+    "python": [
+      {
+        "pattern": "from\\s+kafka",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "import\\s+kafka",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+confluent_kafka",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+aiokafka",
+        "type": "python_import",
+        "confidence": 95
+      }
+    ],
+    "go": [
+      {
+        "pattern": "\"github\\.com/segmentio/kafka-go\"",
+        "type": "go_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "\"github\\.com/confluentinc/confluent-kafka-go",
+        "type": "go_import",
+        "confidence": 95
+      }
+    ],
+    "java": [
+      {
+        "pattern": "import\\s+org\\.apache\\.kafka",
+        "type": "java_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "import\\s+org\\.springframework\\.kafka",
+        "type": "java_import",
+        "confidence": 95
+      }
+    ]
+  }
+}

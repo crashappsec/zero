@@ -1,0 +1,12 @@
+{
+  "technology": "Supabase",
+  "category": "databases",
+  "layer": 5,
+  "patterns": [
+    {"name": "SUPABASE_URL", "description": "Supabase project URL", "confidence": 95},
+    {"name": "SUPABASE_ANON_KEY", "description": "Supabase anonymous key", "confidence": 95},
+    {"name": "SUPABASE_SERVICE_ROLE_KEY", "description": "Supabase service role key", "confidence": 95},
+    {"name": "NEXT_PUBLIC_SUPABASE_URL", "description": "Next.js public Supabase URL", "confidence": 95},
+    {"name": "NEXT_PUBLIC_SUPABASE_ANON_KEY", "description": "Next.js public anon key", "confidence": 95}
+  ]
+}

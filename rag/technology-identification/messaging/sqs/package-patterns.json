@@ -1,0 +1,44 @@
+{
+  "technology": "Amazon SQS",
+  "category": "messaging",
+  "description": "Amazon Simple Queue Service",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["@aws-sdk/client-sqs", "aws-sdk", "sqs-consumer", "sqs-producer"],
+      "description": "SQS Node.js SDKs"
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["boto3", "aioboto3"],
+      "description": "AWS Python SDK (includes SQS)"
+    },
+    {
+      "ecosystem": "maven",
+      "names": ["software.amazon.awssdk:sqs", "com.amazonaws:aws-java-sdk-sqs"],
+      "description": "SQS Java SDKs"
+    },
+    {
+      "ecosystem": "go",
+      "names": ["github.com/aws/aws-sdk-go-v2/service/sqs"],
+      "description": "SQS Go SDK"
+    },
+    {
+      "ecosystem": "nuget",
+      "names": ["AWSSDK.SQS"],
+      "description": "SQS .NET SDK"
+    }
+  ],
+  "related_packages": [
+    "serverless-offline-sqs",
+    "elasticmq"
+  ],
+  "official_registry": "https://aws.amazon.com/sqs/",
+  "homepage": "https://aws.amazon.com/sqs/",
+  "detection_notes": [
+    "Check for SQS_QUEUE_URL environment variables",
+    "Look for sqs.*.amazonaws.com references",
+    "Often used with Lambda and SNS"
+  ]
+}

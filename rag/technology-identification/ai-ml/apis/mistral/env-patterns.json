@@ -1,0 +1,17 @@
+{
+  "technology": "Mistral AI",
+  "category": "ai-ml/apis",
+  "confidence": 85,
+  "patterns": [
+    {
+      "variable_names": [
+        "MISTRAL_API_KEY",
+        "MISTRAL_MODEL"
+      ],
+      "description": "Mistral AI API configuration"
+    }
+  ],
+  "detection_notes": [
+    "MISTRAL_API_KEY is the primary indicator"
+  ]
+}

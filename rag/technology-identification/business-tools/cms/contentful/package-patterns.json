@@ -1,0 +1,10 @@
+{
+  "technology": "Contentful",
+  "category": "business-tools/cms",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["contentful", "@contentful/rich-text-react-renderer", "contentful-management"], "description": "Contentful Node.js SDKs"},
+    {"ecosystem": "pypi", "names": ["contentful", "contentful-management"], "description": "Contentful Python SDKs"}
+  ],
+  "homepage": "https://www.contentful.com"
+}

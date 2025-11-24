@@ -1,0 +1,19 @@
+{
+  "technology": "Microsoft Azure",
+  "category": "cloud-providers",
+  "layer": 3,
+  "patterns": {
+    "javascript": [
+      {"pattern": "from\\s+['\"]@azure/", "type": "esm_import", "confidence": 95},
+      {"pattern": "require\\(['\"]@azure/", "type": "commonjs_require", "confidence": 95}
+    ],
+    "python": [
+      {"pattern": "from\\s+azure\\.", "type": "python_import", "confidence": 95},
+      {"pattern": "import\\s+azure\\.", "type": "python_import", "confidence": 95}
+    ],
+    "csharp": [
+      {"pattern": "using\\s+Azure\\.", "type": "csharp_using", "confidence": 95},
+      {"pattern": "using\\s+Microsoft\\.Azure\\.", "type": "csharp_using", "confidence": 95}
+    ]
+  }
+}

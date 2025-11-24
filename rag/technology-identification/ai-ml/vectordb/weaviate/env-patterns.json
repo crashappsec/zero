@@ -1,0 +1,10 @@
+{
+  "technology": "Weaviate",
+  "category": "ai-ml/vectordb",
+  "layer": 5,
+  "patterns": [
+    {"name": "WEAVIATE_URL", "confidence": 95},
+    {"name": "WEAVIATE_API_KEY", "confidence": 95},
+    {"name": "WCS_CLUSTER_URL", "confidence": 90}
+  ]
+}

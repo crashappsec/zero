@@ -1,0 +1,6 @@
+{
+  "technology": "Resend",
+  "category": "business-tools/email",
+  "layer": 5,
+  "patterns": [{"name": "RESEND_API_KEY", "confidence": 95}]
+}

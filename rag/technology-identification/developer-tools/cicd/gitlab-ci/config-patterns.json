@@ -1,0 +1,11 @@
+{
+  "technology": "GitLab CI",
+  "category": "developer-tools/cicd",
+  "layer": 2,
+  "confidence": 95,
+  "patterns": [
+    {"file": ".gitlab-ci.yml", "pattern": ".*", "confidence": 95},
+    {"file": ".gitlab-ci.yaml", "pattern": ".*", "confidence": 95}
+  ],
+  "homepage": "https://docs.gitlab.com/ee/ci/"
+}

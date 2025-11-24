@@ -1,0 +1,16 @@
+{
+  "technology": "SQLite",
+  "category": "databases",
+  "layer": 3,
+  "patterns": {
+    "javascript": [
+      {"pattern": "from\\s+['\"]better-sqlite3['\"]", "type": "esm_import", "confidence": 95},
+      {"pattern": "require\\(['\"]better-sqlite3['\"]\\)", "type": "commonjs_require", "confidence": 95},
+      {"pattern": "from\\s+['\"]@libsql/client['\"]", "type": "esm_import", "confidence": 95}
+    ],
+    "python": [
+      {"pattern": "import\\s+sqlite3", "type": "python_import", "confidence": 95},
+      {"pattern": "import\\s+aiosqlite", "type": "python_import", "confidence": 95}
+    ]
+  }
+}

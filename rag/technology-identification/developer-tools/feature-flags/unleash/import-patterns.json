@@ -1,0 +1,9 @@
+{
+  "technology": "Unleash",
+  "category": "developer-tools/feature-flags",
+  "layer": 3,
+  "patterns": {
+    "javascript": [{"pattern": "from\\s+['\"]unleash-client['\"]", "confidence": 95}],
+    "python": [{"pattern": "from\\s+UnleashClient", "confidence": 95}]
+  }
+}

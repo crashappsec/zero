@@ -1,0 +1,45 @@
+{
+  "technology": "Redis",
+  "category": "databases",
+  "description": "Redis in-memory data store clients",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["redis", "ioredis", "@upstash/redis", "bullmq", "bull"],
+      "description": "Node.js Redis clients and queue libraries"
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["redis", "aioredis", "redis-py-cluster", "fakeredis", "celery"],
+      "description": "Python Redis clients"
+    },
+    {
+      "ecosystem": "rubygems",
+      "names": ["redis", "sidekiq", "resque"],
+      "description": "Ruby Redis clients and job processors"
+    },
+    {
+      "ecosystem": "maven",
+      "names": ["io.lettuce:lettuce-core", "redis.clients:jedis"],
+      "description": "Java Redis clients"
+    },
+    {
+      "ecosystem": "go",
+      "names": ["github.com/redis/go-redis", "github.com/go-redis/redis"],
+      "description": "Go Redis clients"
+    }
+  ],
+  "related_packages": [
+    "connect-redis",
+    "express-session",
+    "koa-redis"
+  ],
+  "official_registry": "https://redis.io",
+  "homepage": "https://redis.io",
+  "detection_notes": [
+    "Check for REDIS_URL in environment",
+    "Look for redis:// connection strings",
+    "Common for caching, sessions, job queues"
+  ]
+}

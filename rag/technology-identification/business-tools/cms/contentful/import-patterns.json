@@ -1,0 +1,9 @@
+{
+  "technology": "Contentful",
+  "category": "business-tools/cms",
+  "layer": 3,
+  "patterns": {
+    "javascript": [{"pattern": "from\\s+['\"]contentful['\"]", "confidence": 95}],
+    "python": [{"pattern": "import\\s+contentful", "confidence": 95}]
+  }
+}

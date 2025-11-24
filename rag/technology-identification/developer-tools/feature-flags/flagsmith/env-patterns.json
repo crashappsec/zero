@@ -1,0 +1,9 @@
+{
+  "technology": "Flagsmith",
+  "category": "developer-tools/feature-flags",
+  "layer": 5,
+  "patterns": [
+    {"name": "FLAGSMITH_ENVIRONMENT_KEY", "confidence": 95},
+    {"name": "FLAGSMITH_API_URL", "confidence": 90}
+  ]
+}

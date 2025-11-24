@@ -1,0 +1,9 @@
+{
+  "technology": "Amplitude",
+  "category": "business-tools/analytics",
+  "layer": 5,
+  "patterns": [
+    {"name": "AMPLITUDE_API_KEY", "confidence": 95},
+    {"name": "NEXT_PUBLIC_AMPLITUDE_API_KEY", "confidence": 95}
+  ]
+}

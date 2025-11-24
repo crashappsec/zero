@@ -1,0 +1,11 @@
+{
+  "technology": "PayPal",
+  "category": "business-tools/payment",
+  "layer": 5,
+  "patterns": [
+    {"name": "PAYPAL_CLIENT_ID", "confidence": 95},
+    {"name": "PAYPAL_CLIENT_SECRET", "confidence": 95},
+    {"name": "PAYPAL_SANDBOX_CLIENT_ID", "confidence": 95},
+    {"name": "PAYPAL_MODE", "confidence": 90}
+  ]
+}

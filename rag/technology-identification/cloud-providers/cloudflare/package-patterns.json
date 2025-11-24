@@ -1,0 +1,19 @@
+{
+  "technology": "Cloudflare",
+  "category": "cloud-providers",
+  "description": "Cloudflare Workers, R2, KV, and edge services",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["wrangler", "@cloudflare/workers-types", "@cloudflare/kv-asset-handler", "miniflare"],
+      "description": "Cloudflare Workers tooling"
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["cloudflare"],
+      "description": "Cloudflare Python SDK"
+    }
+  ],
+  "homepage": "https://www.cloudflare.com"
+}

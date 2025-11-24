@@ -1,0 +1,15 @@
+{
+  "technology": "Supabase",
+  "category": "databases",
+  "layer": 3,
+  "patterns": {
+    "javascript": [
+      {"pattern": "from\\s+['\"]@supabase/supabase-js['\"]", "type": "esm_import", "confidence": 95},
+      {"pattern": "from\\s+['\"]@supabase/ssr['\"]", "type": "esm_import", "confidence": 95},
+      {"pattern": "from\\s+['\"]@supabase/auth-helpers", "type": "esm_import", "confidence": 95}
+    ],
+    "python": [
+      {"pattern": "from\\s+supabase", "type": "python_import", "confidence": 95}
+    ]
+  }
+}

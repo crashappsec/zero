@@ -1,0 +1,44 @@
+{
+  "technology": "AWS Cognito",
+  "category": "authentication",
+  "description": "Amazon Cognito user authentication and identity management",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["amazon-cognito-identity-js", "@aws-amplify/auth", "aws-amplify", "@aws-sdk/client-cognito-identity-provider"],
+      "description": "AWS Cognito JavaScript SDKs"
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["boto3", "warrant", "pycognito"],
+      "description": "AWS Cognito Python SDKs"
+    },
+    {
+      "ecosystem": "maven",
+      "names": ["software.amazon.awssdk:cognitoidentityprovider", "com.amazonaws:aws-java-sdk-cognitoidp"],
+      "description": "AWS Cognito Java SDKs"
+    },
+    {
+      "ecosystem": "go",
+      "names": ["github.com/aws/aws-sdk-go-v2/service/cognitoidentityprovider"],
+      "description": "AWS Cognito Go SDK"
+    },
+    {
+      "ecosystem": "nuget",
+      "names": ["AWSSDK.CognitoIdentityProvider", "Amazon.Extensions.CognitoAuthentication"],
+      "description": "AWS Cognito .NET SDKs"
+    }
+  ],
+  "related_packages": [
+    "@aws-amplify/ui-react",
+    "aws-jwt-verify"
+  ],
+  "official_registry": "https://aws.amazon.com/cognito/",
+  "homepage": "https://aws.amazon.com/cognito/",
+  "detection_notes": [
+    "Check for COGNITO_USER_POOL_ID, COGNITO_CLIENT_ID environment variables",
+    "Look for cognito-idp.*.amazonaws.com references",
+    "Often used with AWS Amplify"
+  ]
+}

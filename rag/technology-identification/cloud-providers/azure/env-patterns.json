@@ -1,0 +1,13 @@
+{
+  "technology": "Microsoft Azure",
+  "category": "cloud-providers",
+  "layer": 5,
+  "patterns": [
+    {"name": "AZURE_SUBSCRIPTION_ID", "description": "Azure subscription ID", "confidence": 95},
+    {"name": "AZURE_TENANT_ID", "description": "Azure tenant ID", "confidence": 95},
+    {"name": "AZURE_CLIENT_ID", "description": "Azure client/app ID", "confidence": 95},
+    {"name": "AZURE_CLIENT_SECRET", "description": "Azure client secret", "confidence": 95},
+    {"name": "AZURE_STORAGE_CONNECTION_STRING", "description": "Azure Storage connection", "confidence": 95},
+    {"name": "AZURE_STORAGE_ACCOUNT", "description": "Azure Storage account name", "confidence": 90}
+  ]
+}

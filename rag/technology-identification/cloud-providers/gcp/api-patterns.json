@@ -1,0 +1,11 @@
+{
+  "technology": "Google Cloud Platform",
+  "category": "cloud-providers",
+  "layer": 4,
+  "patterns": [
+    {"pattern": "storage\\.googleapis\\.com", "description": "GCS endpoint", "confidence": 95},
+    {"pattern": "pubsub\\.googleapis\\.com", "description": "Pub/Sub endpoint", "confidence": 95},
+    {"pattern": "firestore\\.googleapis\\.com", "description": "Firestore endpoint", "confidence": 95},
+    {"pattern": "cloudfunctions\\.googleapis\\.com", "description": "Cloud Functions endpoint", "confidence": 95}
+  ]
+}

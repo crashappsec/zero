@@ -1,0 +1,23 @@
+{
+  "technology": "MySQL",
+  "category": "databases",
+  "layer": 4,
+  "description": "Connection string and API patterns for MySQL",
+  "patterns": [
+    {
+      "pattern": "mysql://[^\\s]+",
+      "description": "MySQL connection URL",
+      "confidence": 95
+    },
+    {
+      "pattern": "host=.*port=3306",
+      "description": "MySQL connection parameters",
+      "confidence": 85
+    },
+    {
+      "pattern": "createConnection|createPool",
+      "description": "MySQL connection methods",
+      "confidence": 75
+    }
+  ]
+}

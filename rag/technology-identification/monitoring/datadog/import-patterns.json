@@ -1,0 +1,59 @@
+{
+  "technology": "Datadog",
+  "category": "monitoring",
+  "layer": 3,
+  "description": "Import patterns for Datadog SDKs",
+  "patterns": {
+    "javascript": [
+      {
+        "pattern": "from\\s+['\"]dd-trace['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "require\\(['\"]dd-trace['\"]\\)",
+        "type": "commonjs_require",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]@datadog/browser-rum['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]@datadog/browser-logs['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      }
+    ],
+    "python": [
+      {
+        "pattern": "from\\s+ddtrace",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "import\\s+ddtrace",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+datadog",
+        "type": "python_import",
+        "confidence": 95
+      }
+    ],
+    "go": [
+      {
+        "pattern": "\"gopkg\\.in/DataDog/dd-trace-go",
+        "type": "go_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "\"github\\.com/DataDog/datadog-go",
+        "type": "go_import",
+        "confidence": 95
+      }
+    ]
+  }
+}

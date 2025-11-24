@@ -1,0 +1,10 @@
+{
+  "technology": "Resend",
+  "category": "business-tools/email",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["resend"], "description": "Resend Node.js SDK"},
+    {"ecosystem": "pypi", "names": ["resend"], "description": "Resend Python SDK"}
+  ],
+  "homepage": "https://resend.com"
+}

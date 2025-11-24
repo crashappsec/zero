@@ -1,0 +1,13 @@
+{
+  "technology": "Perplexity AI",
+  "category": "ai-ml/apis",
+  "layer": 2,
+  "description": "Configuration file patterns for Perplexity AI",
+  "patterns": [
+    {
+      "file": "*.json",
+      "pattern": "perplexity",
+      "confidence": 70
+    }
+  ]
+}

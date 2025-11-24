@@ -1,0 +1,11 @@
+{
+  "technology": "Mailgun",
+  "category": "business-tools/email",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["mailgun.js", "mailgun-js"], "description": "Mailgun Node.js SDK"},
+    {"ecosystem": "pypi", "names": ["mailgun"], "description": "Mailgun Python SDK"},
+    {"ecosystem": "rubygems", "names": ["mailgun-ruby"], "description": "Mailgun Ruby SDK"}
+  ],
+  "homepage": "https://www.mailgun.com"
+}

@@ -1,0 +1,23 @@
+{
+  "technology": "Redis",
+  "category": "databases",
+  "layer": 4,
+  "description": "Connection string and API patterns for Redis",
+  "patterns": [
+    {
+      "pattern": "redis(s)?://[^\\s]+",
+      "description": "Redis connection URL",
+      "confidence": 95
+    },
+    {
+      "pattern": "\\.get\\(|\\.set\\(|\\.hget\\(|\\.hset\\(",
+      "description": "Redis command methods",
+      "confidence": 60
+    },
+    {
+      "pattern": "createClient|Redis\\(",
+      "description": "Redis client initialization",
+      "confidence": 85
+    }
+  ]
+}

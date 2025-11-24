@@ -1,0 +1,12 @@
+{
+  "technology": "Microsoft Azure",
+  "category": "cloud-providers",
+  "layer": 2,
+  "patterns": [
+    {"file": "azure-pipelines.yml", "pattern": ".*", "confidence": 95},
+    {"file": "host.json", "pattern": "extensionBundle", "confidence": 90},
+    {"file": "local.settings.json", "pattern": "AzureWebJobs", "confidence": 95},
+    {"file": "*.bicep", "pattern": ".*", "confidence": 95},
+    {"file": "*.tf", "pattern": "azurerm_", "confidence": 95}
+  ]
+}

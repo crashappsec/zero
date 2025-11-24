@@ -1,0 +1,51 @@
+{
+  "technology": "PostgreSQL",
+  "category": "databases",
+  "layer": 5,
+  "description": "Environment variable patterns for PostgreSQL",
+  "patterns": [
+    {
+      "name": "DATABASE_URL",
+      "pattern": "postgres(ql)?://",
+      "description": "PostgreSQL connection URL",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "PGHOST",
+      "description": "PostgreSQL host",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "PGPORT",
+      "description": "PostgreSQL port",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "PGDATABASE",
+      "description": "PostgreSQL database name",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "PGUSER",
+      "description": "PostgreSQL username",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "PGPASSWORD",
+      "description": "PostgreSQL password",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "POSTGRES_URL",
+      "description": "PostgreSQL connection URL (alternative)",
+      "required": false,
+      "confidence": 90
+    }
+  ]
+}

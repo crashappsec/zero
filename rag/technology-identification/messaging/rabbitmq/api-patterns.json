@@ -1,0 +1,33 @@
+{
+  "technology": "RabbitMQ",
+  "category": "messaging",
+  "layer": 4,
+  "description": "Connection patterns for RabbitMQ",
+  "patterns": [
+    {
+      "pattern": "amqp(s)?://[^\\s]+",
+      "description": "AMQP connection URL",
+      "confidence": 95
+    },
+    {
+      "pattern": "localhost:5672|[a-z0-9.-]+:5672",
+      "description": "RabbitMQ default port connection",
+      "confidence": 85
+    },
+    {
+      "pattern": "\\.connect\\(.*amqp|\\.createChannel\\(",
+      "description": "AMQP connection methods",
+      "confidence": 85
+    },
+    {
+      "pattern": "BlockingConnection|SelectConnection",
+      "description": "Pika connection classes",
+      "confidence": 95
+    },
+    {
+      "pattern": "\\.queue_declare\\(|\\.basic_publish\\(|\\.basic_consume\\(",
+      "description": "RabbitMQ queue operations",
+      "confidence": 90
+    }
+  ]
+}

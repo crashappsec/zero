@@ -1,0 +1,50 @@
+{
+  "technology": "New Relic",
+  "category": "monitoring",
+  "layer": 5,
+  "description": "Environment variable patterns for New Relic",
+  "patterns": [
+    {
+      "name": "NEW_RELIC_LICENSE_KEY",
+      "description": "New Relic license key",
+      "required": true,
+      "confidence": 95
+    },
+    {
+      "name": "NEW_RELIC_APP_NAME",
+      "description": "Application name in New Relic",
+      "required": true,
+      "confidence": 95
+    },
+    {
+      "name": "NEW_RELIC_API_KEY",
+      "description": "New Relic API key",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "NEW_RELIC_DISTRIBUTED_TRACING_ENABLED",
+      "description": "Enable distributed tracing",
+      "required": false,
+      "confidence": 85
+    },
+    {
+      "name": "NEW_RELIC_LOG_LEVEL",
+      "description": "Agent log level",
+      "required": false,
+      "confidence": 85
+    },
+    {
+      "name": "NEW_RELIC_ENABLED",
+      "description": "Enable/disable agent",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "NEW_RELIC_NO_CONFIG_FILE",
+      "description": "Use environment variables only",
+      "required": false,
+      "confidence": 85
+    }
+  ]
+}

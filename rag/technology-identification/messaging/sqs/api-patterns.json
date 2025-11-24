@@ -1,0 +1,33 @@
+{
+  "technology": "Amazon SQS",
+  "category": "messaging",
+  "layer": 4,
+  "description": "API endpoint and usage patterns for Amazon SQS",
+  "patterns": [
+    {
+      "pattern": "sqs\\.[a-z0-9-]+\\.amazonaws\\.com",
+      "description": "SQS regional endpoint",
+      "confidence": 95
+    },
+    {
+      "pattern": "https://sqs\\.[a-z0-9-]+\\.amazonaws\\.com/[0-9]+/[a-zA-Z0-9_-]+",
+      "description": "SQS queue URL",
+      "confidence": 95
+    },
+    {
+      "pattern": "SendMessageCommand|ReceiveMessageCommand|DeleteMessageCommand",
+      "description": "AWS SDK v3 SQS commands",
+      "confidence": 95
+    },
+    {
+      "pattern": "\\.sendMessage\\(|\\.receiveMessage\\(|\\.deleteMessage\\(",
+      "description": "SQS client methods",
+      "confidence": 90
+    },
+    {
+      "pattern": "send_message|receive_message|delete_message",
+      "description": "Boto3 SQS methods",
+      "confidence": 85
+    }
+  ]
+}

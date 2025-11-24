@@ -1,0 +1,10 @@
+{
+  "technology": "Mixpanel",
+  "category": "business-tools/analytics",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["mixpanel", "mixpanel-browser", "@mixpanel/browser"], "description": "Mixpanel Node.js/browser SDKs"},
+    {"ecosystem": "pypi", "names": ["mixpanel"], "description": "Mixpanel Python SDK"}
+  ],
+  "homepage": "https://mixpanel.com"
+}

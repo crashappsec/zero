@@ -1,0 +1,6 @@
+{
+  "technology": "Postmark",
+  "category": "business-tools/email",
+  "layer": 4,
+  "patterns": [{"pattern": "api\\.postmarkapp\\.com", "confidence": 95}]
+}

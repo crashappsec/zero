@@ -1,0 +1,20 @@
+{
+  "technology": "AI21 Labs",
+  "category": "ai-ml/apis",
+  "confidence": 80,
+  "patterns": [
+    {
+      "type": "api",
+      "urls": [
+        "https://api.ai21.com/studio/v1/j2-ultra/complete",
+        "https://api.ai21.com/studio/v1/j2-mid/complete",
+        "https://api.ai21.com/studio/v1/chat/completions"
+      ],
+      "description": "AI21 Labs API endpoints"
+    }
+  ],
+  "notes": [
+    "All AI21 API calls go to api.ai21.com",
+    "Requires Bearer token authentication"
+  ]
+}

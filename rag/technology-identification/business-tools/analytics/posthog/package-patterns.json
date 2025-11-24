@@ -1,0 +1,10 @@
+{
+  "technology": "PostHog",
+  "category": "business-tools/analytics",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["posthog-js", "posthog-node"], "description": "PostHog JavaScript/Node.js SDKs"},
+    {"ecosystem": "pypi", "names": ["posthog"], "description": "PostHog Python SDK"}
+  ],
+  "homepage": "https://posthog.com"
+}

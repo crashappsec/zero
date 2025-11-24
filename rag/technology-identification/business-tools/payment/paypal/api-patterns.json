@@ -1,0 +1,9 @@
+{
+  "technology": "PayPal",
+  "category": "business-tools/payment",
+  "layer": 4,
+  "patterns": [
+    {"pattern": "api\\.paypal\\.com|api-m\\.paypal\\.com", "description": "PayPal API", "confidence": 95},
+    {"pattern": "api\\.sandbox\\.paypal\\.com", "description": "PayPal Sandbox", "confidence": 95}
+  ]
+}

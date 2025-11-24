@@ -1,0 +1,20 @@
+{
+  "technology": "Together AI",
+  "category": "ai-ml/apis",
+  "layer": 5,
+  "description": "Environment variable patterns for Together AI",
+  "patterns": [
+    {
+      "name": "TOGETHER_API_KEY",
+      "description": "Together AI API key",
+      "required": true,
+      "confidence": 95
+    },
+    {
+      "name": "TOGETHERAI_API_KEY",
+      "description": "Together AI API key (alternative)",
+      "required": false,
+      "confidence": 90
+    }
+  ]
+}

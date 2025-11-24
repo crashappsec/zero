@@ -1,0 +1,33 @@
+{
+  "technology": "New Relic",
+  "category": "monitoring",
+  "layer": 2,
+  "description": "Configuration file patterns for New Relic",
+  "patterns": [
+    {
+      "file": "newrelic.js",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "newrelic.yml",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "newrelic.ini",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "newrelic.config.js",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "*.json",
+      "pattern": "\"newrelic\"",
+      "confidence": 85
+    }
+  ]
+}

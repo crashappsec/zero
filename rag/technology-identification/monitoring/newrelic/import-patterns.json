@@ -1,0 +1,56 @@
+{
+  "technology": "New Relic",
+  "category": "monitoring",
+  "layer": 3,
+  "description": "Import patterns for New Relic agents",
+  "patterns": {
+    "javascript": [
+      {
+        "pattern": "require\\(['\"]newrelic['\"]\\)",
+        "type": "commonjs_require",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]newrelic['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]@newrelic/browser-agent['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      }
+    ],
+    "python": [
+      {
+        "pattern": "import\\s+newrelic",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+newrelic",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "newrelic\\.agent",
+        "type": "python_import",
+        "confidence": 95
+      }
+    ],
+    "go": [
+      {
+        "pattern": "\"github\\.com/newrelic/go-agent",
+        "type": "go_import",
+        "confidence": 95
+      }
+    ],
+    "ruby": [
+      {
+        "pattern": "require\\s+['\"]newrelic_rpm['\"]",
+        "type": "ruby_require",
+        "confidence": 95
+      }
+    ]
+  }
+}

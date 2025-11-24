@@ -1,0 +1,28 @@
+{
+  "technology": "Replicate",
+  "category": "ai-ml/apis",
+  "description": "Replicate API for running open-source ML models in the cloud",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["replicate"],
+      "description": "Replicate Node.js client"
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["replicate"],
+      "description": "Replicate Python client"
+    }
+  ],
+  "related_packages": [
+    "@langchain/replicate"
+  ],
+  "official_registry": "https://www.npmjs.com/package/replicate",
+  "homepage": "https://replicate.com",
+  "detection_notes": [
+    "Check for Replicate API key in environment (REPLICATE_API_TOKEN)",
+    "Used for running Stable Diffusion, LLaMA, and other models",
+    "Model references in format owner/model:version"
+  ]
+}

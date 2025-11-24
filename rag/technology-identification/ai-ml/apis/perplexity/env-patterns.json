@@ -1,0 +1,20 @@
+{
+  "technology": "Perplexity AI",
+  "category": "ai-ml/apis",
+  "layer": 5,
+  "description": "Environment variable patterns for Perplexity AI API",
+  "patterns": [
+    {
+      "name": "PERPLEXITY_API_KEY",
+      "description": "Perplexity AI API key",
+      "required": true,
+      "confidence": 95
+    },
+    {
+      "name": "PPLX_API_KEY",
+      "description": "Perplexity AI API key (alternative)",
+      "required": false,
+      "confidence": 90
+    }
+  ]
+}

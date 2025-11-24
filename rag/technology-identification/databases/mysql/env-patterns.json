@@ -1,0 +1,57 @@
+{
+  "technology": "MySQL",
+  "category": "databases",
+  "layer": 5,
+  "description": "Environment variable patterns for MySQL",
+  "patterns": [
+    {
+      "name": "MYSQL_URL",
+      "description": "MySQL connection URL",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "MYSQL_HOST",
+      "description": "MySQL host",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "MYSQL_PORT",
+      "description": "MySQL port",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "MYSQL_DATABASE",
+      "description": "MySQL database name",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "MYSQL_USER",
+      "description": "MySQL username",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "MYSQL_PASSWORD",
+      "description": "MySQL password",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "MYSQL_ROOT_PASSWORD",
+      "description": "MySQL root password (Docker)",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "DATABASE_URL",
+      "pattern": "mysql://",
+      "description": "Database URL with MySQL protocol",
+      "required": false,
+      "confidence": 90
+    }
+  ]
+}

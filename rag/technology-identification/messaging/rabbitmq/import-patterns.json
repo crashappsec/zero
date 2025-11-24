@@ -1,0 +1,66 @@
+{
+  "technology": "RabbitMQ",
+  "category": "messaging",
+  "layer": 3,
+  "description": "Import patterns for RabbitMQ clients",
+  "patterns": {
+    "javascript": [
+      {
+        "pattern": "from\\s+['\"]amqplib['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "require\\(['\"]amqplib['\"]\\)",
+        "type": "commonjs_require",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+['\"]amqp-connection-manager['\"]",
+        "type": "esm_import",
+        "confidence": 95
+      }
+    ],
+    "python": [
+      {
+        "pattern": "import\\s+pika",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+pika",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+aio_pika",
+        "type": "python_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "from\\s+kombu",
+        "type": "python_import",
+        "confidence": 90
+      }
+    ],
+    "go": [
+      {
+        "pattern": "\"github\\.com/rabbitmq/amqp091-go\"",
+        "type": "go_import",
+        "confidence": 95
+      },
+      {
+        "pattern": "\"github\\.com/streadway/amqp\"",
+        "type": "go_import",
+        "confidence": 95
+      }
+    ],
+    "ruby": [
+      {
+        "pattern": "require\\s+['\"]bunny['\"]",
+        "type": "ruby_require",
+        "confidence": 95
+      }
+    ]
+  }
+}

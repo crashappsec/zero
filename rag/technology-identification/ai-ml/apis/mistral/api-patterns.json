@@ -1,0 +1,20 @@
+{
+  "technology": "Mistral AI",
+  "category": "ai-ml/apis",
+  "confidence": 80,
+  "patterns": [
+    {
+      "type": "api",
+      "urls": [
+        "https://api.mistral.ai/v1/chat/completions",
+        "https://api.mistral.ai/v1/embeddings",
+        "https://api.mistral.ai/v1/models"
+      ],
+      "description": "Mistral AI API endpoints"
+    }
+  ],
+  "notes": [
+    "All Mistral AI API calls go to api.mistral.ai",
+    "Requires Bearer token authentication"
+  ]
+}

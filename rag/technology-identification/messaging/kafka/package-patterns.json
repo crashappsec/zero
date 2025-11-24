@@ -1,0 +1,44 @@
+{
+  "technology": "Apache Kafka",
+  "category": "messaging",
+  "description": "Apache Kafka distributed streaming platform",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["kafkajs", "node-rdkafka", "kafka-node"],
+      "description": "Kafka Node.js clients"
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["kafka-python", "confluent-kafka", "aiokafka", "faust"],
+      "description": "Kafka Python clients"
+    },
+    {
+      "ecosystem": "maven",
+      "names": ["org.apache.kafka:kafka-clients", "org.springframework.kafka:spring-kafka"],
+      "description": "Kafka Java clients"
+    },
+    {
+      "ecosystem": "go",
+      "names": ["github.com/segmentio/kafka-go", "github.com/confluentinc/confluent-kafka-go"],
+      "description": "Kafka Go clients"
+    },
+    {
+      "ecosystem": "rubygems",
+      "names": ["ruby-kafka", "racecar", "karafka"],
+      "description": "Kafka Ruby clients"
+    }
+  ],
+  "related_packages": [
+    "@kafkajs/confluent-schema-registry",
+    "avsc"
+  ],
+  "official_registry": "https://kafka.apache.org",
+  "homepage": "https://kafka.apache.org",
+  "detection_notes": [
+    "Check for KAFKA_BOOTSTRAP_SERVERS environment variable",
+    "Look for kafka:// or localhost:9092 connection strings",
+    "Often used with Confluent Platform"
+  ]
+}

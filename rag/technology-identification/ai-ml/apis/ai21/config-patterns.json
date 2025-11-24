@@ -1,0 +1,9 @@
+{
+  "technology": "AI21 Labs",
+  "category": "ai-ml/apis",
+  "confidence": 70,
+  "patterns": [],
+  "detection_notes": [
+    "AI21 typically configured via environment variables"
+  ]
+}

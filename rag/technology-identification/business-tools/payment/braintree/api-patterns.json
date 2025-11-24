@@ -1,0 +1,9 @@
+{
+  "technology": "Braintree",
+  "category": "business-tools/payment",
+  "layer": 4,
+  "patterns": [
+    {"pattern": "api\\.braintreegateway\\.com", "description": "Braintree API", "confidence": 95},
+    {"pattern": "api\\.sandbox\\.braintreegateway\\.com", "description": "Braintree Sandbox", "confidence": 95}
+  ]
+}

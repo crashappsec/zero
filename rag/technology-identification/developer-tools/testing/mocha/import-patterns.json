@@ -1,0 +1,11 @@
+{
+  "technology": "Mocha",
+  "category": "developer-tools/testing",
+  "layer": 3,
+  "patterns": {
+    "javascript": [
+      {"pattern": "from\\s+['\"]mocha['\"]", "type": "esm_import", "confidence": 95},
+      {"pattern": "require\\(['\"]chai['\"]\\)", "type": "commonjs_require", "confidence": 90}
+    ]
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "technology": "Okta",
+  "category": "authentication",
+  "description": "Okta SDK version information",
+  "sdk_versions": {
+    "auth-js": {
+      "current": "7.5.0",
+      "package": "@okta/okta-auth-js"
+    },
+    "react": {
+      "current": "6.7.0",
+      "package": "@okta/okta-react"
+    },
+    "nodejs": {
+      "current": "7.1.0",
+      "package": "@okta/okta-sdk-nodejs"
+    },
+    "python": {
+      "current": "2.9.0",
+      "package": "okta"
+    },
+    "java": {
+      "current": "14.0.0",
+      "package": "okta-sdk-api"
+    }
+  },
+  "features": [
+    "Single Sign-On (SSO)",
+    "Multi-Factor Authentication",
+    "Lifecycle Management",
+    "Universal Directory",
+    "API Access Management",
+    "Workforce Identity",
+    "Customer Identity (CIAM)",
+    "Advanced Server Access"
+  ]
+}

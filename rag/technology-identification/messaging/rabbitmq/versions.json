@@ -1,0 +1,49 @@
+{
+  "technology": "RabbitMQ",
+  "category": "messaging",
+  "description": "RabbitMQ version information",
+  "current_stable": "3.13.0",
+  "versions": [
+    {
+      "version": "3.13",
+      "status": "current",
+      "release_date": "2024-02-22",
+      "notes": "Khepri (new Raft-based metadata store)"
+    },
+    {
+      "version": "3.12",
+      "status": "supported",
+      "release_date": "2023-06-01",
+      "notes": "Classic queues v2"
+    },
+    {
+      "version": "3.11",
+      "status": "supported",
+      "release_date": "2022-09-26"
+    }
+  ],
+  "sdk_versions": {
+    "amqplib": {
+      "current": "0.10.3"
+    },
+    "pika": {
+      "current": "1.3.2"
+    },
+    "bunny": {
+      "current": "2.22.0"
+    }
+  },
+  "managed_services": [
+    "CloudAMQP",
+    "Amazon MQ for RabbitMQ",
+    "Azure Service Bus (AMQP compatible)"
+  ],
+  "features": [
+    "Multiple messaging protocols (AMQP, STOMP, MQTT)",
+    "Flexible routing",
+    "Clustering",
+    "High availability (mirrored queues)",
+    "Management UI",
+    "Plugin system"
+  ]
+}

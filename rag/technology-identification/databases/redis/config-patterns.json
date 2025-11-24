@@ -1,0 +1,28 @@
+{
+  "technology": "Redis",
+  "category": "databases",
+  "layer": 2,
+  "description": "Configuration file patterns for Redis",
+  "patterns": [
+    {
+      "file": "docker-compose.yml",
+      "pattern": "redis:",
+      "confidence": 90
+    },
+    {
+      "file": "docker-compose.yaml",
+      "pattern": "redis:",
+      "confidence": 90
+    },
+    {
+      "file": "redis.conf",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "*.json",
+      "pattern": "\"ioredis\"|\"redis\"",
+      "confidence": 80
+    }
+  ]
+}

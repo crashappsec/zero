@@ -1,0 +1,44 @@
+{
+  "technology": "Datadog",
+  "category": "monitoring",
+  "description": "Datadog monitoring, APM, and observability platform",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["dd-trace", "datadog-metrics", "@datadog/browser-rum", "@datadog/browser-logs"],
+      "description": "Datadog Node.js APM and browser SDK"
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["ddtrace", "datadog", "datadog-api-client"],
+      "description": "Datadog Python APM and API client"
+    },
+    {
+      "ecosystem": "rubygems",
+      "names": ["ddtrace", "dogapi", "dogstatsd-ruby"],
+      "description": "Datadog Ruby APM and StatsD client"
+    },
+    {
+      "ecosystem": "maven",
+      "names": ["com.datadoghq:dd-trace-api", "com.datadoghq:dd-java-agent"],
+      "description": "Datadog Java APM"
+    },
+    {
+      "ecosystem": "go",
+      "names": ["gopkg.in/DataDog/dd-trace-go.v1", "github.com/DataDog/datadog-go"],
+      "description": "Datadog Go APM and StatsD client"
+    }
+  ],
+  "related_packages": [
+    "@datadog/datadog-ci",
+    "serverless-plugin-datadog"
+  ],
+  "official_registry": "https://www.datadoghq.com",
+  "homepage": "https://www.datadoghq.com",
+  "detection_notes": [
+    "Check for DD_API_KEY environment variable",
+    "Look for datadog-agent in Docker configs",
+    "Common with APM tracing and custom metrics"
+  ]
+}

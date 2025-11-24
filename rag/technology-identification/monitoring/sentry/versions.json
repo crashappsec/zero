@@ -1,0 +1,39 @@
+{
+  "technology": "Sentry",
+  "category": "monitoring",
+  "description": "Sentry SDK version information",
+  "sdk_versions": {
+    "javascript": {
+      "current": "7.100.0",
+      "package": "@sentry/node"
+    },
+    "python": {
+      "current": "1.40.0",
+      "package": "sentry-sdk"
+    },
+    "ruby": {
+      "current": "5.16.0",
+      "package": "sentry-ruby"
+    },
+    "java": {
+      "current": "7.3.0",
+      "package": "sentry"
+    },
+    "go": {
+      "current": "0.27.0",
+      "package": "sentry-go"
+    }
+  },
+  "features": [
+    "Error Tracking",
+    "Performance Monitoring",
+    "Session Replay",
+    "Profiling",
+    "Cron Monitoring",
+    "Release Health"
+  ],
+  "deployment_options": [
+    "Sentry.io (Cloud)",
+    "Self-hosted"
+  ]
+}
