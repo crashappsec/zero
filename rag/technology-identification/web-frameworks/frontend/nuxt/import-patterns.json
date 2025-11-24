@@ -1,0 +1,38 @@
+{
+  "technology": "Nuxt",
+  "category": "web-frameworks/frontend",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".ts", ".vue"],
+      "patterns": [
+        {
+          "regex": "import.*from ['\"]#app",
+          "description": "Nuxt 3 auto-imports from #app",
+          "example": "import { useNuxtApp } from '#app';"
+        },
+        {
+          "regex": "defineNuxtConfig",
+          "description": "Nuxt configuration",
+          "example": "export default defineNuxtConfig({...})"
+        },
+        {
+          "regex": "useNuxt|useFetch|useAsyncData",
+          "description": "Nuxt composables",
+          "example": "const { data } = await useFetch('/api/data')"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "#app",
+    "nuxt/app",
+    "@nuxt/schema"
+  ],
+  "detection_notes": [
+    "Nuxt 3 uses auto-imports extensively",
+    "#app alias is Nuxt-specific",
+    "Composables like useFetch, useAsyncData are Nuxt-specific"
+  ]
+}

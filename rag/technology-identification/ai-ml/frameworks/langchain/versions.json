@@ -1,0 +1,16 @@
+{
+  "technology": "langchain",
+  "category": "auto-generated",
+  "current_stable": "",
+  "release_history": [
+
+  ],
+  "version_detection": {
+    "package_json": "langchain"
+  },
+  "official_resources": {
+    "npm": "https://www.npmjs.com/package/langchain",
+    "homepage": "",
+    "repository": ""
+  }
+}

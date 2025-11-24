@@ -1,0 +1,43 @@
+{
+  "technology": "Anthropic Claude",
+  "category": "ai-ml/apis",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "python",
+      "file_extensions": [".py"],
+      "patterns": [
+        {
+          "regex": "from anthropic import|import anthropic",
+          "description": "Anthropic SDK import",
+          "example": "from anthropic import Anthropic"
+        },
+        {
+          "regex": "Anthropic\\(|anthropic\\.Anthropic",
+          "description": "Anthropic client initialization",
+          "example": "client = Anthropic(api_key=api_key)"
+        }
+      ]
+    },
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".ts"],
+      "patterns": [
+        {
+          "regex": "from ['\"]@anthropic-ai/sdk['\"]|require\\(['\"]@anthropic-ai/sdk['\"]\\)",
+          "description": "Anthropic SDK import",
+          "example": "import Anthropic from '@anthropic-ai/sdk';"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "anthropic",
+    "@anthropic-ai/sdk"
+  ],
+  "detection_notes": [
+    "Anthropic() client initialization",
+    "messages.create() for completions",
+    "claude-3-* model names"
+  ]
+}

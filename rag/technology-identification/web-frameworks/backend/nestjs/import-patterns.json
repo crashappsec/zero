@@ -1,0 +1,28 @@
+{
+  "technology": "nestjs",
+  "category": "web-frameworks/backend",
+  "confidence": 85,
+  "patterns": [
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".mjs"],
+      "patterns": [
+        {
+          "regex": "import\\s+.*\\s+from\\s+['\"]@nestjs/core['\"]",
+          "description": "ES6 import from @nestjs/core",
+          "example": "import nestjs from '@nestjs/core';"
+        },
+        {
+          "regex": "require\\(['\"]@nestjs/core['\"]\\)",
+          "description": "CommonJS require",
+          "example": "const nestjs = require('@nestjs/core');"
+        }
+      ]
+    }
+  ],
+  "common_imports": [],
+  "detection_notes": [
+    "Look for @nestjs/core imports in JavaScript/TypeScript files",
+    "Check both ES6 and CommonJS patterns"
+  ]
+}

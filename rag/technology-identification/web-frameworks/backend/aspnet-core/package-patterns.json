@@ -1,0 +1,27 @@
+{
+  "technology": "ASP.NET Core",
+  "category": "web-frameworks/backend",
+  "description": "Cross-platform, high-performance framework for building modern, cloud-enabled, Internet-connected apps",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "nuget",
+      "names": [
+        "Microsoft.AspNetCore.App",
+        "Microsoft.AspNetCore.Mvc",
+        "Microsoft.AspNetCore"
+      ]
+    }
+  ],
+  "related_packages": [
+    "Microsoft.EntityFrameworkCore",
+    "Microsoft.AspNetCore.Authentication.JwtBearer",
+    "Microsoft.AspNetCore.Identity",
+    "Swashbuckle.AspNetCore"
+  ],
+  "detection_notes": [
+    "ASP.NET Core is C#/.NET-based",
+    "Uses NuGet for package management",
+    "Cross-platform (Windows, Linux, macOS)"
+  ]
+}

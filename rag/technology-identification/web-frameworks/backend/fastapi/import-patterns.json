@@ -1,0 +1,39 @@
+{
+  "technology": "FastAPI",
+  "category": "web-frameworks/backend",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "python",
+      "file_extensions": [".py"],
+      "patterns": [
+        {
+          "regex": "^from fastapi import",
+          "description": "FastAPI import",
+          "example": "from fastapi import FastAPI, APIRouter"
+        },
+        {
+          "regex": "^import fastapi",
+          "description": "Direct FastAPI import",
+          "example": "import fastapi"
+        },
+        {
+          "regex": "from pydantic import BaseModel",
+          "description": "Pydantic models (used with FastAPI)",
+          "example": "from pydantic import BaseModel, Field"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "fastapi.FastAPI",
+    "fastapi.APIRouter",
+    "fastapi.Depends",
+    "pydantic.BaseModel"
+  ],
+  "detection_notes": [
+    "FastAPI heavily uses type hints and Pydantic",
+    "Look for async def functions",
+    "Check for @app decorator patterns"
+  ]
+}

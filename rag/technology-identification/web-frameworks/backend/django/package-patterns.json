@@ -1,0 +1,46 @@
+{
+  "technology": "Django",
+  "category": "web-frameworks/backend",
+  "description": "The web framework for perfectionists with deadlines - High-level Python web framework with batteries included",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "pypi",
+      "names": ["Django"],
+      "description": "Core Django package"
+    },
+    {
+      "ecosystem": "pip",
+      "names": ["Django"],
+      "description": "Install via pip"
+    },
+    {
+      "ecosystem": "poetry",
+      "names": ["Django"],
+      "description": "Install via Poetry"
+    }
+  ],
+  "related_packages": [
+    "djangorestframework",
+    "django-cors-headers",
+    "django-filter",
+    "celery",
+    "django-celery-beat",
+    "django-redis",
+    "psycopg2",
+    "mysqlclient",
+    "gunicorn",
+    "django-environ",
+    "django-extensions",
+    "django-debug-toolbar"
+  ],
+  "official_registry": "https://pypi.org/project/Django/",
+  "homepage": "https://www.djangoproject.com",
+  "detection_notes": [
+    "Check for Django in requirements.txt, setup.py, or pyproject.toml",
+    "Look for manage.py file (Django management script)",
+    "Check for django imports in Python files",
+    "Look for settings.py or settings/ directory",
+    "Django REST Framework is very common for APIs"
+  ]
+}

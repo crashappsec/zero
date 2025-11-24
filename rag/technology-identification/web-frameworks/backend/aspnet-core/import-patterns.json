@@ -1,0 +1,43 @@
+{
+  "technology": "ASP.NET Core",
+  "category": "web-frameworks/backend",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "csharp",
+      "file_extensions": [".cs"],
+      "patterns": [
+        {
+          "regex": "using Microsoft\\.AspNetCore",
+          "description": "ASP.NET Core namespace imports",
+          "example": "using Microsoft.AspNetCore.Mvc;"
+        },
+        {
+          "regex": "\\[ApiController\\]|\\[Controller\\]",
+          "description": "ASP.NET Core controller attributes",
+          "example": "[ApiController] public class UsersController : ControllerBase {...}"
+        },
+        {
+          "regex": "\\[HttpGet\\]|\\[HttpPost\\]|\\[HttpPut\\]|\\[HttpDelete\\]",
+          "description": "HTTP method attributes",
+          "example": "[HttpGet] public ActionResult<User> GetUser(int id) {...}"
+        },
+        {
+          "regex": "WebApplication\\.CreateBuilder|builder\\.Build\\(\\)",
+          "description": "ASP.NET Core 6+ minimal API pattern",
+          "example": "var builder = WebApplication.CreateBuilder(args);"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "Microsoft.AspNetCore.Mvc",
+    "Microsoft.AspNetCore.Builder",
+    "Microsoft.AspNetCore.Hosting"
+  ],
+  "detection_notes": [
+    "Microsoft.AspNetCore namespace is definitive",
+    "[ApiController] and HTTP attributes are characteristic",
+    "WebApplication.CreateBuilder() in ASP.NET Core 6+"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "technology": "remix",
+  "category": "web-frameworks/frontend",
+  "confidence": 60,
+  "patterns": [],
+  "detection_notes": [
+    "Look for remix-related environment variables",
+    "Check .env files and environment configuration"
+  ]
+}

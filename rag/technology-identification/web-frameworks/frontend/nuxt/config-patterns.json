@@ -1,0 +1,43 @@
+{
+  "technology": "Nuxt",
+  "category": "web-frameworks/frontend",
+  "confidence": 95,
+  "patterns": [
+    {
+      "file_patterns": [
+        "nuxt.config.js",
+        "nuxt.config.ts",
+        "app.vue",
+        ".nuxt/"
+      ],
+      "description": "Nuxt configuration and build directory"
+    }
+  ],
+  "directory_conventions": [
+    {
+      "path": "pages/",
+      "description": "File-based routing"
+    },
+    {
+      "path": "components/",
+      "description": "Auto-imported components"
+    },
+    {
+      "path": "layouts/",
+      "description": "Layout components"
+    },
+    {
+      "path": "composables/",
+      "description": "Auto-imported composables"
+    },
+    {
+      "path": "server/",
+      "description": "Server routes and API"
+    }
+  ],
+  "detection_notes": [
+    "nuxt.config.* is definitive indicator",
+    ".nuxt/ build directory is strong indicator",
+    "File-based routing in pages/"
+  ]
+}

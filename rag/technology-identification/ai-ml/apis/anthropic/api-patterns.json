@@ -1,0 +1,22 @@
+{
+  "technology": "Anthropic Claude",
+  "category": "ai-ml/apis",
+  "confidence": 70,
+  "patterns": [
+    {
+      "type": "api-calls",
+      "code_patterns": [
+        "messages.create",
+        "claude-3-opus",
+        "claude-3-sonnet",
+        "claude-3-haiku"
+      ],
+      "description": "Anthropic API usage patterns"
+    }
+  ],
+  "notes": [
+    "Uses messages API for chat",
+    "Streaming with stream=True",
+    "Multi-modal with image support"
+  ]
+}

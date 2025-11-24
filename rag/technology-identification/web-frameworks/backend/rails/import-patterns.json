@@ -1,0 +1,28 @@
+{
+  "technology": "rails",
+  "category": "web-frameworks/backend",
+  "confidence": 85,
+  "patterns": [
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".mjs"],
+      "patterns": [
+        {
+          "regex": "import\\s+.*\\s+from\\s+['\"]rails['\"]",
+          "description": "ES6 import from rails",
+          "example": "import rails from 'rails';"
+        },
+        {
+          "regex": "require\\(['\"]rails['\"]\\)",
+          "description": "CommonJS require",
+          "example": "const rails = require('rails');"
+        }
+      ]
+    }
+  ],
+  "common_imports": [],
+  "detection_notes": [
+    "Look for rails imports in JavaScript/TypeScript files",
+    "Check both ES6 and CommonJS patterns"
+  ]
+}

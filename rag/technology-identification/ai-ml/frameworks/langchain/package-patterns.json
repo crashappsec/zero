@@ -1,0 +1,32 @@
+{
+  "technology": "langchain",
+  "category": "ai-ml/frameworks",
+  "description": "",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["langchain"],
+      "scoped_names": [],
+      "description": "Core langchain package"
+    },
+    {
+      "ecosystem": "yarn",
+      "names": ["langchain"],
+      "description": "Core langchain package via Yarn"
+    },
+    {
+      "ecosystem": "pnpm",
+      "names": ["langchain"],
+      "description": "Core langchain package via pnpm"
+    }
+  ],
+  "related_packages": [],
+  "official_registry": "https://www.npmjs.com/package/langchain",
+  "homepage": "",
+  "detection_notes": [
+    "Check for langchain in dependencies or devDependencies",
+    "Look for import/require statements",
+    "Verify with configuration files"
+  ]
+}

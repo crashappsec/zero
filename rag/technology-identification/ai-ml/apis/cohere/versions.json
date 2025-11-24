@@ -1,0 +1,32 @@
+{
+  "technology": "Cohere",
+  "category": "ai-ml/apis",
+  "current_stable": "command-r-plus",
+  "current_major": 1,
+  "release_history": [
+    {
+      "version": "command-r-plus",
+      "release_date": "2024-03-11",
+      "status": "stable",
+      "features": ["128K context", "Enterprise-grade", "RAG-optimized"],
+      "breaking_changes": []
+    },
+    {
+      "version": "command",
+      "release_date": "2023-08-01",
+      "status": "stable",
+      "features": ["Balanced performance", "Lower cost"],
+      "breaking_changes": []
+    }
+  ],
+  "official_resources": {
+    "website": "https://cohere.com",
+    "docs": "https://docs.cohere.com",
+    "github": "https://github.com/cohere-ai"
+  },
+  "version_notes": [
+    "Command-R-Plus is most capable",
+    "Strong for enterprise use cases",
+    "Excellent for RAG applications"
+  ]
+}

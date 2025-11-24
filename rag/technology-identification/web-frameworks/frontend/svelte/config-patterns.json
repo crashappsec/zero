@@ -1,0 +1,19 @@
+{
+  "technology": "Svelte",
+  "category": "web-frameworks/frontend",
+  "confidence": 90,
+  "patterns": [
+    {
+      "file_patterns": [
+        "svelte.config.js",
+        "vite.config.js",
+        "*.svelte"
+      ],
+      "description": "Svelte configuration"
+    }
+  ],
+  "detection_notes": [
+    "svelte.config.js is definitive",
+    "Uses Vite for build"
+  ]
+}

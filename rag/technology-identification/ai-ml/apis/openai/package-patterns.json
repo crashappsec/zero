@@ -1,0 +1,31 @@
+{
+  "technology": "OpenAI",
+  "category": "ai-ml/apis",
+  "description": "OpenAI API client library for GPT-4, ChatGPT, DALL-E, and other AI models",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["openai"],
+      "description": "OpenAI Node.js client"
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["openai"],
+      "description": "OpenAI Python client"
+    }
+  ],
+  "related_packages": [
+    "@langchain/openai",
+    "openai-edge",
+    "gpt-tokenizer",
+    "tiktoken"
+  ],
+  "official_registry": "https://www.npmjs.com/package/openai",
+  "homepage": "https://openai.com",
+  "detection_notes": [
+    "Check for OpenAI API key in environment (OPENAI_API_KEY)",
+    "Look for GPT model names in code (gpt-4, gpt-3.5-turbo)",
+    "Common with LangChain and AI frameworks"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "technology": "Google AI",
+  "category": "ai-ml/apis",
+  "description": "Google's AI platforms including Gemini and Vertex AI for advanced AI capabilities",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["@google/generative-ai", "@google-cloud/vertexai"]
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["google-generativeai", "google-cloud-aiplatform"]
+    }
+  ],
+  "related_packages": [
+    "@langchain/google-genai",
+    "google-auth-library"
+  ],
+  "detection_notes": [
+    "Gemini for consumer AI",
+    "Vertex AI for enterprise",
+    "Multi-modal models"
+  ]
+}

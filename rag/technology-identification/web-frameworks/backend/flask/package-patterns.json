@@ -1,0 +1,36 @@
+{
+  "technology": "Flask",
+  "category": "web-frameworks/backend",
+  "description": "Lightweight WSGI web application framework - Python microframework for building web applications",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "pypi",
+      "names": ["Flask"],
+      "description": "Core Flask package"
+    },
+    {
+      "ecosystem": "pip",
+      "names": ["Flask"],
+      "description": "Install via pip"
+    }
+  ],
+  "related_packages": [
+    "flask-restful",
+    "flask-sqlalchemy",
+    "flask-migrate",
+    "flask-login",
+    "flask-wtf",
+    "flask-cors",
+    "gunicorn",
+    "werkzeug"
+  ],
+  "official_registry": "https://pypi.org/project/Flask/",
+  "homepage": "https://flask.palletsprojects.com",
+  "detection_notes": [
+    "Look for Flask in requirements.txt",
+    "Check for 'from flask import Flask' in Python files",
+    "app.py or main.py typically contains Flask app",
+    "Much simpler structure than Django"
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "technology": "langchain",
+  "category": "ai-ml/frameworks",
+  "confidence": 85,
+  "patterns": [
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".mjs"],
+      "patterns": [
+        {
+          "regex": "import\\s+.*\\s+from\\s+['\"]langchain['\"]",
+          "description": "ES6 import from langchain",
+          "example": "import langchain from 'langchain';"
+        },
+        {
+          "regex": "require\\(['\"]langchain['\"]\\)",
+          "description": "CommonJS require",
+          "example": "const langchain = require('langchain');"
+        }
+      ]
+    }
+  ],
+  "common_imports": [],
+  "detection_notes": [
+    "Look for langchain imports in JavaScript/TypeScript files",
+    "Check both ES6 and CommonJS patterns"
+  ]
+}

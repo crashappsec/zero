@@ -1,0 +1,43 @@
+{
+  "technology": "Django",
+  "category": "web-frameworks/backend",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "python",
+      "file_extensions": [".py"],
+      "patterns": [
+        {
+          "regex": "^from django\\.",
+          "description": "Django module import",
+          "example": "from django.db import models"
+        },
+        {
+          "regex": "^import django",
+          "description": "Direct Django import",
+          "example": "import django"
+        },
+        {
+          "regex": "from django\\.conf import settings",
+          "description": "Django settings import",
+          "example": "from django.conf import settings"
+        },
+        {
+          "regex": "from django\\.urls import path",
+          "description": "Django URL patterns",
+          "example": "from django.urls import path, include"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "django.db.models",
+    "django.views",
+    "django.urls",
+    "django.conf.settings"
+  ],
+  "detection_notes": [
+    "Django imports always start with 'from django.' or 'import django'",
+    "Check for models.Model, views.View base classes"
+  ]
+}

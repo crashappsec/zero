@@ -1,0 +1,19 @@
+{
+  "technology": "FastAPI",
+  "category": "web-frameworks/backend",
+  "confidence": 60,
+  "patterns": [
+    {
+      "variable_names": [
+        "DATABASE_URL",
+        "SECRET_KEY",
+        "API_KEY"
+      ],
+      "description": "Common FastAPI environment variables"
+    }
+  ],
+  "detection_notes": [
+    "FastAPI uses standard environment variables",
+    "Often uses python-dotenv or pydantic Settings"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "technology": "nestjs",
+  "category": "web-frameworks/backend",
+  "confidence": 50,
+  "patterns": [],
+  "notes": [
+    "nestjs may not have distinctive API endpoint patterns",
+    "Check for CDN URLs or hosted service endpoints"
+  ]
+}

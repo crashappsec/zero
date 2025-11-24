@@ -1,0 +1,38 @@
+{
+  "technology": "Next.js",
+  "category": "web-frameworks/frontend",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".jsx", ".ts", ".tsx"],
+      "patterns": [
+        {
+          "regex": "import.*from ['\"]next/",
+          "description": "Next.js imports",
+          "example": "import Link from 'next/link';"
+        },
+        {
+          "regex": "export.*getServerSideProps",
+          "description": "Next.js SSR",
+          "example": "export async function getServerSideProps()"
+        },
+        {
+          "regex": "export.*getStaticProps",
+          "description": "Next.js SSG",
+          "example": "export async function getStaticProps()"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "next/link",
+    "next/router",
+    "next/image",
+    "next/head"
+  ],
+  "detection_notes": [
+    "getServerSideProps and getStaticProps are Next.js specific",
+    "App Router (app/) vs Pages Router (pages/)"
+  ]
+}

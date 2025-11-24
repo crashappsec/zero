@@ -1,0 +1,43 @@
+{
+  "technology": "Spring Boot",
+  "category": "web-frameworks/backend",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "java",
+      "file_extensions": [".java"],
+      "patterns": [
+        {
+          "regex": "import org\\.springframework\\.boot\\.",
+          "description": "Spring Boot core imports",
+          "example": "import org.springframework.boot.SpringApplication;"
+        },
+        {
+          "regex": "@SpringBootApplication",
+          "description": "Spring Boot application annotation",
+          "example": "@SpringBootApplication public class Application {...}"
+        },
+        {
+          "regex": "@RestController|@Controller",
+          "description": "Spring MVC controller annotations",
+          "example": "@RestController public class UserController {...}"
+        },
+        {
+          "regex": "@GetMapping|@PostMapping|@PutMapping|@DeleteMapping",
+          "description": "Spring request mapping annotations",
+          "example": "@GetMapping(\"/users\") public List<User> getUsers() {...}"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "org.springframework.boot.SpringApplication",
+    "org.springframework.boot.autoconfigure.SpringBootApplication",
+    "org.springframework.web.bind.annotation.*"
+  ],
+  "detection_notes": [
+    "@SpringBootApplication is definitive",
+    "Spring annotations like @RestController, @GetMapping are characteristic",
+    "SpringApplication.run() starts the application"
+  ]
+}

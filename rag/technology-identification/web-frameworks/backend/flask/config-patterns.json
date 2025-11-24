@@ -1,0 +1,12 @@
+{
+  "technology": "flask",
+  "category": "web-frameworks/backend",
+  "confidence": 80,
+  "patterns": [],
+  "directory_conventions": [],
+  "detection_notes": [
+    "Look for flask-specific configuration files",
+    "Check for common directory structures",
+    "Verify with package.json or requirements.txt"
+  ]
+}

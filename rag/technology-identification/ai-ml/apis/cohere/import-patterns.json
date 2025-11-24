@@ -1,0 +1,43 @@
+{
+  "technology": "Cohere",
+  "category": "ai-ml/apis",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "python",
+      "file_extensions": [".py"],
+      "patterns": [
+        {
+          "regex": "import cohere|from cohere import",
+          "description": "Cohere SDK import",
+          "example": "import cohere"
+        },
+        {
+          "regex": "cohere\\.Client\\(",
+          "description": "Cohere client initialization",
+          "example": "co = cohere.Client(api_key)"
+        }
+      ]
+    },
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".ts"],
+      "patterns": [
+        {
+          "regex": "from ['\"]cohere-ai['\"]|require\\(['\"]cohere-ai['\"]\\)",
+          "description": "Cohere SDK import",
+          "example": "import { CohereClient } from 'cohere-ai';"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "cohere",
+    "cohere-ai"
+  ],
+  "detection_notes": [
+    "cohere.Client() initialization",
+    "co.generate() for text generation",
+    "co.embed() for embeddings"
+  ]
+}

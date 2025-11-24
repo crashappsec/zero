@@ -1,0 +1,20 @@
+{
+  "technology": "Nuxt",
+  "category": "web-frameworks/frontend",
+  "confidence": 75,
+  "patterns": [
+    {
+      "type": "endpoints",
+      "file_patterns": [
+        "server/api/**/*.js",
+        "server/api/**/*.ts"
+      ],
+      "description": "Nuxt 3 server API routes"
+    }
+  ],
+  "notes": [
+    "API routes in server/api/ directory",
+    "File-based routing for API endpoints",
+    "Auto-imports H3 utilities"
+  ]
+}

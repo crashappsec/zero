@@ -1,0 +1,74 @@
+{
+  "technology": "Vue",
+  "category": "web-frameworks/frontend",
+  "confidence": 80,
+  "patterns": [
+    {
+      "file_patterns": [
+        "vue.config.js",
+        "vue.config.ts",
+        "vite.config.js",
+        "vite.config.ts"
+      ],
+      "description": "Vue and Vite configuration files",
+      "examples": [
+        "vue.config.js - Vue CLI 3+ configuration",
+        "vite.config.js with @vitejs/plugin-vue - Modern Vue 3 setup"
+      ]
+    },
+    {
+      "file_patterns": [
+        ".vuerc",
+        ".vuepressrc",
+        "*.vue"
+      ],
+      "description": "Vue single-file components and config",
+      "examples": [
+        "App.vue, HelloWorld.vue - Single-file components"
+      ]
+    },
+    {
+      "content_patterns": [
+        {
+          "regex": "@vitejs/plugin-vue",
+          "description": "Vite Vue plugin in config",
+          "files": ["vite.config.js", "vite.config.ts"]
+        },
+        {
+          "regex": "vue-cli-service",
+          "description": "Vue CLI service in package.json scripts",
+          "files": ["package.json"]
+        }
+      ]
+    }
+  ],
+  "directory_conventions": [
+    {
+      "path": "src/components/*.vue",
+      "description": "Vue components directory"
+    },
+    {
+      "path": "src/views/*.vue",
+      "description": "Vue views/pages directory"
+    },
+    {
+      "path": "src/router/index.js",
+      "description": "Vue Router configuration"
+    },
+    {
+      "path": "src/store/",
+      "description": "Vuex/Pinia store directory"
+    },
+    {
+      "path": "public/index.html",
+      "description": "Main HTML with Vue app mount point"
+    }
+  ],
+  "detection_notes": [
+    "vue.config.js indicates Vue CLI 3+ project",
+    "vite.config.js with @vitejs/plugin-vue indicates modern Vue 3 + Vite",
+    "Presence of .vue files is strongest indicator",
+    "Check for <div id=\"app\"> in index.html",
+    "src/components and src/views are standard conventions"
+  ]
+}

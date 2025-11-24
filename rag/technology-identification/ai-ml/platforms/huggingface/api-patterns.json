@@ -1,0 +1,23 @@
+{
+  "technology": "Hugging Face",
+  "category": "ai-ml/platforms",
+  "confidence": 75,
+  "patterns": [
+    {
+      "type": "api-calls",
+      "code_patterns": [
+        "pipeline(",
+        "from_pretrained(",
+        "load_dataset(",
+        "AutoModel"
+      ],
+      "description": "Hugging Face API patterns"
+    }
+  ],
+  "notes": [
+    "pipeline() for quick inference",
+    "from_pretrained() loads models from Hub",
+    "Auto* classes for automatic model selection",
+    "Inference API for hosted models"
+  ]
+}

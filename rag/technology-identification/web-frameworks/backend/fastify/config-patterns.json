@@ -1,0 +1,34 @@
+{
+  "technology": "Fastify",
+  "category": "web-frameworks/backend",
+  "confidence": 70,
+  "patterns": [
+    {
+      "file_patterns": [
+        "fastify.config.js",
+        "app.js",
+        "server.js"
+      ],
+      "description": "Common Fastify application entry points"
+    }
+  ],
+  "directory_conventions": [
+    {
+      "path": "routes/",
+      "description": "Route definitions"
+    },
+    {
+      "path": "plugins/",
+      "description": "Custom Fastify plugins"
+    },
+    {
+      "path": "schemas/",
+      "description": "JSON schemas for validation"
+    }
+  ],
+  "detection_notes": [
+    "No definitive config file (framework-agnostic)",
+    "Typically initialized in server.js or app.js",
+    "Plugin-based architecture"
+  ]
+}

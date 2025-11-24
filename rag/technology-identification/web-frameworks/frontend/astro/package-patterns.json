@@ -1,0 +1,25 @@
+{
+  "technology": "Astro",
+  "category": "web-frameworks/frontend",
+  "description": "The web framework for content-driven websites - Build fast websites with less client-side JavaScript",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["astro"]
+    }
+  ],
+  "related_packages": [
+    "@astrojs/react",
+    "@astrojs/vue",
+    "@astrojs/svelte",
+    "@astrojs/solid-js",
+    "@astrojs/tailwind",
+    "@astrojs/mdx"
+  ],
+  "detection_notes": [
+    "Astro is a static site generator with component islands architecture",
+    "Can use React, Vue, Svelte, or Solid components",
+    "Focuses on zero JS by default"
+  ]
+}

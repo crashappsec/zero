@@ -1,0 +1,20 @@
+{
+  "technology": "Anthropic Claude",
+  "category": "ai-ml/apis",
+  "confidence": 85,
+  "patterns": [
+    {
+      "variable_names": [
+        "ANTHROPIC_API_KEY",
+        "ANTHROPIC_MODEL",
+        "CLAUDE_API_KEY"
+      ],
+      "description": "Anthropic API environment variables"
+    }
+  ],
+  "detection_notes": [
+    "ANTHROPIC_API_KEY is the primary indicator",
+    "API keys start with 'sk-ant-'",
+    "Model names like claude-3-opus, claude-3-sonnet"
+  ]
+}

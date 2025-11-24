@@ -1,0 +1,31 @@
+{
+  "technology": "Vue",
+  "category": "web-frameworks/frontend",
+  "confidence": 50,
+  "patterns": [
+    {
+      "type": "cdn",
+      "urls": [
+        "https://cdn.jsdelivr.net/npm/vue",
+        "https://unpkg.com/vue",
+        "https://cdn.jsdelivr.net/npm/vue@3",
+        "https://cdn.jsdelivr.net/npm/vue@2"
+      ],
+      "description": "Vue CDN URLs in HTML"
+    },
+    {
+      "type": "devtools",
+      "indicators": [
+        "__VUE__",
+        "__VUE_DEVTOOLS_GLOBAL_HOOK__"
+      ],
+      "description": "Vue DevTools global hook"
+    }
+  ],
+  "notes": [
+    "Vue is a client-side framework with no server-side API patterns",
+    "CDN usage indicates Vue loaded from external source",
+    "DevTools hook indicates Vue running in browser",
+    "Check for vue.js or vue.min.js in <script> tags"
+  ]
+}

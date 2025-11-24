@@ -1,0 +1,40 @@
+{
+  "technology": "Vue",
+  "category": "web-frameworks/frontend",
+  "confidence": 60,
+  "patterns": [
+    {
+      "prefix": "VUE_APP_",
+      "description": "Vue CLI environment variables",
+      "examples": [
+        "VUE_APP_API_URL",
+        "VUE_APP_TITLE",
+        "VUE_APP_VERSION"
+      ],
+      "notes": "Vue CLI exposes only variables prefixed with VUE_APP_"
+    },
+    {
+      "prefix": "VITE_",
+      "description": "Vite environment variables (Vue 3 + Vite)",
+      "examples": [
+        "VITE_API_URL",
+        "VITE_APP_TITLE"
+      ],
+      "notes": "Vite exposes only variables prefixed with VITE_"
+    },
+    {
+      "variable_names": [
+        "NODE_ENV",
+        "VUE_CLI_MODERN_BUILD",
+        "VUE_CLI_MODERN_MODE"
+      ],
+      "description": "Vue CLI build environment variables"
+    }
+  ],
+  "detection_notes": [
+    "VUE_APP_ prefix indicates Vue CLI project",
+    "VITE_ prefix indicates Vite + Vue 3 project",
+    "Variables must be prefixed to be accessible in Vue app",
+    "Check .env, .env.local, .env.production files"
+  ]
+}
