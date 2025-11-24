@@ -1,0 +1,155 @@
+name: Technology Identification Tests
+
+on:
+  push:
+    branches: [ main, feature/technology-identification ]
+    paths:
+      - 'utils/technology-identification/**'
+      - 'rag/technology-identification/**'
+      - 'prompts/technology-identification/**'
+      - '.github/workflows/test-technology-identification.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'utils/technology-identification/**'
+      - 'rag/technology-identification/**'
+      - 'prompts/technology-identification/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up dependencies
+        run: |
+          # Update package lists
+          sudo apt-get update
+
+          # Install jq
+          sudo apt-get install -y jq bc
+
+          # Install syft for SBOM generation
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+          # Install osv-scanner
+          go install github.com/google/osv-scanner/cmd/osv-scanner@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Verify installations
+        run: |
+          echo "Checking installed versions..."
+          jq --version
+          syft version
+          osv-scanner --version || echo "osv-scanner installed (no version flag)"
+
+      - name: Make test scripts executable
+        run: |
+          chmod +x utils/technology-identification/tests/run-all-tests.sh
+          chmod +x utils/technology-identification/tests/unit/*.sh
+          chmod +x utils/technology-identification/tests/integration/*.sh
+
+      - name: Run unit tests
+        run: |
+          cd utils/technology-identification/tests
+          ./run-all-tests.sh
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            utils/technology-identification/tests/**/*.log
+            utils/technology-identification/tests/**/test-*.txt
+
+  # Separate job for Claude AI tests (only if API key available)
+  test-claude:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Test Claude AI integration
+        if: ${{ secrets.ANTHROPIC_API_KEY != '' }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # Create test repo
+          mkdir -p test-repo
+          echo '{"dependencies":{"stripe":"^14.0.0"}}' > test-repo/package.json
+
+          # Run analyzer with Claude
+          cd utils/technology-identification
+          ./technology-identification-analyser.sh \
+            --claude \
+            --local-path ../../test-repo \
+            --format json \
+            --output test-claude-output.json
+
+          # Verify Claude analysis completed
+          if [ -f test-claude-output.json ]; then
+            echo "Claude analysis completed successfully"
+            cat test-claude-output.json | jq '.technologies | length'
+          else
+            echo "Claude analysis output not found"
+            exit 1
+          fi
+
+  # Code quality checks
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Run ShellCheck on scripts
+        run: |
+          find utils/technology-identification -name "*.sh" -type f \
+            -exec shellcheck --severity=warning {} +
+
+      - name: Check for bash syntax errors
+        run: |
+          find utils/technology-identification -name "*.sh" -type f \
+            -exec bash -n {} \;
+
+  # Coverage report (future enhancement)
+  coverage:
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate coverage report
+        run: |
+          echo "Test coverage reporting not yet implemented"
+          echo "TODO: Implement bash test coverage tracking"
+
+          # Placeholder for future coverage implementation
+          # Could use tools like:
+          # - bashcov
+          # - kcov
+          # - shcov
+
+      - name: Comment coverage on PR
+        if: github.event_name == 'pull_request'
+        run: |
+          echo "Will add coverage comment to PR in future"
