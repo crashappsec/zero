@@ -1,0 +1,10 @@
+{
+  "technology": "OpenAI",
+  "category": "ai-ml/apis",
+  "confidence": 70,
+  "patterns": [],
+  "detection_notes": [
+    "OpenAI typically configured via environment variables",
+    "No specific config files"
+  ]
+}

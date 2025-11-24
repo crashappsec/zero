@@ -1,0 +1,32 @@
+{
+  "technology": "Spring Boot",
+  "category": "web-frameworks/backend",
+  "current_stable": "3.2.0",
+  "current_major": 3,
+  "release_history": [
+    {
+      "version": "3.2.0",
+      "release_date": "2023-11-23",
+      "status": "stable",
+      "features": ["Java 21 support", "Native compilation improvements"],
+      "breaking_changes": []
+    },
+    {
+      "version": "3.0.0",
+      "release_date": "2022-11-24",
+      "status": "stable",
+      "features": ["Java 17 baseline", "Jakarta EE 9", "Native compilation"],
+      "breaking_changes": ["Java 17 required", "javax.* to jakarta.* migration"]
+    }
+  ],
+  "official_resources": {
+    "website": "https://spring.io/projects/spring-boot",
+    "docs": "https://docs.spring.io/spring-boot/docs/current/reference/html/",
+    "github": "https://github.com/spring-projects/spring-boot"
+  },
+  "version_notes": [
+    "Spring Boot 3.x requires Java 17+",
+    "Spring Boot 2.x still widely used (Java 8+)",
+    "Strong enterprise adoption"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "technology": "Vue",
+  "category": "web-frameworks/frontend",
+  "description": "The Progressive JavaScript Framework - Approachable, performant and versatile framework for building web user interfaces",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["vue"],
+      "scoped_names": ["@vue/cli", "@vue/cli-service", "@vue/compiler-sfc"],
+      "description": "Core Vue 3.x package and official tooling"
+    },
+    {
+      "ecosystem": "yarn",
+      "names": ["vue"],
+      "description": "Core Vue package via Yarn"
+    },
+    {
+      "ecosystem": "pnpm",
+      "names": ["vue"],
+      "description": "Core Vue package via pnpm"
+    }
+  ],
+  "related_packages": [
+    "vue-router",
+    "vuex",
+    "pinia",
+    "vite",
+    "@vitejs/plugin-vue",
+    "nuxt",
+    "vue-loader",
+    "vuepress",
+    "quasar",
+    "vuetify",
+    "element-plus",
+    "naive-ui"
+  ],
+  "official_registry": "https://www.npmjs.com/package/vue",
+  "homepage": "https://vuejs.org",
+  "detection_notes": [
+    "Check for vue in dependencies or devDependencies",
+    "Look for .vue single-file components",
+    "Check for vue.config.js or vite.config.js with Vue plugin",
+    "Look for @vue scoped packages (Vue 3 ecosystem)",
+    "Pinia is the new official state management (replaces Vuex in Vue 3)"
+  ]
+}

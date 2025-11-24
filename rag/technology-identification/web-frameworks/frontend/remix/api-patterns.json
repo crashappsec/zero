@@ -1,0 +1,10 @@
+{
+  "technology": "remix",
+  "category": "web-frameworks/frontend",
+  "confidence": 50,
+  "patterns": [],
+  "notes": [
+    "remix may not have distinctive API endpoint patterns",
+    "Check for CDN URLs or hosted service endpoints"
+  ]
+}

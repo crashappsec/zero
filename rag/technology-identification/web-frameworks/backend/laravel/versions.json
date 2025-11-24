@@ -1,0 +1,32 @@
+{
+  "technology": "Laravel",
+  "category": "web-frameworks/backend",
+  "current_stable": "11.0.0",
+  "current_major": 11,
+  "release_history": [
+    {
+      "version": "11.0.0",
+      "release_date": "2024-03-12",
+      "status": "stable",
+      "features": ["PHP 8.2 required", "Improved performance"],
+      "breaking_changes": ["PHP 8.2 minimum"]
+    },
+    {
+      "version": "10.0.0",
+      "release_date": "2023-02-14",
+      "status": "stable",
+      "features": ["Native type declarations", "Laravel Pennant"],
+      "breaking_changes": []
+    }
+  ],
+  "official_resources": {
+    "website": "https://laravel.com",
+    "docs": "https://laravel.com/docs",
+    "github": "https://github.com/laravel/laravel"
+  },
+  "version_notes": [
+    "Laravel 11.x is current major version",
+    "New major version annually",
+    "LTS releases every 2 years"
+  ]
+}

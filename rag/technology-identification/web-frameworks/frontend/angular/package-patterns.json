@@ -1,0 +1,52 @@
+{
+  "technology": "Angular",
+  "category": "web-frameworks/frontend",
+  "description": "Platform for building mobile and desktop web applications - Google's enterprise-grade framework with TypeScript",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["@angular/core", "@angular/common", "@angular/platform-browser"],
+      "scoped_names": [
+        "@angular/animations",
+        "@angular/cli",
+        "@angular/compiler",
+        "@angular/forms",
+        "@angular/router",
+        "@angular/platform-browser-dynamic"
+      ],
+      "description": "Core Angular packages - all @angular/* scoped"
+    },
+    {
+      "ecosystem": "yarn",
+      "names": ["@angular/core"],
+      "description": "Core Angular package via Yarn"
+    },
+    {
+      "ecosystem": "pnpm",
+      "names": ["@angular/core"],
+      "description": "Core Angular package via pnpm"
+    }
+  ],
+  "related_packages": [
+    "@ngrx/store",
+    "@ngrx/effects",
+    "rxjs",
+    "zone.js",
+    "@angular/material",
+    "@angular/cdk",
+    "ng-bootstrap",
+    "primeng",
+    "@ngx-translate/core",
+    "angular-cli-ghpages"
+  ],
+  "official_registry": "https://www.npmjs.com/package/@angular/core",
+  "homepage": "https://angular.io",
+  "detection_notes": [
+    "All Angular packages are scoped under @angular/*",
+    "Presence of @angular/core is definitive indicator",
+    "Angular always requires rxjs and zone.js",
+    "Angular CLI projects have angular.json",
+    "@ngrx is the official Redux-style state management"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "technology": "Astro",
+  "category": "web-frameworks/frontend",
+  "current_stable": "4.0.0",
+  "current_major": 4,
+  "release_history": [
+    {
+      "version": "4.0.0",
+      "release_date": "2023-12-05",
+      "status": "stable",
+      "features": ["View Transitions", "Improved performance"],
+      "breaking_changes": []
+    },
+    {
+      "version": "3.0.0",
+      "release_date": "2023-08-30",
+      "status": "stable",
+      "features": ["Image optimization", "Hybrid rendering"],
+      "breaking_changes": []
+    }
+  ],
+  "official_resources": {
+    "website": "https://astro.build",
+    "docs": "https://docs.astro.build",
+    "github": "https://github.com/withastro/astro"
+  },
+  "version_notes": [
+    "Astro 4.x is current major version",
+    "Frequent updates for performance",
+    "Multi-framework support (React, Vue, Svelte, etc.)"
+  ]
+}

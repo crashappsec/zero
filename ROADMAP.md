@@ -6,6 +6,12 @@ SPDX-License-Identifier: GPL-3.0
 
 # Gibson Powers Roadmap
 
+**Vision**: Position Gibson Powers as the leading **open-source Developer Productivity Intelligence (DPI) platform** — an alternative to commercial tools like DX, Jellyfish, and Swarmia.
+
+By combining deep build inspection, technology intelligence, and security integration with the Crash Override platform, Gibson Powers will offer unique capabilities that proprietary solutions cannot match.
+
+**See**: [Competitive Analysis: DPI Tools](docs/competitive-analysis-dpi-tools.md) for detailed positioning
+
 This roadmap outlines planned features and enhancements for the gibson-powers repository. Community contributions and suggestions are welcome!
 
 ## How to Contribute Ideas
@@ -17,9 +23,151 @@ We welcome community input on our roadmap! Here's how you can participate:
 3. **Vote with Reactions**: Use 👍 reactions on issues to help us prioritize
 4. **Contribute Code**: Pick up any roadmap item and submit a PR
 
+---
+
+## Developer Productivity Intelligence (DPI) Strategy
+
+### Our Unique Position
+
+Gibson Powers is being built as the **open-source alternative** to commercial DPI platforms (DX, Jellyfish, Swarmia). Unlike proprietary solutions that only analyze git commits and issue trackers, Gibson Powers provides:
+
+**🏆 Unique Capabilities (No Competitor Offers)**:
+- **Deep Build Inspection**: Complete visibility into how software is built and deployed (CI/CD pipelines, deployment practices, build performance, supply chain)
+- **Technology Intelligence**: Automated detection of 100+ technologies, frameworks, and tools (including AI tools)
+- **Platform Integration**: Native Crash Override platform integration for enterprise team collaboration and historical analytics
+- **Self-Hosted & Open Source**: Your data, your infrastructure, zero per-seat costs
+- **Security in DNA**: Strong security features built-in by founders with deep security expertise
+
+**🎯 Feature Parity Goals**:
+- DORA metrics (like all competitors)
+- SPACE framework (like DX and Swarmia)
+- Developer experience surveys (like Swarmia)
+- Investment tracking and business alignment (like Jellyfish)
+- Resource allocation and planning (like Jellyfish)
+- AI impact measurement (like DX and Swarmia)
+
+### Phased DPI Roadmap
+
+#### **Phase 1: Foundation** (Current - Q1 2025) ✅
+Build unique capabilities no competitor offers
+
+**Status**: ✅ In Progress
+- [x] Code ownership analysis
+- [x] SBOM generation and scanning
+- [x] Multi-layer confidence scoring
+- [ ] Technology intelligence (7 → 100 technologies) - **Actively Developing**
+- [ ] Dynamic pattern loading (data-driven detection)
+- [ ] Comprehensive testing infrastructure
+
+**Deliverables**:
+- v0.3.0: Technology intelligence (100+ technologies)
+- v0.4.0: Advanced SBOM analysis and vulnerability tracking
+
+---
+
+#### **Phase 2: Developer Experience** (Q2 2025) 🎯
+Match DX and Swarmia on developer experience insights
+
+**Features**:
+- Developer experience surveys (inspired by Swarmia's 32-question framework)
+- Flow metrics (cycle time, PR review time, deployment frequency)
+- Bottleneck identification
+- Working agreements monitoring
+- CI/CD performance tracking
+- Build speed analysis
+
+**Crash Override Integration**:
+- Vulnerability remediation time tracking
+- Security debt measurement
+- Compliance workflow visibility
+- Security-as-code analysis
+
+**Deliverables**:
+- v0.5.0: Developer experience surveys
+- v0.6.0: Flow metrics and bottleneck analysis
+
+---
+
+#### **Phase 3: Business Alignment** (Q3 2025) 🎯
+Match Jellyfish on business outcome tracking
+
+**Features**:
+- Investment tracking (where is engineering time spent?)
+- Initiative monitoring (cross-team strategic projects)
+- Resource allocation planning
+- Software capitalization reporting
+- OKR alignment and tracking
+- Quarterly planning with capacity forecasting
+
+**Crash Override Integration**:
+- Security ROI measurement
+- Risk-based priority alignment
+- Automated audit trail generation
+- Compliance evidence collection
+
+**Deliverables**:
+- v0.7.0: Investment tracking and business alignment
+- v0.8.0: Resource allocation and planning
+
+---
+
+#### **Phase 4: Advanced Intelligence** (Q4 2025) 🎯
+Exceed all competitors with predictive insights
+
+**Features**:
+- AI impact measurement (like DX)
+- Predictive analytics (forecast delivery timelines)
+- Technical debt scoring
+- Dependency health tracking
+- License compliance automation
+- Team health indicators
+
+**Crash Override Integration**:
+- Predictive vulnerability analysis
+- Security posture trends
+- Automated remediation suggestions
+- Supply chain risk forecasting
+
+**Deliverables**:
+- v0.9.0: AI impact measurement and predictive analytics
+- v1.0.0: **Production-ready DPI platform**
+
+---
+
+#### **Phase 5: Platform Leadership** (2026+) 🚀
+Become the definitive open-source DPI platform
+
+**Features**:
+- Plugin ecosystem for custom metrics
+- Multi-organization support
+- Advanced visualization and dashboards
+- Real-time alerting and notifications
+- Mobile app for engineering leaders
+- Integration marketplace
+
+**Crash Override Integration**:
+- Unified security + productivity dashboard
+- Automated security-as-code workflows
+- Supply chain security monitoring
+- Zero-trust build attestation
+
+**Deliverables**:
+- v1.x: Continuous feature releases
+- Community-driven roadmap
+- Enterprise support offerings
+
+---
+
 ## Planned Features and Enhancements
 
-Features are organized by category. All items listed here are waiting to be implemented.
+Features are organized by category. Items marked with a DPI phase indicator (e.g., 📊 Phase 2) are part of our Developer Productivity Intelligence strategy.
+
+**Legend**:
+- ✅ Completed
+- 🚧 Actively Developing
+- 🎯 Planned
+- 🔬 Research
+- 📊 Part of DPI strategy
 
 ---
 
@@ -277,16 +425,61 @@ Streamline incident response workflows:
 - Communication template generation
 - Blameless culture best practices
 
-#### Developer Experience (DX) Metrics
+#### Developer Experience (DX) Metrics 📊 Phase 2
 
-Measure and improve developer productivity:
-- Build/CI/CD speed metrics
+**Status**: 🎯 Planned (Q2 2025)
+
+Comprehensive developer experience measurement combining quantitative metrics and qualitative insights:
+
+**Flow Metrics** (Inspired by Swarmia):
+- Cycle time (issue creation → deployment)
+- PR review time and wait time
+- Deployment frequency
+- Lead time for changes
+- Build duration trends
+- CI/CD performance analysis
+
+**Developer Satisfaction** (Inspired by Swarmia's 32-question framework):
+- Developer experience surveys
+- Tool effectiveness ratings
+- Toil identification
+- Pain point tracking
+- Onboarding experience measurement
+- Team health indicators
+
+**Productivity Insights** (Inspired by DX):
 - Development environment setup time
-- Toil identification and reduction
 - Feedback loop measurements
-- Developer satisfaction surveys
-- Onboarding time tracking
-- Tool effectiveness analysis
+- Context switching analysis
+- Meeting time impact
+- Focus time availability
+- Unplanned work interruptions
+
+**Bottleneck Detection**:
+- Identify slowest parts of delivery pipeline
+- Code review bottlenecks
+- CI/CD performance issues
+- Dependency wait times
+- Manual process identification
+
+**Working Agreements**:
+- Define and monitor team norms
+- SLA tracking (PR review within 24h, etc.)
+- Automated reminders and notifications
+- Trend analysis and compliance reporting
+
+**Integration with Crash Override**:
+- Security debt impact on velocity
+- Vulnerability remediation time
+- Security review bottlenecks
+- Compliance overhead measurement
+
+**Use Cases:**
+- Improve developer happiness and retention
+- Identify and reduce toil
+- Optimize development workflows
+- Data-driven team improvements
+- Executive reporting on developer experience
 
 #### API Design and Documentation
 
@@ -383,9 +576,22 @@ Detect and remediate exposed secrets and sensitive data:
 
 **Related to**: Legal Review skill (content policy and license compliance)
 
-#### Technology Audit and Stack Analysis
+#### Technology Audit and Stack Analysis 📊 Phase 1
 
 **Status**: 🚧 Actively Developing - Technology identification in progress
+
+**Approach**: Unlike traditional tools that use separate analyzers for different detection methods, Gibson Powers uses a **unified multi-layer analysis** that combines all detection approaches in a single pass for higher accuracy and confidence scoring.
+
+**Multi-Layer Detection Architecture**:
+1. **Layer 1a**: SBOM package detection (from Syft/osv-scanner)
+2. **Layer 1b**: Manifest file analysis (package.json, requirements.txt, etc.)
+3. **Layer 2**: Configuration file patterns
+4. **Layer 3**: Import statement analysis (code parsing)
+5. **Layer 4**: API endpoint detection
+6. **Layer 5**: Environment variable patterns
+7. **Layer 6**: Bayesian confidence aggregation across all layers
+
+This unified approach provides **composite confidence scores** by aggregating evidence from multiple sources, giving higher confidence when multiple detection methods agree.
 
 Analyze technology stack, dependencies, and platform usage:
 
@@ -536,4 +742,11 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-*Last Updated: 2025-11-23*
+*Last Updated: 2025-01-24*
+
+**Recent Changes**:
+- Added Developer Productivity Intelligence (DPI) strategy and positioning
+- Documented competitive analysis vs DX, Jellyfish, and Swarmia
+- Added phased roadmap (Phase 1-5) with Crash Override integration
+- Updated Technology Audit to reflect unified multi-layer analysis approach
+- Expanded Developer Experience metrics with flow metrics and surveys

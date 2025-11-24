@@ -1,0 +1,32 @@
+{
+  "technology": "Phoenix",
+  "category": "web-frameworks/backend",
+  "current_stable": "1.7.10",
+  "current_major": 1,
+  "release_history": [
+    {
+      "version": "1.7.0",
+      "release_date": "2023-03-30",
+      "status": "stable",
+      "features": ["Verified Routes", "Tailwind by default", "LiveView improvements"],
+      "breaking_changes": []
+    },
+    {
+      "version": "1.6.0",
+      "release_date": "2021-12-11",
+      "status": "stable",
+      "features": ["HEEx templates", "Component slots"],
+      "breaking_changes": []
+    }
+  ],
+  "official_resources": {
+    "website": "https://www.phoenixframework.org",
+    "docs": "https://hexdocs.pm/phoenix/",
+    "github": "https://github.com/phoenixframework/phoenix"
+  },
+  "version_notes": [
+    "Phoenix 1.7 is current major version",
+    "Built on Elixir and Erlang/OTP",
+    "Excellent for real-time and concurrent applications"
+  ]
+}

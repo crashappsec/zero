@@ -15,6 +15,13 @@ REPO_ROOT="$(cd "$UTILS_ROOT/.." && pwd)"
 source "$REPO_ROOT/utils/lib/config.sh"
 source "$REPO_ROOT/utils/lib/github.sh"
 
+# Load .env file if it exists in repository root
+if [[ -f "$REPO_ROOT/.env" ]]; then
+    set -a  # automatically export all variables
+    source "$REPO_ROOT/.env"
+    set +a  # stop automatically exporting
+fi
+
 # Configuration
 LEGAL_CONFIG="${REPO_ROOT}/config/legal-review-config.json"
 VERBOSE=false

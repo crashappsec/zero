@@ -1,0 +1,10 @@
+{
+  "technology": "django",
+  "category": "web-frameworks/backend",
+  "confidence": 50,
+  "patterns": [],
+  "notes": [
+    "django may not have distinctive API endpoint patterns",
+    "Check for CDN URLs or hosted service endpoints"
+  ]
+}

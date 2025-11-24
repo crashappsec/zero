@@ -1,0 +1,23 @@
+{
+  "technology": "flask",
+  "category": "auto-generated",
+  "current_stable": "",
+  "release_history": [
+    {
+      "version": "",
+      "release_date": "unknown",
+      "status": "stable",
+      "eol_date": null,
+      "features": [],
+      "breaking_changes": []
+    }
+  ],
+  "version_detection": {
+    "requirements_txt": "Flask"
+  },
+  "official_resources": {
+    "pypi": "https://pypi.org/project/Flask/",
+    "homepage": "",
+    "repository": ""
+  }
+}

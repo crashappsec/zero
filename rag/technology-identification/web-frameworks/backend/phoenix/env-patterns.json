@@ -1,0 +1,22 @@
+{
+  "technology": "Phoenix",
+  "category": "web-frameworks/backend",
+  "confidence": 70,
+  "patterns": [
+    {
+      "variable_names": [
+        "PHX_SERVER",
+        "PHX_HOST",
+        "PORT",
+        "SECRET_KEY_BASE",
+        "DATABASE_URL"
+      ],
+      "description": "Phoenix environment variables"
+    }
+  ],
+  "detection_notes": [
+    "PHX_ prefix for Phoenix-specific vars",
+    "SECRET_KEY_BASE required for sessions",
+    "DATABASE_URL for Ecto database config"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "technology": "Svelte",
+  "category": "web-frameworks/frontend",
+  "description": "Cybernetically enhanced web apps - Compiler-based framework with no virtual DOM",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["svelte"],
+      "scoped_names": ["@sveltejs/kit", "@sveltejs/adapter-auto"],
+      "description": "Svelte compiler and SvelteKit"
+    }
+  ],
+  "related_packages": [
+    "@sveltejs/kit",
+    "vite",
+    "svelte-check",
+    "svelte-preprocess"
+  ],
+  "official_registry": "https://www.npmjs.com/package/svelte",
+  "homepage": "https://svelte.dev",
+  "detection_notes": [
+    "Look for .svelte files",
+    "SvelteKit is the meta-framework (like Next.js for React)",
+    "Uses Vite for build tooling"
+  ]
+}

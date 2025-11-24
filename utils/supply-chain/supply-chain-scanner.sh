@@ -16,12 +16,20 @@ set -e
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 UTILS_ROOT="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(dirname "$UTILS_ROOT")"
 CONFIG_FILE="$SCRIPT_DIR/config.json"
 CONFIG_EXAMPLE="$SCRIPT_DIR/config.example.json"
 
 # Load config library
 if [[ -f "$UTILS_ROOT/lib/config-loader.sh" ]]; then
     source "$UTILS_ROOT/lib/config-loader.sh"
+fi
+
+# Load .env file if it exists in repository root
+if [[ -f "$REPO_ROOT/.env" ]]; then
+    set -a  # automatically export all variables
+    source "$REPO_ROOT/.env"
+    set +a  # stop automatically exporting
 fi
 
 # Colors for output

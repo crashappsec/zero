@@ -1,0 +1,44 @@
+{
+  "technology": "Google AI",
+  "category": "ai-ml/apis",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "python",
+      "file_extensions": [".py"],
+      "patterns": [
+        {
+          "regex": "from google\\.generativeai import|import google\\.generativeai",
+          "description": "Google Generative AI import",
+          "example": "import google.generativeai as genai"
+        },
+        {
+          "regex": "from google\\.cloud import aiplatform",
+          "description": "Vertex AI import",
+          "example": "from google.cloud import aiplatform"
+        }
+      ]
+    },
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".ts"],
+      "patterns": [
+        {
+          "regex": "from ['\"]@google/generative-ai['\"]|require\\(['\"]@google/generative-ai['\"]\\)",
+          "description": "Google Generative AI SDK",
+          "example": "import { GoogleGenerativeAI } from '@google/generative-ai';"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "google.generativeai",
+    "@google/generative-ai",
+    "google.cloud.aiplatform"
+  ],
+  "detection_notes": [
+    "genai.GenerativeModel() for Gemini",
+    "aiplatform.init() for Vertex AI",
+    "gemini-* model names"
+  ]
+}

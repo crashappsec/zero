@@ -1,0 +1,21 @@
+{
+  "technology": "FastAPI",
+  "category": "web-frameworks/backend",
+  "confidence": 70,
+  "patterns": [
+    {
+      "type": "endpoints",
+      "urls": [
+        "/docs",
+        "/redoc",
+        "/openapi.json"
+      ],
+      "description": "Automatic FastAPI documentation endpoints"
+    }
+  ],
+  "notes": [
+    "FastAPI auto-generates OpenAPI docs at /docs",
+    "ReDoc available at /redoc",
+    "OpenAPI schema at /openapi.json"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "technology": "Google AI",
+  "category": "ai-ml/apis",
+  "current_stable": "gemini-1.5-pro",
+  "current_major": 1,
+  "release_history": [
+    {
+      "version": "gemini-1.5-pro",
+      "release_date": "2024-02-15",
+      "status": "stable",
+      "features": ["1M context window", "Multi-modal"],
+      "breaking_changes": []
+    },
+    {
+      "version": "gemini-pro",
+      "release_date": "2023-12-06",
+      "status": "stable",
+      "features": ["Text generation", "Multi-turn chat"],
+      "breaking_changes": []
+    }
+  ],
+  "official_resources": {
+    "website": "https://ai.google.dev",
+    "docs": "https://ai.google.dev/docs",
+    "github": "https://github.com/google/generative-ai-docs"
+  },
+  "version_notes": [
+    "Gemini 1.5 Pro with 1M context",
+    "Vertex AI for enterprise",
+    "Strong multi-modal capabilities"
+  ]
+}

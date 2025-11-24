@@ -1,0 +1,27 @@
+{
+  "technology": "Phoenix",
+  "category": "web-frameworks/backend",
+  "confidence": 75,
+  "patterns": [
+    {
+      "type": "routes",
+      "file_patterns": [
+        "lib/*_web/router.ex"
+      ],
+      "description": "Phoenix router definitions"
+    },
+    {
+      "type": "controllers",
+      "file_patterns": [
+        "lib/*_web/controllers/**/*_controller.ex"
+      ],
+      "description": "Phoenix controllers"
+    }
+  ],
+  "notes": [
+    "Routes defined in router.ex",
+    "Controllers handle HTTP requests",
+    "RESTful resources via resources/4",
+    "LiveView for real-time updates"
+  ]
+}

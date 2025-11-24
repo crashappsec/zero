@@ -29,6 +29,25 @@ REPO_ROOT="$(dirname "$UTILS_ROOT")"
 # Load global libraries
 source "$UTILS_ROOT/lib/sbom.sh"
 source "$UTILS_ROOT/lib/github.sh"
+source "$SCRIPT_DIR/lib/pattern-loader.sh"
+
+# Load .env file if it exists in repository root
+if [[ -f "$REPO_ROOT/.env" ]]; then
+    set -a  # automatically export all variables
+    source "$REPO_ROOT/.env"
+    set +a  # stop automatically exporting
+fi
+
+# RAG patterns directory
+RAG_ROOT="$REPO_ROOT/rag/technology-identification"
+
+# Load RAG patterns at startup
+echo -e "${BLUE}Loading technology patterns...${NC}" >&2
+if load_all_patterns "$RAG_ROOT" 2>&1 | grep -v "^$" | grep -v "^load_" >&2; then
+    echo -e "${GREEN}✓ Patterns loaded${NC}" >&2
+else
+    echo -e "${YELLOW}⚠ Pattern loading had warnings${NC}" >&2
+fi
 
 # Default options
 OUTPUT_FORMAT="markdown"
@@ -119,12 +138,12 @@ clone_repository() {
     local repo_url="$1"
     TEMP_DIR=$(mktemp -d)
 
-    echo -e "${BLUE}Cloning repository...${NC}"
+    echo -e "${BLUE}Cloning repository...${NC}" >&2
     if git clone --depth 1 "$repo_url" "$TEMP_DIR" > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Repository cloned${NC}"
+        echo -e "${GREEN}✓ Repository cloned${NC}" >&2
         return 0
     else
-        echo -e "${RED}✗ Failed to clone repository${NC}"
+        echo -e "${RED}✗ Failed to clone repository${NC}" >&2
         return 1
     fi
 }
@@ -190,79 +209,27 @@ scan_sbom_packages() {
             ecosystem=$(echo "$purl" | sed -n 's/^pkg:\([^/]*\).*/\1/p')
         fi
 
-        # Map package names to technology categories
+        # Try to match package using RAG patterns
+        local match_result=$(match_package_name "$name" 2>/dev/null)
+
         local tech_category=""
         local tech_name=""
         local confidence=95
 
-        # Use pattern matching that works in bash case statements
-        case "$name" in
-            # Business Tools - Payment
-            stripe) tech_category="business-tools/payment"; tech_name="Stripe" ;;
-            paypal|paypal-*) tech_category="business-tools/payment"; tech_name="PayPal" ;;
-            square) tech_category="business-tools/payment"; tech_name="Square" ;;
-            braintree) tech_category="business-tools/payment"; tech_name="Braintree" ;;
+        if [[ -n "$match_result" ]]; then
+            # Extract info from RAG pattern match
+            tech_name=$(echo "$match_result" | jq -r '.technology // ""' 2>/dev/null)
+            tech_category=$(echo "$match_result" | jq -r '.category // ""' 2>/dev/null)
+            confidence=$(echo "$match_result" | jq -r '.confidence // 95' 2>/dev/null)
 
-            # Business Tools - Communication
-            twilio) tech_category="business-tools/communication"; tech_name="Twilio" ;;
-            sendgrid) tech_category="business-tools/communication"; tech_name="SendGrid" ;;
-            mailgun) tech_category="business-tools/communication"; tech_name="Mailgun" ;;
-
-            # Developer Tools - Infrastructure
-            terraform|terraform-*) tech_category="developer-tools/infrastructure"; tech_name="Terraform" ;;
-            ansible|ansible-*) tech_category="developer-tools/infrastructure"; tech_name="Ansible" ;;
-            pulumi|pulumi-*) tech_category="developer-tools/infrastructure"; tech_name="Pulumi" ;;
-
-            # Developer Tools - Containers
-            docker|docker-*) tech_category="developer-tools/containers"; tech_name="Docker" ;;
-            kubernetes|kubernetes-*|k8s|k8s-*) tech_category="developer-tools/containers"; tech_name="Kubernetes" ;;
-
-            # Web Frameworks - Frontend
-            react|react-dom) tech_category="web-frameworks/frontend"; tech_name="React" ;;
-            vue) tech_category="web-frameworks/frontend"; tech_name="Vue.js" ;;
-            angular|angular-*|@angular/*) tech_category="web-frameworks/frontend"; tech_name="Angular" ;;
-            svelte) tech_category="web-frameworks/frontend"; tech_name="Svelte" ;;
-            next) tech_category="web-frameworks/frontend"; tech_name="Next.js" ;;
-
-            # Web Frameworks - Backend
-            express) tech_category="web-frameworks/backend"; tech_name="Express" ;;
-            fastapi) tech_category="web-frameworks/backend"; tech_name="FastAPI" ;;
-            django) tech_category="web-frameworks/backend"; tech_name="Django" ;;
-            flask) tech_category="web-frameworks/backend"; tech_name="Flask" ;;
-            rails) tech_category="web-frameworks/backend"; tech_name="Ruby on Rails" ;;
-
-            # Databases - Relational
-            pg|postgres|postgresql) tech_category="databases/relational"; tech_name="PostgreSQL" ;;
-            mysql|mysql2) tech_category="databases/relational"; tech_name="MySQL" ;;
-            sqlite|sqlite3|sqlite-*) tech_category="databases/relational"; tech_name="SQLite" ;;
-
-            # Databases - NoSQL
-            mongodb|mongoose) tech_category="databases/nosql"; tech_name="MongoDB" ;;
-            redis) tech_category="databases/keyvalue"; tech_name="Redis" ;;
-
-            # Cloud - AWS
-            aws-sdk|aws-sdk-*|@aws-sdk/*|boto3|botocore) tech_category="cloud-providers/aws"; tech_name="AWS SDK" ;;
-
-            # Cloud - GCP
-            @google-cloud/*|google-cloud-*) tech_category="cloud-providers/gcp"; tech_name="Google Cloud SDK" ;;
-
-            # Cloud - Azure
-            @azure/*|azure-*) tech_category="cloud-providers/azure"; tech_name="Azure SDK" ;;
-
-            # Cryptographic Libraries
-            openssl|openssl-*) tech_category="cryptographic-libraries/tls"; tech_name="OpenSSL" ;;
-            jsonwebtoken|pyjwt) tech_category="cryptographic-libraries/jwt"; tech_name="JWT Library" ;;
-            bcrypt|bcrypt-*|bcryptjs) tech_category="cryptographic-libraries/hashing"; tech_name="bcrypt" ;;
-
-            # Message Queues
-            amqp|amqp-*|rabbitmq|rabbitmq-*) tech_category="message-queues"; tech_name="RabbitMQ" ;;
-            kafka|kafka-*|kafkajs) tech_category="message-queues"; tech_name="Apache Kafka" ;;
-
-            *)
-                # Unknown package, skip
+            # If we got a match, continue to create finding
+            if [[ -z "$tech_name" ]] || [[ -z "$tech_category" ]]; then
                 continue
-                ;;
-        esac
+            fi
+        else
+            # No RAG match - skip this package
+            continue
+        fi
 
         if [[ -n "$tech_category" ]]; then
             local finding=$(jq -n \
@@ -856,38 +823,38 @@ analyze_target() {
     # Determine target type and prepare
     if [[ -n "$LOCAL_PATH" ]]; then
         if [[ ! -d "$LOCAL_PATH" ]]; then
-            echo -e "${RED}Error: Local path does not exist: $LOCAL_PATH${NC}"
+            echo -e "${RED}Error: Local path does not exist: $LOCAL_PATH${NC}" >&2
             return 1
         fi
-        echo -e "${GREEN}Target: Local directory${NC}"
+        echo -e "${GREEN}Target: Local directory${NC}" >&2
         repo_path="$LOCAL_PATH"
     elif is_sbom_file "$target"; then
-        echo -e "${GREEN}Target: SBOM file${NC}"
+        echo -e "${GREEN}Target: SBOM file${NC}" >&2
         sbom_file="$target"
         # For SBOM-only analysis, we can only do Layer 1
-        echo ""
-        echo -e "${BLUE}Analyzing SBOM for technologies...${NC}"
+        echo "" >&2
+        echo -e "${BLUE}Analyzing SBOM for technologies...${NC}" >&2
         local layer1=$(scan_sbom_packages "$sbom_file")
         local results=$(aggregate_findings "$layer1" "[]" "[]" "[]" "[]")
         echo "$results"
         return 0
     elif is_git_url "$target"; then
-        echo -e "${GREEN}Target: Git repository${NC}"
+        echo -e "${GREEN}Target: Git repository${NC}" >&2
         if clone_repository "$target"; then
             repo_path="$TEMP_DIR"
         else
             return 1
         fi
     elif [[ -d "$target" ]]; then
-        echo -e "${GREEN}Target: Local directory${NC}"
+        echo -e "${GREEN}Target: Local directory${NC}" >&2
         repo_path="$target"
     else
-        echo -e "${RED}Error: Invalid target${NC}"
+        echo -e "${RED}Error: Invalid target${NC}" >&2
         return 1
     fi
 
     # Generate or use existing SBOM
-    echo ""
+    echo "" >&2
     sbom_file=$(get_or_generate_sbom "$repo_path")
     if [[ $? -ne 0 ]]; then
         return 1
@@ -964,7 +931,9 @@ EOF
         fi
 
         echo ""
-        echo "### $(echo "$category" | tr '/' ' ' | sed 's/\b\(.\)/\u\1/g')"
+        # Format category name: replace / with space and capitalize each word
+        local formatted_category=$(echo "$category" | tr '/' ' ' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')
+        echo "### $formatted_category"
         echo ""
 
         echo "$findings" | jq -r --arg cat "$category" '

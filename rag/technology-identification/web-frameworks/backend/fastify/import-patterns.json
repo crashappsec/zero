@@ -1,0 +1,38 @@
+{
+  "technology": "Fastify",
+  "category": "web-frameworks/backend",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".ts"],
+      "patterns": [
+        {
+          "regex": "import.*fastify|require\\(['\"]fastify['\"]\\)",
+          "description": "Fastify framework import",
+          "example": "import Fastify from 'fastify';"
+        },
+        {
+          "regex": "fastify\\(\\{|fastify\\(\\)",
+          "description": "Fastify instance creation",
+          "example": "const app = fastify({ logger: true });"
+        },
+        {
+          "regex": "\\.register\\(|fastify-plugin",
+          "description": "Fastify plugin registration",
+          "example": "app.register(somePlugin);"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "fastify",
+    "@fastify/autoload",
+    "fastify-plugin"
+  ],
+  "detection_notes": [
+    "fastify() initialization is characteristic",
+    "Plugin registration via .register()",
+    "Route handlers receive (request, reply)"
+  ]
+}

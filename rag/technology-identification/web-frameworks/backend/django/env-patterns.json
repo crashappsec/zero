@@ -1,0 +1,10 @@
+{
+  "technology": "django",
+  "category": "web-frameworks/backend",
+  "confidence": 60,
+  "patterns": [],
+  "detection_notes": [
+    "Look for django-related environment variables",
+    "Check .env files and environment configuration"
+  ]
+}

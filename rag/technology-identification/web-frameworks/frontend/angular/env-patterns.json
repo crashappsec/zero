@@ -1,0 +1,33 @@
+{
+  "technology": "Angular",
+  "category": "web-frameworks/frontend",
+  "confidence": 65,
+  "patterns": [
+    {
+      "prefix": "NG_",
+      "description": "Angular CLI environment variables",
+      "examples": [
+        "NG_BUILD_CACHE",
+        "NG_CLI_ANALYTICS"
+      ],
+      "notes": "Angular CLI uses NG_ prefix for build-related variables"
+    },
+    {
+      "variable_names": [
+        "NODE_ENV"
+      ],
+      "description": "Standard Node.js environment variable used by Angular build"
+    }
+  ],
+  "environment_files": [
+    "src/environments/environment.ts",
+    "src/environments/environment.prod.ts",
+    "src/environments/environment.staging.ts"
+  ],
+  "detection_notes": [
+    "Angular uses src/environments/ directory for environment-specific configs",
+    "environment.ts for development, environment.prod.ts for production",
+    "Variables defined in environment files, not .env",
+    "Angular 15+ uses fileReplacements in angular.json for environment switching"
+  ]
+}

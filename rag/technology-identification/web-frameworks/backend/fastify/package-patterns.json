@@ -1,0 +1,26 @@
+{
+  "technology": "Fastify",
+  "category": "web-frameworks/backend",
+  "description": "Fast and low overhead web framework for Node.js - Up to 2x faster than Express",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["fastify"]
+    }
+  ],
+  "related_packages": [
+    "@fastify/autoload",
+    "@fastify/jwt",
+    "@fastify/cors",
+    "@fastify/helmet",
+    "@fastify/rate-limit",
+    "@fastify/swagger",
+    "fastify-plugin"
+  ],
+  "detection_notes": [
+    "Fastify is focused on performance",
+    "Plugin-based architecture",
+    "Built-in TypeScript support"
+  ]
+}

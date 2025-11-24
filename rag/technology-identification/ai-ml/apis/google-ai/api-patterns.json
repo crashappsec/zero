@@ -1,0 +1,22 @@
+{
+  "technology": "Google AI",
+  "category": "ai-ml/apis",
+  "confidence": 75,
+  "patterns": [
+    {
+      "type": "api-calls",
+      "code_patterns": [
+        "GenerativeModel",
+        "generate_content",
+        "gemini-pro",
+        "gemini-pro-vision"
+      ],
+      "description": "Google AI API usage patterns"
+    }
+  ],
+  "notes": [
+    "Gemini models via Generative AI SDK",
+    "Vertex AI for enterprise features",
+    "Multi-modal capabilities"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "technology": "Anthropic Claude",
+  "category": "ai-ml/apis",
+  "current_stable": "claude-3-5-sonnet-20241022",
+  "current_major": 3,
+  "release_history": [
+    {
+      "version": "claude-3-5-sonnet",
+      "release_date": "2024-10-22",
+      "status": "stable",
+      "features": ["Computer use", "Improved coding", "Enhanced analysis"],
+      "breaking_changes": []
+    },
+    {
+      "version": "claude-3-opus",
+      "release_date": "2024-03-04",
+      "status": "stable",
+      "features": ["Most capable model", "Multi-modal"],
+      "breaking_changes": []
+    }
+  ],
+  "official_resources": {
+    "website": "https://www.anthropic.com",
+    "docs": "https://docs.anthropic.com",
+    "github": "https://github.com/anthropics"
+  },
+  "version_notes": [
+    "Claude 3.5 Sonnet is latest",
+    "Claude 3 family: Opus (most capable), Sonnet (balanced), Haiku (fast)",
+    "200K context window"
+  ]
+}

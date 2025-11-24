@@ -1,0 +1,35 @@
+{
+  "technology": "Astro",
+  "category": "web-frameworks/frontend",
+  "confidence": 95,
+  "patterns": [
+    {
+      "file_patterns": [
+        "astro.config.mjs",
+        "astro.config.js",
+        "astro.config.ts",
+        "*.astro"
+      ],
+      "description": "Astro configuration and component files"
+    }
+  ],
+  "directory_conventions": [
+    {
+      "path": "src/pages/",
+      "description": "File-based routing"
+    },
+    {
+      "path": "src/components/",
+      "description": "Reusable components"
+    },
+    {
+      "path": "src/layouts/",
+      "description": "Page layouts"
+    }
+  ],
+  "detection_notes": [
+    "astro.config.* is definitive indicator",
+    ".astro files in src/ are strong indicators",
+    "File-based routing in src/pages/"
+  ]
+}

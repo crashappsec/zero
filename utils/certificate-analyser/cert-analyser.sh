@@ -21,6 +21,15 @@ NC='\033[0m' # No Color
 
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+UTILS_ROOT="$(dirname "$SCRIPT_DIR")"
+REPO_ROOT="$(dirname "$UTILS_ROOT")"
+
+# Load .env file if it exists in repository root
+if [[ -f "$REPO_ROOT/.env" ]]; then
+    set -a  # automatically export all variables
+    source "$REPO_ROOT/.env"
+    set +a  # stop automatically exporting
+fi
 
 # Configuration
 CURRENT_MAX_VALIDITY=398  # Current CA/B Forum limit (days)

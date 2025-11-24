@@ -1,0 +1,21 @@
+{
+  "technology": "Google AI",
+  "category": "ai-ml/apis",
+  "confidence": 80,
+  "patterns": [
+    {
+      "variable_names": [
+        "GOOGLE_API_KEY",
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "GCP_PROJECT_ID",
+        "GEMINI_API_KEY"
+      ],
+      "description": "Google AI environment variables"
+    }
+  ],
+  "detection_notes": [
+    "GOOGLE_API_KEY for Gemini API",
+    "GOOGLE_APPLICATION_CREDENTIALS for service account",
+    "GCP_PROJECT_ID for Vertex AI"
+  ]
+}

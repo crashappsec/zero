@@ -1,0 +1,21 @@
+{
+  "technology": "Spring Boot",
+  "category": "web-frameworks/backend",
+  "confidence": 70,
+  "patterns": [
+    {
+      "variable_names": [
+        "SPRING_APPLICATION_NAME",
+        "SPRING_PROFILES_ACTIVE",
+        "SERVER_PORT",
+        "SPRING_DATASOURCE_URL"
+      ],
+      "description": "Spring Boot environment variables"
+    }
+  ],
+  "detection_notes": [
+    "SPRING_ prefix is common",
+    "Can override any application.properties value",
+    "Uses snake_case UPPER_CASE naming"
+  ]
+}

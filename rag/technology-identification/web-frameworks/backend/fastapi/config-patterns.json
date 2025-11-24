@@ -1,0 +1,35 @@
+{
+  "technology": "FastAPI",
+  "category": "web-frameworks/backend",
+  "confidence": 85,
+  "patterns": [
+    {
+      "file_patterns": [
+        "main.py",
+        "app.py",
+        "*/routers/*.py",
+        "*/api/*.py"
+      ],
+      "description": "FastAPI application structure"
+    }
+  ],
+  "directory_conventions": [
+    {
+      "path": "routers/",
+      "description": "API route modules"
+    },
+    {
+      "path": "models/",
+      "description": "Pydantic data models"
+    },
+    {
+      "path": "schemas/",
+      "description": "API schemas"
+    }
+  ],
+  "detection_notes": [
+    "FastAPI apps typically in main.py or app.py",
+    "Uses async/await patterns",
+    "Automatic /docs and /redoc endpoints"
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "technology": "Hugging Face",
+  "category": "ai-ml/platforms",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "python",
+      "file_extensions": [".py"],
+      "patterns": [
+        {
+          "regex": "from transformers import|import transformers",
+          "description": "Transformers library import",
+          "example": "from transformers import AutoModel, AutoTokenizer"
+        },
+        {
+          "regex": "from datasets import|import datasets",
+          "description": "Datasets library import",
+          "example": "from datasets import load_dataset"
+        },
+        {
+          "regex": "from huggingface_hub import",
+          "description": "Hugging Face Hub import",
+          "example": "from huggingface_hub import hf_hub_download"
+        }
+      ]
+    },
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".ts"],
+      "patterns": [
+        {
+          "regex": "from ['\"]@huggingface/inference['\"]|require\\(['\"]@huggingface/inference['\"]\\)",
+          "description": "Hugging Face Inference SDK",
+          "example": "import { HfInference } from '@huggingface/inference';"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "transformers",
+    "datasets",
+    "huggingface_hub",
+    "@huggingface/inference"
+  ],
+  "detection_notes": [
+    "AutoModel/AutoTokenizer are common patterns",
+    "pipeline() for quick inference",
+    "from_pretrained() for model loading"
+  ]
+}
