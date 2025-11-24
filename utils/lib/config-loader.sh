@@ -116,7 +116,8 @@ get_module_config() {
         echo "Error: Module name not set" >&2
         return 1
     fi
-    get_config ".modules.${CONFIG_MODULE//-/_}.${key}"
+    # Use module name as-is (don't convert hyphens to underscores)
+    get_config ".modules.${CONFIG_MODULE}.${key}"
 }
 
 # Check if module is enabled
@@ -132,19 +133,19 @@ is_module_enabled() {
 # Get GitHub organizations from config
 # Usage: get_organizations
 get_organizations() {
-    get_config '.github.organizations[]?' | grep -v '^$'
+    get_config '.github.organizations[]?' | grep -v '^$' || true
 }
 
 # Get GitHub repositories from config
 # Usage: get_repositories
 get_repositories() {
-    get_config '.github.repositories[]?' | grep -v '^$'
+    get_config '.github.repositories[]?' | grep -v '^$' || true
 }
 
 # Get default modules for current module
 # Usage: get_default_modules
 get_default_modules() {
-    get_module_config 'default_modules[]?' | grep -v '^$'
+    get_module_config 'default_modules[]?' | grep -v '^$' || true
 }
 
 # Export functions for use in other scripts

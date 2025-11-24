@@ -139,6 +139,29 @@ check_prerequisites() {
     fi
 }
 
+# Function to check API key configuration
+check_api_key() {
+    echo -e "${BLUE}Checking Claude AI configuration...${NC}"
+
+    if [ -n "$ANTHROPIC_API_KEY" ]; then
+        local key_length=${#ANTHROPIC_API_KEY}
+        echo -e "${GREEN}✓ ANTHROPIC_API_KEY is set (${key_length} chars)${NC}"
+        echo -e "${GREEN}  Claude AI enhanced analysis is available${NC}"
+        return 0
+    else
+        echo -e "${YELLOW}⚠ ANTHROPIC_API_KEY is NOT set${NC}"
+        echo -e "${YELLOW}  Claude AI enhanced analysis will be disabled${NC}"
+        echo ""
+        echo "To enable Claude AI analysis:"
+        echo "  1. Get an API key at: https://console.anthropic.com/settings/keys"
+        echo "  2. Export it in your shell:"
+        echo "     export ANTHROPIC_API_KEY='your-api-key-here'"
+        echo "  3. Or add it to your shell profile (~/.zshrc or ~/.bashrc)"
+        echo ""
+        return 1
+    fi
+}
+
 # Function to create default config
 create_default_config() {
     if [[ ! -f "$CONFIG_EXAMPLE" ]]; then
@@ -740,9 +763,103 @@ $all_data"
     fi
 }
 
+# Function to display summary of all analysis results
+display_analysis_summary() {
+    local target="$1"
+    local repo_files="$2"
+    local repo_size="$3"
+    local sbom_packages="$4"
+    local vuln_total="$5"
+    local vuln_critical="$6"
+    local vuln_high="$7"
+    local vuln_medium="$8"
+    local vuln_low="$9"
+    local vuln_kev="${10}"
+    local pkg_deprecated="${11}"
+    local pkg_low_health="${12}"
+    local pkg_total="${13}"
+
+    echo ""
+    echo -e "${GREEN}=========================================${NC}"
+    echo -e "${GREEN}  Analysis Summary${NC}"
+    echo -e "${GREEN}=========================================${NC}"
+    echo ""
+
+    # Repository Information
+    if [[ -n "$repo_files" ]] && [[ "$repo_files" != "0" ]]; then
+        echo -e "${CYAN}Repository:${NC} $target"
+        echo -e "  Files: ${repo_files}"
+        echo -e "  Size: ${repo_size}"
+        echo ""
+    fi
+
+    # SBOM Information
+    if [[ -n "$sbom_packages" ]] && [[ "$sbom_packages" != "0" ]]; then
+        echo -e "${CYAN}SBOM Generation:${NC}"
+        echo -e "  Packages detected: ${sbom_packages}"
+        echo ""
+    fi
+
+    # Vulnerability Information
+    if [[ -n "$vuln_total" ]] && [[ "$vuln_total" != "0" ]]; then
+        echo -e "${CYAN}Vulnerability Analysis:${NC}"
+        echo -e "  Total vulnerabilities: ${vuln_total}"
+        if [[ -n "$vuln_critical" ]] && [[ "$vuln_critical" != "0" ]]; then
+            echo -e "  ${RED}⚠ Critical: ${vuln_critical}${NC}"
+        fi
+        if [[ -n "$vuln_high" ]] && [[ "$vuln_high" != "0" ]]; then
+            echo -e "  ${YELLOW}⚠ High: ${vuln_high}${NC}"
+        fi
+        if [[ -n "$vuln_medium" ]]; then
+            echo -e "  Medium: ${vuln_medium}"
+        fi
+        if [[ -n "$vuln_low" ]]; then
+            echo -e "  Low: ${vuln_low}"
+        fi
+        if [[ -n "$vuln_kev" ]] && [[ "$vuln_kev" != "0" ]]; then
+            echo -e "  ${RED}⚠ In CISA KEV: ${vuln_kev}${NC}"
+        fi
+        echo ""
+    elif [[ "$vuln_total" == "0" ]]; then
+        echo -e "${CYAN}Vulnerability Analysis:${NC}"
+        echo -e "  ${GREEN}✓ No vulnerabilities found${NC}"
+        echo ""
+    fi
+
+    # Package Health Information
+    if [[ -n "$pkg_total" ]] && [[ "$pkg_total" != "0" ]]; then
+        echo -e "${CYAN}Package Health Analysis:${NC}"
+        echo -e "  Packages analyzed: ${pkg_total}"
+        if [[ -n "$pkg_deprecated" ]] && [[ "$pkg_deprecated" != "0" ]]; then
+            echo -e "  ${YELLOW}⚠ Deprecated: ${pkg_deprecated}${NC}"
+        fi
+        if [[ -n "$pkg_low_health" ]] && [[ "$pkg_low_health" != "0" ]]; then
+            echo -e "  ${YELLOW}⚠ Low health score: ${pkg_low_health}${NC}"
+        fi
+        echo ""
+    fi
+
+    echo -e "${GREEN}=========================================${NC}"
+    echo ""
+}
+
 # Function to run analysis on target
 analyze_target() {
     local target="$1"
+
+    # Initialize summary metrics
+    local summary_repo_files="0"
+    local summary_repo_size=""
+    local summary_sbom_packages="0"
+    local summary_vuln_total="0"
+    local summary_vuln_critical="0"
+    local summary_vuln_high="0"
+    local summary_vuln_medium="0"
+    local summary_vuln_low="0"
+    local summary_vuln_kev="0"
+    local summary_pkg_deprecated="0"
+    local summary_pkg_low_health="0"
+    local summary_pkg_total="0"
 
     echo ""
     echo -e "${CYAN}=========================================${NC}"
@@ -797,6 +914,35 @@ analyze_target() {
         # Display the module output
         echo "$module_output"
 
+        # Extract metrics from module output for summary
+        case "$module" in
+            vulnerability)
+                # Extract vulnerability metrics - strip markdown formatting and extract numbers
+                summary_vuln_total=$(echo "$module_output" | grep -i "Total vulnerabilities:" | sed -E 's/.*Total vulnerabilities:[*[:space:]]*([0-9]+).*/\1/' | head -1)
+                summary_vuln_total=${summary_vuln_total:-0}
+                # For severity levels, match lines with just severity label and number (skip table rows with |)
+                summary_vuln_critical=$(echo "$module_output" | grep "Critical:" | grep -v "|" | sed -E 's/.*Critical:[*[:space:]]*([0-9]+).*/\1/' | head -1)
+                summary_vuln_critical=${summary_vuln_critical:-0}
+                summary_vuln_high=$(echo "$module_output" | grep "High:" | grep -v "|" | sed -E 's/.*High:[*[:space:]]*([0-9]+).*/\1/' | head -1)
+                summary_vuln_high=${summary_vuln_high:-0}
+                summary_vuln_medium=$(echo "$module_output" | grep "Medium:" | grep -v "|" | sed -E 's/.*Medium:[*[:space:]]*([0-9]+).*/\1/' | head -1)
+                summary_vuln_medium=${summary_vuln_medium:-0}
+                summary_vuln_low=$(echo "$module_output" | grep "Low:" | grep -v "|" | sed -E 's/.*Low:[*[:space:]]*([0-9]+).*/\1/' | head -1)
+                summary_vuln_low=${summary_vuln_low:-0}
+                summary_vuln_kev=$(echo "$module_output" | grep "In CISA KEV:" | sed -E 's/.*In CISA KEV:[*[:space:]]*([0-9]+).*/\1/' | head -1)
+                summary_vuln_kev=${summary_vuln_kev:-0}
+                ;;
+            package-health)
+                # Extract package health metrics
+                summary_pkg_total=$(echo "$module_output" | grep -i "Total Packages:" | sed -E 's/.*Total Packages:[*[:space:]]*([0-9]+).*/\1/' | head -1)
+                summary_pkg_total=${summary_pkg_total:-0}
+                summary_pkg_deprecated=$(echo "$module_output" | grep -iE "Deprecated( Packages)?:" | sed -E 's/.*Deprecated( Packages)?:[*[:space:]]*([0-9]+).*/\2/' | head -1)
+                summary_pkg_deprecated=${summary_pkg_deprecated:-0}
+                summary_pkg_low_health=$(echo "$module_output" | grep -iE "Low Health( Packages)?:" | sed -E 's/.*Low Health( Packages)?:[*[:space:]]*([0-9]+).*/\2/' | head -1)
+                summary_pkg_low_health=${summary_pkg_low_health:-0}
+                ;;
+        esac
+
         # Append to combined results for Claude
         if [[ -n "$module_output" ]]; then
             all_results+="
@@ -809,6 +955,15 @@ $module_output
         fi
     done
 
+    # Extract repository and SBOM metrics if shared repo was created
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        summary_repo_files=$(find "$SHARED_REPO_DIR" -type f 2>/dev/null | wc -l | tr -d ' ')
+        summary_repo_size=$(du -sh "$SHARED_REPO_DIR" 2>/dev/null | cut -f1)
+    fi
+    if [[ -n "$SHARED_SBOM_FILE" ]] && [[ -f "$SHARED_SBOM_FILE" ]]; then
+        summary_sbom_packages=$(jq '.components | length' "$SHARED_SBOM_FILE" 2>/dev/null || echo "0")
+    fi
+
     # Run unified Claude analysis on ALL results
     if [[ "$USE_CLAUDE" == "true" ]] && [[ -n "$ANTHROPIC_API_KEY" ]] && [[ -n "$all_results" ]]; then
         echo ""
@@ -820,6 +975,13 @@ $module_output
 
         run_unified_claude_analysis "$all_results" "$target"
     fi
+
+    # Display summary of all analysis results
+    display_analysis_summary "$target" "$summary_repo_files" "$summary_repo_size" \
+        "$summary_sbom_packages" "$summary_vuln_total" "$summary_vuln_critical" \
+        "$summary_vuln_high" "$summary_vuln_medium" "$summary_vuln_low" \
+        "$summary_vuln_kev" "$summary_pkg_deprecated" "$summary_pkg_low_health" \
+        "$summary_pkg_total"
 
     # Clean up shared repository after all modules complete
     if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
@@ -902,6 +1064,8 @@ echo -e "${CYAN}=========================================${NC}"
 echo ""
 
 check_prerequisites
+check_api_key || true  # Don't exit if API key not set, just inform user
+echo ""
 
 # Setup mode
 if [[ "$SETUP_MODE" == "true" ]]; then
