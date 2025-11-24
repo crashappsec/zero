@@ -1051,14 +1051,14 @@ if [ -f "$REPO_ROOT/lib/config.sh" ]; then
 fi
 
 # Load GitHub library for org scanning
-if [ -f "$REPO_ROOT/lib/github.sh" ]; then
-    source "$REPO_ROOT/lib/github.sh"
+if [ -f "$UTILS_ROOT/lib/github.sh" ]; then
+    source "$UTILS_ROOT/lib/github.sh"
 fi
 
 # Load cost tracking library if using Claude
 if [[ "$USE_CLAUDE" == "true" ]]; then
-    if [ -f "$REPO_ROOT/lib/claude-cost.sh" ]; then
-        source "$REPO_ROOT/lib/claude-cost.sh"
+    if [ -f "$UTILS_ROOT/lib/claude-cost.sh" ]; then
+        source "$UTILS_ROOT/lib/claude-cost.sh"
         init_cost_tracking
     fi
 fi
