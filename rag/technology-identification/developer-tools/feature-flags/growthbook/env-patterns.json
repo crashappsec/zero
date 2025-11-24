@@ -1,9 +1,0 @@
-{
-  "technology": "GrowthBook",
-  "category": "developer-tools/feature-flags",
-  "layer": 5,
-  "patterns": [
-    {"name": "GROWTHBOOK_API_HOST", "confidence": 95},
-    {"name": "GROWTHBOOK_CLIENT_KEY", "confidence": 95}
-  ]
-}

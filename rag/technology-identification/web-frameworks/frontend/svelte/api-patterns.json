@@ -1,7 +1,0 @@
-{
-  "technology": "Svelte",
-  "category": "web-frameworks/frontend",
-  "confidence": 50,
-  "patterns": [],
-  "notes": ["Svelte is a compiler, no runtime API patterns"]
-}

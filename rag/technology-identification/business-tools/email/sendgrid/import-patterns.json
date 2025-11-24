@@ -1,9 +1,0 @@
-{
-  "technology": "SendGrid",
-  "category": "business-tools/email",
-  "layer": 3,
-  "patterns": {
-    "javascript": [{"pattern": "from\\s+['\"]@sendgrid/mail['\"]", "type": "esm_import", "confidence": 95}],
-    "python": [{"pattern": "from\\s+sendgrid", "type": "python_import", "confidence": 95}]
-  }
-}

@@ -1,9 +1,0 @@
-{
-  "technology": "Strapi",
-  "category": "business-tools/cms",
-  "confidence": 95,
-  "patterns": [
-    {"ecosystem": "npm", "names": ["@strapi/strapi", "@strapi/plugin-users-permissions", "@strapi/plugin-graphql"], "description": "Strapi CMS"}
-  ],
-  "homepage": "https://strapi.io"
-}

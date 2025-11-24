@@ -1,9 +1,0 @@
-{
-  "technology": "Resend",
-  "category": "business-tools/email",
-  "layer": 3,
-  "patterns": {
-    "javascript": [{"pattern": "from\\s+['\"]resend['\"]", "type": "esm_import", "confidence": 95}],
-    "python": [{"pattern": "import\\s+resend", "type": "python_import", "confidence": 95}]
-  }
-}

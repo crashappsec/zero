@@ -1,9 +1,0 @@
-{
-  "technology": "Amazon DynamoDB",
-  "category": "databases",
-  "layer": 4,
-  "patterns": [
-    {"pattern": "dynamodb\\.[a-z0-9-]+\\.amazonaws\\.com", "description": "DynamoDB endpoint", "confidence": 95},
-    {"pattern": "PutItemCommand|GetItemCommand|QueryCommand|ScanCommand", "description": "DynamoDB SDK v3 commands", "confidence": 95}
-  ]
-}

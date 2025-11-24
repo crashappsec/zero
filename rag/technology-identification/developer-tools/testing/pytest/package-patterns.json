@@ -1,9 +1,0 @@
-{
-  "technology": "Pytest",
-  "category": "developer-tools/testing",
-  "confidence": 95,
-  "patterns": [
-    {"ecosystem": "pypi", "names": ["pytest", "pytest-cov", "pytest-asyncio", "pytest-mock", "pytest-xdist"], "description": "Pytest testing framework"}
-  ],
-  "homepage": "https://pytest.org"
-}

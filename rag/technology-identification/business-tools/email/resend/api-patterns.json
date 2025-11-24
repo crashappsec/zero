@@ -1,6 +1,0 @@
-{
-  "technology": "Resend",
-  "category": "business-tools/email",
-  "layer": 4,
-  "patterns": [{"pattern": "api\\.resend\\.com", "confidence": 95}]
-}

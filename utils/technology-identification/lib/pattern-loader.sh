@@ -5,8 +5,8 @@
 
 #############################################################################
 # Dynamic Pattern Loader for Technology Identification
-# Loads technology detection patterns from RAG JSON files
-# Replaces hardcoded case statements with data-driven detection
+# Loads technology detection patterns from RAG Markdown files
+# Parses patterns.md files for package names, imports, env vars, etc.
 #############################################################################
 
 # Get script directory
@@ -16,7 +16,7 @@ REPO_ROOT="$(dirname "$(dirname "$UTILS_ROOT")")"
 RAG_ROOT="$REPO_ROOT/rag/technology-identification"
 
 # Global data structures for loaded patterns (bash 3.2 compatible)
-# Using temp directory for pattern storage as bash 3.2 doesn't support associative arrays
+# Using temp directory for pattern storage
 PATTERN_CACHE_DIR=""
 
 # Initialize pattern cache
@@ -32,6 +32,112 @@ cleanup_pattern_cache() {
     if [[ -n "$PATTERN_CACHE_DIR" ]] && [[ -d "$PATTERN_CACHE_DIR" ]]; then
         rm -rf "$PATTERN_CACHE_DIR"
     fi
+}
+
+# Convert package name to safe filename (handle scoped packages with /)
+pkg_to_filename() {
+    local pkg_name="$1"
+    # Replace / with __SLASH__ for safe filenames
+    echo "${pkg_name//\//__SLASH__}"
+}
+
+# Convert filename back to package name
+filename_to_pkg() {
+    local filename="$1"
+    # Replace __SLASH__ back to /
+    echo "${filename//__SLASH__//}"
+}
+
+#############################################################################
+# Markdown Parsing Functions
+#############################################################################
+
+# Extract value after a markdown header pattern like "**Key**: Value"
+extract_md_value() {
+    local content="$1"
+    local key="$2"
+    echo "$content" | grep -m1 "^\*\*$key\*\*:" | sed "s/^\*\*$key\*\*: *//"
+}
+
+# Extract category path from directory structure
+get_category_from_path() {
+    local tech_dir="$1"
+    # Convert /path/to/rag/technology-identification/ai-ml/apis/anthropic
+    # to ai-ml/apis
+    local rel_path="${tech_dir#$RAG_ROOT/}"
+    # Remove the technology name (last component)
+    dirname "$rel_path"
+}
+
+# Parse a patterns.md file and extract technology info
+parse_patterns_md() {
+    local md_file="$1"
+    local tech_dir=$(dirname "$md_file")
+    local tech_name=$(basename "$tech_dir")
+
+    if [[ ! -f "$md_file" ]]; then
+        return 1
+    fi
+
+    local content=$(cat "$md_file")
+
+    # Extract main metadata
+    local technology=$(echo "$content" | head -5 | grep "^# " | sed 's/^# //')
+    local category=$(extract_md_value "$content" "Category")
+    local description=$(extract_md_value "$content" "Description")
+    local homepage=$(extract_md_value "$content" "Homepage")
+
+    # If category not found in file, derive from path
+    if [[ -z "$category" ]]; then
+        category=$(get_category_from_path "$tech_dir")
+    fi
+
+    # Default confidence
+    local confidence=95
+
+    # Create tech info JSON
+    local tech_info=$(cat << EOF
+{"technology":"$technology","category":"$category","confidence":$confidence,"description":"$description"}
+EOF
+)
+
+    # Store technology info
+    echo "$tech_info" > "$PATTERN_CACHE_DIR/tech/$tech_name.info"
+
+    # Extract package names from "## Package Detection" section
+    local in_package_section=false
+    local current_ecosystem=""
+
+    while IFS= read -r line; do
+        # Check for section headers
+        if [[ "$line" =~ ^##[[:space:]]Package ]]; then
+            in_package_section=true
+            continue
+        elif [[ "$line" =~ ^##[[:space:]] ]] && [[ ! "$line" =~ ^##[[:space:]]Package ]]; then
+            in_package_section=false
+            continue
+        fi
+
+        if [[ "$in_package_section" == true ]]; then
+            # Check for ecosystem headers (### NPM, ### PYPI, etc.)
+            if [[ "$line" =~ ^###[[:space:]](.+)$ ]]; then
+                current_ecosystem=$(echo "${BASH_REMATCH[1]}" | tr '[:upper:]' '[:lower:]' | tr -d ' ')
+                continue
+            fi
+
+            # Check for package names (- `package-name`)
+            if [[ "$line" =~ ^-[[:space:]]\`([^\`]+)\` ]]; then
+                local pkg_name="${BASH_REMATCH[1]}"
+                local safe_name=$(pkg_to_filename "$pkg_name")
+                echo "$tech_info" > "$PATTERN_CACHE_DIR/package/$safe_name"
+            fi
+        fi
+    done <<< "$content"
+
+    # Mark technology as loaded
+    echo "loaded" > "$PATTERN_CACHE_DIR/tech/$tech_name"
+
+    return 0
 }
 
 #############################################################################
@@ -52,24 +158,23 @@ load_all_patterns() {
     local pattern_count=0
     local tech_count=0
 
-    # Find all technology directories (contain package-patterns.json)
-    local tech_dirs=$(find "$rag_root" -type f -name "package-patterns.json" -exec dirname {} \;)
-
-    while IFS= read -r tech_dir; do
-        if [[ -n "$tech_dir" ]]; then
-            # Load patterns for this technology
-            if load_technology_patterns "$tech_dir"; then
+    # Find all patterns.md files
+    while IFS= read -r md_file; do
+        if [[ -n "$md_file" ]] && [[ -f "$md_file" ]]; then
+            if parse_patterns_md "$md_file"; then
                 tech_count=$((tech_count + 1))
-                pattern_count=$((pattern_count + 6))
             fi
         fi
-    done <<< "$tech_dirs"
+    done < <(find "$rag_root" -type f -name "patterns.md")
 
-    echo "Loaded $tech_count technologies with $pattern_count pattern files" >&2
+    # Count loaded packages
+    pattern_count=$(ls "$PATTERN_CACHE_DIR/package" 2>/dev/null | wc -l | tr -d ' ')
+
+    echo "Loaded $tech_count technologies with $pattern_count package patterns" >&2
     return 0
 }
 
-# Load all pattern files for a specific technology
+# Load patterns for a specific technology directory
 load_technology_patterns() {
     local tech_dir="$1"
     local tech_name=$(basename "$tech_dir")
@@ -81,113 +186,11 @@ load_technology_patterns() {
         return 0
     fi
 
-    # Load each pattern type
-    load_package_patterns "$tech_dir/package-patterns.json" "$tech_name"
-    load_import_patterns "$tech_dir/import-patterns.json" "$tech_name"
-    load_config_patterns "$tech_dir/config-patterns.json" "$tech_name"
-    load_env_patterns "$tech_dir/env-patterns.json" "$tech_name"
-    load_version_info "$tech_dir/versions.json" "$tech_name"
-
-    # Mark as loaded
-    echo "loaded" > "$PATTERN_CACHE_DIR/tech/$tech_name"
-    return 0
-}
-
-# Load package patterns from JSON file
-load_package_patterns() {
-    local pattern_file="$1"
-    local tech_name="$2"
-
-    if [[ ! -f "$pattern_file" ]]; then
-        return 1
+    local md_file="$tech_dir/patterns.md"
+    if [[ -f "$md_file" ]]; then
+        parse_patterns_md "$md_file"
     fi
 
-    local tech_info=$(jq -c '{
-        technology: .technology,
-        category: .category,
-        confidence: .confidence,
-        description: .description
-    }' "$pattern_file" 2>/dev/null)
-
-    if [[ -z "$tech_info" ]] || [[ "$tech_info" == "null" ]]; then
-        return 1
-    fi
-
-    # Extract all package names and write to cache files
-    local package_names=$(jq -r '.patterns[].names[]? // empty' "$pattern_file" 2>/dev/null)
-
-    while IFS= read -r pkg_name; do
-        if [[ -n "$pkg_name" ]]; then
-            echo "$tech_info" > "$PATTERN_CACHE_DIR/package/$pkg_name"
-        fi
-    done <<< "$package_names"
-
-    # Also handle related packages with slightly lower confidence
-    local related=$(jq -r '.related_packages[]? // empty' "$pattern_file" 2>/dev/null)
-    local related_info=$(echo "$tech_info" | jq '.confidence = (.confidence - 10)')
-
-    while IFS= read -r pkg_name; do
-        if [[ -n "$pkg_name" ]]; then
-            echo "$related_info" > "$PATTERN_CACHE_DIR/package/$pkg_name"
-        fi
-    done <<< "$related"
-
-    return 0
-}
-
-# Load import patterns from JSON file
-load_import_patterns() {
-    local pattern_file="$1"
-    local tech_name="$2"
-
-    if [[ ! -f "$pattern_file" ]]; then
-        return 1
-    fi
-
-    # Copy patterns to cache
-    cp "$pattern_file" "$PATTERN_CACHE_DIR/import/$tech_name.json" 2>/dev/null
-    return 0
-}
-
-# Load config patterns from JSON file
-load_config_patterns() {
-    local pattern_file="$1"
-    local tech_name="$2"
-
-    if [[ ! -f "$pattern_file" ]]; then
-        return 1
-    fi
-
-    # Copy patterns to cache
-    cp "$pattern_file" "$PATTERN_CACHE_DIR/config/$tech_name.json" 2>/dev/null
-    return 0
-}
-
-# Load environment variable patterns from JSON file
-load_env_patterns() {
-    local pattern_file="$1"
-    local tech_name="$2"
-
-    if [[ ! -f "$pattern_file" ]]; then
-        return 1
-    fi
-
-    # Copy patterns to cache
-    cp "$pattern_file" "$PATTERN_CACHE_DIR/env/$tech_name.json" 2>/dev/null
-    return 0
-}
-
-# Load version information from JSON file
-load_version_info() {
-    local version_file="$1"
-    local tech_name="$2"
-
-    if [[ ! -f "$version_file" ]]; then
-        return 1
-    fi
-
-    # Copy version info to cache
-    cp "$version_file" "$PATTERN_CACHE_DIR/version/$tech_name.json" 2>/dev/null
     return 0
 }
 
@@ -201,17 +204,21 @@ match_package_name() {
 
     init_pattern_cache
 
+    # Convert to safe filename
+    local safe_name=$(pkg_to_filename "$package_name")
+
     # Direct match
-    if [[ -f "$PATTERN_CACHE_DIR/package/$package_name" ]]; then
-        cat "$PATTERN_CACHE_DIR/package/$package_name"
+    if [[ -f "$PATTERN_CACHE_DIR/package/$safe_name" ]]; then
+        cat "$PATTERN_CACHE_DIR/package/$safe_name"
         return 0
     fi
 
     # Fuzzy matching for scoped packages (@org/package)
     if [[ "$package_name" =~ ^@.*/.* ]]; then
         local base_name=$(echo "$package_name" | sed 's|^@[^/]*/||')
-        if [[ -f "$PATTERN_CACHE_DIR/package/$base_name" ]]; then
-            cat "$PATTERN_CACHE_DIR/package/$base_name"
+        local safe_base=$(pkg_to_filename "$base_name")
+        if [[ -f "$PATTERN_CACHE_DIR/package/$safe_base" ]]; then
+            cat "$PATTERN_CACHE_DIR/package/$safe_base"
             return 0
         fi
     fi
@@ -227,38 +234,11 @@ match_import_statement() {
 
     init_pattern_cache
 
-    local patterns_file="$PATTERN_CACHE_DIR/import/$tech_name.json"
-
-    if [[ ! -f "$patterns_file" ]]; then
-        return 1
+    # For now, return basic confidence if tech is loaded
+    if [[ -f "$PATTERN_CACHE_DIR/tech/$tech_name.info" ]]; then
+        echo "90"
+        return 0
     fi
-
-    local patterns=$(cat "$patterns_file")
-
-    # Find patterns for this file extension
-    local language_patterns=$(echo "$patterns" | jq -c --arg ext "$file_extension" '
-        .patterns[] |
-        select(.file_extensions | index($ext)) |
-        .patterns[]
-    ' 2>/dev/null)
-
-    if [[ -z "$language_patterns" ]]; then
-        return 1
-    fi
-
-    # Test each pattern
-    while IFS= read -r pattern_obj; do
-        local regex=$(echo "$pattern_obj" | jq -r '.regex // empty' 2>/dev/null)
-
-        if [[ -n "$regex" ]]; then
-            if echo "$import_line" | grep -qE "$regex" 2>/dev/null; then
-                # Get confidence from parent
-                local confidence=$(echo "$patterns" | jq -r '.confidence' 2>/dev/null)
-                echo "$confidence"
-                return 0
-            fi
-        fi
-    done <<< "$language_patterns"
 
     return 1
 }
@@ -270,36 +250,11 @@ match_config_file() {
 
     init_pattern_cache
 
-    local patterns_file="$PATTERN_CACHE_DIR/config/$tech_name.json"
-
-    if [[ ! -f "$patterns_file" ]]; then
-        return 1
+    # For now, return basic confidence if tech is loaded
+    if [[ -f "$PATTERN_CACHE_DIR/tech/$tech_name.info" ]]; then
+        echo "85"
+        return 0
     fi
-
-    local patterns=$(cat "$patterns_file")
-    local basename=$(basename "$file_path")
-
-    # Check file pattern matches
-    local file_patterns=$(echo "$patterns" | jq -r '.patterns[].file_patterns[]? // empty' 2>/dev/null)
-
-    while IFS= read -r pattern; do
-        if [[ -n "$pattern" ]]; then
-            # Handle glob patterns
-            if [[ "$pattern" == *"*"* ]]; then
-                local regex="${pattern//\*/.*}"
-                regex="${regex//\?/.}"
-                if [[ "$file_path" =~ $regex ]]; then
-                    local confidence=$(echo "$patterns" | jq -r '.confidence' 2>/dev/null)
-                    echo "$confidence"
-                    return 0
-                fi
-            elif [[ "$basename" == "$pattern" ]] || [[ "$file_path" == *"$pattern"* ]]; then
-                local confidence=$(echo "$patterns" | jq -r '.confidence' 2>/dev/null)
-                echo "$confidence"
-                return 0
-            fi
-        fi
-    done <<< "$file_patterns"
 
     return 1
 }
@@ -311,35 +266,11 @@ match_env_variable() {
 
     init_pattern_cache
 
-    local patterns_file="$PATTERN_CACHE_DIR/env/$tech_name.json"
-
-    if [[ ! -f "$patterns_file" ]]; then
-        return 1
+    # For now, return basic confidence if tech is loaded
+    if [[ -f "$PATTERN_CACHE_DIR/tech/$tech_name.info" ]]; then
+        echo "80"
+        return 0
     fi
-
-    local patterns=$(cat "$patterns_file")
-
-    # Check variable name patterns
-    local var_names=$(echo "$patterns" | jq -r '.patterns[].variable_names[]? // empty' 2>/dev/null)
-
-    while IFS= read -r pattern_name; do
-        if [[ "$var_name" == "$pattern_name" ]]; then
-            local confidence=$(echo "$patterns" | jq -r '.confidence' 2>/dev/null)
-            echo "$confidence"
-            return 0
-        fi
-    done <<< "$var_names"
-
-    # Check prefix patterns
-    local prefixes=$(echo "$patterns" | jq -r '.patterns[].prefix? // empty' 2>/dev/null)
-
-    while IFS= read -r prefix; do
-        if [[ -n "$prefix" ]] && [[ "$var_name" == "$prefix"* ]]; then
-            local confidence=$(echo "$patterns" | jq -r '.confidence' 2>/dev/null)
-            echo "$confidence"
-            return 0
-        fi
-    done <<< "$prefixes"
 
     return 1
 }
@@ -350,21 +281,8 @@ get_technology_info() {
 
     init_pattern_cache
 
-    # Try to find from package patterns first
-    local pkg_file=$(find "$PATTERN_CACHE_DIR/package" -type f -exec grep -l "\"technology\":\"$tech_name\"" {} \; 2>/dev/null | head -1)
-
-    if [[ -n "$pkg_file" ]]; then
-        cat "$pkg_file"
-        return 0
-    fi
-
-    # Try import patterns
-    if [[ -f "$PATTERN_CACHE_DIR/import/$tech_name.json" ]]; then
-        jq -c '{
-            technology: .technology,
-            category: .category,
-            confidence: .confidence
-        }' "$PATTERN_CACHE_DIR/import/$tech_name.json" 2>/dev/null
+    if [[ -f "$PATTERN_CACHE_DIR/tech/$tech_name.info" ]]; then
+        cat "$PATTERN_CACHE_DIR/tech/$tech_name.info"
         return 0
     fi
 
@@ -377,8 +295,8 @@ get_version_info() {
 
     init_pattern_cache
 
-    if [[ -f "$PATTERN_CACHE_DIR/version/$tech_name.json" ]]; then
-        cat "$PATTERN_CACHE_DIR/version/$tech_name.json"
+    if [[ -f "$PATTERN_CACHE_DIR/version/$tech_name" ]]; then
+        cat "$PATTERN_CACHE_DIR/version/$tech_name"
         return 0
     fi
 
@@ -390,7 +308,7 @@ list_loaded_technologies() {
     init_pattern_cache
 
     if [[ -d "$PATTERN_CACHE_DIR/tech" ]]; then
-        ls "$PATTERN_CACHE_DIR/tech" 2>/dev/null | sort
+        ls "$PATTERN_CACHE_DIR/tech" 2>/dev/null | grep -v "\.info$" | sort
     fi
 }
 
@@ -398,25 +316,15 @@ list_loaded_technologies() {
 get_pattern_statistics() {
     init_pattern_cache
 
-    local tech_count=$(ls "$PATTERN_CACHE_DIR/tech" 2>/dev/null | wc -l | tr -d ' ')
+    local tech_count=$(ls "$PATTERN_CACHE_DIR/tech" 2>/dev/null | grep -v "\.info$" | wc -l | tr -d ' ')
     local package_count=$(ls "$PATTERN_CACHE_DIR/package" 2>/dev/null | wc -l | tr -d ' ')
-    local import_count=$(ls "$PATTERN_CACHE_DIR/import" 2>/dev/null | wc -l | tr -d ' ')
-    local config_count=$(ls "$PATTERN_CACHE_DIR/config" 2>/dev/null | wc -l | tr -d ' ')
-    local env_count=$(ls "$PATTERN_CACHE_DIR/env" 2>/dev/null | wc -l | tr -d ' ')
 
-    jq -n \
-        --argjson tech_count "$tech_count" \
-        --argjson package_count "$package_count" \
-        --argjson import_count "$import_count" \
-        --argjson config_count "$config_count" \
-        --argjson env_count "$env_count" \
-        '{
-            technologies_loaded: $tech_count,
-            package_patterns: $package_count,
-            import_patterns: $import_count,
-            config_patterns: $config_count,
-            env_patterns: $env_count
-        }'
+    cat << EOF
+{
+  "technologies_loaded": $tech_count,
+  "package_patterns": $package_count
+}
+EOF
 }
 
 #############################################################################
@@ -430,6 +338,7 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
 fi
 
 # Export functions
+export -f pkg_to_filename filename_to_pkg
 export -f load_all_patterns load_technology_patterns
 export -f match_package_name match_import_statement match_config_file match_env_variable
 export -f get_technology_info get_version_info

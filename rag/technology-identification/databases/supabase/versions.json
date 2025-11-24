@@ -1,5 +1,0 @@
-{
-  "technology": "Supabase",
-  "category": "databases",
-  "features": ["PostgreSQL", "Authentication", "Storage", "Edge Functions", "Realtime", "Vector/AI"]
-}

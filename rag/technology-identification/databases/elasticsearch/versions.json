@@ -1,6 +1,0 @@
-{
-  "technology": "Elasticsearch",
-  "category": "databases",
-  "current_stable": "8.12",
-  "managed_services": ["Elastic Cloud", "Amazon OpenSearch", "Azure Cognitive Search"]
-}

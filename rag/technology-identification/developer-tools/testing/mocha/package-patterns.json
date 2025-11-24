@@ -1,9 +1,0 @@
-{
-  "technology": "Mocha",
-  "category": "developer-tools/testing",
-  "confidence": 95,
-  "patterns": [
-    {"ecosystem": "npm", "names": ["mocha", "@types/mocha", "chai"], "description": "Mocha testing framework"}
-  ],
-  "homepage": "https://mochajs.org"
-}
