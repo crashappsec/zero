@@ -1,0 +1,23 @@
+{
+  "technology": "Perplexity AI",
+  "category": "ai-ml/apis",
+  "layer": 4,
+  "description": "API endpoint and usage patterns for Perplexity AI",
+  "patterns": [
+    {
+      "pattern": "api\\.perplexity\\.ai/chat/completions",
+      "description": "Perplexity chat completions endpoint",
+      "confidence": 95
+    },
+    {
+      "pattern": "pplx-7b-online|pplx-70b-online|pplx-7b-chat|pplx-70b-chat",
+      "description": "Perplexity model identifiers",
+      "confidence": 90
+    },
+    {
+      "pattern": "sonar-small-online|sonar-medium-online",
+      "description": "Perplexity Sonar model identifiers",
+      "confidence": 95
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "technology": "Elasticsearch",
+  "category": "databases",
+  "layer": 2,
+  "patterns": [
+    {"file": "docker-compose.yml", "pattern": "elasticsearch:", "confidence": 90},
+    {"file": "elasticsearch.yml", "pattern": ".*", "confidence": 95}
+  ]
+}

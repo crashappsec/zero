@@ -1,0 +1,9 @@
+{
+  "technology": "Flagsmith",
+  "category": "developer-tools/feature-flags",
+  "layer": 3,
+  "patterns": {
+    "javascript": [{"pattern": "from\\s+['\"]flagsmith['\"]", "confidence": 95}],
+    "python": [{"pattern": "from\\s+flagsmith", "confidence": 95}]
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "technology": "Weights & Biases",
+  "category": "ai-ml/mlops",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "pypi", "names": ["wandb"], "description": "W&B Python SDK"}
+  ],
+  "homepage": "https://wandb.ai"
+}

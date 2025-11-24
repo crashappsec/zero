@@ -1,0 +1,9 @@
+{
+  "technology": "Mixpanel",
+  "category": "business-tools/analytics",
+  "layer": 4,
+  "patterns": [
+    {"pattern": "api\\.mixpanel\\.com", "confidence": 95},
+    {"pattern": "mixpanel\\.track\\(|mixpanel\\.identify\\(", "confidence": 90}
+  ]
+}

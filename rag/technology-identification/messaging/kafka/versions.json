@@ -1,0 +1,42 @@
+{
+  "technology": "Apache Kafka",
+  "category": "messaging",
+  "description": "Apache Kafka version information",
+  "current_stable": "3.6.1",
+  "versions": [
+    {
+      "version": "3.6",
+      "status": "current",
+      "release_date": "2023-10-11",
+      "notes": "KRaft production ready"
+    },
+    {
+      "version": "3.5",
+      "status": "supported",
+      "release_date": "2023-06-15"
+    },
+    {
+      "version": "3.4",
+      "status": "supported",
+      "release_date": "2023-02-07"
+    }
+  ],
+  "sdk_versions": {
+    "kafkajs": {
+      "current": "2.2.4"
+    },
+    "confluent-kafka-python": {
+      "current": "2.3.0"
+    },
+    "kafka-python": {
+      "current": "2.0.2"
+    }
+  },
+  "managed_services": [
+    "Confluent Cloud",
+    "Amazon MSK",
+    "Azure Event Hubs for Kafka",
+    "Aiven for Kafka",
+    "Upstash Kafka"
+  ]
+}

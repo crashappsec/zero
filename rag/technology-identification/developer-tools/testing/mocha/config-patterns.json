@@ -1,0 +1,10 @@
+{
+  "technology": "Mocha",
+  "category": "developer-tools/testing",
+  "layer": 2,
+  "patterns": [
+    {"file": ".mocharc.js", "pattern": ".*", "confidence": 95},
+    {"file": ".mocharc.json", "pattern": ".*", "confidence": 95},
+    {"file": ".mocharc.yml", "pattern": ".*", "confidence": 95}
+  ]
+}

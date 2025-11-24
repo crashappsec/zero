@@ -1,0 +1,9 @@
+{
+  "technology": "Prismic",
+  "category": "business-tools/cms",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["@prismicio/client", "@prismicio/react", "@prismicio/next"], "description": "Prismic Node.js SDKs"}
+  ],
+  "homepage": "https://prismic.io"
+}

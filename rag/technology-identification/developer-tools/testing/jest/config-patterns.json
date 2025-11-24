@@ -1,0 +1,11 @@
+{
+  "technology": "Jest",
+  "category": "developer-tools/testing",
+  "layer": 2,
+  "patterns": [
+    {"file": "jest.config.js", "pattern": ".*", "confidence": 95},
+    {"file": "jest.config.ts", "pattern": ".*", "confidence": 95},
+    {"file": "jest.config.json", "pattern": ".*", "confidence": 95},
+    {"file": "package.json", "pattern": "\"jest\":", "confidence": 90}
+  ]
+}

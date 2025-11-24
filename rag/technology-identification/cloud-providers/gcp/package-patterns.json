@@ -1,0 +1,29 @@
+{
+  "technology": "Google Cloud Platform",
+  "category": "cloud-providers",
+  "description": "Google Cloud Platform SDK and services",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["@google-cloud/storage", "@google-cloud/pubsub", "@google-cloud/firestore", "@google-cloud/bigquery", "@google-cloud/functions-framework"],
+      "description": "GCP Node.js client libraries"
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["google-cloud-storage", "google-cloud-pubsub", "google-cloud-firestore", "google-cloud-bigquery", "google-api-python-client"],
+      "description": "GCP Python client libraries"
+    },
+    {
+      "ecosystem": "maven",
+      "names": ["com.google.cloud:google-cloud-storage", "com.google.cloud:google-cloud-pubsub"],
+      "description": "GCP Java client libraries"
+    },
+    {
+      "ecosystem": "go",
+      "names": ["cloud.google.com/go/storage", "cloud.google.com/go/pubsub", "cloud.google.com/go/firestore"],
+      "description": "GCP Go client libraries"
+    }
+  ],
+  "homepage": "https://cloud.google.com"
+}

@@ -1,0 +1,9 @@
+{
+  "technology": "Postmark",
+  "category": "business-tools/email",
+  "layer": 3,
+  "patterns": {
+    "javascript": [{"pattern": "from\\s+['\"]postmark['\"]", "type": "esm_import", "confidence": 95}],
+    "python": [{"pattern": "from\\s+postmarker", "type": "python_import", "confidence": 95}]
+  }
+}

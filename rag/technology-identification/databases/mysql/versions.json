@@ -1,0 +1,35 @@
+{
+  "technology": "MySQL",
+  "category": "databases",
+  "description": "MySQL version information",
+  "current_stable": "8.0.35",
+  "versions": [
+    {
+      "version": "8.0",
+      "status": "current",
+      "release_date": "2018-04-19",
+      "eol_date": "2026-04-30",
+      "notes": "JSON improvements, window functions, CTEs"
+    },
+    {
+      "version": "5.7",
+      "status": "extended-support",
+      "release_date": "2015-10-21",
+      "eol_date": "2023-10-31",
+      "notes": "JSON data type, generated columns"
+    }
+  ],
+  "cloud_services": [
+    "Amazon RDS for MySQL",
+    "Amazon Aurora MySQL",
+    "Azure Database for MySQL",
+    "Google Cloud SQL for MySQL",
+    "PlanetScale",
+    "Vitess"
+  ],
+  "compatible_databases": [
+    "MariaDB",
+    "Percona Server",
+    "TiDB"
+  ]
+}

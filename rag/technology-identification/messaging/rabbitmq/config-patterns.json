@@ -1,0 +1,38 @@
+{
+  "technology": "RabbitMQ",
+  "category": "messaging",
+  "layer": 2,
+  "description": "Configuration file patterns for RabbitMQ",
+  "patterns": [
+    {
+      "file": "docker-compose.yml",
+      "pattern": "rabbitmq:",
+      "confidence": 90
+    },
+    {
+      "file": "docker-compose.yaml",
+      "pattern": "rabbitmq:",
+      "confidence": 90
+    },
+    {
+      "file": "rabbitmq.conf",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "advanced.config",
+      "pattern": "rabbit",
+      "confidence": 90
+    },
+    {
+      "file": "application.yml",
+      "pattern": "spring\\.rabbitmq",
+      "confidence": 95
+    },
+    {
+      "file": "*.json",
+      "pattern": "amqplib",
+      "confidence": 85
+    }
+  ]
+}

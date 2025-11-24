@@ -1,0 +1,48 @@
+{
+  "technology": "Mistral AI",
+  "category": "ai-ml/apis",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "javascript",
+      "file_extensions": [".js", ".ts"],
+      "patterns": [
+        {
+          "regex": "import.*from ['\"]@mistralai/mistralai['\"]",
+          "description": "Mistral AI client import",
+          "example": "import MistralClient from '@mistralai/mistralai';"
+        },
+        {
+          "regex": "new MistralClient\\(",
+          "description": "Mistral AI client instantiation",
+          "example": "const client = new MistralClient(process.env.MISTRAL_API_KEY);"
+        }
+      ]
+    },
+    {
+      "language": "python",
+      "file_extensions": [".py"],
+      "patterns": [
+        {
+          "regex": "^import mistralai",
+          "description": "Mistral AI Python import",
+          "example": "import mistralai"
+        },
+        {
+          "regex": "^from mistralai import",
+          "description": "Mistral AI specific imports",
+          "example": "from mistralai.client import MistralClient"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "mistralai",
+    "mistralai.client.MistralClient",
+    "@mistralai/mistralai"
+  ],
+  "detection_notes": [
+    "Look for Mistral model references (mistral-large, mistral-medium, codestral)",
+    "Check for chat completion API calls"
+  ]
+}

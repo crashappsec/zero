@@ -1,0 +1,11 @@
+{
+  "technology": "SQLite",
+  "category": "databases",
+  "layer": 5,
+  "patterns": [
+    {"name": "DATABASE_URL", "pattern": "file:|sqlite:", "description": "SQLite database URL", "confidence": 90},
+    {"name": "SQLITE_DATABASE", "description": "SQLite database path", "confidence": 95},
+    {"name": "TURSO_DATABASE_URL", "description": "Turso (LibSQL) database URL", "confidence": 95},
+    {"name": "TURSO_AUTH_TOKEN", "description": "Turso auth token", "confidence": 95}
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "technology": "PostHog",
+  "category": "business-tools/analytics",
+  "layer": 4,
+  "patterns": [
+    {"pattern": "app\\.posthog\\.com", "confidence": 95},
+    {"pattern": "posthog\\.capture\\(|posthog\\.identify\\(", "confidence": 90}
+  ]
+}

@@ -1,0 +1,5 @@
+{
+  "technology": "Cloudflare",
+  "category": "cloud-providers",
+  "services": ["Workers", "Pages", "R2", "KV", "D1", "Durable Objects", "Queues", "AI"]
+}

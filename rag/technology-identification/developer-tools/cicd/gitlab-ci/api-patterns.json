@@ -1,0 +1,10 @@
+{
+  "technology": "GitLab CI",
+  "category": "developer-tools/cicd",
+  "layer": 4,
+  "patterns": [
+    {"pattern": "stages:|script:|artifacts:|cache:", "confidence": 90},
+    {"pattern": "\\$CI_|\\$GITLAB_", "confidence": 95},
+    {"pattern": "include:|extends:", "confidence": 85}
+  ]
+}

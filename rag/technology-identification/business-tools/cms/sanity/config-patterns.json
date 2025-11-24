@@ -1,0 +1,10 @@
+{
+  "technology": "Sanity",
+  "category": "business-tools/cms",
+  "layer": 2,
+  "patterns": [
+    {"file": "sanity.config.ts", "pattern": ".*", "confidence": 95},
+    {"file": "sanity.cli.ts", "pattern": ".*", "confidence": 95},
+    {"file": "sanity.json", "pattern": ".*", "confidence": 95}
+  ]
+}

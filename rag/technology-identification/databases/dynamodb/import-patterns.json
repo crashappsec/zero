@@ -1,0 +1,16 @@
+{
+  "technology": "Amazon DynamoDB",
+  "category": "databases",
+  "layer": 3,
+  "patterns": {
+    "javascript": [
+      {"pattern": "from\\s+['\"]@aws-sdk/client-dynamodb['\"]", "type": "esm_import", "confidence": 95},
+      {"pattern": "from\\s+['\"]@aws-sdk/lib-dynamodb['\"]", "type": "esm_import", "confidence": 95},
+      {"pattern": "from\\s+['\"]dynamoose['\"]", "type": "esm_import", "confidence": 95}
+    ],
+    "python": [
+      {"pattern": "boto3\\.resource\\(['\"]dynamodb['\"]\\)", "type": "python_import", "confidence": 95},
+      {"pattern": "from\\s+pynamodb", "type": "python_import", "confidence": 95}
+    ]
+  }
+}

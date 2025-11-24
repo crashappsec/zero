@@ -1,0 +1,11 @@
+{
+  "technology": "Sanity",
+  "category": "business-tools/cms",
+  "layer": 3,
+  "patterns": {
+    "javascript": [
+      {"pattern": "from\\s+['\"]@sanity/client['\"]", "confidence": 95},
+      {"pattern": "from\\s+['\"]next-sanity['\"]", "confidence": 95}
+    ]
+  }
+}

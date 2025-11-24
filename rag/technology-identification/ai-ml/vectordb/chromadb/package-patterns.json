@@ -1,0 +1,10 @@
+{
+  "technology": "ChromaDB",
+  "category": "ai-ml/vectordb",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["chromadb"], "description": "ChromaDB JavaScript SDK"},
+    {"ecosystem": "pypi", "names": ["chromadb"], "description": "ChromaDB Python SDK"}
+  ],
+  "homepage": "https://www.trychroma.com"
+}

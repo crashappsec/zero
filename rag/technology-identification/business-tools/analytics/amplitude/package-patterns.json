@@ -1,0 +1,10 @@
+{
+  "technology": "Amplitude",
+  "category": "business-tools/analytics",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["@amplitude/analytics-browser", "@amplitude/analytics-node", "@amplitude/experiment-js-client"], "description": "Amplitude JavaScript/Node.js SDKs"},
+    {"ecosystem": "pypi", "names": ["amplitude-analytics"], "description": "Amplitude Python SDK"}
+  ],
+  "homepage": "https://amplitude.com"
+}

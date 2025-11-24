@@ -1,0 +1,10 @@
+{
+  "technology": "LaunchDarkly",
+  "category": "developer-tools/feature-flags",
+  "layer": 5,
+  "patterns": [
+    {"name": "LAUNCHDARKLY_SDK_KEY", "confidence": 95},
+    {"name": "LD_SDK_KEY", "confidence": 95},
+    {"name": "LAUNCHDARKLY_CLIENT_ID", "confidence": 90}
+  ]
+}

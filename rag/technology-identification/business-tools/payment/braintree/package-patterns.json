@@ -1,0 +1,12 @@
+{
+  "technology": "Braintree",
+  "category": "business-tools/payment",
+  "description": "Braintree payment processing (PayPal)",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["braintree", "braintree-web", "braintree-web-drop-in"], "description": "Braintree Node.js SDKs"},
+    {"ecosystem": "pypi", "names": ["braintree"], "description": "Braintree Python SDK"},
+    {"ecosystem": "rubygems", "names": ["braintree"], "description": "Braintree Ruby SDK"}
+  ],
+  "homepage": "https://developer.paypal.com/braintree"
+}

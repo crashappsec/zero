@@ -1,0 +1,11 @@
+{
+  "technology": "Postmark",
+  "category": "business-tools/email",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["postmark"], "description": "Postmark Node.js SDK"},
+    {"ecosystem": "pypi", "names": ["postmarker"], "description": "Postmark Python SDK"},
+    {"ecosystem": "rubygems", "names": ["postmark"], "description": "Postmark Ruby SDK"}
+  ],
+  "homepage": "https://postmarkapp.com"
+}

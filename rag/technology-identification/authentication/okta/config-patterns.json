@@ -1,0 +1,33 @@
+{
+  "technology": "Okta",
+  "category": "authentication",
+  "layer": 2,
+  "description": "Configuration file patterns for Okta",
+  "patterns": [
+    {
+      "file": "okta.yaml",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": ".okta.env",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "*.json",
+      "pattern": "@okta/",
+      "confidence": 90
+    },
+    {
+      "file": "application.yml",
+      "pattern": "okta:",
+      "confidence": 90
+    },
+    {
+      "file": "application.properties",
+      "pattern": "okta\\.",
+      "confidence": 90
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "technology": "Cypress",
+  "category": "developer-tools/testing",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["cypress", "@cypress/react", "@cypress/vue"], "description": "Cypress E2E testing"}
+  ],
+  "homepage": "https://www.cypress.io"
+}

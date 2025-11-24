@@ -1,0 +1,10 @@
+{
+  "technology": "Pinecone",
+  "category": "ai-ml/vectordb",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["@pinecone-database/pinecone"], "description": "Pinecone Node.js SDK"},
+    {"ecosystem": "pypi", "names": ["pinecone-client", "pinecone"], "description": "Pinecone Python SDK"}
+  ],
+  "homepage": "https://www.pinecone.io"
+}

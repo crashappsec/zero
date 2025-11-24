@@ -1,0 +1,18 @@
+{
+  "technology": "Together AI",
+  "category": "ai-ml/apis",
+  "layer": 2,
+  "description": "Configuration file patterns for Together AI",
+  "patterns": [
+    {
+      "file": "*.json",
+      "pattern": "together",
+      "confidence": 70
+    },
+    {
+      "file": ".togetherrc",
+      "pattern": ".*",
+      "confidence": 95
+    }
+  ]
+}

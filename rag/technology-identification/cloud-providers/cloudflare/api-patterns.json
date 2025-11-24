@@ -1,0 +1,10 @@
+{
+  "technology": "Cloudflare",
+  "category": "cloud-providers",
+  "layer": 4,
+  "patterns": [
+    {"pattern": "api\\.cloudflare\\.com", "description": "Cloudflare API", "confidence": 95},
+    {"pattern": "\\.workers\\.dev", "description": "Workers subdomain", "confidence": 95},
+    {"pattern": "\\.r2\\.cloudflarestorage\\.com", "description": "R2 storage", "confidence": 95}
+  ]
+}

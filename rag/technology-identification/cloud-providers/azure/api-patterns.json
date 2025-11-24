@@ -1,0 +1,12 @@
+{
+  "technology": "Microsoft Azure",
+  "category": "cloud-providers",
+  "layer": 4,
+  "patterns": [
+    {"pattern": "\\.blob\\.core\\.windows\\.net", "description": "Azure Blob Storage", "confidence": 95},
+    {"pattern": "\\.table\\.core\\.windows\\.net", "description": "Azure Table Storage", "confidence": 95},
+    {"pattern": "\\.servicebus\\.windows\\.net", "description": "Azure Service Bus", "confidence": 95},
+    {"pattern": "\\.documents\\.azure\\.com", "description": "Azure Cosmos DB", "confidence": 95},
+    {"pattern": "\\.azurewebsites\\.net", "description": "Azure App Service", "confidence": 90}
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "technology": "New Relic",
+  "category": "monitoring",
+  "layer": 4,
+  "description": "API endpoint and usage patterns for New Relic",
+  "patterns": [
+    {
+      "pattern": "api\\.newrelic\\.com",
+      "description": "New Relic API endpoint",
+      "confidence": 95
+    },
+    {
+      "pattern": "newrelic\\.agent\\.initialize",
+      "description": "New Relic Python agent initialization",
+      "confidence": 95
+    },
+    {
+      "pattern": "newrelic\\.noticeError|newrelic\\.setTransactionName",
+      "description": "New Relic custom instrumentation",
+      "confidence": 90
+    },
+    {
+      "pattern": "@newrelic\\.agent\\.background_task",
+      "description": "New Relic Python background task decorator",
+      "confidence": 95
+    },
+    {
+      "pattern": "collector\\.newrelic\\.com",
+      "description": "New Relic collector endpoint",
+      "confidence": 90
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "technology": "Cypress",
+  "category": "developer-tools/testing",
+  "layer": 3,
+  "patterns": {
+    "javascript": [
+      {"pattern": "cy\\.", "type": "api_usage", "confidence": 90},
+      {"pattern": "from\\s+['\"]cypress['\"]", "type": "esm_import", "confidence": 95}
+    ]
+  }
+}

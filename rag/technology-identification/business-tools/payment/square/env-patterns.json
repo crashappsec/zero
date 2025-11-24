@@ -1,0 +1,11 @@
+{
+  "technology": "Square",
+  "category": "business-tools/payment",
+  "layer": 5,
+  "patterns": [
+    {"name": "SQUARE_ACCESS_TOKEN", "confidence": 95},
+    {"name": "SQUARE_APPLICATION_ID", "confidence": 95},
+    {"name": "SQUARE_LOCATION_ID", "confidence": 90},
+    {"name": "SQUARE_ENVIRONMENT", "confidence": 90}
+  ]
+}

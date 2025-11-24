@@ -1,0 +1,10 @@
+{
+  "technology": "Mistral AI",
+  "category": "ai-ml/apis",
+  "confidence": 70,
+  "patterns": [],
+  "detection_notes": [
+    "Mistral AI typically configured via environment variables",
+    "No specific config files"
+  ]
+}

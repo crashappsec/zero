@@ -1,0 +1,56 @@
+{
+  "technology": "AWS Cognito",
+  "category": "authentication",
+  "layer": 5,
+  "description": "Environment variable patterns for AWS Cognito",
+  "patterns": [
+    {
+      "name": "COGNITO_USER_POOL_ID",
+      "description": "Cognito user pool ID",
+      "required": true,
+      "confidence": 95
+    },
+    {
+      "name": "COGNITO_CLIENT_ID",
+      "description": "Cognito app client ID",
+      "required": true,
+      "confidence": 95
+    },
+    {
+      "name": "COGNITO_CLIENT_SECRET",
+      "description": "Cognito app client secret",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "COGNITO_IDENTITY_POOL_ID",
+      "description": "Cognito identity pool ID",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "COGNITO_REGION",
+      "description": "AWS region for Cognito",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "NEXT_PUBLIC_COGNITO_USER_POOL_ID",
+      "description": "Next.js public Cognito user pool ID",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "NEXT_PUBLIC_COGNITO_CLIENT_ID",
+      "description": "Next.js public Cognito client ID",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "AWS_COGNITO_USER_POOL_ID",
+      "description": "AWS prefixed Cognito user pool ID",
+      "required": false,
+      "confidence": 95
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "technology": "Playwright",
+  "category": "developer-tools/testing",
+  "layer": 2,
+  "patterns": [
+    {"file": "playwright.config.js", "pattern": ".*", "confidence": 95},
+    {"file": "playwright.config.ts", "pattern": ".*", "confidence": 95}
+  ]
+}

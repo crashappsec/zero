@@ -1,0 +1,9 @@
+{
+  "technology": "Vitest",
+  "category": "developer-tools/testing",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["vitest", "@vitest/ui", "@vitest/coverage-v8"], "description": "Vitest testing framework"}
+  ],
+  "homepage": "https://vitest.dev"
+}

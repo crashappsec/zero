@@ -1,0 +1,11 @@
+{
+  "technology": "SendGrid",
+  "category": "business-tools/email",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["@sendgrid/mail", "@sendgrid/client"], "description": "SendGrid Node.js SDK"},
+    {"ecosystem": "pypi", "names": ["sendgrid"], "description": "SendGrid Python SDK"},
+    {"ecosystem": "rubygems", "names": ["sendgrid-ruby"], "description": "SendGrid Ruby SDK"}
+  ],
+  "homepage": "https://sendgrid.com"
+}

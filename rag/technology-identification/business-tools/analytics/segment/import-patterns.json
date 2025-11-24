@@ -1,0 +1,11 @@
+{
+  "technology": "Segment",
+  "category": "business-tools/analytics",
+  "layer": 3,
+  "patterns": {
+    "javascript": [
+      {"pattern": "from\\s+['\"]@segment/analytics-next['\"]", "type": "esm_import", "confidence": 95},
+      {"pattern": "from\\s+['\"]@segment/analytics-node['\"]", "type": "esm_import", "confidence": 95}
+    ]
+  }
+}

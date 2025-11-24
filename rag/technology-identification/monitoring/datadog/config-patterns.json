@@ -1,0 +1,33 @@
+{
+  "technology": "Datadog",
+  "category": "monitoring",
+  "layer": 2,
+  "description": "Configuration file patterns for Datadog",
+  "patterns": [
+    {
+      "file": "datadog.yaml",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "docker-compose.yml",
+      "pattern": "datadog/agent",
+      "confidence": 95
+    },
+    {
+      "file": "docker-compose.yaml",
+      "pattern": "datadog/agent",
+      "confidence": 95
+    },
+    {
+      "file": "serverless.yml",
+      "pattern": "serverless-plugin-datadog",
+      "confidence": 95
+    },
+    {
+      "file": "*.json",
+      "pattern": "dd-trace|datadog",
+      "confidence": 80
+    }
+  ]
+}

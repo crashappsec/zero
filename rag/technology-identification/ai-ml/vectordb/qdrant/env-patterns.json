@@ -1,0 +1,10 @@
+{
+  "technology": "Qdrant",
+  "category": "ai-ml/vectordb",
+  "layer": 5,
+  "patterns": [
+    {"name": "QDRANT_URL", "confidence": 95},
+    {"name": "QDRANT_API_KEY", "confidence": 95},
+    {"name": "QDRANT_HOST", "confidence": 90}
+  ]
+}

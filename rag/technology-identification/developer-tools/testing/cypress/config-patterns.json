@@ -1,0 +1,11 @@
+{
+  "technology": "Cypress",
+  "category": "developer-tools/testing",
+  "layer": 2,
+  "patterns": [
+    {"file": "cypress.config.js", "pattern": ".*", "confidence": 95},
+    {"file": "cypress.config.ts", "pattern": ".*", "confidence": 95},
+    {"file": "cypress.json", "pattern": ".*", "confidence": 95},
+    {"file": "cypress/", "pattern": ".*", "confidence": 90}
+  ]
+}

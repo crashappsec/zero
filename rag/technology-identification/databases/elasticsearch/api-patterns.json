@@ -1,0 +1,10 @@
+{
+  "technology": "Elasticsearch",
+  "category": "databases",
+  "layer": 4,
+  "patterns": [
+    {"pattern": "localhost:9200|[a-z0-9.-]+:9200", "description": "Elasticsearch default port", "confidence": 85},
+    {"pattern": "\\.es\\.[a-z0-9-]+\\.aws\\.found\\.io", "description": "Elastic Cloud endpoint", "confidence": 95},
+    {"pattern": "\\.search\\(|\\.index\\(|\\.bulk\\(", "description": "Elasticsearch client methods", "confidence": 80}
+  ]
+}

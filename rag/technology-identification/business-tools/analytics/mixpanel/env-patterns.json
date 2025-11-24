@@ -1,0 +1,10 @@
+{
+  "technology": "Mixpanel",
+  "category": "business-tools/analytics",
+  "layer": 5,
+  "patterns": [
+    {"name": "MIXPANEL_TOKEN", "confidence": 95},
+    {"name": "MIXPANEL_PROJECT_TOKEN", "confidence": 95},
+    {"name": "NEXT_PUBLIC_MIXPANEL_TOKEN", "confidence": 95}
+  ]
+}

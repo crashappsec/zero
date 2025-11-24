@@ -1,0 +1,10 @@
+{
+  "technology": "Vitest",
+  "category": "developer-tools/testing",
+  "layer": 3,
+  "patterns": {
+    "javascript": [
+      {"pattern": "from\\s+['\"]vitest['\"]", "type": "esm_import", "confidence": 95}
+    ]
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "technology": "PostgreSQL",
+  "category": "databases",
+  "description": "PostgreSQL relational database drivers and ORMs",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["pg", "pg-promise", "postgres", "sequelize", "typeorm", "prisma", "drizzle-orm", "knex"],
+      "description": "Node.js PostgreSQL clients and ORMs"
+    },
+    {
+      "ecosystem": "pypi",
+      "names": ["psycopg2", "psycopg2-binary", "psycopg", "asyncpg", "sqlalchemy", "databases"],
+      "description": "Python PostgreSQL drivers"
+    },
+    {
+      "ecosystem": "rubygems",
+      "names": ["pg", "activerecord-postgresql-adapter"],
+      "description": "Ruby PostgreSQL drivers"
+    },
+    {
+      "ecosystem": "maven",
+      "names": ["org.postgresql:postgresql"],
+      "description": "Java PostgreSQL JDBC driver"
+    },
+    {
+      "ecosystem": "go",
+      "names": ["github.com/lib/pq", "github.com/jackc/pgx"],
+      "description": "Go PostgreSQL drivers"
+    }
+  ],
+  "related_packages": [
+    "pg-pool",
+    "pg-cursor",
+    "pg-query-stream"
+  ],
+  "official_registry": "https://www.postgresql.org",
+  "homepage": "https://www.postgresql.org",
+  "detection_notes": [
+    "Check for DATABASE_URL containing postgres://",
+    "Look for .pgpass files",
+    "Common with ORMs like Prisma, TypeORM, Sequelize"
+  ]
+}

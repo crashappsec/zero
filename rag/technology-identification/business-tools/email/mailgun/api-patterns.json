@@ -1,0 +1,6 @@
+{
+  "technology": "Mailgun",
+  "category": "business-tools/email",
+  "layer": 4,
+  "patterns": [{"pattern": "api\\.mailgun\\.net", "confidence": 95}]
+}

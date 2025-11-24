@@ -1,0 +1,8 @@
+{
+  "technology": "Weights & Biases",
+  "category": "ai-ml/mlops",
+  "layer": 3,
+  "patterns": {
+    "python": [{"pattern": "import\\s+wandb", "confidence": 95}]
+  }
+}

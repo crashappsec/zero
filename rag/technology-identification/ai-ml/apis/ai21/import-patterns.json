@@ -1,0 +1,30 @@
+{
+  "technology": "AI21 Labs",
+  "category": "ai-ml/apis",
+  "confidence": 90,
+  "patterns": [
+    {
+      "language": "python",
+      "file_extensions": [".py"],
+      "patterns": [
+        {
+          "regex": "^import ai21",
+          "description": "AI21 Labs Python import",
+          "example": "import ai21"
+        },
+        {
+          "regex": "^from ai21 import",
+          "description": "AI21 Labs specific imports",
+          "example": "from ai21 import AI21Client"
+        }
+      ]
+    }
+  ],
+  "common_imports": [
+    "ai21",
+    "ai21.AI21Client"
+  ],
+  "detection_notes": [
+    "Look for Jurassic model references (j2-ultra, j2-mid)"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "technology": "LaunchDarkly",
+  "category": "developer-tools/feature-flags",
+  "layer": 3,
+  "patterns": {
+    "javascript": [{"pattern": "from\\s+['\"]@launchdarkly/", "confidence": 95}],
+    "python": [{"pattern": "import\\s+ldclient", "confidence": 95}]
+  }
+}

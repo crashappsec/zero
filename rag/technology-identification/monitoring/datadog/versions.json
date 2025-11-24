@@ -1,0 +1,40 @@
+{
+  "technology": "Datadog",
+  "category": "monitoring",
+  "description": "Datadog SDK version information",
+  "sdk_versions": {
+    "nodejs": {
+      "current": "5.0.0",
+      "package": "dd-trace"
+    },
+    "python": {
+      "current": "2.0.0",
+      "package": "ddtrace"
+    },
+    "ruby": {
+      "current": "2.0.0",
+      "package": "ddtrace"
+    },
+    "java": {
+      "current": "1.24.0",
+      "package": "dd-java-agent"
+    },
+    "go": {
+      "current": "1.60.0",
+      "package": "dd-trace-go"
+    }
+  },
+  "agent_version": {
+    "current": "7.50.0",
+    "min_supported": "6.0.0"
+  },
+  "features": [
+    "APM (Application Performance Monitoring)",
+    "Infrastructure Monitoring",
+    "Log Management",
+    "Real User Monitoring (RUM)",
+    "Synthetic Monitoring",
+    "Security Monitoring",
+    "CI Visibility"
+  ]
+}

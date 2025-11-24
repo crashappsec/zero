@@ -1,0 +1,62 @@
+{
+  "technology": "Apache Kafka",
+  "category": "messaging",
+  "layer": 5,
+  "description": "Environment variable patterns for Kafka",
+  "patterns": [
+    {
+      "name": "KAFKA_BOOTSTRAP_SERVERS",
+      "description": "Kafka broker addresses",
+      "required": true,
+      "confidence": 95
+    },
+    {
+      "name": "KAFKA_BROKERS",
+      "description": "Kafka broker addresses (alternative)",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "KAFKA_BROKER_LIST",
+      "description": "Kafka broker list",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "KAFKA_SECURITY_PROTOCOL",
+      "description": "Security protocol (PLAINTEXT, SSL, SASL_SSL)",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "KAFKA_SASL_MECHANISM",
+      "description": "SASL authentication mechanism",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "KAFKA_SASL_USERNAME",
+      "description": "SASL username",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "KAFKA_SASL_PASSWORD",
+      "description": "SASL password",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "KAFKA_GROUP_ID",
+      "description": "Consumer group ID",
+      "required": false,
+      "confidence": 85
+    },
+    {
+      "name": "KAFKA_SCHEMA_REGISTRY_URL",
+      "description": "Schema Registry URL",
+      "required": false,
+      "confidence": 95
+    }
+  ]
+}

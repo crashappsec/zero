@@ -1,0 +1,9 @@
+{
+  "technology": "Pinecone",
+  "category": "ai-ml/vectordb",
+  "layer": 3,
+  "patterns": {
+    "javascript": [{"pattern": "from\\s+['\"]@pinecone-database/pinecone['\"]", "confidence": 95}],
+    "python": [{"pattern": "from\\s+pinecone", "confidence": 95}]
+  }
+}

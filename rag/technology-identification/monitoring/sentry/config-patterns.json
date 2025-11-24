@@ -1,0 +1,43 @@
+{
+  "technology": "Sentry",
+  "category": "monitoring",
+  "layer": 2,
+  "description": "Configuration file patterns for Sentry",
+  "patterns": [
+    {
+      "file": "sentry.properties",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": ".sentryclirc",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "sentry.client.config.js",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "sentry.server.config.js",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "sentry.edge.config.js",
+      "pattern": ".*",
+      "confidence": 95
+    },
+    {
+      "file": "next.config.js",
+      "pattern": "withSentryConfig",
+      "confidence": 95
+    },
+    {
+      "file": "*.json",
+      "pattern": "@sentry/",
+      "confidence": 85
+    }
+  ]
+}

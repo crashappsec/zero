@@ -1,0 +1,12 @@
+{
+  "technology": "GitHub Actions",
+  "category": "developer-tools/cicd",
+  "layer": 2,
+  "confidence": 95,
+  "patterns": [
+    {"file": ".github/workflows/*.yml", "pattern": ".*", "confidence": 95},
+    {"file": ".github/workflows/*.yaml", "pattern": ".*", "confidence": 95},
+    {"file": ".github/actions/*/action.yml", "pattern": ".*", "confidence": 95}
+  ],
+  "homepage": "https://github.com/features/actions"
+}

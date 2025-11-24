@@ -1,0 +1,10 @@
+{
+  "technology": "Sanity",
+  "category": "business-tools/cms",
+  "confidence": 95,
+  "patterns": [
+    {"ecosystem": "npm", "names": ["@sanity/client", "sanity", "next-sanity", "@sanity/image-url"], "description": "Sanity Node.js SDKs"},
+    {"ecosystem": "pypi", "names": ["sanity"], "description": "Sanity Python SDK"}
+  ],
+  "homepage": "https://www.sanity.io"
+}

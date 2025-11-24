@@ -1,0 +1,6 @@
+{
+  "technology": "SQLite",
+  "category": "databases",
+  "current_stable": "3.45",
+  "variants": ["SQLite", "LibSQL", "Turso", "LiteFS", "Cloudflare D1"]
+}

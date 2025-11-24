@@ -1,0 +1,9 @@
+{
+  "technology": "Prismic",
+  "category": "business-tools/cms",
+  "layer": 5,
+  "patterns": [
+    {"name": "PRISMIC_REPOSITORY", "confidence": 95},
+    {"name": "PRISMIC_ACCESS_TOKEN", "confidence": 95}
+  ]
+}

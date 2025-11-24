@@ -1,0 +1,14 @@
+{
+  "technology": "Braintree",
+  "category": "business-tools/payment",
+  "layer": 3,
+  "patterns": {
+    "javascript": [
+      {"pattern": "from\\s+['\"]braintree['\"]", "type": "esm_import", "confidence": 95},
+      {"pattern": "require\\(['\"]braintree['\"]\\)", "type": "commonjs_require", "confidence": 95}
+    ],
+    "python": [
+      {"pattern": "import\\s+braintree", "type": "python_import", "confidence": 95}
+    ]
+  }
+}

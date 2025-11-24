@@ -1,0 +1,11 @@
+{
+  "technology": "PostHog",
+  "category": "business-tools/analytics",
+  "layer": 5,
+  "patterns": [
+    {"name": "POSTHOG_API_KEY", "confidence": 95},
+    {"name": "POSTHOG_HOST", "confidence": 90},
+    {"name": "NEXT_PUBLIC_POSTHOG_KEY", "confidence": 95},
+    {"name": "NEXT_PUBLIC_POSTHOG_HOST", "confidence": 90}
+  ]
+}

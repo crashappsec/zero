@@ -1,0 +1,62 @@
+{
+  "technology": "Datadog",
+  "category": "monitoring",
+  "layer": 5,
+  "description": "Environment variable patterns for Datadog",
+  "patterns": [
+    {
+      "name": "DD_API_KEY",
+      "description": "Datadog API key",
+      "required": true,
+      "confidence": 95
+    },
+    {
+      "name": "DD_APP_KEY",
+      "description": "Datadog application key",
+      "required": false,
+      "confidence": 95
+    },
+    {
+      "name": "DD_AGENT_HOST",
+      "description": "Datadog agent host",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "DD_SERVICE",
+      "description": "Service name for APM",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "DD_ENV",
+      "description": "Environment tag",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "DD_VERSION",
+      "description": "Version tag",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "DD_TRACE_ENABLED",
+      "description": "Enable APM tracing",
+      "required": false,
+      "confidence": 90
+    },
+    {
+      "name": "DD_LOGS_INJECTION",
+      "description": "Enable log correlation",
+      "required": false,
+      "confidence": 85
+    },
+    {
+      "name": "DD_SITE",
+      "description": "Datadog site (datadoghq.com, datadoghq.eu)",
+      "required": false,
+      "confidence": 90
+    }
+  ]
+}

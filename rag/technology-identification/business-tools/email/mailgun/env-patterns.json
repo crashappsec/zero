@@ -1,0 +1,9 @@
+{
+  "technology": "Mailgun",
+  "category": "business-tools/email",
+  "layer": 5,
+  "patterns": [
+    {"name": "MAILGUN_API_KEY", "confidence": 95},
+    {"name": "MAILGUN_DOMAIN", "confidence": 95}
+  ]
+}
