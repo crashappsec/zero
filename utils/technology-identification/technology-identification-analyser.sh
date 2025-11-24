@@ -1245,6 +1245,12 @@ if [[ "$MULTI_REPO_MODE" == true ]]; then
         if [[ "$target_spec" == org:* ]]; then
             # Extract organization name
             org_name="${target_spec#org:}"
+
+            # Strip GitHub URL if provided (support both https://github.com/org and https://github.com/org/)
+            org_name="${org_name#https://github.com/}"
+            org_name="${org_name#http://github.com/}"
+            org_name="${org_name%/}"  # Remove trailing slash
+
             echo -e "${CYAN}Fetching repositories for organization: $org_name${NC}" >&2
 
             # Get list of repos from organization
