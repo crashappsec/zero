@@ -1233,6 +1233,134 @@ if [[ "$MULTI_REPO_MODE" == false ]]; then
     fi
 fi
 
+# Multi-repo mode
+if [[ "$MULTI_REPO_MODE" == true ]]; then
+    echo -e "${CYAN}Multi-repository mode enabled${NC}"
+    echo ""
+
+    # Expand targets (convert org:* to individual repos)
+    declare -a REPO_URLS=()
+
+    for target_spec in "${TARGETS_LIST[@]}"; do
+        if [[ "$target_spec" == org:* ]]; then
+            # Extract organization name
+            org_name="${target_spec#org:}"
+            echo -e "${CYAN}Fetching repositories for organization: $org_name${NC}" >&2
+
+            # Get list of repos from organization
+            repo_list=$(list_org_repos "$org_name")
+
+            if [[ -z "$repo_list" ]]; then
+                echo -e "${YELLOW}Warning: No repositories found for organization $org_name${NC}" >&2
+                continue
+            fi
+
+            # Convert each repo to a GitHub URL
+            while IFS= read -r repo; do
+                [[ -z "$repo" ]] && continue
+                REPO_URLS+=("https://github.com/$repo")
+            done <<< "$repo_list"
+
+            echo -e "${GREEN}Found $(echo "$repo_list" | wc -l | tr -d ' ') repositories${NC}" >&2
+
+        elif [[ "$target_spec" == repo:* ]]; then
+            # Extract repo name
+            repo_name="${target_spec#repo:}"
+
+            # Check if it's already a full URL
+            if [[ "$repo_name" =~ ^https?:// ]] || [[ "$repo_name" =~ ^git@ ]]; then
+                REPO_URLS+=("$repo_name")
+            else
+                # Convert owner/repo to full GitHub URL
+                REPO_URLS+=("https://github.com/$repo_name")
+            fi
+        fi
+    done
+
+    # Check if we have any repos to process
+    if [[ ${#REPO_URLS[@]} -eq 0 ]]; then
+        echo -e "${RED}Error: No repositories to analyze${NC}" >&2
+        exit 1
+    fi
+
+    echo ""
+    echo -e "${GREEN}Processing ${#REPO_URLS[@]} repositories...${NC}" >&2
+    echo ""
+
+    # Process each repository
+    declare -a all_findings=()
+    repo_count=0
+    success_count=0
+
+    for repo_url in "${REPO_URLS[@]}"; do
+        repo_count=$((repo_count + 1))
+        echo -e "${BLUE}[$repo_count/${#REPO_URLS[@]}] Analyzing: $repo_url${NC}" >&2
+        echo ""
+
+        # Analyze this repository
+        findings=$(analyze_target "$repo_url" 2>&1)
+
+        if [[ $? -eq 0 ]] && [[ -n "$findings" ]]; then
+            all_findings+=("$findings")
+            success_count=$((success_count + 1))
+            echo -e "${GREEN}✓ Analysis complete${NC}" >&2
+        else
+            echo -e "${YELLOW}⚠ Analysis failed or returned no data${NC}" >&2
+        fi
+
+        echo ""
+        echo "---" >&2
+        echo ""
+    done
+
+    # Generate combined report
+    echo ""
+    echo -e "${CYAN}Generating combined report...${NC}" >&2
+    echo ""
+
+    case "$OUTPUT_FORMAT" in
+        json)
+            # Create JSON array of all findings
+            echo "["
+            first=true
+            for finding in "${all_findings[@]}"; do
+                if [[ "$first" == true ]]; then
+                    first=false
+                else
+                    echo ","
+                fi
+                echo "$finding"
+            done
+            echo "]"
+            ;;
+        markdown)
+            # Create combined markdown report
+            echo "# Multi-Repository Technology Analysis"
+            echo ""
+            echo "**Date**: $(date '+%Y-%m-%d %H:%M:%S')"
+            echo "**Repositories Analyzed**: $success_count / ${#REPO_URLS[@]}"
+            echo ""
+            echo "---"
+            echo ""
+
+            repo_index=0
+            for finding in "${all_findings[@]}"; do
+                repo_index=$((repo_index + 1))
+                echo "## Repository $repo_index: ${REPO_URLS[$((repo_index - 1))]}"
+                echo ""
+                echo "$finding"
+                echo ""
+                echo "---"
+                echo ""
+            done
+            ;;
+        *)
+            echo -e "${RED}Error: Unknown format: $OUTPUT_FORMAT${NC}" >&2
+            exit 1
+            ;;
+    esac
+fi
+
 echo ""
 echo -e "${GREEN}=========================================${NC}"
 echo -e "${GREEN}  Analysis Complete${NC}"
