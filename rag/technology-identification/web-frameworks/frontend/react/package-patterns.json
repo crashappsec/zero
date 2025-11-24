@@ -1,0 +1,41 @@
+{
+  "technology": "React",
+  "category": "web-frameworks/frontend",
+  "description": "A JavaScript library for building user interfaces",
+  "confidence": 95,
+  "patterns": [
+    {
+      "ecosystem": "npm",
+      "names": ["react", "react-dom"],
+      "scoped_names": [],
+      "description": "Core React packages"
+    },
+    {
+      "ecosystem": "yarn",
+      "names": ["react", "react-dom"],
+      "description": "Core React packages via Yarn"
+    },
+    {
+      "ecosystem": "pnpm",
+      "names": ["react", "react-dom"],
+      "description": "Core React packages via pnpm"
+    }
+  ],
+  "related_packages": [
+    "react-router",
+    "react-router-dom",
+    "react-redux",
+    "react-query",
+    "@tanstack/react-query",
+    "react-hook-form",
+    "react-native",
+    "next",
+    "gatsby"
+  ],
+  "official_registry": "https://www.npmjs.com/package/react",
+  "detection_notes": [
+    "Presence of both 'react' and 'react-dom' is strong signal",
+    "Related packages alone may indicate React usage",
+    "Check for JSX file extensions (.jsx, .tsx)"
+  ]
+}
