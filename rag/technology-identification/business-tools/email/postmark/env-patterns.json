@@ -1,9 +1,0 @@
-{
-  "technology": "Postmark",
-  "category": "business-tools/email",
-  "layer": 5,
-  "patterns": [
-    {"name": "POSTMARK_API_TOKEN", "confidence": 95},
-    {"name": "POSTMARK_SERVER_TOKEN", "confidence": 95}
-  ]
-}

@@ -1,9 +1,0 @@
-{
-  "technology": "Supabase",
-  "category": "databases",
-  "layer": 4,
-  "patterns": [
-    {"pattern": "[a-z0-9]+\\.supabase\\.co", "description": "Supabase project URL", "confidence": 95},
-    {"pattern": "createClient\\(.*supabase", "description": "Supabase client creation", "confidence": 90}
-  ]
-}

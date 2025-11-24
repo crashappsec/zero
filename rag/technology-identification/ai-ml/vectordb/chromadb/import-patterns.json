@@ -1,9 +1,0 @@
-{
-  "technology": "ChromaDB",
-  "category": "ai-ml/vectordb",
-  "layer": 3,
-  "patterns": {
-    "javascript": [{"pattern": "from\\s+['\"]chromadb['\"]", "confidence": 95}],
-    "python": [{"pattern": "import\\s+chromadb", "confidence": 95}]
-  }
-}

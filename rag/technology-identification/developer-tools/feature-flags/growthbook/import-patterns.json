@@ -1,9 +1,0 @@
-{
-  "technology": "GrowthBook",
-  "category": "developer-tools/feature-flags",
-  "layer": 3,
-  "patterns": {
-    "javascript": [{"pattern": "from\\s+['\"]@growthbook/growthbook['\"]", "confidence": 95}],
-    "python": [{"pattern": "from\\s+growthbook", "confidence": 95}]
-  }
-}

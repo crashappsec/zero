@@ -1,9 +1,0 @@
-{
-  "technology": "Weaviate",
-  "category": "ai-ml/vectordb",
-  "layer": 3,
-  "patterns": {
-    "javascript": [{"pattern": "from\\s+['\"]weaviate-ts-client['\"]", "confidence": 95}],
-    "python": [{"pattern": "import\\s+weaviate", "confidence": 95}]
-  }
-}

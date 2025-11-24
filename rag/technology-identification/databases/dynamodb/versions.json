@@ -1,5 +1,0 @@
-{
-  "technology": "Amazon DynamoDB",
-  "category": "databases",
-  "local_testing": ["DynamoDB Local", "LocalStack"]
-}

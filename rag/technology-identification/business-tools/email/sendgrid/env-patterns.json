@@ -1,9 +1,0 @@
-{
-  "technology": "SendGrid",
-  "category": "business-tools/email",
-  "layer": 5,
-  "patterns": [
-    {"name": "SENDGRID_API_KEY", "confidence": 95},
-    {"name": "SENDGRID_FROM_EMAIL", "confidence": 90}
-  ]
-}

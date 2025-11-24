@@ -1,5 +1,0 @@
-{
-  "technology": "Google Cloud Platform",
-  "category": "cloud-providers",
-  "services": ["Cloud Storage", "Pub/Sub", "Firestore", "BigQuery", "Cloud Functions", "Cloud Run", "GKE", "Vertex AI"]
-}

@@ -1,9 +1,0 @@
-{
-  "technology": "SQLite",
-  "category": "databases",
-  "layer": 4,
-  "patterns": [
-    {"pattern": "\\.sqlite|\\.db", "description": "SQLite file extension", "confidence": 80},
-    {"pattern": "libsql://", "description": "LibSQL/Turso URL", "confidence": 95}
-  ]
-}

@@ -1,9 +1,0 @@
-{
-  "technology": "Amplitude",
-  "category": "business-tools/analytics",
-  "layer": 4,
-  "patterns": [
-    {"pattern": "api\\.amplitude\\.com", "confidence": 95},
-    {"pattern": "amplitude\\.track\\(|amplitude\\.identify\\(", "confidence": 90}
-  ]
-}

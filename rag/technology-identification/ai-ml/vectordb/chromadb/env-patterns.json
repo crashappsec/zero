@@ -1,9 +1,0 @@
-{
-  "technology": "ChromaDB",
-  "category": "ai-ml/vectordb",
-  "layer": 5,
-  "patterns": [
-    {"name": "CHROMA_HOST", "confidence": 95},
-    {"name": "CHROMA_PORT", "confidence": 90}
-  ]
-}

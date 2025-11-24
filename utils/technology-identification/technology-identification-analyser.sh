@@ -1295,27 +1295,59 @@ if [[ "$MULTI_REPO_MODE" == true ]]; then
 
     # Process each repository
     declare -a all_findings=()
+    declare -a all_repo_names=()
     repo_count=0
     success_count=0
 
     for repo_url in "${REPO_URLS[@]}"; do
         repo_count=$((repo_count + 1))
+        repo_name=$(echo "$repo_url" | sed 's|https://github.com/||')
+
         echo -e "${BLUE}[$repo_count/${#REPO_URLS[@]}] Analyzing: $repo_url${NC}" >&2
         echo ""
 
-        # Analyze this repository
-        findings=$(analyze_target "$repo_url" 2>&1)
+        # Analyze this repository (capture JSON on stdout, let status go to stderr)
+        findings=$(analyze_target "$repo_url")
+        analyze_status=$?
 
-        if [[ $? -eq 0 ]] && [[ -n "$findings" ]]; then
-            all_findings+=("$findings")
-            success_count=$((success_count + 1))
-            echo -e "${GREEN}✓ Analysis complete${NC}" >&2
+        if [[ $analyze_status -eq 0 ]] && [[ -n "$findings" ]]; then
+            # Validate it's proper JSON
+            if echo "$findings" | jq '.' >/dev/null 2>&1; then
+                all_findings+=("$findings")
+                all_repo_names+=("$repo_name")
+                success_count=$((success_count + 1))
+
+                # Print summary for this repository
+                echo "" >&2
+                echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+                echo -e "${GREEN}  Summary: $repo_name${NC}" >&2
+                echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+
+                # Extract and display key technologies
+                tech_count=$(echo "$findings" | jq 'length' 2>/dev/null || echo "0")
+                echo -e "  ${CYAN}Technologies detected: $tech_count${NC}" >&2
+
+                # Show top technologies by confidence
+                if [[ "$tech_count" != "0" ]] && [[ "$tech_count" != "null" ]] && [[ "$tech_count" -gt 0 ]]; then
+                    echo "" >&2
+                    echo -e "  ${CYAN}Top technologies:${NC}" >&2
+                    echo "$findings" | jq -r 'sort_by(-.confidence) | .[0:5] | .[] | "    • \(.name) (\(.category)) - \(.confidence)%"' 2>/dev/null >&2
+
+                    # Show categories breakdown
+                    echo "" >&2
+                    echo -e "  ${CYAN}Categories:${NC}" >&2
+                    echo "$findings" | jq -r 'group_by(.category) | map({category: .[0].category, count: length}) | sort_by(-.count) | .[] | "    • \(.category): \(.count)"' 2>/dev/null >&2
+                fi
+
+                echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+                echo "" >&2
+            else
+                echo -e "${YELLOW}⚠ Analysis returned invalid JSON${NC}" >&2
+            fi
         else
             echo -e "${YELLOW}⚠ Analysis failed or returned no data${NC}" >&2
         fi
 
-        echo ""
-        echo "---" >&2
         echo ""
     done
 

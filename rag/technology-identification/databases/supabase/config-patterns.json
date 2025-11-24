@@ -1,9 +1,0 @@
-{
-  "technology": "Supabase",
-  "category": "databases",
-  "layer": 2,
-  "patterns": [
-    {"file": "supabase/config.toml", "pattern": ".*", "confidence": 95},
-    {"file": "supabase/.gitignore", "pattern": ".*", "confidence": 90}
-  ]
-}

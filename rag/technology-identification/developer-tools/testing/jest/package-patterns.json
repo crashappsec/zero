@@ -1,9 +1,0 @@
-{
-  "technology": "Jest",
-  "category": "developer-tools/testing",
-  "confidence": 95,
-  "patterns": [
-    {"ecosystem": "npm", "names": ["jest", "@jest/core", "ts-jest", "@types/jest", "jest-environment-jsdom"], "description": "Jest testing framework"}
-  ],
-  "homepage": "https://jestjs.io"
-}

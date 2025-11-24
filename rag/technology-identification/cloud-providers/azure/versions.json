@@ -1,5 +1,0 @@
-{
-  "technology": "Microsoft Azure",
-  "category": "cloud-providers",
-  "services": ["Blob Storage", "Cosmos DB", "Service Bus", "Functions", "App Service", "AKS", "Azure OpenAI", "Logic Apps"]
-}

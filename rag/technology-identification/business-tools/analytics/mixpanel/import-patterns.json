@@ -1,9 +1,0 @@
-{
-  "technology": "Mixpanel",
-  "category": "business-tools/analytics",
-  "layer": 3,
-  "patterns": {
-    "javascript": [{"pattern": "from\\s+['\"]mixpanel-browser['\"]", "type": "esm_import", "confidence": 95}],
-    "python": [{"pattern": "from\\s+mixpanel", "type": "python_import", "confidence": 95}]
-  }
-}

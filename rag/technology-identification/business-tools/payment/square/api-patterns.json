@@ -1,9 +1,0 @@
-{
-  "technology": "Square",
-  "category": "business-tools/payment",
-  "layer": 4,
-  "patterns": [
-    {"pattern": "connect\\.squareup\\.com", "description": "Square API", "confidence": 95},
-    {"pattern": "connect\\.squareupsandbox\\.com", "description": "Square Sandbox", "confidence": 95}
-  ]
-}

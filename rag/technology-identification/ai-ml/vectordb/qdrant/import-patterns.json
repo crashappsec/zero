@@ -1,9 +1,0 @@
-{
-  "technology": "Qdrant",
-  "category": "ai-ml/vectordb",
-  "layer": 3,
-  "patterns": {
-    "javascript": [{"pattern": "from\\s+['\"]@qdrant/js-client-rest['\"]", "confidence": 95}],
-    "python": [{"pattern": "from\\s+qdrant_client", "confidence": 95}]
-  }
-}

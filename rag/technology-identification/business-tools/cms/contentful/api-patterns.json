@@ -1,9 +1,0 @@
-{
-  "technology": "Contentful",
-  "category": "business-tools/cms",
-  "layer": 4,
-  "patterns": [
-    {"pattern": "cdn\\.contentful\\.com", "confidence": 95},
-    {"pattern": "api\\.contentful\\.com", "confidence": 95}
-  ]
-}

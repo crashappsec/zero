@@ -1,6 +1,0 @@
-{
-  "technology": "SendGrid",
-  "category": "business-tools/email",
-  "layer": 4,
-  "patterns": [{"pattern": "api\\.sendgrid\\.com", "confidence": 95}]
-}

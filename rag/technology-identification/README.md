@@ -4,17 +4,19 @@ This directory contains pattern definitions for detecting technologies in codeba
 
 ## Overview
 
-- **112 technologies** across 15 categories
-- **431 pattern files** with multi-layer detection
+- **119 technologies** across 20+ categories
+- **Markdown-based patterns** for easy reading and editing
 - **Confidence scoring** for accurate identification
 
 ## Categories
 
 | Category | Technologies | Description |
 |----------|-------------|-------------|
+| `languages` | Python, JavaScript, TypeScript, Go, Rust, Java, C#, Ruby, PHP, Kotlin, Swift, Scala, Elixir, Clojure, Haskell, Nim | Programming languages |
 | `ai-ml/apis` | OpenAI, Anthropic, Cohere, Google AI, AI21, Mistral, Perplexity, Replicate, Together-AI | AI/ML API providers |
 | `ai-ml/vectordb` | Pinecone, Weaviate, Qdrant, ChromaDB | Vector databases for embeddings |
 | `ai-ml/mlops` | Hugging Face, Weights & Biases | ML operations platforms |
+| `ai-ml/frameworks` | LangChain | AI/ML frameworks |
 | `authentication` | Auth0, Okta, AWS Cognito | Authentication providers |
 | `cloud-providers` | AWS, GCP, Azure, Cloudflare | Cloud infrastructure |
 | `databases` | PostgreSQL, MongoDB, Redis, MySQL, Elasticsearch, DynamoDB, Supabase, SQLite | Database systems |
@@ -27,21 +29,73 @@ This directory contains pattern definitions for detecting technologies in codeba
 | `developer-tools/testing` | Jest, Pytest, Cypress, Playwright, Vitest, Mocha | Testing frameworks |
 | `developer-tools/cicd` | GitHub Actions, GitLab CI, CircleCI, Jenkins | CI/CD platforms |
 | `developer-tools/feature-flags` | LaunchDarkly, Unleash, Flagsmith, GrowthBook | Feature flag services |
-| `web-frameworks` | React, Vue, Angular, Django, Rails, etc. | Web frameworks |
-| `cryptographic-libraries` | OpenSSL, etc. | Cryptography |
+| `developer-tools/containers` | Docker, Kubernetes | Container platforms |
+| `developer-tools/infrastructure` | Terraform, Pulumi, Ansible, CloudFormation | Infrastructure as Code |
+| `developer-tools/linting` | ESLint, Prettier, RuboCop, Pylint, golangci-lint | Code linters/formatters |
+| `developer-tools/bundlers` | Webpack, Vite, Rollup, esbuild, Parcel | JavaScript bundlers |
+| `web-frameworks/frontend` | React, Vue, Angular, Svelte, Next.js, Nuxt, Astro, Remix | Frontend frameworks |
+| `web-frameworks/backend` | Express, FastAPI, Django, Flask, Rails, Spring Boot, Laravel, NestJS, Fastify, Phoenix, ASP.NET Core | Backend frameworks |
+| `cryptographic-libraries` | OpenSSL | Cryptography |
 
 ## Pattern File Structure
 
-Each technology has up to 6 pattern files:
+Each technology has a single `patterns.md` file containing all detection patterns:
 
 ```
 technology-name/
-├── package-patterns.json    # Package manager detection (npm, pypi, maven, go, rubygems)
-├── import-patterns.json     # Import statement patterns by language
-├── env-patterns.json        # Environment variable patterns
-├── config-patterns.json     # Configuration file patterns
-├── api-patterns.json        # API endpoint and usage patterns
-└── versions.json            # Version tracking and compatibility
+└── patterns.md    # All detection patterns in Markdown format
+```
+
+### Pattern File Format
+
+```markdown
+# Technology Name
+
+**Category**: category/subcategory
+**Description**: Brief description
+**Homepage**: https://example.com
+
+## Package Detection
+
+### NPM
+- `package-name`
+- `@scope/package-name`
+
+### PYPI
+- `python-package`
+
+## Configuration Files
+
+- `config-file.json`
+- `*.config.js`
+
+## File Extensions
+
+- `.ext`
+
+## Import Detection
+
+### Python
+**Pattern**: `import example`
+- Description of pattern
+- Example: `import example`
+
+## Environment Variables
+
+- `EXAMPLE_API_KEY`
+- `EXAMPLE_SECRET`
+
+## Detection Notes
+
+- Important detection considerations
+- Common usage patterns
+
+## Detection Confidence
+
+- **Package Detection**: 95% (HIGH)
+- **Configuration File Detection**: 95% (HIGH)
+- **Import Detection**: 90% (HIGH)
+- **Environment Variable Detection**: 85% (MEDIUM)
 ```
 
 ## Multi-Layer Detection Architecture
@@ -67,7 +121,14 @@ Each pattern includes a confidence score (0-100):
 These patterns are used by the `technology-identification-analyser.sh` script:
 
 ```bash
-./utils/technology-identification/technology-identification-analyser.sh --repo /path/to/repo
+# Single repository
+./utils/technology-identification/technology-identification-analyser.sh --repo owner/repo
+
+# Organization scan (prints summary after each repo)
+./utils/technology-identification/technology-identification-analyser.sh --org org-name
+
+# Local directory
+./utils/technology-identification/technology-identification-analyser.sh /path/to/repo
 ```
 
 ## Contributing
@@ -75,7 +136,7 @@ These patterns are used by the `technology-identification-analyser.sh` script:
 To add a new technology:
 
 1. Create a directory under the appropriate category
-2. Add pattern files following the existing structure
+2. Create a `patterns.md` file following the format above
 3. Include confidence scores based on pattern specificity
 4. Test against real-world repositories
 
