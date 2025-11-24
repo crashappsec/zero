@@ -27,6 +27,8 @@ Features are organized by category. All items listed here are waiting to be impl
 
 #### Bus Factor Analysis
 
+**Status**: 🎨 Design Complete - [Implementation Plan Available](docs/code-ownership-implementation-plan.md)
+
 A skill for calculating and improving the bus factor (truck factor) of software projects - identifying knowledge concentration risks.
 
 **Key Concepts:**
@@ -382,6 +384,8 @@ Detect and remediate exposed secrets and sensitive data:
 **Related to**: Legal Review skill (content policy and license compliance)
 
 #### Technology Audit and Stack Analysis
+
+**Status**: 🚧 Actively Developing - Technology identification in progress
 
 Analyze technology stack, dependencies, and platform usage:
 
