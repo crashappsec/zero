@@ -32,6 +32,12 @@ if [[ -f "$REPO_ROOT/.env" ]]; then
     set +a  # stop automatically exporting
 fi
 
+# Load GitHub token from config.json if not in .env
+# Priority: .env GITHUB_TOKEN > config.json github.pat
+if [[ -f "$UTILS_ROOT/lib/config-loader.sh" ]]; then
+    load_github_token 2>/dev/null || true
+fi
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -181,7 +187,7 @@ create_default_config() {
     "repositories": []
   },
   "analysis": {
-    "default_modules": ["vulnerability"],
+    "default_modules": ["vulnerability", "provenance", "package-health"],
     "output_dir": "./supply-chain-reports"
   }
 }
@@ -292,7 +298,7 @@ setup_config() {
     "repositories": $repos_json
   },
   "analysis": {
-    "default_modules": ["vulnerability"],
+    "default_modules": ["vulnerability", "provenance", "package-health"],
     "output_dir": "./supply-chain-reports"
   }
 }
@@ -363,13 +369,22 @@ get_targets() {
 # Function to expand org into repos
 expand_org_repos() {
     local org="$1"
-    echo -e "${BLUE}Fetching repositories for org: $org${NC}"
+    echo -e "${BLUE}Fetching repositories for org: $org${NC}" >&2
 
-    local repos=$(gh repo list "$org" --limit 1000 --json nameWithOwner --jq '.[].nameWithOwner' 2>/dev/null || echo "")
+    # Check if gh is authenticated before attempting
+    if ! gh auth status >/dev/null 2>&1 && [[ -z "${GH_TOKEN:-}" ]]; then
+        echo -e "${RED}✗ Error: GitHub authentication required${NC}" >&2
+        echo -e "${YELLOW}  Either run 'gh auth login' or set GH_TOKEN environment variable${NC}" >&2
+        return 1
+    fi
 
-    if [[ -z "$repos" ]]; then
-        echo -e "${YELLOW}⚠ No repositories found for org: $org${NC}"
-        return
+    local repos=$(gh repo list "$org" --limit 1000 --json nameWithOwner --jq '.[].nameWithOwner' 2>/dev/null)
+    local exit_code=$?
+
+    if [[ $exit_code -ne 0 ]] || [[ -z "$repos" ]]; then
+        echo -e "${YELLOW}⚠ No repositories found for org: $org${NC}" >&2
+        echo -e "${YELLOW}  Check that GH_TOKEN has read:org permissions${NC}" >&2
+        return 1
     fi
 
     echo "$repos"
@@ -681,16 +696,16 @@ For each critical issue, provide:
 **Best Practice References**: [Cite from knowledge base]
 
 **Consolidated Action Plan**:
-```bash
+\`\`\`bash
 # Step 1: Immediate mitigation
-[specific commands]
+<specific commands>
 
 # Step 2: Upgrade path
-[specific version/alternative]
+<specific version/alternative>
 
 # Step 3: Verification
-[how to verify fix addresses all issues]
-```
+<how to verify fix addresses all issues>
+\`\`\`
 
 **Timeline**: Immediate (0-24h)
 
@@ -1118,6 +1133,12 @@ for target in "${TARGETS[@]}"; do
     if [[ "$target" =~ ^org: ]]; then
         # Expand organization to repositories
         org="${target#org:}"
+
+        # Parse org name from GitHub URL if needed
+        if [[ "$org" =~ github\.com/([^/]+) ]]; then
+            org="${BASH_REMATCH[1]}"
+        fi
+
         repos=$(expand_org_repos "$org")
 
         while IFS= read -r repo; do

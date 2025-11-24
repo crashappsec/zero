@@ -272,9 +272,9 @@ analyze_ownership() {
     local author_stats=$(mktemp)
     if [[ -n "$since_date" ]]; then
         git log --since="$since_date" --format="%an|%ae" --numstat | \
-            awk -F'|' '
-            NF==2 {author=$1; next}
-            NF==3 {
+            awk '
+            /\|/ {author=$0; sub(/\|.*/, "", author); next}
+            /^[0-9]+[[:space:]]+[0-9]+[[:space:]]/ {
                 commits[author]++
                 added[author]+=$1
                 deleted[author]+=$2
@@ -287,9 +287,9 @@ analyze_ownership() {
             ' > "$author_stats"
     else
         git log --format="%an|%ae" --numstat | \
-            awk -F'|' '
-            NF==2 {author=$1; next}
-            NF==3 {
+            awk '
+            /\|/ {author=$0; sub(/\|.*/, "", author); next}
+            /^[0-9]+[[:space:]]+[0-9]+[[:space:]]/ {
                 commits[author]++
                 added[author]+=$1
                 deleted[author]+=$2
@@ -500,15 +500,14 @@ EOF
 |--------|-------------|
 EOF
 
-    # Calculate top file owners
+    # Calculate top file owners (count unique files per author)
     awk -F'|' '{
-        author_email=$1"|"$2
-        authors[author_email]+=$4
+        author=$1
+        authors[author]++
     }
     END {
-        for (ae in authors) {
-            split(ae, parts, "|")
-            print authors[ae]"|"parts[1]
+        for (a in authors) {
+            print authors[a]"|"a
         }
     }' "$ownership_data" | sort -t'|' -k1 -rn | head -10 | while IFS='|' read files author; do
         echo "| $author | $files |"
@@ -1154,7 +1153,10 @@ analyze_single_target() {
             echo -e "${RED}Error: Failed to collect repository data${NC}"
             return 1
         fi
-        analyze_with_claude "$data"
+        if ! analyze_with_claude "$data"; then
+            echo -e "${RED}Error: Claude analysis failed${NC}"
+            return 1
+        fi
     else
         # Standard analysis mode
         if [[ -n "$OUTPUT_FILE" ]]; then

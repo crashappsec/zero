@@ -2,6 +2,43 @@
 
 The Gibson Powers utilities use a hierarchical configuration system that allows for global settings with module-specific overrides.
 
+## GitHub Authentication
+
+All utilities that access GitHub repositories require authentication. There are **three ways** to provide your GitHub token, in priority order:
+
+### Priority Order (Highest to Lowest)
+
+1. **`.env` file** (Recommended) ⭐
+   ```bash
+   # .env file in repository root
+   GITHUB_TOKEN=ghp_your_token_here
+   ```
+   - Create from `.env.example`: `cp .env.example .env`
+   - Add your token from https://github.com/settings/tokens
+   - Required scopes: `repo`, `read:org`
+   - ✅ Never committed to git (in `.gitignore`)
+   - ✅ Shared across all tools
+
+2. **`config.json`** (Fallback)
+   ```json
+   {
+     "github": {
+       "pat": "ghp_your_token_here"
+     }
+   }
+   ```
+   - If `GITHUB_TOKEN` not in `.env`, will use this
+   - ⚠️ Less secure (easier to accidentally commit)
+
+3. **`gh` CLI Authentication** (Alternative)
+   ```bash
+   gh auth login
+   ```
+   - Some tools can use `gh` CLI if authenticated
+   - Not all tools support this yet
+
+**Recommendation**: Use `.env` file for tokens. Use `config.json` only for target repositories and organizations.
+
 ## Overview
 
 ```
