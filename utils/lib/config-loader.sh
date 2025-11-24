@@ -148,6 +148,29 @@ get_default_modules() {
     get_module_config 'default_modules[]?' | grep -v '^$' || true
 }
 
+# Load GitHub token from config if not already set
+# Usage: load_github_token
+# Sets GITHUB_TOKEN environment variable from config.json if:
+# 1. GITHUB_TOKEN is not already set
+# 2. config.json exists and has github.pat value
+load_github_token() {
+    # If GITHUB_TOKEN already set, don't override
+    if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+        return 0
+    fi
+
+    # Try to load from config
+    if [[ -f "$GLOBAL_CONFIG" ]]; then
+        local github_pat=$(jq -r '.github.pat // ""' "$GLOBAL_CONFIG" 2>/dev/null)
+        if [[ -n "$github_pat" ]] && [[ "$github_pat" != "null" ]]; then
+            export GITHUB_TOKEN="$github_pat"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 # Export functions for use in other scripts
 export -f load_config
 export -f get_config
@@ -157,3 +180,4 @@ export -f is_module_enabled
 export -f get_organizations
 export -f get_repositories
 export -f get_default_modules
+export -f load_github_token

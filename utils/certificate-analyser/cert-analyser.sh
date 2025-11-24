@@ -82,6 +82,45 @@ cleanup() {
 trap cleanup EXIT
 
 #############################################################################
+# Cross-platform timeout function
+#############################################################################
+
+# Detect if timeout command is available (Linux) or use gtimeout (macOS with coreutils)
+run_with_timeout() {
+    local timeout_duration=$1
+    shift
+
+    if command -v timeout >/dev/null 2>&1; then
+        # GNU timeout (Linux)
+        timeout "$timeout_duration" "$@"
+    elif command -v gtimeout >/dev/null 2>&1; then
+        # GNU coreutils timeout on macOS (brew install coreutils)
+        gtimeout "$timeout_duration" "$@"
+    else
+        # Fallback: Use Perl-based timeout for macOS without GNU coreutils
+        perl -e '
+            my $timeout = shift @ARGV;
+            my $pid = fork();
+            if ($pid == 0) {
+                exec @ARGV;
+                exit 1;
+            }
+            eval {
+                local $SIG{ALRM} = sub { die "timeout\n" };
+                alarm $timeout;
+                waitpid($pid, 0);
+                alarm 0;
+            };
+            if ($@ eq "timeout\n") {
+                kill 9, $pid;
+                exit 124;
+            }
+            exit $? >> 8;
+        ' "$timeout_duration" "$@"
+    fi
+}
+
+#############################################################################
 # Certificate Retrieval
 #############################################################################
 
@@ -90,9 +129,9 @@ retrieve_certificates() {
     local output_dir=$2
     
     log_info "Retrieving certificates for ${domain}..."
-    
+
     # Retrieve full certificate chain
-    if ! echo | timeout 10 openssl s_client -showcerts -servername "$domain" \
+    if ! echo | run_with_timeout 10 openssl s_client -showcerts -servername "$domain" \
         -connect "${domain}:443" 2>/dev/null > "${output_dir}/chain.txt"; then
         log_error "Failed to retrieve certificates from ${domain}:443"
         log_error "Possible issues: domain unreachable, no HTTPS, firewall blocking"
@@ -100,9 +139,9 @@ retrieve_certificates() {
     fi
     
     # Split certificates into individual files
-    awk '/BEGIN CERTIFICATE/,/END CERTIFICATE/{ 
-        if(/BEGIN CERTIFICATE/){a++}; 
-        print > "'"${output_dir}"'/cert" a ".pem"
+    awk -v outdir="${output_dir}" '/BEGIN CERTIFICATE/,/END CERTIFICATE/{
+        if(/BEGIN CERTIFICATE/){a++};
+        print > (outdir "/cert" a ".pem")
     }' "${output_dir}/chain.txt"
     
     # Count certificates

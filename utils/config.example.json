@@ -19,7 +19,7 @@
   "modules": {
     "supply-chain": {
       "enabled": true,
-      "default_modules": ["vulnerability", "provenance"],
+      "default_modules": ["vulnerability", "package-health"],
       "output_dir": "./supply-chain-reports",
       "vulnerability": {
         "prioritize": true,
