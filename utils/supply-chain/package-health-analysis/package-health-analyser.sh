@@ -188,6 +188,26 @@ log() {
     fi
 }
 
+# Strip temporary file paths from package names for display
+# Removes paths like /var/folders/.../tmp.xxx/ and var/folders/.../tmp.xxx/
+clean_package_name() {
+    local package_name="$1"
+
+    # Remove absolute temp paths (e.g., /var/folders/.../tmp.xxx/)
+    package_name="${package_name#/var/folders/*/tmp.*/}"
+    package_name="${package_name#/tmp/tmp.*/}"
+    package_name="${package_name#/private/var/folders/*/tmp.*/}"
+
+    # Remove relative temp paths (e.g., var/folders/.../tmp.xxx/)
+    package_name="${package_name#var/folders/*/tmp.*/}"
+    package_name="${package_name#tmp/tmp.*/}"
+
+    # Remove any remaining leading slashes or path separators
+    package_name="${package_name#/}"
+
+    echo "$package_name"
+}
+
 # Extract packages from SBOM
 # Returns: {"package": "name", "version": "1.0.0", "ecosystem": "npm"}
 extract_packages_from_sbom() {
@@ -344,14 +364,15 @@ analyze_package() {
     local package=$2
     local version=$3
 
-    log "Analyzing $package@$version ($system)"
+    local display_name=$(clean_package_name "$package")
+    log "Analyzing $display_name@$version ($system)"
 
     # Get health analysis
     local health_result=$(analyze_package_health "$system" "$package" "$version" 2>/dev/null || echo '{"error": "analysis_failed"}')
 
     # Validate health_result is valid JSON
     if ! jq empty <<< "$health_result" 2>/dev/null; then
-        log "Warning: Invalid JSON from health analysis for $package, using error placeholder"
+        log "Warning: Invalid JSON from health analysis for $display_name, using error placeholder"
         health_result='{"error": "invalid_response", "package": "'$package'", "system": "'$system'", "version": "'$version'"}'
     fi
 
@@ -362,7 +383,7 @@ analyze_package() {
 
         # Validate deprecation_result is valid JSON
         if ! jq empty <<< "$deprecation_result" 2>/dev/null; then
-            log "Warning: Invalid JSON from deprecation check for $package"
+            log "Warning: Invalid JSON from deprecation check for $display_name"
             deprecation_result='{"deprecated": false}'
         fi
     fi
@@ -441,13 +462,15 @@ analyze_from_sbom() {
 
                 # Skip if invalid
                 if [ "$system" = "unknown" ] || [ -z "$package" ] || [ "$version" = "unknown" ]; then
-                    log "Skipping invalid package: $package"
+                    local display_name=$(clean_package_name "$package")
+                    log "Skipping invalid package: $display_name"
                     continue
                 fi
 
                 ((current_package++))
                 if [ $((current_package % 10)) -eq 0 ] || [ $current_package -eq 1 ] || [ $current_package -eq $valid_packages_count ]; then
-                    echo -e "\033[0;34mProcessing package $current_package of $valid_packages_count: ${package}\033[0m" >&2
+                    local display_name=$(clean_package_name "$package")
+                    echo -e "\033[0;34mProcessing package $current_package of $valid_packages_count: ${display_name}\033[0m" >&2
                 fi
 
                 # Get package summary (uses cache)
@@ -551,13 +574,15 @@ analyze_from_sbom() {
 
             # Skip if invalid
             if [ "$system" = "unknown" ] || [ -z "$package" ] || [ "$version" = "unknown" ]; then
-                log "Skipping invalid package: $package"
+                local display_name=$(clean_package_name "$package")
+                log "Skipping invalid package: $display_name"
                 continue
             fi
 
             # Increment counter and display progress
             ((current_package++))
-            echo -e "\033[0;34mAnalyzing package $current_package of $total_packages: ${package}@${version}\033[0m" >&2
+            local display_name=$(clean_package_name "$package")
+            echo -e "\033[0;34mAnalyzing package $current_package of $total_packages: ${display_name}@${version}\033[0m" >&2
 
             # Analyze package
             local result=$(analyze_package "$system" "$package" "$version")
@@ -567,7 +592,7 @@ analyze_from_sbom() {
                 # Add to results only if valid JSON
                 package_results=$(jq --argjson item "$result" '. + [$item]' <<< "$package_results" 2>/dev/null || echo "$package_results")
             else
-                log "Warning: Skipping invalid result for $package@$version"
+                log "Warning: Skipping invalid result for $display_name@$version"
             fi
 
             # Track for version analysis
