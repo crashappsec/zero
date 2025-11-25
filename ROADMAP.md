@@ -1247,6 +1247,12 @@ Analyze technology stack, dependencies, and platform usage:
 
 Ideas being explored for potential future development:
 
+- **RAG Server Integration**: Connect analysers to a proper RAG server (Pinecone, Weaviate, ChromaDB, Qdrant) for semantic search over knowledge bases, with local filesystem as fallback for offline/air-gapped environments. This would enable:
+  - Semantic search over certificate security, supply chain, and compliance knowledge
+  - Dynamic context selection based on query relevance
+  - Reduced token usage by fetching only relevant documentation
+  - Support for custom enterprise knowledge bases
+  - Hybrid retrieval combining vector search with keyword matching
 - **AI/ML Model Governance**: Track and manage ML models like we track code
 - **Team Communication Analysis**: Analyze Slack/Teams for knowledge sharing patterns
 - **Compliance Automation**: Automate compliance evidence collection (SOC 2, ISO)
