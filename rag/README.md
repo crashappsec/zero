@@ -13,6 +13,12 @@ This directory contains technical specifications and reference documentation opt
 
 ```
 rag/
+├── certificate-analysis/
+│   ├── x509/                    # X.509 certificate structure
+│   ├── cab-forum/               # CA/Browser Forum requirements
+│   ├── tls-security/            # TLS best practices
+│   ├── formats/                 # Certificate formats (PEM, DER, etc.)
+│   └── revocation/              # OCSP, CRL documentation
 ├── supply-chain/
 │   ├── slsa/                    # SLSA provenance specifications
 │   ├── cyclonedx/               # CycloneDX SBOM format
