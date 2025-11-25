@@ -319,13 +319,39 @@ EXPIRY_WARNING=30         # Warning threshold
 3. Understand compliance requirements
 4. Plan for shorter certificate lifespans
 
+## Recent Enhancements (v2.0)
+
+### Completed Features
+- [x] **Multi-format support**: PEM, DER, PKCS#7, PKCS#12 analysis
+- [x] **Certificate chain validation**: Against system trust stores
+- [x] **OCSP checking**: Revocation status verification
+- [x] **StartTLS support**: SMTP, IMAP, POP3, LDAP, FTP, MySQL, PostgreSQL
+- [x] **CA/B Forum compliance engine**: Detailed policy checks
+- [x] **Certificate comparison**: Compare files and deployed certs
+- [x] **Cross-platform compatibility**: macOS and Linux (bash 3.x+)
+- [x] **RAG documentation**: Comprehensive knowledge base
+- [x] **Prompt templates**: Security, compliance, operations, troubleshooting
+
+### Resources
+
+- **RAG Knowledge Base**: `rag/certificate-analysis/`
+  - X.509 certificate structure and extensions
+  - CA/B Forum Baseline Requirements
+  - TLS security best practices
+  - Certificate format reference
+  - OCSP/CRL documentation
+
+- **Prompt Templates**: `prompts/certificate-analysis/`
+  - Security audits and chain validation
+  - CA/B Forum compliance checks
+  - Format conversion and comparison
+  - TLS troubleshooting guides
+
 ## Roadmap / Future Enhancements
 
 Potential improvements (contributions welcome):
 
-- [ ] **JSON output format** for easier parsing/integration
-- [ ] **Local certificate analysis** (analyze .pem files directly)
-- [ ] **Bulk domain scanning** (analyze multiple domains at once)
+- [ ] **Claude AI enhanced analysis** (intelligent recommendations)
 - [ ] **CT log monitoring** (alert on new certificates)
 - [ ] **CAA record verification** (DNS authorization)
 - [ ] **HSTS header checking** (security best practices)
