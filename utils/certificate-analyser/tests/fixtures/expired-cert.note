@@ -1,0 +1,2 @@
+Note: This certificate was created with 1-day validity.
+To create a truly expired cert, run this script with 'faketime' installed.
