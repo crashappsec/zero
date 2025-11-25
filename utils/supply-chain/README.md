@@ -6,20 +6,33 @@ SPDX-License-Identifier: GPL-3.0
 
 # Supply Chain Security Analyser
 
-**Status**: 🚀 Beta
+**Status**: 🚀 Beta | **Version**: 3.0.0
 
-Comprehensive supply chain security analysis toolkit with vulnerability scanning and SLSA provenance verification.
+Comprehensive supply chain security analysis toolkit with vulnerability scanning, SLSA provenance verification, package health analysis, and AI-powered insights.
 
-Feature-complete with comprehensive testing. Ready for broader use with active development and improvements.
+Feature-complete with 9 analysis modules covering security, maintainability, and supply chain risk.
 
 ## Overview
 
 The Supply Chain Security Analyser provides modular analysis capabilities for software supply chain security:
 
-- **Vulnerability Analysis**: Identifies security vulnerabilities in dependencies using OSV and deps.dev
-- **Provenance Analysis**: Verifies SLSA build provenance and cryptographic signatures
+### Security Modules
+- **Vulnerability Analysis** (`--vulnerability`): Identifies security vulnerabilities using OSV and deps.dev
+- **Provenance Analysis** (`--provenance`): Verifies SLSA build provenance and cryptographic signatures
+- **Typosquatting Detection** (`--typosquat`): Detects potential typosquatting attacks on dependencies
+
+### Package Health Modules
+- **Abandoned Package Detection** (`--abandoned`): Identifies unmaintained packages with security risks
+- **Unused Dependency Analysis** (`--unused`): Finds dead code dependencies for removal
+- **Technical Debt Scoring** (`--debt-score`): Quantifies dependency technical debt
+
+### Developer Productivity Modules
+- **Library Recommendations** (`--library-recommend`): Suggests modern alternatives for outdated packages
+- **Container Image Analysis** (`--container-images`): Recommends secure base images (distroless, Chainguard)
+
+### Cross-Cutting Features
 - **Multi-Repository Scanning**: Analyze entire GitHub organizations or specific repositories
-- **AI-Enhanced Analysis**: Optional Claude-powered insights for deeper security context
+- **AI-Enhanced Analysis**: Claude-powered unified insights across all modules
 
 ## Quick Start
 
@@ -42,24 +55,32 @@ brew install cosign rekor-cli
 # Interactive setup (first time)
 ./supply-chain-scanner.sh --setup
 
-# Scan with both vulnerability and provenance analysis
-./supply-chain-scanner.sh --all
+# Run all security modules (vulnerability + provenance)
+./supply-chain-scanner.sh --all --repo owner/repo
 
-# Vulnerability analysis only
-./supply-chain-scanner.sh --vulnerability
-
-# Provenance analysis only
-./supply-chain-scanner.sh --provenance
-
-# Scan specific repository
+# Individual security modules
 ./supply-chain-scanner.sh --vulnerability --repo owner/repo
+./supply-chain-scanner.sh --provenance --repo owner/repo
+./supply-chain-scanner.sh --typosquat --repo owner/repo
+
+# Package health modules
+./supply-chain-scanner.sh --abandoned --repo owner/repo
+./supply-chain-scanner.sh --unused --repo owner/repo
+./supply-chain-scanner.sh --debt-score --repo owner/repo
+
+# Developer productivity modules
+./supply-chain-scanner.sh --library-recommend --repo owner/repo
+./supply-chain-scanner.sh --container-images --repo owner/repo
+
+# Combine multiple modules
+./supply-chain-scanner.sh --abandoned --typosquat --debt-score --repo owner/repo
 
 # Scan entire organization
 ./supply-chain-scanner.sh --all --org myorg
 
-# With Claude AI enhancement (requires ANTHROPIC_API_KEY)
+# With Claude AI enhancement (auto-enabled when ANTHROPIC_API_KEY is set)
 export ANTHROPIC_API_KEY="your-api-key"
-./supply-chain-scanner.sh --claude --all --repo owner/repo
+./supply-chain-scanner.sh --all --repo owner/repo
 ```
 
 ### Test Organization
@@ -82,19 +103,38 @@ export ANTHROPIC_API_KEY="your-key"
 
 ```
 supply-chain/
-├── supply-chain-scanner.sh          # Central orchestrator
-├── config.example.json              # Module configuration template
+├── supply-chain-scanner.sh              # Central orchestrator
+├── config.example.json                  # Module configuration template
+├── lib/
+│   └── deps-dev-client.sh               # Global deps.dev API client
 ├── vulnerability-analysis/
-│   └── vulnerability-analyser.sh    # Unified analyser (base + --claude mode)
+│   └── vulnerability-analyser.sh        # Security vulnerability scanning
 ├── provenance-analysis/
-│   └── provenance-analyser.sh       # Unified analyser (base + --claude mode)
-└── package-health-analysis/
-    └── package-health-analyser.sh   # Unified analyser (base + --claude mode)
+│   └── provenance-analyser.sh           # SLSA provenance verification
+├── package-health-analysis/
+│   ├── package-health-analyser.sh       # Package health orchestrator
+│   └── lib/
+│       ├── abandonment-detector.sh      # Abandoned package detection
+│       ├── typosquat-detector.sh        # Typosquatting risk detection
+│       └── unused-detector.sh           # Unused dependency detection
+├── bundle-analysis/
+│   ├── bundle-analyzer.sh               # Bundle size analysis
+│   └── lib/
+│       └── debt-scorer.sh               # Technical debt scoring
+├── library-recommendations/
+│   ├── lib-recommend-analyser.sh        # Library recommendation engine
+│   └── lib/
+│       └── recommender.sh               # Recommendation algorithms
+└── container-recommendations/
+    ├── container-image-analyser.sh      # Container image analysis
+    └── lib/
+        └── image-recommender.sh         # Image recommendation engine
 ```
 
-All analysers support dual modes:
-- **Base mode** (default): Standard analysis without API costs
-- **Claude mode** (`--claude`): AI-enhanced insights with cost tracking
+All modules support:
+- **Standalone mode**: Run directly via `--module` flag
+- **Combined mode**: Run multiple modules together
+- **Claude mode**: AI-enhanced unified analysis when `ANTHROPIC_API_KEY` is set
 
 ## Analysis Modules
 
@@ -183,6 +223,165 @@ export ANTHROPIC_API_KEY="your-key"
 - `-f, --format FORMAT`: Output format (table|json|markdown)
 - `-o, --output FILE`: Write results to file
 - `-h, --help`: Show help message
+
+### Typosquatting Detection
+
+Detects potential typosquatting attacks on dependencies.
+
+**Features**:
+- Levenshtein distance analysis for similar package names
+- Detection of common typosquatting patterns (character swaps, omissions, additions)
+- Popular package similarity checking
+- Registry-specific analysis (npm, PyPI, Go)
+
+**Usage**:
+```bash
+# Detect typosquatting risks via main scanner
+./supply-chain-scanner.sh --typosquat --repo owner/repo
+
+# Scan multiple repositories
+./supply-chain-scanner.sh --typosquat --org myorg
+```
+
+**Risk Indicators**:
+- Edit distance ≤ 2 from popular packages
+- Common typo patterns (lodahs → lodash)
+- Scoped package impersonation (@loadsh/core)
+
+### Abandoned Package Detection
+
+Identifies packages that are no longer actively maintained.
+
+**Features**:
+- Last update date analysis (deps.dev API)
+- OpenSSF Scorecard "Maintained" check integration
+- Deprecated package detection
+- Archived repository detection
+- Risk level scoring (healthy, stale, abandoned, deprecated, archived)
+
+**Usage**:
+```bash
+# Detect abandoned packages via main scanner
+./supply-chain-scanner.sh --abandoned --repo owner/repo
+
+# Combined with other health checks
+./supply-chain-scanner.sh --abandoned --typosquat --repo owner/repo
+```
+
+**Thresholds**:
+| Days Since Update | Status | Risk Level |
+|-------------------|--------|------------|
+| < 180 | Active | Low |
+| 180-365 | Warning | Medium |
+| 365-730 | Stale | High |
+| > 730 | Abandoned | Critical |
+| Archived repo | Archived | Critical |
+
+### Unused Dependency Analysis
+
+Finds dead code dependencies that can be safely removed.
+
+**Features**:
+- Import/require pattern analysis
+- Call graph analysis (when available)
+- Cross-reference with SBOM
+- Safe-to-remove confidence scoring
+
+**Usage**:
+```bash
+# Detect unused dependencies via main scanner
+./supply-chain-scanner.sh --unused --repo owner/repo
+
+# Combine with debt scoring
+./supply-chain-scanner.sh --unused --debt-score --repo owner/repo
+```
+
+**Benefits**:
+- Reduce attack surface by removing unused packages
+- Decrease build times and bundle sizes
+- Simplify dependency management
+
+### Technical Debt Scoring
+
+Quantifies dependency technical debt using weighted factors.
+
+**Features**:
+- Multi-factor scoring (abandonment, deprecation, security, outdated versions)
+- OpenSSF Scorecard integration for maintenance scoring
+- Replacement availability checking
+- Project-level aggregation
+- Debt reduction roadmap generation
+
+**Usage**:
+```bash
+# Calculate technical debt via main scanner
+./supply-chain-scanner.sh --debt-score --repo owner/repo
+
+# Get debt reduction roadmap
+./supply-chain-scanner.sh --debt-score --library-recommend --repo owner/repo
+```
+
+**Score Ranges**:
+| Score | Level | Action Required |
+|-------|-------|-----------------|
+| 0-20 | Low | Monitor normally |
+| 21-40 | Medium | Plan future review |
+| 41-60 | High | Address in next sprint |
+| 61-100 | Critical | Immediate action |
+
+### Library Recommendations
+
+Suggests modern alternatives for outdated or deprecated packages.
+
+**Features**:
+- Deprecated package replacement suggestions
+- Modern alternative recommendations
+- Migration effort estimation (trivial, easy, moderate, significant, major)
+- API compatibility analysis
+- Community adoption metrics
+
+**Usage**:
+```bash
+# Get library recommendations via main scanner
+./supply-chain-scanner.sh --library-recommend --repo owner/repo
+
+# Combined with debt analysis
+./supply-chain-scanner.sh --debt-score --library-recommend --repo owner/repo
+```
+
+**Example Recommendations**:
+| Package | Status | Replacement | Migration Effort |
+|---------|--------|-------------|------------------|
+| request | Deprecated | axios, got | Easy |
+| moment | Deprecated | date-fns, luxon | Moderate |
+| underscore | Stale | lodash | Easy |
+
+### Container Image Analysis
+
+Recommends secure base images for containerized applications.
+
+**Features**:
+- Dockerfile analysis
+- Base image security assessment
+- Distroless image recommendations
+- Chainguard image recommendations
+- Alpine image recommendations
+- Size and security tradeoff analysis
+
+**Usage**:
+```bash
+# Analyze container images via main scanner
+./supply-chain-scanner.sh --container-images --repo owner/repo
+
+# Requires Dockerfile in repository
+```
+
+**Recommendations**:
+| Current Image | Recommended | Rationale |
+|---------------|-------------|-----------|
+| node:18 | gcr.io/distroless/nodejs18-debian11 | Minimal attack surface |
+| python:3.11 | cgr.dev/chainguard/python | Supply chain verified |
+| ubuntu:22.04 | alpine:3.18 | Smaller footprint |
 
 ## Configuration
 
@@ -508,20 +707,37 @@ cosign version
 
 ## Development Status
 
-**Current Status**: 🚀 Beta
+**Current Status**: 🚀 Beta | **Version**: 3.0.0
 
-### Completed Features
+### Completed Features (v3.0.0)
 
+#### Security Modules
 - [x] Vulnerability analysis with OSV integration
 - [x] SLSA provenance verification
+- [x] **Typosquatting detection** (NEW)
+- [x] CISA KEV integration
+- [x] npm provenance support
+
+#### Package Health Modules
+- [x] **Abandoned package detection** (NEW)
+- [x] **Unused dependency analysis** (NEW)
+- [x] **Technical debt scoring** (NEW)
+- [x] OpenSSF Scorecard integration
+- [x] deps.dev API integration
+
+#### Developer Productivity Modules
+- [x] **Library recommendations** (NEW)
+- [x] **Container image analysis** (NEW)
+- [x] Migration effort estimation
+- [x] Alternative package suggestions
+
+#### Infrastructure
 - [x] Multi-repository scanning
 - [x] Organization scanning
 - [x] Hierarchical configuration system
-- [x] AI-enhanced analysis (Claude)
-- [x] CISA KEV integration
-- [x] npm provenance support
-- [x] Multiple output formats
-- [x] Comprehensive documentation
+- [x] AI-enhanced unified analysis (Claude)
+- [x] Multiple output formats (table, JSON, markdown)
+- [x] Comprehensive RAG knowledge base
 - [x] Production testing completed
 
 ### 🚧 In Progress
@@ -529,25 +745,16 @@ cosign version
 - [ ] Technology Identification System (Phase 2: Implementation)
 - [ ] Additional package ecosystem support (PyPI, Go, Maven)
 - [ ] SBOM diffing and change detection
-- [ ] Dependency update recommendations
 - [ ] Integration with security dashboards
 
 ### 🔮 Planned Features
 
 #### High Priority
 
-- [ ] **OSV-Scanner Taint Analysis Integration**
+- [ ] **Enhanced Taint Analysis Integration**
   - **Purpose**: Determine if vulnerabilities are actually exploitable
-  - **Use Cases**:
-    1. **Vulnerability Validation**: Identify if vulnerable functions are actually called in codebase
-    2. **Dead Dependency Detection**: Find libraries imported but never used
-    3. **Package Hygiene**: Remove unused dependencies to reduce attack surface
-  - **Benefits**:
-    - Reduce false positives in vulnerability reports
-    - Prioritize remediation on exploitable vulnerabilities only
-    - Clean up package.json/requirements.txt by removing dead code
-    - Improve security posture by minimizing dependencies
-  - **Implementation**:
+  - **Current**: Basic unused detection implemented
+  - **Future**:
     - `osv-scanner --call-analysis=all` for call graph analysis
     - Cross-reference with SBOM to identify unused packages
     - Generate "unused dependency" report
@@ -662,6 +869,6 @@ GPL-3.0 - See [LICENSE](../../LICENSE) for details.
 
 ## Version
 
-Current version: 2.2.0
+Current version: 3.0.0
 
 See [CHANGELOG.md](./CHANGELOG.md) for version history and release notes.

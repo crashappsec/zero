@@ -1,0 +1,414 @@
+#!/bin/bash
+# Library Recommendation Engine
+# Copyright (c) 2025 Crash Override Inc.
+# https://crashoverride.com
+# SPDX-License-Identifier: GPL-3.0
+#
+# Recommends modern, secure library alternatives for outdated or deprecated packages.
+# Part of the Developer Productivity module.
+
+set -eo pipefail
+
+# Get script directory
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIBRARY_REC_DIR="$(dirname "$LIB_DIR")"
+SUPPLY_CHAIN_DIR="$(dirname "$LIBRARY_REC_DIR")"
+
+# Load deps.dev client from global lib
+if [[ -f "$SUPPLY_CHAIN_DIR/lib/deps-dev-client.sh" ]]; then
+    source "$SUPPLY_CHAIN_DIR/lib/deps-dev-client.sh"
+fi
+
+#############################################################################
+# Library Replacement Database
+# Format: old_package|replacement|reason|migration_effort
+# Migration effort: trivial, easy, moderate, significant, major
+#############################################################################
+
+# NPM Library Replacements
+NPM_REPLACEMENTS="request|axios|request is deprecated, axios is actively maintained|easy
+request|got|request is deprecated, got has modern API|easy
+request|node-fetch|request is deprecated, node-fetch is minimal|easy
+moment|dayjs|moment is in maintenance mode, dayjs is smaller|trivial
+moment|date-fns|moment is in maintenance mode, date-fns is tree-shakeable|moderate
+moment|luxon|moment is in maintenance mode, luxon is from Moment team|moderate
+underscore|lodash|lodash is more performant and feature-rich|easy
+underscore|ramda|ramda is better for functional programming|moderate
+colors|chalk|colors had supply chain incident|trivial
+colors|picocolors|picocolors is minimal and fast|trivial
+faker|@faker-js/faker|faker was abandoned, community fork available|trivial
+left-pad|native String.padStart|left-pad incident, use native|trivial
+event-stream|readable-stream|event-stream compromised|easy
+uuid|nanoid|nanoid is smaller and faster|easy
+express-validator|zod|zod provides better TypeScript integration|moderate
+joi|zod|zod provides better TypeScript integration|moderate
+yup|zod|zod provides better TypeScript integration|moderate
+commander|yargs|yargs has more features|easy
+minimist|yargs|yargs is more full-featured|easy
+mocha|jest|jest has better DX and parallel execution|moderate
+jasmine|jest|jest has better DX and parallel execution|moderate
+karma|jest|jest eliminates need for browser runner|significant
+webpack|vite|vite is faster for development|significant
+webpack|esbuild|esbuild is much faster|moderate
+gulp|npm scripts|modern npm has adequate task running|moderate
+grunt|npm scripts|grunt is outdated|moderate
+bower|npm|bower is deprecated|significant
+tslint|eslint|tslint is deprecated|easy
+node-sass|sass|node-sass is deprecated|trivial
+node-gyp|prebuild|prebuild avoids native compilation|moderate
+bcrypt|argon2|argon2 is more secure|easy
+crypto-js|native crypto|Node has built-in crypto module|moderate
+bluebird|native Promise|Native Promises are adequate now|moderate
+q|native Promise|Native Promises are adequate now|moderate
+async|native async/await|Modern JS has async/await|moderate
+lodash|native Array methods|Many lodash methods have native equivalents|varies"
+
+# Python Library Replacements
+PYTHON_REPLACEMENTS="urllib2|requests|urllib2 is Python 2 only|easy
+urllib2|httpx|httpx supports async|easy
+requests|httpx|httpx supports async and HTTP/2|easy
+optparse|argparse|optparse is deprecated|easy
+optparse|click|click has better UX|moderate
+optparse|typer|typer uses type hints|moderate
+nose|pytest|nose is unmaintained|moderate
+unittest|pytest|pytest has better features|moderate
+mock|unittest.mock|mock is in stdlib now|trivial
+fabric|invoke|fabric 1.x is deprecated|moderate
+pycrypto|cryptography|pycrypto is unmaintained|moderate
+pycryptodome|cryptography|cryptography is more maintained|moderate
+PIL|pillow|PIL is unmaintained|trivial
+mysql-python|mysqlclient|mysql-python is unmaintained|easy
+MySQLdb|mysqlclient|MySQLdb is Python 2 only|easy
+pymongo|motor|motor for async MongoDB|moderate
+redis-py|redis|package renamed|trivial
+python-dateutil|pendulum|pendulum has better API|moderate
+pytz|zoneinfo|zoneinfo is in stdlib 3.9+|easy
+six|native|Python 2 compatibility not needed|moderate
+future|native|Python 2 compatibility not needed|moderate
+typing_extensions|native|Most features in stdlib now|varies
+flask-restful|flask-smorest|flask-restful is maintenance mode|moderate
+django-rest-framework|ninja|ninja is faster and simpler|significant"
+
+# Go Library Replacements
+GO_REPLACEMENTS="github.com/gorilla/mux|github.com/go-chi/chi|chi is lighter and faster|easy
+github.com/gorilla/mux|github.com/gin-gonic/gin|gin is more full-featured|moderate
+github.com/pkg/errors|errors|stdlib errors has wrapping now|easy
+github.com/sirupsen/logrus|go.uber.org/zap|zap is more performant|moderate
+github.com/sirupsen/logrus|log/slog|slog is in stdlib 1.21+|easy
+gopkg.in/yaml.v2|gopkg.in/yaml.v3|v3 is current|trivial
+github.com/dgrijalva/jwt-go|github.com/golang-jwt/jwt|dgrijalva is unmaintained|easy
+github.com/jinzhu/gorm|gorm.io/gorm|gorm v2 is current|moderate"
+
+#############################################################################
+# Recommendation Functions
+#############################################################################
+
+# Get replacement recommendations for a package
+# Usage: get_replacements <package> <ecosystem>
+get_replacements() {
+    local pkg="$1"
+    local ecosystem="${2:-npm}"
+    local replacements_list=""
+
+    case "$ecosystem" in
+        npm|node)
+            replacements_list="$NPM_REPLACEMENTS"
+            ;;
+        pypi|python)
+            replacements_list="$PYTHON_REPLACEMENTS"
+            ;;
+        go|golang)
+            replacements_list="$GO_REPLACEMENTS"
+            ;;
+        *)
+            echo "[]"
+            return
+            ;;
+    esac
+
+    local results="[]"
+
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        local old_pkg=$(echo "$line" | cut -d'|' -f1)
+        local new_pkg=$(echo "$line" | cut -d'|' -f2)
+        local reason=$(echo "$line" | cut -d'|' -f3)
+        local effort=$(echo "$line" | cut -d'|' -f4)
+
+        if [[ "$pkg" == "$old_pkg" ]]; then
+            results=$(echo "$results" | jq --arg new "$new_pkg" --arg reason "$reason" --arg effort "$effort" \
+                '. + [{"replacement": $new, "reason": $reason, "migration_effort": $effort}]')
+        fi
+    done <<< "$replacements_list"
+
+    echo "$results"
+}
+
+# Check if a package has known replacements
+# Usage: has_replacement <package> <ecosystem>
+has_replacement() {
+    local pkg="$1"
+    local ecosystem="${2:-npm}"
+
+    local replacements=$(get_replacements "$pkg" "$ecosystem")
+    local count=$(echo "$replacements" | jq 'length')
+
+    if [[ $count -gt 0 ]]; then
+        echo "true"
+    else
+        echo "false"
+    fi
+}
+
+# Get package health score from deps.dev
+# Usage: get_health_score <package> <ecosystem>
+get_health_score() {
+    local pkg="$1"
+    local ecosystem="$2"
+
+    if ! type get_package_info &>/dev/null; then
+        echo '{"error": "deps_dev_client_not_loaded"}'
+        return
+    fi
+
+    local pkg_info=$(get_package_info "$ecosystem" "$pkg" 2>/dev/null)
+
+    if [[ -z "$pkg_info" || "$pkg_info" == *"error"* ]]; then
+        echo '{"score": null, "error": "package_not_found"}'
+        return
+    fi
+
+    local scorecard=$(echo "$pkg_info" | jq -r '.scorecard.score // null')
+    local dependent_count=$(echo "$pkg_info" | jq -r '.dependentCount // 0')
+
+    echo "{
+        \"openssf_score\": $scorecard,
+        \"dependent_count\": $dependent_count
+    }"
+}
+
+# Analyze a package and provide recommendations
+# Usage: analyze_package <package> <ecosystem> <version>
+analyze_package() {
+    local pkg="$1"
+    local ecosystem="${2:-npm}"
+    local version="${3:-}"
+
+    local recommendations=()
+    local risk_level="low"
+    local action_required="false"
+
+    # Check for known replacements
+    local replacements=$(get_replacements "$pkg" "$ecosystem")
+    local replacement_count=$(echo "$replacements" | jq 'length')
+
+    if [[ $replacement_count -gt 0 ]]; then
+        action_required="true"
+        risk_level="medium"
+        recommendations+=("This package has recommended replacements available")
+    fi
+
+    # Get health metrics
+    local health=$(get_health_score "$pkg" "$ecosystem")
+    local openssf_score=$(echo "$health" | jq -r '.openssf_score // null')
+    local dependent_count=$(echo "$health" | jq -r '.dependent_count // 0')
+
+    # Analyze health
+    if [[ "$openssf_score" != "null" ]]; then
+        if [[ $(echo "$openssf_score < 4" | bc -l 2>/dev/null || echo "0") == "1" ]]; then
+            risk_level="high"
+            recommendations+=("Low OpenSSF Scorecard score indicates maintenance concerns")
+        elif [[ $(echo "$openssf_score < 6" | bc -l 2>/dev/null || echo "0") == "1" ]]; then
+            if [[ "$risk_level" == "low" ]]; then
+                risk_level="medium"
+            fi
+            recommendations+=("Moderate OpenSSF Scorecard score - monitor for issues")
+        fi
+    fi
+
+    # Check adoption
+    if [[ $dependent_count -lt 100 ]]; then
+        recommendations+=("Low adoption - consider more established alternatives")
+    fi
+
+    local recommendations_json=$(printf '%s\n' "${recommendations[@]}" 2>/dev/null | jq -R . | jq -s '.' || echo "[]")
+
+    echo "{
+        \"package\": \"$pkg\",
+        \"ecosystem\": \"$ecosystem\",
+        \"version\": \"$version\",
+        \"risk_level\": \"$risk_level\",
+        \"action_required\": $action_required,
+        \"replacements\": $replacements,
+        \"health_metrics\": $health,
+        \"recommendations\": $recommendations_json
+    }" | jq '.'
+}
+
+# Analyze multiple packages from a manifest
+# Usage: analyze_manifest <manifest_path>
+analyze_manifest() {
+    local manifest_path="$1"
+
+    if [[ ! -f "$manifest_path" ]]; then
+        echo '{"error": "manifest_not_found"}'
+        return 1
+    fi
+
+    local ecosystem=""
+    local packages="[]"
+
+    # Detect manifest type and extract packages
+    local filename=$(basename "$manifest_path")
+
+    case "$filename" in
+        package.json)
+            ecosystem="npm"
+            # Extract dependencies and devDependencies
+            local deps=$(jq -r '.dependencies // {} | keys[]' "$manifest_path" 2>/dev/null)
+            local dev_deps=$(jq -r '.devDependencies // {} | keys[]' "$manifest_path" 2>/dev/null)
+            packages=$(echo -e "$deps\n$dev_deps" | grep -v '^$' | jq -R . | jq -s '.')
+            ;;
+        requirements.txt)
+            ecosystem="python"
+            # Extract package names (without versions)
+            packages=$(cut -d'=' -f1 "$manifest_path" 2>/dev/null | cut -d'>' -f1 | cut -d'<' -f1 | cut -d'~' -f1 | cut -d'[' -f1 | grep -v '^#' | grep -v '^$' | tr '[:upper:]' '[:lower:]' | jq -R . | jq -s '.')
+            ;;
+        pyproject.toml)
+            ecosystem="python"
+            # Extract from dependencies section (basic parsing)
+            packages=$(grep -E '^\s*"?[a-zA-Z]' "$manifest_path" 2>/dev/null | grep -v '\[' | cut -d'=' -f1 | cut -d'"' -f2 | tr '[:upper:]' '[:lower:]' | jq -R . | jq -s '.' || echo "[]")
+            ;;
+        go.mod)
+            ecosystem="go"
+            # Extract require statements
+            packages=$(grep -E '^\s+[a-z]' "$manifest_path" 2>/dev/null | awk '{print $1}' | jq -R . | jq -s '.' || echo "[]")
+            ;;
+        Gemfile)
+            ecosystem="rubygems"
+            # Extract gem names
+            packages=$(grep -E "^\s*gem\s+" "$manifest_path" 2>/dev/null | sed "s/.*gem ['\"]\\([^'\"]*\\).*/\\1/" | jq -R . | jq -s '.' || echo "[]")
+            ;;
+        *)
+            echo '{"error": "unsupported_manifest_type", "filename": "'$filename'"}'
+            return 1
+            ;;
+    esac
+
+    local results="[]"
+    local total=0
+    local with_replacements=0
+    local high_risk=0
+    local medium_risk=0
+
+    while IFS= read -r pkg; do
+        [[ -z "$pkg" || "$pkg" == "null" ]] && continue
+        total=$((total + 1))
+
+        local analysis=$(analyze_package "$pkg" "$ecosystem")
+        results=$(echo "$results" | jq --argjson a "$analysis" '. + [$a]')
+
+        # Count statistics
+        if [[ $(echo "$analysis" | jq -r '.action_required') == "true" ]]; then
+            with_replacements=$((with_replacements + 1))
+        fi
+        local pkg_risk=$(echo "$analysis" | jq -r '.risk_level')
+        if [[ "$pkg_risk" == "high" ]]; then
+            high_risk=$((high_risk + 1))
+        elif [[ "$pkg_risk" == "medium" ]]; then
+            medium_risk=$((medium_risk + 1))
+        fi
+    done < <(echo "$packages" | jq -r '.[]')
+
+    echo "{
+        \"manifest\": \"$manifest_path\",
+        \"ecosystem\": \"$ecosystem\",
+        \"summary\": {
+            \"total_packages\": $total,
+            \"packages_with_replacements\": $with_replacements,
+            \"risk_breakdown\": {
+                \"high\": $high_risk,
+                \"medium\": $medium_risk,
+                \"low\": $((total - high_risk - medium_risk))
+            }
+        },
+        \"packages\": $results
+    }" | jq '.'
+}
+
+# Generate migration plan for a project
+# Usage: generate_migration_plan <project_dir>
+generate_migration_plan() {
+    local project_dir="$1"
+
+    if [[ ! -d "$project_dir" ]]; then
+        echo '{"error": "directory_not_found"}'
+        return 1
+    fi
+
+    local manifests_analyzed="[]"
+    local total_packages=0
+    local total_replacements=0
+    local priority_migrations="[]"
+
+    # Find and analyze manifests
+    for manifest in package.json requirements.txt pyproject.toml go.mod Gemfile; do
+        local manifest_path="$project_dir/$manifest"
+        if [[ -f "$manifest_path" ]]; then
+            local analysis=$(analyze_manifest "$manifest_path")
+            manifests_analyzed=$(echo "$manifests_analyzed" | jq --argjson a "$analysis" '. + [$a]')
+
+            # Aggregate stats
+            local pkg_count=$(echo "$analysis" | jq -r '.summary.total_packages')
+            local rep_count=$(echo "$analysis" | jq -r '.summary.packages_with_replacements')
+            total_packages=$((total_packages + pkg_count))
+            total_replacements=$((total_replacements + rep_count))
+
+            # Extract high-priority migrations
+            local high_priority=$(echo "$analysis" | jq '[.packages[] | select(.risk_level == "high" and .action_required == true)]')
+            priority_migrations=$(echo "$priority_migrations" | jq --argjson hp "$high_priority" '. + $hp')
+        fi
+    done
+
+    # Estimate total effort
+    local effort_score=0
+    local effort_map='{"trivial": 1, "easy": 2, "moderate": 4, "significant": 8, "major": 16}'
+
+    while IFS= read -r pkg; do
+        [[ -z "$pkg" || "$pkg" == "null" ]] && continue
+        local effort=$(echo "$pkg" | jq -r '.replacements[0].migration_effort // "moderate"')
+        local points=$(echo "$effort_map" | jq -r ".[\"$effort\"] // 4")
+        effort_score=$((effort_score + points))
+    done < <(echo "$priority_migrations" | jq -c '.[]')
+
+    local effort_rating="low"
+    if [[ $effort_score -gt 50 ]]; then
+        effort_rating="high"
+    elif [[ $effort_score -gt 20 ]]; then
+        effort_rating="medium"
+    fi
+
+    echo "{
+        \"project_dir\": \"$project_dir\",
+        \"summary\": {
+            \"total_packages\": $total_packages,
+            \"packages_needing_migration\": $total_replacements,
+            \"priority_migrations\": $(echo "$priority_migrations" | jq 'length'),
+            \"estimated_effort\": \"$effort_rating\",
+            \"effort_score\": $effort_score
+        },
+        \"priority_migrations\": $priority_migrations,
+        \"manifests_analyzed\": $manifests_analyzed
+    }" | jq '.'
+}
+
+#############################################################################
+# Export Functions
+#############################################################################
+
+export -f get_replacements
+export -f has_replacement
+export -f get_health_score
+export -f analyze_package
+export -f analyze_manifest
+export -f generate_migration_plan

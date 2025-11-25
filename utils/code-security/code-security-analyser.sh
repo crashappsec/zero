@@ -216,18 +216,18 @@ clone_repository() {
 
     TEMP_DIR=$(mktemp -d)
 
-    echo -e "${BLUE}Cloning repository...${NC}"
+    echo -e "${BLUE}Cloning repository...${NC}" >&2
 
     local repo_url=$(normalize_target "$target")
 
     if git clone --depth 1 --quiet "$repo_url" "$TEMP_DIR" 2>/dev/null; then
         local file_count=$(find "$TEMP_DIR" -type f | wc -l | tr -d ' ')
         local repo_size=$(du -sh "$TEMP_DIR" 2>/dev/null | cut -f1)
-        echo -e "${GREEN}✓ Repository cloned: ${file_count} files, ${repo_size}${NC}"
+        echo -e "${GREEN}✓ Repository cloned: ${file_count} files, ${repo_size}${NC}" >&2
         echo "$TEMP_DIR"
         return 0
     else
-        echo -e "${RED}✗ Failed to clone repository: $repo_url${NC}"
+        echo -e "${RED}✗ Failed to clone repository: $repo_url${NC}" >&2
         rm -rf "$TEMP_DIR"
         TEMP_DIR=""
         return 1
@@ -239,8 +239,8 @@ get_target_files() {
     local repo_dir="$1"
     local max_files="$2"
 
-    # Source file extensions to scan
-    local extensions="py,js,ts,jsx,tsx,java,go,rb,php,c,cpp,h,hpp,cs,swift,kt,rs,scala,sh,bash"
+    # Source file extensions to scan (code + security-relevant config files)
+    local extensions="py,js,ts,jsx,tsx,java,go,rb,php,c,cpp,h,hpp,cs,swift,kt,rs,scala,sh,bash,yaml,yml,json,toml,xml,tf,hcl,Dockerfile,docker-compose.yml,Makefile,gradle,pom.xml,Gemfile,requirements.txt,package.json,Cargo.toml,go.mod"
 
     # Build find command
     local find_cmd="find \"$repo_dir\" -type f \\( "
@@ -476,73 +476,189 @@ generate_markdown_report() {
     local medium=$(jq '[.[] | select(.severity == "medium")] | length' "$findings_file")
     local low=$(jq '[.[] | select(.severity == "low")] | length' "$findings_file")
 
+    # Get unique files with findings
+    local files_with_findings=$(jq -r '[.[].file] | unique | length' "$findings_file")
+
+    # Get vulnerability types breakdown
+    local vuln_types=$(jq -r '[.[].type] | group_by(.) | map({type: .[0], count: length}) | sort_by(-.count) | .[0:5] | .[] | "| \(.type) | \(.count) |"' "$findings_file")
+
+    # Determine risk level
+    local risk_level="Low"
+    local risk_color="🟢"
+    if [[ "$critical" -gt 0 ]]; then
+        risk_level="Critical"
+        risk_color="🔴"
+    elif [[ "$high" -gt 0 ]]; then
+        risk_level="High"
+        risk_color="🟠"
+    elif [[ "$medium" -gt 0 ]]; then
+        risk_level="Medium"
+        risk_color="🟡"
+    fi
+
     cat > "$output_file" << EOF
-# Code Security Analysis Report
+# 🔒 Code Security Analysis Report
 
-**Target**: $target
-**Date**: $(date '+%Y-%m-%d %H:%M:%S')
-**Scan Duration**: ${scan_time}s
+## Scan Information
 
-## Summary
-
-| Severity | Count |
+| Property | Value |
 |----------|-------|
-| 🔴 Critical | $critical |
-| 🟠 High | $high |
-| 🟡 Medium | $medium |
-| 🟢 Low | $low |
-| **Total** | **$total** |
+| **Repository** | \`$target\` |
+| **Scan Date** | $(date '+%Y-%m-%d %H:%M:%S %Z') |
+| **Duration** | ${scan_time} seconds |
+| **Tool** | Gibson Powers Code Security Analyser v1.0 |
+| **Analysis Engine** | Claude AI (Anthropic) |
+
+---
+
+## Executive Summary
+
+$risk_color **Overall Risk Level: $risk_level**
+
+This security analysis identified **$total** potential security issue(s) across **$files_with_findings** file(s).
+
+### Severity Distribution
+
+| Severity | Count | Risk |
+|----------|-------|------|
+| 🔴 **Critical** | $critical | Immediate action required |
+| 🟠 **High** | $high | Address within 24-48 hours |
+| 🟡 **Medium** | $medium | Plan remediation this sprint |
+| 🟢 **Low** | $low | Address as time permits |
+| **Total** | **$total** | |
 
 EOF
 
     if [[ "$total" -gt 0 ]]; then
+        # Add vulnerability type breakdown
         cat >> "$output_file" << 'EOF'
-## Findings
+### Top Vulnerability Types
 
+| Type | Count |
+|------|-------|
 EOF
+        echo "$vuln_types" >> "$output_file"
+
+        # Add findings by file summary
+        echo "" >> "$output_file"
+        echo "### Affected Files" >> "$output_file"
+        echo "" >> "$output_file"
+        jq -r 'group_by(.file) | .[] | "- **\(.[0].file)**: \(length) finding(s)"' "$findings_file" >> "$output_file"
+
+        echo "" >> "$output_file"
+        echo "---" >> "$output_file"
+        echo "" >> "$output_file"
+        echo "## Detailed Findings" >> "$output_file"
+        echo "" >> "$output_file"
+
+        local finding_num=1
+
         # Group by severity
         for severity in critical high medium low; do
             local count=$(jq "[.[] | select(.severity == \"$severity\")] | length" "$findings_file")
             if [[ "$count" -gt 0 ]]; then
                 local emoji="🟢"
+                local severity_desc="Low Priority"
                 case "$severity" in
-                    critical) emoji="🔴" ;;
-                    high) emoji="🟠" ;;
-                    medium) emoji="🟡" ;;
+                    critical) emoji="🔴"; severity_desc="Immediate Action Required" ;;
+                    high) emoji="🟠"; severity_desc="High Priority" ;;
+                    medium) emoji="🟡"; severity_desc="Medium Priority" ;;
                 esac
 
-                echo "### $emoji ${severity^} Severity ($count)" >> "$output_file"
+                echo "### $emoji ${severity^} Severity Findings ($count)" >> "$output_file"
+                echo "" >> "$output_file"
+                echo "*$severity_desc*" >> "$output_file"
                 echo "" >> "$output_file"
 
-                jq -r ".[] | select(.severity == \"$severity\") | \"#### \(.type)
+                # Output each finding
+                jq -r --argjson start "$finding_num" ".[] | select(.severity == \"$severity\") | . as \$f | \"
+<details>
+<summary><strong>$emoji #\($start + (input_line_number - 1)) \(.type)</strong> - \(.file):\(.line // \"?\")</summary>
 
-**File**: \(.file):\(.line // \"?\")
-**Category**: \(.category)
-**CWE**: \(.cwe // \"N/A\")
-**Confidence**: \(.confidence // \"medium\")
+#### Details
 
-**Description**: \(.description)
+| Property | Value |
+|----------|-------|
+| **File** | \`\(.file)\` |
+| **Line** | \(.line // \"Unknown\") |
+| **Category** | \(.category // \"N/A\") |
+| **CWE** | [\(.cwe // \"N/A\")](https://cwe.mitre.org/data/definitions/\(.cwe // \"\" | gsub(\"CWE-\"; \"\")).html) |
+| **Confidence** | \(.confidence // \"medium\") |
 
-**Vulnerable Code**:
-\`\`\`
+#### Description
+
+\(.description)
+
+#### Vulnerable Code
+
+\\\`\\\`\\\`
 \(.code_snippet // \"N/A\")
-\`\`\`
+\\\`\\\`\\\`
 
-**Exploitation**: \(.exploitation // \"N/A\")
+#### Evidence
 
-**Remediation**: \(.remediation)
+\(.evidence // \"See code snippet above.\")
 
----
-\"" "$findings_file" >> "$output_file"
+#### Exploit Scenario
+
+\(.exploit_scenario // .exploitation // \"Attacker could potentially exploit this vulnerability to compromise the application.\")
+
+#### Remediation
+
+\(.remediation)
+
+</details>
+\"" "$findings_file" | sed 's/\\`\\`\\`/```/g' >> "$output_file"
+
+                finding_num=$((finding_num + count))
+                echo "" >> "$output_file"
             fi
         done
     else
-        echo "✅ No security issues found." >> "$output_file"
+        cat >> "$output_file" << 'EOF'
+
+---
+
+## ✅ No Security Issues Found
+
+The automated security analysis did not identify any security vulnerabilities in the scanned code.
+
+**Note**: This does not guarantee the code is free of all security issues. Consider:
+- Manual code review for business logic flaws
+- Dynamic testing (DAST) for runtime vulnerabilities
+- Penetration testing for complex attack scenarios
+
+EOF
     fi
 
-    echo "" >> "$output_file"
-    echo "---" >> "$output_file"
-    echo "*Generated by Gibson Powers Code Security Analyser*" >> "$output_file"
+    cat >> "$output_file" << 'EOF'
+
+---
+
+## Methodology
+
+This analysis was performed using AI-powered static analysis with the following approach:
+
+1. **Context Understanding** - Identify code purpose, data handling, and trust boundaries
+2. **Data Flow Analysis** - Trace user input from entry points to sensitive sinks
+3. **Pattern Matching** - Detect known vulnerability patterns with CWE classification
+4. **Confidence Filtering** - Report only high-confidence findings (≥80%)
+
+### Vulnerability Categories Checked
+
+- **Injection**: SQL, Command, NoSQL, LDAP, XPath, Template
+- **Authentication & Authorization**: Broken access control, missing auth, IDOR
+- **Cryptographic Failures**: Weak algorithms, hardcoded keys, insecure random
+- **Code Execution**: Deserialization, eval/exec, prototype pollution
+- **Input Validation**: XSS, path traversal, SSRF, XXE, open redirects
+- **Secrets**: Hardcoded credentials, API keys, tokens
+- **Configuration**: CORS, cookies, security headers, debug mode
+
+---
+
+*Report generated by [Gibson Powers Code Security Analyser](https://github.com/crashappsec/gibson-powers)*
+*Powered by Claude AI (Anthropic)*
+EOF
 }
 
 # Generate JSON report
@@ -630,7 +746,10 @@ run_analysis() {
     # Get files to scan
     echo -e "${BLUE}Identifying files to scan...${NC}"
     local files=$(get_target_files "$repo_dir" "$MAX_FILES")
-    local file_count=$(echo "$files" | grep -c . || echo "0")
+    local file_count=0
+    if [[ -n "$files" ]]; then
+        file_count=$(echo "$files" | wc -l | tr -d ' ')
+    fi
 
     echo -e "${GREEN}✓ Found $file_count files to analyse${NC}"
     echo ""
@@ -677,6 +796,14 @@ run_analysis() {
             if [[ "$findings" != "[]" ]] && [[ -n "$findings" ]]; then
                 # Add file path to findings if not present
                 findings=$(echo "$findings" | jq --arg file "$relative_path" '[.[] | .file = $file]')
+
+                # Display findings inline in terminal
+                local file_finding_count=$(echo "$findings" | jq 'length')
+                echo ""  # New line after progress indicator
+                echo -e "${YELLOW}  ⚠ Found $file_finding_count issue(s) in $relative_path:${NC}"
+
+                # Show each finding briefly
+                echo "$findings" | jq -r '.[] | "    \(if .severity == "critical" then "🔴" elif .severity == "high" then "🟠" elif .severity == "medium" then "🟡" else "🟢" end) [\(.severity | ascii_upcase)] \(.type): \(.description | .[0:80])..."' 2>/dev/null || true
 
                 # Merge findings
                 all_findings=$(echo "$all_findings $findings" | jq -s 'add')
