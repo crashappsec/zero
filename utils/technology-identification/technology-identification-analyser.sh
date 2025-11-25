@@ -1296,6 +1296,7 @@ if [[ "$MULTI_REPO_MODE" == true ]]; then
     # Process each repository
     declare -a all_findings=()
     declare -a all_repo_names=()
+    declare -A cumulative_tech_repos=()  # Map technology -> list of repos where found
     repo_count=0
     success_count=0
 
@@ -1317,6 +1318,23 @@ if [[ "$MULTI_REPO_MODE" == true ]]; then
                 all_repo_names+=("$repo_name")
                 success_count=$((success_count + 1))
 
+                # Extract technologies from this repo and add to cumulative map with repo info
+                repo_techs=$(echo "$findings" | jq -r '.[].name' 2>/dev/null | sort -u)
+                # Get short repo name (just the repo part, not org/repo)
+                short_repo_name=$(basename "$repo_name")
+                while IFS= read -r tech; do
+                    [[ -z "$tech" ]] && continue
+                    # Add repo to the technology's repo list
+                    if [[ -z "${cumulative_tech_repos[$tech]}" ]]; then
+                        cumulative_tech_repos[$tech]="$short_repo_name"
+                    else
+                        # Append repo if not already in list
+                        if [[ ! "${cumulative_tech_repos[$tech]}" =~ (^|, )$short_repo_name(,|$) ]]; then
+                            cumulative_tech_repos[$tech]="${cumulative_tech_repos[$tech]}, $short_repo_name"
+                        fi
+                    fi
+                done <<< "$repo_techs"
+
                 # Print summary for this repository
                 echo "" >&2
                 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
@@ -1325,19 +1343,25 @@ if [[ "$MULTI_REPO_MODE" == true ]]; then
 
                 # Extract and display key technologies
                 tech_count=$(echo "$findings" | jq 'length' 2>/dev/null || echo "0")
-                echo -e "  ${CYAN}Technologies detected: $tech_count${NC}" >&2
+                echo -e "  ${CYAN}Technologies detected in this repo: $tech_count${NC}" >&2
 
                 # Show top technologies by confidence
                 if [[ "$tech_count" != "0" ]] && [[ "$tech_count" != "null" ]] && [[ "$tech_count" -gt 0 ]]; then
                     echo "" >&2
-                    echo -e "  ${CYAN}Top technologies:${NC}" >&2
-                    echo "$findings" | jq -r 'sort_by(-.confidence) | .[0:5] | .[] | "    • \(.name) (\(.category)) - \(.confidence)%"' 2>/dev/null >&2
-
-                    # Show categories breakdown
-                    echo "" >&2
-                    echo -e "  ${CYAN}Categories:${NC}" >&2
-                    echo "$findings" | jq -r 'group_by(.category) | map({category: .[0].category, count: length}) | sort_by(-.count) | .[] | "    • \(.category): \(.count)"' 2>/dev/null >&2
+                    echo -e "  ${CYAN}Technologies found:${NC}" >&2
+                    echo "$findings" | jq -r 'sort_by(-.confidence) | .[] | "    • \(.name) (\(.category)) - \(.confidence)%"' 2>/dev/null >&2
                 fi
+
+                # Show cumulative technology list across all repos scanned so far
+                echo "" >&2
+                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+                echo -e "${YELLOW}  Cumulative Technologies (${#cumulative_tech_repos[@]} unique across $success_count repos)${NC}" >&2
+                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
+
+                # Display cumulative technologies sorted alphabetically with repo info
+                for tech in $(printf '%s\n' "${!cumulative_tech_repos[@]}" | sort); do
+                    echo -e "    ${NC}• $tech ${CYAN}[${cumulative_tech_repos[$tech]}]${NC}" >&2
+                done
 
                 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}" >&2
                 echo "" >&2
