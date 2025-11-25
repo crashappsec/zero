@@ -436,22 +436,63 @@ fi
 
 # Configure RAG paths
 echo -e "${BLUE}Configuring RAG (Retrieval-Augmented Generation) paths...${NC}"
+
+# Load config library for RAG functions
+if [ -f "$REPO_ROOT/utils/lib/config.sh" ]; then
+    source "$REPO_ROOT/utils/lib/config.sh"
+fi
+
 if [ -d "$REPO_ROOT/rag" ]; then
     echo -e "${GREEN}✓${NC} RAG folder found at: $REPO_ROOT/rag"
 
     # Check if global config exists
     if [ -f "$REPO_ROOT/utils/lib/config.sh" ]; then
-        # RAG_DIR is already configured in config.sh
-        echo -e "${GREEN}✓${NC} RAG paths configured in utils/lib/config.sh"
+        # Initialize RAG and show stats
+        if type init_rag_config &>/dev/null; then
+            init_rag_config
+        else
+            # Fallback: count manually
+            RAG_FILE_COUNT=$(find "$REPO_ROOT/rag" -type f -name "*.md" | wc -l | tr -d ' ')
+            echo -e "${GREEN}✓${NC} Found $RAG_FILE_COUNT RAG reference documents"
+        fi
 
-        # Count RAG files
-        RAG_FILE_COUNT=$(find "$REPO_ROOT/rag" -type f -name "*.md" | wc -l | tr -d ' ')
-        echo -e "${GREEN}✓${NC} Found $RAG_FILE_COUNT RAG reference documents"
+        # Show RAG topics
+        echo ""
+        echo "RAG Knowledge Base Topics:"
+        for dir in "$REPO_ROOT/rag"/*/; do
+            if [ -d "$dir" ]; then
+                TOPIC_NAME=$(basename "$dir")
+                TOPIC_COUNT=$(find "$dir" -type f -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+                if [ "$TOPIC_COUNT" -gt 0 ]; then
+                    echo -e "  ${GREEN}✓${NC} $TOPIC_NAME ($TOPIC_COUNT documents)"
+                fi
+            fi
+        done
     else
         echo -e "${YELLOW}⚠${NC} Global config not found (should have been created during setup)"
     fi
+
+    # Check for RAG server configuration
+    if [ -n "${RAG_SERVER_URL:-}" ]; then
+        echo ""
+        echo -e "${BLUE}RAG Server Configuration:${NC}"
+        echo -e "  Server URL: ${RAG_SERVER_URL}"
+        echo -e "  Server Type: ${RAG_SERVER_TYPE:-auto}"
+
+        # Test server connectivity
+        if curl -s --connect-timeout 2 --max-time 5 "${RAG_SERVER_URL}/health" >/dev/null 2>&1; then
+            echo -e "  ${GREEN}✓${NC} Server is reachable"
+        else
+            echo -e "  ${YELLOW}⚠${NC} Server not reachable (will use local filesystem)"
+        fi
+    else
+        echo ""
+        echo -e "${BLUE}RAG Mode:${NC} Local filesystem (default)"
+        echo "  To use a RAG server, set RAG_SERVER_URL in .env"
+    fi
 else
     echo -e "${YELLOW}⚠${NC} RAG folder not found - reference documentation unavailable"
+    echo "  Expected location: $REPO_ROOT/rag"
 fi
 echo ""
 

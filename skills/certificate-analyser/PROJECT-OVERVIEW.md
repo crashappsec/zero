@@ -351,14 +351,22 @@ EXPIRY_WARNING=30         # Warning threshold
 
 Potential improvements (contributions welcome):
 
-- [ ] **Claude AI enhanced analysis** (intelligent recommendations)
+### High Priority
+- [x] **Claude AI enhanced analysis** (intelligent recommendations)
+- [ ] **RAG server integration** - Connect to a proper RAG server (e.g., Pinecone, Weaviate, ChromaDB) for semantic search over knowledge base, with local filesystem as fallback for offline/air-gapped environments
 - [ ] **CT log monitoring** (alert on new certificates)
 - [ ] **CAA record verification** (DNS authorization)
+
+### Medium Priority
 - [ ] **HSTS header checking** (security best practices)
 - [ ] **Cipher suite analysis** (TLS configuration)
 - [ ] **Historical comparison** (track changes over time)
 - [ ] **API integration** (CRT.sh, SSLLabs, etc.)
+
+### Future
 - [ ] **Dashboard generation** (HTML summary page)
+- [ ] **Webhook notifications** (Slack, Teams, PagerDuty)
+- [ ] **Multi-tenant support** (organization-wide certificate inventory)
 
 ## Support Matrix
 
