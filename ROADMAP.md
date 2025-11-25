@@ -6,9 +6,11 @@ SPDX-License-Identifier: GPL-3.0
 
 # Gibson Powers Roadmap
 
-**Vision**: Position Gibson Powers as the leading **open-source Developer Productivity Intelligence (DPI) platform** — an alternative to commercial tools like DX, Jellyfish, and Swarmia.
+**Vision**: Position Gibson Powers as the leading **open-source software analysis toolkit** — providing deep insights into what software is made of, how it's built, and its security posture.
 
-By combining deep build inspection, technology intelligence, and security integration with the Crash Override platform, Gibson Powers will offer unique capabilities that proprietary solutions cannot match.
+Gibson Powers is the free, open-source component of the Crash Override platform. It provides analyzers for understanding software while adding AI capabilities to enhance analysis. Gibson Powers serves as an on-ramp to the commercial Crash Override platform for organizations needing enterprise features.
+
+By combining deep build inspection, technology intelligence, and comprehensive security analysis with AI-powered insights, Gibson Powers offers unique capabilities that complement existing developer tools.
 
 **See**: [Competitive Analysis: DPI Tools](docs/competitive-analysis-dpi-tools.md) for detailed positioning
 
@@ -49,7 +51,7 @@ Gibson Powers is being built as the **open-source alternative** to commercial DP
 ### Phased DPI Roadmap
 
 #### **Phase 1: Foundation** (Current - Q1 2025) ✅
-Build unique capabilities no competitor offers
+Build core software analysis capabilities
 
 **Status**: ✅ In Progress
 - [x] Code ownership analysis
@@ -58,10 +60,12 @@ Build unique capabilities no competitor offers
 - [x] Technology intelligence (112 technologies) - **Complete** ✅
 - [x] Dynamic pattern loading (data-driven detection) - **Complete** ✅
 - [ ] Comprehensive testing infrastructure
+- [ ] Code Security Analyser - **In Development** 🚧
 
 **Deliverables**:
 - v0.3.0: Technology intelligence (100+ technologies)
 - v0.4.0: Advanced SBOM analysis and vulnerability tracking
+- v0.5.0: Code Security Analyser (AI-powered security review)
 
 ---
 
@@ -389,6 +393,143 @@ Integrate Gibson Powers analyzers with Chalk (chalkproject.io) to enable automat
 - Industry-specific prompt libraries
 - Prompt chaining patterns
 - Multi-agent conversation patterns
+
+---
+
+### Code Security
+
+#### Code Security Analyser 🚧
+
+**Status**: 🚧 Actively Developing (Q1 2025)
+
+AI-powered code security review using Claude to identify vulnerabilities, security weaknesses, and potential exploits in source code. Based on [Anthropic's claude-code-security-review](https://github.com/anthropics/claude-code-security-review) approach.
+
+**Key Capabilities:**
+
+**1. AI-Powered Security Analysis**
+
+Comprehensive repository security analysis using Claude's deep code understanding:
+
+- **Repository Scanning**
+  - Clone and analyse entire repositories (same pattern as other Gibson Powers analysers)
+  - Identify security-relevant source files
+  - Extract context for comprehensive analysis
+  - Support for local directories and GitHub repositories
+
+- **Context-Aware Review**
+  - Analyze code with full project context
+  - Consider framework-specific security patterns
+  - Evaluate business logic implications
+  - Understand data flow across files
+
+- **Issue Identification**
+  - Detect vulnerabilities with severity classification (Critical/High/Medium/Low)
+  - Provide detailed exploitation scenarios
+  - Include CWE references and CVSS scoring where applicable
+
+- **False Positive Filtering**
+  - AI-powered filtering to reduce noise
+  - Context-aware benign pattern recognition
+  - Confidence scoring for findings
+
+- **Actionable Reporting**
+  - Clear, developer-friendly explanations
+  - Specific remediation guidance with code examples
+  - Multiple output formats (Markdown, JSON, SARIF)
+
+**2. Vulnerability Detection Categories**
+
+- **Injection Attacks**:
+  - SQL injection
+  - Command injection
+  - LDAP injection
+  - XPath injection
+  - Expression language injection
+
+- **Authentication & Authorization**:
+  - Broken authentication
+  - Missing authorization checks
+  - Privilege escalation vectors
+  - Session management flaws
+
+- **Data Exposure**:
+  - Sensitive data in logs
+  - PII exposure risks
+  - Information disclosure
+  - Insecure data storage
+
+- **Cryptographic Weaknesses**:
+  - Weak algorithms
+  - Improper key management
+  - Insecure random number generation
+  - Certificate validation bypass
+
+- **Input Validation**:
+  - Cross-Site Scripting (XSS)
+  - Path traversal
+  - Open redirects
+  - Server-Side Request Forgery (SSRF)
+
+- **Business Logic Flaws**:
+  - Race conditions
+  - TOCTOU vulnerabilities
+  - State management issues
+  - Trust boundary violations
+
+- **Configuration Problems**:
+  - Debug mode enabled
+  - Insecure defaults
+  - Missing security headers
+  - CORS misconfigurations
+
+- **Supply Chain Risks** (via supply-chain-scanner integration):
+  - Vulnerable dependencies (CVEs)
+  - Malicious packages
+  - Dependency confusion potential
+  - Package health and provenance
+
+**3. Integration Modes**
+
+- **Command Line Interface**:
+  - Scan GitHub repositories: `./code-security-analyser.sh --repo owner/repo`
+  - Scan local directories: `./code-security-analyser.sh --local /path/to/project`
+  - Scan GitHub organizations: `./code-security-analyser.sh --org myorg`
+  - Configurable severity thresholds and output formats
+
+- **Claude Code Slash Command**:
+  - On-demand security review from CLI: `/code-security`
+  - Interactive vulnerability exploration
+  - Quick scans during development
+
+- **CI/CD Pipeline Integration**:
+  - GitHub Actions workflow templates
+  - GitLab CI support
+  - Jenkins pipeline integration
+  - SARIF output for code scanning integrations
+
+**4. RAG-Enhanced Analysis**
+
+Knowledge base integration for improved accuracy:
+
+- Security best practices by framework
+- Common vulnerability patterns
+- Remediation code examples
+- Industry-specific compliance requirements
+- OWASP guidelines and standards
+
+**Deliverables:**
+- `utils/code-security/code-security-analyser.sh` - Main analyser script (same pattern as other analysers)
+- `utils/code-security/lib/` - Library functions for security scanning
+- `prompts/code-security/` - Claude prompts for security analysis
+- `skills/code-security/` - Skill definition and documentation
+- `rag/code-security/` - RAG knowledge base for security patterns
+
+**See**: [Code Security Implementation Plan](docs/code-security-implementation-plan.md)
+
+**Reference Implementation:**
+- Based on [claude-code-security-review](https://github.com/anthropics/claude-code-security-review)
+- MIT licensed components where applicable
+- Anthropic security prompt methodology
 
 ---
 
