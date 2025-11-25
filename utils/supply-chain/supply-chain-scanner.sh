@@ -94,6 +94,14 @@ MODULES:
     --legal                 Run legal compliance analysis (licenses, secrets, content)
     --all, -a               Run all analysis modules (default if none specified)
 
+ENHANCED ANALYSIS:
+    --abandoned             Detect abandoned/deprecated packages
+    --typosquat             Check for typosquatting risks
+    --unused                Find unused dependencies
+    --debt-score            Calculate technical debt scores
+    --container-images      Analyze container images and recommend alternatives
+    --library-recommend     Suggest library replacements
+
 TARGETS:
     --org ORG_NAME          Scan all repos in GitHub organization
     --repo OWNER/REPO       Scan specific repository
@@ -415,11 +423,6 @@ normalize_target() {
 clone_shared_repository() {
     local repo_url="$1"
 
-    # Only clone if running multiple modules
-    if [[ ${#MODULES[@]} -le 1 ]]; then
-        return 0
-    fi
-
     # Create temp directory for shared clone
     SHARED_REPO_DIR=$(mktemp -d)
 
@@ -619,6 +622,214 @@ run_legal_analysis() {
     fi
 
     eval "$cmd"
+}
+
+#############################################################################
+# Enhanced Analysis Modules
+#############################################################################
+
+# Function to run abandoned package detection
+run_abandoned_analysis() {
+    local target=$(normalize_target "$1")
+    local lib_file="$SCRIPT_DIR/package-health-analysis/lib/abandonment-detector.sh"
+
+    if [[ ! -f "$lib_file" ]]; then
+        echo -e "${RED}✗ Abandonment detector not found${NC}"
+        return 1
+    fi
+
+    source "$lib_file"
+
+    echo "# Abandoned Package Detection"
+    echo ""
+
+    # Get project directory
+    local project_dir=""
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        project_dir="$SHARED_REPO_DIR"
+    else
+        echo -e "${YELLOW}⚠ No local repository available. Clone the repo first.${NC}"
+        return 1
+    fi
+
+    # Extract packages from manifest
+    local packages_json="[]"
+    if [[ -f "$project_dir/package.json" ]]; then
+        local deps=$(jq -r '.dependencies // {} | keys[]' "$project_dir/package.json" 2>/dev/null)
+        while IFS= read -r pkg; do
+            [[ -z "$pkg" ]] && continue
+            packages_json=$(echo "$packages_json" | jq --arg name "$pkg" '. + [{"name": $name, "ecosystem": "npm"}]')
+        done <<< "$deps"
+    fi
+
+    if [[ "$packages_json" == "[]" ]]; then
+        echo "No dependencies found to analyze."
+        return 0
+    fi
+
+    # Generate report
+    local report=$(generate_abandonment_report "$packages_json")
+    echo "$report" | jq '.'
+}
+
+# Function to run typosquatting detection
+run_typosquat_analysis() {
+    local target=$(normalize_target "$1")
+    local lib_file="$SCRIPT_DIR/package-health-analysis/lib/typosquat-detector.sh"
+
+    if [[ ! -f "$lib_file" ]]; then
+        echo -e "${RED}✗ Typosquat detector not found${NC}"
+        return 1
+    fi
+
+    source "$lib_file"
+
+    echo "# Typosquatting Risk Detection"
+    echo ""
+
+    # Get project directory
+    local project_dir=""
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        project_dir="$SHARED_REPO_DIR"
+    else
+        echo -e "${YELLOW}⚠ No local repository available. Clone the repo first.${NC}"
+        return 1
+    fi
+
+    # Extract packages from manifest
+    local packages_json="[]"
+    if [[ -f "$project_dir/package.json" ]]; then
+        local deps=$(jq -r '.dependencies // {} | keys[]' "$project_dir/package.json" 2>/dev/null)
+        while IFS= read -r pkg; do
+            [[ -z "$pkg" ]] && continue
+            packages_json=$(echo "$packages_json" | jq --arg name "$pkg" '. + [{"name": $name, "ecosystem": "npm"}]')
+        done <<< "$deps"
+    fi
+
+    if [[ "$packages_json" == "[]" ]]; then
+        echo "No dependencies found to analyze."
+        return 0
+    fi
+
+    # Generate report
+    local report=$(generate_typosquat_report "$packages_json")
+    echo "$report" | jq '.'
+}
+
+# Function to run unused dependency detection
+run_unused_analysis() {
+    local target=$(normalize_target "$1")
+    local lib_file="$SCRIPT_DIR/package-health-analysis/lib/unused-detector.sh"
+
+    if [[ ! -f "$lib_file" ]]; then
+        echo -e "${RED}✗ Unused dependency detector not found${NC}"
+        return 1
+    fi
+
+    source "$lib_file"
+
+    echo "# Unused Dependency Detection"
+    echo ""
+
+    # Get project directory
+    local project_dir=""
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        project_dir="$SHARED_REPO_DIR"
+    else
+        echo -e "${YELLOW}⚠ No local repository available. Clone the repo first.${NC}"
+        return 1
+    fi
+
+    # Generate report
+    local report=$(generate_unused_report "$project_dir")
+    echo "$report" | jq '.'
+}
+
+# Function to run technical debt scoring
+run_debt_score_analysis() {
+    local target=$(normalize_target "$1")
+    local lib_file="$SCRIPT_DIR/bundle-analysis/lib/debt-scorer.sh"
+
+    if [[ ! -f "$lib_file" ]]; then
+        echo -e "${RED}✗ Debt scorer not found${NC}"
+        return 1
+    fi
+
+    source "$lib_file"
+
+    echo "# Technical Debt Score"
+    echo ""
+
+    # Get project directory
+    local project_dir=""
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        project_dir="$SHARED_REPO_DIR"
+    else
+        echo -e "${YELLOW}⚠ No local repository available. Clone the repo first.${NC}"
+        return 1
+    fi
+
+    # Generate roadmap which includes debt scoring
+    local report=$(generate_debt_roadmap "$project_dir")
+    echo "$report" | jq '.'
+}
+
+# Function to run container image analysis
+run_container_analysis() {
+    local target=$(normalize_target "$1")
+    local lib_file="$SCRIPT_DIR/container-analysis/lib/image-recommender.sh"
+
+    if [[ ! -f "$lib_file" ]]; then
+        echo -e "${RED}✗ Container image recommender not found${NC}"
+        return 1
+    fi
+
+    source "$lib_file"
+
+    echo "# Container Image Analysis"
+    echo ""
+
+    # Get project directory
+    local project_dir=""
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        project_dir="$SHARED_REPO_DIR"
+    else
+        echo -e "${YELLOW}⚠ No local repository available. Clone the repo first.${NC}"
+        return 1
+    fi
+
+    # Analyze Dockerfile
+    local report=$(analyze_dockerfile "$project_dir")
+    echo "$report" | jq '.'
+}
+
+# Function to run library recommendation analysis
+run_library_recommendation_analysis() {
+    local target=$(normalize_target "$1")
+    local lib_file="$SCRIPT_DIR/library-recommendations/lib/recommender.sh"
+
+    if [[ ! -f "$lib_file" ]]; then
+        echo -e "${RED}✗ Library recommender not found${NC}"
+        return 1
+    fi
+
+    source "$lib_file"
+
+    echo "# Library Recommendations"
+    echo ""
+
+    # Get project directory
+    local project_dir=""
+    if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
+        project_dir="$SHARED_REPO_DIR"
+    else
+        echo -e "${YELLOW}⚠ No local repository available. Clone the repo first.${NC}"
+        return 1
+    fi
+
+    # Generate migration plan
+    local report=$(generate_migration_plan "$project_dir")
+    echo "$report" | jq '.'
 }
 
 #############################################################################
@@ -898,8 +1109,23 @@ analyze_target() {
     echo -e "${CYAN}=========================================${NC}"
     echo ""
 
-    # If running multiple modules, clone repository once for sharing
+    # Clone repository for modules that need local access
+    # Clone if: multiple modules, OR any of the new enhanced analysis modules
+    local needs_clone=false
     if [[ ${#MODULES[@]} -gt 1 ]]; then
+        needs_clone=true
+    else
+        for mod in "${MODULES[@]}"; do
+            case "$mod" in
+                abandoned|typosquat|unused|debt-score|container-images|library-recommend)
+                    needs_clone=true
+                    break
+                    ;;
+            esac
+        done
+    fi
+
+    if [[ "$needs_clone" == "true" ]]; then
         local normalized=$(normalize_target "$target")
         # Only clone if it's a git URL (not a local directory or file)
         if [[ "$normalized" =~ ^https?:// ]] || [[ "$normalized" =~ ^git@ ]]; then
@@ -928,6 +1154,24 @@ analyze_target() {
                 ;;
             legal)
                 module_output=$(run_legal_analysis "$target" 2>&1)
+                ;;
+            abandoned)
+                module_output=$(run_abandoned_analysis "$target" 2>&1)
+                ;;
+            typosquat)
+                module_output=$(run_typosquat_analysis "$target" 2>&1)
+                ;;
+            unused)
+                module_output=$(run_unused_analysis "$target" 2>&1)
+                ;;
+            debt-score)
+                module_output=$(run_debt_score_analysis "$target" 2>&1)
+                ;;
+            container-images)
+                module_output=$(run_container_analysis "$target" 2>&1)
+                ;;
+            library-recommend)
+                module_output=$(run_library_recommendation_analysis "$target" 2>&1)
                 ;;
             *)
                 echo -e "${YELLOW}⚠ Unknown module: $module${NC}"
@@ -1041,8 +1285,32 @@ while [[ $# -gt 0 ]]; do
             MODULES+=("legal")
             shift
             ;;
+        --abandoned)
+            MODULES+=("abandoned")
+            shift
+            ;;
+        --typosquat)
+            MODULES+=("typosquat")
+            shift
+            ;;
+        --unused)
+            MODULES+=("unused")
+            shift
+            ;;
+        --debt-score)
+            MODULES+=("debt-score")
+            shift
+            ;;
+        --container-images)
+            MODULES+=("container-images")
+            shift
+            ;;
+        --library-recommend)
+            MODULES+=("library-recommend")
+            shift
+            ;;
         -a|--all)
-            MODULES=("vulnerability" "provenance" "package-health")
+            MODULES=("vulnerability" "provenance" "package-health" "abandoned" "typosquat" "unused" "debt-score")
             shift
             ;;
         --org)

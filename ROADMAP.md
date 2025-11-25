@@ -255,6 +255,72 @@ A skill for calculating and improving the bus factor (truck factor) of software 
 
 ### Supply Chain Security
 
+#### Supply Chain Scanner v2.0 - Dependency Intelligence Platform 🚧
+
+**Status**: 🚧 Actively Developing (Q1 2025)
+
+Transforming the supply chain scanner from a security-focused tool into a comprehensive **dependency intelligence platform** addressing security, developer productivity, compliance, and sustainability.
+
+**See**: [Supply Chain Implementation Plan](docs/supply-chain-implementation-plan.md)
+
+**Security & Risk Management**:
+- [x] Vulnerability analysis (OSV.dev, CISA KEV)
+- [x] Provenance analysis (SLSA, npm provenance, sigstore)
+- [x] Package health analysis (deps.dev, OpenSSF Scorecard)
+- [ ] Version normalization for improved vulnerability matching
+- [ ] Abandoned/deprecated package detection
+- [ ] Typosquatting and malicious package detection
+- [ ] Dependency confusion prevention (lockfile integrity)
+
+**Developer Productivity**:
+- [ ] Unused dependency detection (reduce attack surface + build times)
+- [ ] AI-powered library recommendations (better alternatives)
+- [ ] **Bundle size analysis and optimization** (NEW)
+  - Integration with bundlephobia API for package size data
+  - Tree-shaking opportunity detection (ESM support check)
+  - Heavy package identification with lighter alternatives
+  - Code splitting and lazy loading recommendations
+  - CI/CD integration (size-limit, bundlewatch)
+  - Target: < 200KB initial bundle, < 500KB total gzipped
+- [ ] Technical debt scoring (dependency staleness metrics)
+
+**Operations**:
+- [ ] **Container image hardening recommendations**
+  - Dockerfile parsing and base image detection
+  - Recommend hardened alternatives: Chainguard, Minimus, Google Distroless
+  - Provider comparison (Chainguard vs Minimus vs Distroless)
+  - Multi-stage build pattern suggestions
+  - Security best practices (USER directive, no root)
+  - Image signature verification (cosign)
+  - CVE comparison: 95%+ vulnerability reduction
+
+**RAG Knowledge Base** (Complete):
+- `rag/supply-chain/version-normalization/` - Ecosystem-specific normalization
+- `rag/supply-chain/malicious-package-detection/` - Typosquatting, abandonment
+- `rag/supply-chain/unused-dependency-detection/` - depcheck, pipreqs, vulture
+- `rag/supply-chain/hardened-images/` - Distroless, Chainguard, multi-stage builds
+- `rag/supply-chain/library-recommendations/` - Alternative package selection
+- `rag/supply-chain/bundle-optimization/` - Bundle size analysis, tree-shaking, code splitting
+
+**New CLI Flags**:
+```bash
+--check-abandonment     # Detect abandoned packages
+--check-typosquat       # Typosquatting detection
+--check-unused          # Unused dependency detection
+--recommend-libraries   # AI-powered library recommendations
+--bundle-analysis       # Analyze bundle sizes (npm)
+--technical-debt        # Dependency debt scoring
+--container-analysis    # Dockerfile hardening suggestions
+--all-checks            # Enable all enhanced checks
+```
+
+**Deliverables**:
+- v0.5.0: Version normalization, abandonment detection, typosquatting
+- v0.6.0: Library recommendations, unused detection, bundle analysis
+- v0.7.0: Container analysis, license compliance, technical debt
+
+---
+
 #### SBOM/BOM Analyser Enhancements
 
 - Additional vulnerability database integrations
@@ -1450,9 +1516,14 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-*Last Updated: 2025-11-24*
+*Last Updated: 2025-11-25*
 
 **Recent Changes**:
+- **NEW: Supply Chain Scanner v2.0 - Dependency Intelligence Platform** 🚧
+  - Transforming from security-only to comprehensive dependency intelligence
+  - Added RAG knowledge base: version normalization, typosquatting detection, abandoned packages, unused dependencies, hardened images, library recommendations
+  - Created implementation plan with 9 phases covering security, productivity, compliance, and sustainability
+  - New capabilities: AI-powered library recommendations, bundle size optimization, technical debt scoring, carbon footprint estimation
 - **Completed Technology Intelligence**: Expanded RAG database to 112 technologies with 431 pattern files
 - Added comprehensive coverage: AI/ML (APIs, Vector DBs, MLOps), Databases, Cloud Providers, Authentication, Messaging, Monitoring, Payment, Email, Analytics, CMS, Testing, CI/CD, Feature Flags
 - Marked Phase 1 technology intelligence and dynamic pattern loading as complete
