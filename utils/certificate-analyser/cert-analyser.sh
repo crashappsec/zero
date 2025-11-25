@@ -45,6 +45,7 @@ source "$SCRIPT_DIR/lib/ocsp-verification.sh"
 source "$SCRIPT_DIR/lib/starttls.sh"
 source "$SCRIPT_DIR/lib/cab-compliance.sh"
 source "$SCRIPT_DIR/lib/cert-compare.sh"
+source "$SCRIPT_DIR/lib/claude-analysis.sh"
 
 # Load global libraries
 if [[ -f "$UTILS_ROOT/lib/claude-cost.sh" ]]; then
@@ -88,6 +89,9 @@ CA_FILE=""
 
 # Phase 3 options
 CAB_COMPLIANCE=false
+
+# Claude AI options
+CLAUDE_ANALYSIS_TYPE="comprehensive"  # comprehensive, quick, compliance
 
 # Load cost tracking if using Claude
 if [[ "$USE_CLAUDE" == "true" ]]; then
@@ -824,53 +828,23 @@ EOF
 }
 
 #############################################################################
-# Claude AI Analysis
+# Claude AI Analysis (wrapper for lib/claude-analysis.sh)
 #############################################################################
 
+# Main Claude analysis function - uses the enhanced library
 analyze_with_claude() {
     local report_content="$1"
-    local model="claude-sonnet-4-20250514"
+    local analysis_type="${CLAUDE_ANALYSIS_TYPE:-comprehensive}"
 
     if [[ -z "$ANTHROPIC_API_KEY" ]]; then
         log_error "ANTHROPIC_API_KEY required for --claude mode"
+        log_info "Set via: export ANTHROPIC_API_KEY='sk-ant-...'"
+        log_info "Or add to .env file in repository root"
         exit 1
     fi
 
-    log_info "Analyzing with Claude AI..."
-
-    local prompt="Analyze this SSL/TLS certificate analysis report and provide enhanced security insights. Focus on:
-1. Risk prioritization and immediate actions required
-2. Security posture assessment (critical, high, medium, low risk)
-3. Certificate management best practices compliance
-4. Cryptographic strength evaluation and recommendations
-5. Expiration management and renewal planning
-6. Industry standards compliance (CA/B Forum, NIST, etc.)
-7. Specific remediation steps prioritized by impact
-8. Long-term certificate management strategy
-9. Common pitfalls and how to avoid them
-10. Automation opportunities for certificate lifecycle management
-
-Certificate Analysis Report:
-$report_content"
-
-    local response=$(curl -s https://api.anthropic.com/v1/messages \
-        -H "content-type: application/json" \
-        -H "x-api-key: $ANTHROPIC_API_KEY" \
-        -H "anthropic-version: 2023-06-01" \
-        -d "{
-            \"model\": \"$model\",
-            \"max_tokens\": 4096,
-            \"messages\": [{
-                \"role\": \"user\",
-                \"content\": $(echo "$prompt" | jq -Rs .)
-            }]
-        }")
-
-    if command -v record_api_usage &> /dev/null; then
-        record_api_usage "$response" "$model" > /dev/null
-    fi
-
-    echo "$response" | jq -r '.content[0].text // empty'
+    # Use the enhanced RAG-based analysis from claude-analysis.sh library
+    analyze_certificate_with_claude "$report_content" "$REPO_ROOT" "$analysis_type"
 }
 
 #############################################################################
@@ -1397,10 +1371,15 @@ VALIDATION OPTIONS:
   --all-checks          Run all validation checks (chain, OCSP, CT, compliance)
   --ca-file <file>      Custom CA bundle for chain validation
 
-ANALYSIS OPTIONS:
-  --claude              Enable Claude AI enhanced analysis
-  --advanced            Alias for --claude with comprehensive analysis
+CLAUDE AI OPTIONS:
+  --claude              Enable Claude AI enhanced analysis (comprehensive)
+  --claude-quick        Quick risk assessment (concise output)
+  --claude-compliance   Compliance-focused analysis (CA/B Forum audit)
+  --advanced            Full analysis: --claude + --all-checks combined
   --no-claude           Disable Claude AI (even if API key set)
+
+  Claude AI uses RAG knowledge base for context-aware analysis.
+  Requires: ANTHROPIC_API_KEY environment variable or .env file
 
 GENERAL OPTIONS:
   -v, --verbose         Verbose output
@@ -1432,8 +1411,17 @@ EXAMPLES:
   # Read from stdin
   cat cert.pem | $0 --stdin
 
-  # With Claude AI analysis
+  # With Claude AI analysis (comprehensive)
   $0 --claude example.com
+
+  # Quick Claude risk assessment
+  $0 --claude-quick example.com
+
+  # Claude compliance-focused audit
+  $0 --claude-compliance example.com
+
+  # Full advanced analysis (all checks + Claude)
+  $0 --advanced example.com
 
 EOF
 }
@@ -1527,8 +1515,28 @@ main() {
                 fi
                 shift
                 ;;
-            --claude|--advanced)
+            --claude)
                 USE_CLAUDE=true
+                shift
+                ;;
+            --claude-quick)
+                USE_CLAUDE=true
+                CLAUDE_ANALYSIS_TYPE="quick"
+                shift
+                ;;
+            --claude-compliance)
+                USE_CLAUDE=true
+                CLAUDE_ANALYSIS_TYPE="compliance"
+                shift
+                ;;
+            --advanced)
+                USE_CLAUDE=true
+                CLAUDE_ANALYSIS_TYPE="comprehensive"
+                ALL_CHECKS=true
+                VERIFY_CHAIN=true
+                CHECK_OCSP=true
+                CHECK_CT=true
+                CAB_COMPLIANCE=true
                 shift
                 ;;
             --no-claude)
@@ -1635,12 +1643,23 @@ main() {
 
             echo ""
             echo "═══════════════════════════════════════════════════════════"
-            echo "  Claude AI Enhanced Analysis"
+            echo "  Claude AI Enhanced Analysis (${CLAUDE_ANALYSIS_TYPE})"
             echo "═══════════════════════════════════════════════════════════"
             echo ""
 
-            local claude_analysis=$(analyze_with_claude "$report_content")
-            echo "$claude_analysis"
+            local claude_analysis
+            claude_analysis=$(analyze_with_claude "$report_content")
+
+            if [[ -n "$claude_analysis" ]]; then
+                # Display to console
+                echo "$claude_analysis"
+
+                # Append to report file
+                append_claude_analysis_to_report "$REPORT_FILE" "$claude_analysis"
+                log_success "Claude analysis appended to report: ${REPORT_FILE}"
+            else
+                log_error "Claude analysis returned empty - check API key and connectivity"
+            fi
 
             echo ""
 
@@ -1649,6 +1668,8 @@ main() {
                 display_cost_summary
                 echo ""
             fi
+        else
+            log_warning "No report file found for Claude analysis"
         fi
     fi
 }
