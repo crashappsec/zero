@@ -278,10 +278,10 @@ generate_sbom() {
         syft_opts+=("--exclude" "**/node_modules")
     fi
 
-    echo "Generating SBOM with: syft scan ${syft_opts[*]} -o $SBOM_FORMAT=$output_file dir:$repo_path" >&2
+    echo "Generating SBOM..." >&2
 
     if syft scan "${syft_opts[@]}" -o "$SBOM_FORMAT=$output_file" "dir:$repo_path" 2>&1; then
-        echo "SBOM generated: $output_file" >&2
+        echo "SBOM generated successfully" >&2
         return 0
     else
         echo "Error: SBOM generation failed" >&2
