@@ -970,9 +970,7 @@ else
 fi
 
 echo ""
-echo -e "${GREEN}=========================================${NC}"
-echo -e "${GREEN}  Analysis Complete${NC}"
-echo -e "${GREEN}=========================================${NC}"
+echo -e "${GREEN}✓ Analysis Complete${NC}"
 
 if [[ -n "$OUTPUT_FILE" ]]; then
     echo ""
