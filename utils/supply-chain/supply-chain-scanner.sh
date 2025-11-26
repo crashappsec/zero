@@ -62,6 +62,10 @@ if [[ -n "$ANTHROPIC_API_KEY" ]]; then
 fi
 PARALLEL=false
 
+# Persona configuration
+PERSONA=""
+VALID_PERSONAS=("security-engineer" "software-engineer" "engineering-leader" "auditor" "all")
+
 # Cleanup function
 cleanup_shared_repo() {
     if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
@@ -89,10 +93,10 @@ MODES:
 
 MODULES:
     --vulnerability, -v     Run vulnerability analysis
-    --provenance, -p        Run provenance analysis (SLSA)
-    --package-health        Run package health analysis
+    --provenance, -p        Run provenance analysis (SLSA) - slow, queries npm registry per-package
+    --package-health        Run package health analysis (use --parallel for faster batch API)
     --legal                 Run legal compliance analysis (licenses, secrets, content)
-    --all, -a               Run all analysis modules (default if none specified)
+    --all, -a               Run all analysis modules (includes provenance - may be slow)
 
 ENHANCED ANALYSIS:
     --abandoned             Detect abandoned/deprecated packages
@@ -112,7 +116,18 @@ OPTIONS:
     --config FILE           Use alternate config file
     --claude                Use Claude AI for enhanced analysis (requires ANTHROPIC_API_KEY)
     --parallel              Enable batch API processing (faster, recommended)
+    --persona PERSONA       Analysis persona (security-engineer, software-engineer,
+                           engineering-leader, auditor, all). Defaults to 'all'
+                           which generates reports for all personas.
+    --list-personas         Show available personas and descriptions
     -h, --help              Show this help message
+
+PERSONAS:
+    security-engineer       Technical vulnerability analysis with remediation priorities
+    software-engineer       Developer-focused: dependencies, upgrades, build optimization
+    engineering-leader      Executive summary with metrics and strategic recommendations
+    auditor                 Compliance assessment with framework mappings and evidence
+    all                     Generate reports for ALL personas (4 separate reports)
 
 EXAMPLES:
     # Initial setup (configure GH PAT, repos, orgs)
@@ -132,6 +147,18 @@ EXAMPLES:
 
     # Run all modules on all configured repos
     $0 --all
+
+    # Run with specific persona (security-focused analysis)
+    $0 --vulnerability --repo owner/repo --persona security-engineer
+
+    # Run with engineering leader persona (executive summary)
+    $0 --all --repo owner/repo --persona engineering-leader
+
+    # Generate reports for ALL personas (4 separate reports)
+    $0 --vulnerability --repo owner/repo --persona all
+
+    # List available personas
+    $0 --list-personas
 
 EOF
     exit 1
@@ -497,6 +524,16 @@ run_vulnerability_analysis() {
     # Disable Claude in individual analyzer - we'll run it once at the end
     cmd="$cmd --no-claude"
 
+    # Add parallel flag if enabled (uses OSV.dev batch API)
+    if [[ "$PARALLEL" == "true" ]]; then
+        cmd="$cmd --parallel"
+    fi
+
+    # Use shared SBOM if available for batch API mode
+    if [[ -n "$SHARED_SBOM_FILE" ]] && [[ -f "$SHARED_SBOM_FILE" ]] && [[ "$PARALLEL" == "true" ]]; then
+        cmd="$cmd --sbom $SHARED_SBOM_FILE"
+    fi
+
     # Use shared repository if available
     if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
         cmd="$cmd --local-path $SHARED_REPO_DIR"
@@ -843,12 +880,28 @@ run_unified_claude_analysis() {
 
     echo -e "${BLUE}Analyzing with Claude AI...${NC}"
 
-    # Load RAG knowledge for comprehensive supply chain security
-    local rag_context=""
     local repo_root="$(cd "$SCRIPT_DIR/.." && pwd)"
     local rag_dir="$repo_root/rag/supply-chain"
 
-    # Load all relevant RAG documents
+    # Source universal persona loader if persona is set
+    local persona_context=""
+    if [[ -n "$PERSONA" ]]; then
+        local universal_loader="$REPO_ROOT/lib/universal-persona-loader.sh"
+
+        if [[ -f "$universal_loader" ]]; then
+            # Use universal chain-of-reasoning personas (from rag/personas/)
+            source "$universal_loader"
+            echo -e "${CYAN}Loading persona context: $(get_universal_persona_display_name "$PERSONA") (Chain of Reasoning)${NC}"
+            # Note: We'll build the full prompt with build_persona_prompt() below
+        else
+            echo -e "${YELLOW}Warning: Universal persona loader not found at $universal_loader${NC}"
+        fi
+    fi
+
+    # Load base RAG knowledge for comprehensive supply chain security
+    local rag_context=""
+
+    # Load all relevant base RAG documents
     if [[ -f "$rag_dir/sbom-generation-best-practices.md" ]]; then
         rag_context+="# SBOM Best Practices\n\n"
         rag_context+=$(head -150 "$rag_dir/sbom-generation-best-practices.md" | tail -n +1)
@@ -867,7 +920,21 @@ run_unified_claude_analysis() {
         rag_context+="\n\n"
     fi
 
-    local prompt="You are a supply chain security expert analyzing MULTIPLE security scans for repository: $target
+    # Build the prompt - use universal chain-of-reasoning personas
+    local prompt
+    if [[ -n "$PERSONA" ]] && command -v build_persona_prompt &> /dev/null; then
+        # Use universal chain-of-reasoning personas (from rag/personas/)
+        # Add repository context to the scan data
+        local scan_data_with_context="# Target Repository
+Repository: $target
+
+# Scan Results
+$all_data"
+
+        prompt=$(build_persona_prompt "$PERSONA" "$rag_context" "$scan_data_with_context" "Supply Chain Scanner")
+    else
+        # Default prompt (no persona selected)
+        prompt="You are a supply chain security expert analyzing MULTIPLE security scans for repository: $target
 
 # Supply Chain Security Knowledge Base
 $rag_context
@@ -958,6 +1025,7 @@ Based on patterns across ALL scans:
 # All Scan Results:
 
 $all_data"
+    fi
 
     local response=$(curl -s https://api.anthropic.com/v1/messages \
         -H "content-type: application/json" \
@@ -1106,6 +1174,19 @@ analyze_target() {
     if [[ "$PARALLEL" == "true" ]]; then
         echo -e "${CYAN}Parallel Mode: ENABLED${NC}"
     fi
+    # Warn about slow modules
+    for mod in "${MODULES[@]}"; do
+        case "$mod" in
+            provenance)
+                echo -e "${YELLOW}⚠ Provenance analysis: queries npm registry per-package (may be slow)${NC}"
+                ;;
+            package-health)
+                if [[ "$PARALLEL" != "true" ]]; then
+                    echo -e "${CYAN}💡 Tip: use --parallel for faster package-health analysis (batch API)${NC}"
+                fi
+                ;;
+        esac
+    done
     echo -e "${CYAN}=========================================${NC}"
     echo ""
 
@@ -1233,14 +1314,44 @@ $module_output
 
     # Run unified Claude analysis on ALL results
     if [[ "$USE_CLAUDE" == "true" ]] && [[ -n "$ANTHROPIC_API_KEY" ]] && [[ -n "$all_results" ]]; then
-        echo ""
-        echo -e "${GREEN}=========================================${NC}"
-        echo -e "${GREEN}  🤖 Claude AI Unified Analysis${NC}"
-        echo -e "${GREEN}  Analyzing ALL scan results together${NC}"
-        echo -e "${GREEN}=========================================${NC}"
-        echo ""
+        if [[ "$PERSONA" == "all" ]]; then
+            # Generate reports for all personas
+            local all_persona_list=("security-engineer" "software-engineer" "engineering-leader" "auditor")
+            local total_personas=${#all_persona_list[@]}
+            local current_num=0
 
-        run_unified_claude_analysis "$all_results" "$target"
+            echo ""
+            echo -e "${GREEN}=========================================${NC}"
+            echo -e "${GREEN}  🤖 Claude AI Multi-Persona Analysis${NC}"
+            echo -e "${GREEN}  Generating ${total_personas} persona reports${NC}"
+            echo -e "${GREEN}=========================================${NC}"
+            echo ""
+
+            for persona_item in "${all_persona_list[@]}"; do
+                current_num=$((current_num + 1))
+                echo ""
+                echo -e "${CYAN}─────────────────────────────────────────${NC}"
+                echo -e "${CYAN}  Report ${current_num}/${total_personas}: $(echo "$persona_item" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++)sub(/./,toupper(substr($i,1,1)),$i)}1')${NC}"
+                echo -e "${CYAN}─────────────────────────────────────────${NC}"
+                echo ""
+
+                # Temporarily set PERSONA for this analysis
+                PERSONA="$persona_item"
+                run_unified_claude_analysis "$all_results" "$target"
+            done
+
+            # Reset PERSONA
+            PERSONA="all"
+        else
+            echo ""
+            echo -e "${GREEN}=========================================${NC}"
+            echo -e "${GREEN}  🤖 Claude AI Unified Analysis${NC}"
+            echo -e "${GREEN}  Analyzing ALL scan results together${NC}"
+            echo -e "${GREEN}=========================================${NC}"
+            echo ""
+
+            run_unified_claude_analysis "$all_results" "$target"
+        fi
     fi
 
     # Display summary of all analysis results
@@ -1337,6 +1448,45 @@ while [[ $# -gt 0 ]]; do
             PARALLEL=true
             shift
             ;;
+        --persona)
+            PERSONA="$2"
+            # Validate persona
+            if [[ ! " ${VALID_PERSONAS[*]} " =~ " ${PERSONA} " ]]; then
+                echo -e "${RED}Error: Invalid persona '${PERSONA}'${NC}"
+                echo "Valid personas: ${VALID_PERSONAS[*]}"
+                exit 1
+            fi
+            shift 2
+            ;;
+        --list-personas)
+            echo ""
+            echo "Available Personas for Supply Chain Analysis"
+            echo "============================================"
+            echo ""
+            echo "  security-engineer     Technical vulnerability analysis"
+            echo "                        Focus: CVEs, CISA KEV, remediation priorities"
+            echo "                        Output: Markdown + JSON for engineering handoff"
+            echo ""
+            echo "  software-engineer     Developer-focused dependency analysis"
+            echo "                        Focus: Upgrade paths, breaking changes, build optimization"
+            echo "                        Output: CLI commands, version tables, migration guides"
+            echo ""
+            echo "  engineering-leader    Executive strategic overview"
+            echo "                        Focus: Portfolio health, cost savings, team efficiency"
+            echo "                        Output: Executive summary report, metrics dashboard"
+            echo ""
+            echo "  auditor               Compliance and risk assessment"
+            echo "                        Focus: Framework mappings (NIST, SOC2), evidence collection"
+            echo "                        Output: Audit report with findings and evidence inventory"
+            echo ""
+            echo "  all                   Generate ALL persona reports"
+            echo "                        Runs analysis 4 times, once per persona"
+            echo "                        Output: Separate report files for each persona"
+            echo ""
+            echo "Usage: $0 --persona <persona-name> [other options]"
+            echo ""
+            exit 0
+            ;;
         -h|--help)
             usage
             ;;
@@ -1377,10 +1527,11 @@ if [[ ${#MODULES[@]} -eq 0 ]]; then
         fi
     fi
 
-    # If still no modules, default to all
+    # If still no modules, default to core modules (excludes slow provenance)
     if [[ ${#MODULES[@]} -eq 0 ]]; then
-        echo -e "${BLUE}No modules specified, running all modules${NC}"
-        MODULES=("vulnerability" "provenance" "package-health")
+        echo -e "${BLUE}No modules specified, running core modules${NC}"
+        echo -e "${CYAN}  (use --all or -p to include provenance analysis)${NC}"
+        MODULES=("vulnerability" "package-health")
     fi
 fi
 
@@ -1395,6 +1546,14 @@ fi
 echo "Analysis modules: ${MODULES[*]}"
 echo "Targets: ${#TARGETS[@]}"
 echo ""
+
+# Default to all personas when Claude enabled but no persona specified
+if [[ "$USE_CLAUDE" == "true" ]] && [[ -z "$PERSONA" ]]; then
+    PERSONA="all"
+    echo -e "${CYAN}No persona specified - generating reports for ALL personas${NC}"
+    echo -e "${CYAN}  Use --persona <name> to generate a single persona report${NC}"
+    echo ""
+fi
 
 # Process each target
 for target in "${TARGETS[@]}"; do
