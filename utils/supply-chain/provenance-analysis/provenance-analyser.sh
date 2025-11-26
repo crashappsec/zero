@@ -342,8 +342,13 @@ analyze_sbom() {
     local level_3=0
     local level_4=0
 
+    # Count total components for progress
+    local total_components=$(echo "$components" | wc -l | tr -d ' ')
+
     if [[ "$PARALLEL" == "true" ]]; then
         # Parallel processing mode
+        printf "\r\033[KAnalyzing provenance: %d packages (parallel)" "$total_components" >&2
+
         # Create temp directory for results
         local results_dir=$(mktemp -d)
 
@@ -402,11 +407,15 @@ analyze_sbom() {
 
         # Cleanup
         rm -rf "$results_dir"
+        echo "" >&2  # newline after progress
 
     else
-        # Sequential processing mode (silent)
+        # Sequential processing mode
         while IFS= read -r component; do
             ((total++))
+
+            # Progress indicator
+            printf "\r\033[KAnalyzing provenance: package %d of %d" "$total" "$total_components" >&2
 
             local purl=$(echo "$component" | jq -r '.purl // empty')
 
@@ -443,6 +452,7 @@ analyze_sbom() {
                 ((level_0++))
             fi
         done <<< "$components"
+        echo "" >&2  # newline after progress
     fi
 
     # Terminal output: summary only
