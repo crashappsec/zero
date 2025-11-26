@@ -62,6 +62,11 @@ if [[ -n "$ANTHROPIC_API_KEY" ]]; then
 fi
 PARALLEL=true
 
+# Org-wide analysis mode
+ORG_MODE=false
+ORG_ALL_RESULTS=""
+ORG_REPOS_ANALYZED=()
+
 # Persona configuration
 PERSONA=""
 VALID_PERSONAS=("security-engineer" "software-engineer" "engineering-leader" "auditor" "all")
@@ -108,6 +113,8 @@ ENHANCED ANALYSIS:
 
 TARGETS:
     --org ORG_NAME          Scan all repos in GitHub organization
+                           (Claude analysis runs AFTER all repos scanned for
+                           strategic, org-wide recommendations)
     --repo OWNER/REPO       Scan specific repository
     (If no targets specified, uses config.json)
 
@@ -156,6 +163,10 @@ EXAMPLES:
 
     # Generate reports for ALL personas (4 separate reports)
     $0 --vulnerability --repo owner/repo --persona all
+
+    # Scan entire org with strategic org-wide Claude analysis
+    $0 --vulnerability --package-health --org myorg --claude
+    # (Claude runs ONCE after all repos scanned with strategic recommendations)
 
     # List available personas
     $0 --list-personas
@@ -1160,6 +1171,215 @@ display_analysis_summary() {
     echo ""
 }
 
+# Function to run org-wide Claude analysis (strategic, team-level recommendations)
+run_org_wide_claude_analysis() {
+    local org_name="$1"
+    local all_data="$2"
+    local repos_count="$3"
+    local model="claude-sonnet-4-20250514"
+
+    echo ""
+    echo -e "${GREEN}=========================================${NC}"
+    echo -e "${GREEN}  🏢 Organization-Wide Claude AI Analysis${NC}"
+    echo -e "${GREEN}  Analyzing ${repos_count} repositories for: ${org_name}${NC}"
+    echo -e "${GREEN}=========================================${NC}"
+    echo ""
+
+    echo -e "${BLUE}Generating strategic recommendations for ${org_name}...${NC}"
+
+    local repo_root="$(cd "$SCRIPT_DIR/.." && pwd)"
+    local rag_dir="$repo_root/rag/supply-chain"
+
+    # Source universal persona loader if persona is set
+    if [[ -n "$PERSONA" ]]; then
+        local universal_loader="$REPO_ROOT/lib/universal-persona-loader.sh"
+        if [[ -f "$universal_loader" ]]; then
+            source "$universal_loader"
+            echo -e "${CYAN}Loading persona context: $(get_universal_persona_display_name "$PERSONA") (Chain of Reasoning)${NC}"
+        fi
+    fi
+
+    # Load base RAG knowledge
+    local rag_context=""
+    if [[ -f "$rag_dir/sbom-generation-best-practices.md" ]]; then
+        rag_context+="# SBOM Best Practices\n\n"
+        rag_context+=$(head -150 "$rag_dir/sbom-generation-best-practices.md" | tail -n +1)
+        rag_context+="\n\n"
+    fi
+
+    if [[ -f "$rag_dir/slsa/slsa-specification.md" ]]; then
+        rag_context+="# SLSA Specification\n\n"
+        rag_context+=$(head -150 "$rag_dir/slsa/slsa-specification.md" | tail -n +1)
+        rag_context+="\n\n"
+    fi
+
+    # Build the org-wide strategic prompt
+    local prompt
+    if [[ -n "$PERSONA" ]] && command -v build_persona_prompt &> /dev/null; then
+        local scan_data_with_context="# Organization Analysis
+Organization: $org_name
+Total Repositories Scanned: $repos_count
+
+# All Repository Scan Results
+$all_data"
+
+        prompt=$(build_persona_prompt "$PERSONA" "$rag_context" "$scan_data_with_context" "Supply Chain Scanner - Organization Analysis")
+    else
+        prompt="You are a supply chain security strategist analyzing security scans across an ENTIRE ORGANIZATION.
+
+# Organization: $org_name
+# Total Repositories Analyzed: $repos_count
+
+# Supply Chain Security Knowledge Base
+$rag_context
+
+# Your Task
+Provide ORGANIZATION-WIDE, STRATEGIC analysis and recommendations. This is NOT per-repository advice - this is team-level, portfolio-wide strategic guidance.
+
+**CRITICAL**: Look for PATTERNS across all repositories:
+- Which vulnerabilities appear in MULTIPLE repos? (indicates systemic issues)
+- Which packages are used across many repos? (consolidation opportunities)
+- Which repos have the worst health scores? (prioritization)
+- What common practices need org-wide policy changes?
+
+# Analysis Requirements
+
+## 🏢 Executive Summary for ${org_name}
+
+### Portfolio Health Dashboard
+| Metric | Value | Trend |
+|--------|-------|-------|
+| Total Repositories | $repos_count | - |
+| Critical Vulnerabilities (org-wide) | [count] | ⚠️ |
+| High Vulnerabilities (org-wide) | [count] | - |
+| Avg Package Health Score | [score] | - |
+| SLSA Compliance Rate | [%] | - |
+
+### Top 5 Organization-Wide Risks
+1. **[Risk Name]**: Affects X repositories, [impact description]
+2. ...
+
+## 🔴 CRITICAL: Org-Wide Systemic Issues
+
+These issues appear across MULTIPLE repositories and require organization-wide remediation:
+
+### Shared Vulnerable Dependencies
+| Package | CVE | Severity | Repos Affected | Priority |
+|---------|-----|----------|----------------|----------|
+| [pkg] | [cve] | CRITICAL | repo1, repo2, repo3 | IMMEDIATE |
+
+**Org-Wide Remediation Plan**:
+\`\`\`bash
+# Run across all repos (example)
+for repo in repo1 repo2 repo3; do
+  cd \$repo && npm update vulnerable-package
+done
+\`\`\`
+
+### Unmaintained Packages Used Org-Wide
+[List packages with poor health that appear in multiple repos]
+
+## 📊 Repository Prioritization Matrix
+
+Rank repositories by risk for remediation prioritization:
+
+| Repository | Critical | High | Health Score | SLSA Level | Priority Rank |
+|------------|----------|------|--------------|------------|---------------|
+| [repo1] | 5 | 12 | 45 | 0 | 🔴 #1 |
+| [repo2] | 2 | 8 | 62 | 1 | 🟠 #2 |
+| ... | | | | | |
+
+## 🛡️ Strategic Recommendations for ${org_name}
+
+### Immediate Actions (This Week)
+1. **[Action]**: [Why org-wide, impact, effort]
+2. ...
+
+### Short-Term Initiatives (This Month)
+1. **Implement Org-Wide Dependency Policy**: [Details]
+2. **Enable Dependabot/Renovate Org-Wide**: [Details]
+3. ...
+
+### Long-Term Security Posture Improvements (This Quarter)
+1. **SLSA Level 2+ Org-Wide Compliance**: [Roadmap]
+2. **Centralized Dependency Management**: [Strategy]
+3. **Security Champions Program**: [Plan]
+
+## 🔧 Automation & Tooling Recommendations
+
+### CI/CD Pipeline Enhancements
+- [ ] Enable SBOM generation in all pipelines
+- [ ] Add vulnerability scanning gates
+- [ ] Implement SLSA provenance attestation
+
+### Dependency Management
+- [ ] Centralize approved package list
+- [ ] Automate version updates with Renovate/Dependabot
+- [ ] Create internal packages for common patterns
+
+### Monitoring & Alerting
+- [ ] Set up org-wide vulnerability dashboard
+- [ ] Configure alerts for new CVEs in used packages
+- [ ] Track MTTR (Mean Time to Remediate)
+
+## 📈 Success Metrics & KPIs
+
+Track these metrics to measure improvement:
+- Critical vulnerabilities: Target <X within 30 days
+- Avg health score: Target >75 within 60 days
+- SLSA compliance: Target 100% Level 2 within 90 days
+
+## 💰 Estimated Effort & ROI
+
+| Initiative | Effort (person-days) | Risk Reduction | ROI |
+|------------|---------------------|----------------|-----|
+| Critical vuln fixes | X days | -Y vulns | High |
+| Health improvements | X days | +Z score | Medium |
+| SLSA compliance | X days | Full provenance | High |
+
+# All Repository Scan Results:
+
+$all_data"
+    fi
+
+    local response=$(curl -s https://api.anthropic.com/v1/messages \
+        -H "content-type: application/json" \
+        -H "x-api-key: $ANTHROPIC_API_KEY" \
+        -H "anthropic-version: 2023-06-01" \
+        -d "{
+            \"model\": \"$model\",
+            \"max_tokens\": 8192,
+            \"messages\": [{
+                \"role\": \"user\",
+                \"content\": $(echo "$prompt" | jq -Rs .)
+            }]
+        }")
+
+    # Load cost tracking if available
+    if [ -f "$repo_root/lib/claude-cost.sh" ]; then
+        source "$repo_root/lib/claude-cost.sh"
+        if command -v record_api_usage &> /dev/null; then
+            record_api_usage "$response" "$model" > /dev/null
+        fi
+    fi
+
+    # Extract and display analysis
+    local analysis=$(echo "$response" | jq -r '.content[0].text // empty')
+
+    if [[ -n "$analysis" ]]; then
+        echo "$analysis"
+
+        # Display cost summary if available
+        if command -v display_api_cost_summary &> /dev/null; then
+            echo ""
+            display_api_cost_summary
+        fi
+    else
+        echo -e "${RED}Error: No analysis returned from Claude API${NC}"
+        echo "Response: $response"
+    fi
+}
+
 # Function to run analysis on target
 analyze_target() {
     local target="$1"
@@ -1347,8 +1567,19 @@ $module_output
     fi
 
     # Run unified Claude analysis on ALL results
+    # Skip per-repo analysis if in org mode - will run org-wide analysis at the end
     if [[ "$USE_CLAUDE" == "true" ]] && [[ -n "$ANTHROPIC_API_KEY" ]] && [[ -n "$all_results" ]]; then
-        if [[ "$PERSONA" == "all" ]]; then
+        if [[ "$ORG_MODE" == "true" ]]; then
+            # Accumulate results for org-wide analysis later
+            ORG_ALL_RESULTS+="
+================================================================================
+REPOSITORY: $target
+================================================================================
+$all_results
+"
+            ORG_REPOS_ANALYZED+=("$target")
+            echo -e "${CYAN}✓ Results collected for org-wide analysis (${#ORG_REPOS_ANALYZED[@]} repos scanned)${NC}"
+        elif [[ "$PERSONA" == "all" ]]; then
             # Generate reports for all personas
             local all_persona_list=("security-engineer" "software-engineer" "engineering-leader" "auditor")
             local total_personas=${#all_persona_list[@]}
@@ -1595,9 +1826,64 @@ for target in "${TARGETS[@]}"; do
 
         repos=$(expand_org_repos "$org")
 
+        # Enable org mode for Claude analysis accumulation
+        ORG_MODE=true
+        ORG_ALL_RESULTS=""
+        ORG_REPOS_ANALYZED=()
+
+        echo ""
+        echo -e "${CYAN}=========================================${NC}"
+        echo -e "${CYAN}  🏢 Organization Scan: ${org}${NC}"
+        echo -e "${CYAN}  Claude analysis will run after all repos${NC}"
+        echo -e "${CYAN}=========================================${NC}"
+        echo ""
+
         while IFS= read -r repo; do
             [[ -n "$repo" ]] && analyze_target "$repo"
         done <<< "$repos"
+
+        # Run org-wide Claude analysis after all repos are scanned
+        if [[ "$USE_CLAUDE" == "true" ]] && [[ -n "$ANTHROPIC_API_KEY" ]] && [[ -n "$ORG_ALL_RESULTS" ]]; then
+            repos_count=${#ORG_REPOS_ANALYZED[@]}
+
+            if [[ "$PERSONA" == "all" ]]; then
+                # Generate reports for all personas
+                all_persona_list=("security-engineer" "software-engineer" "engineering-leader" "auditor")
+                total_personas=${#all_persona_list[@]}
+                current_num=0
+
+                echo ""
+                echo -e "${GREEN}=========================================${NC}"
+                echo -e "${GREEN}  🏢 Org-Wide Multi-Persona Analysis${NC}"
+                echo -e "${GREEN}  Generating ${total_personas} strategic reports for ${org}${NC}"
+                echo -e "${GREEN}=========================================${NC}"
+                echo ""
+
+                for persona_item in "${all_persona_list[@]}"; do
+                    current_num=$((current_num + 1))
+                    echo ""
+                    echo -e "${CYAN}─────────────────────────────────────────${NC}"
+                    echo -e "${CYAN}  Report ${current_num}/${total_personas}: $(echo "$persona_item" | sed 's/-/ /g' | awk '{for(i=1;i<=NF;i++)sub(/./,toupper(substr($i,1,1)),$i)}1')${NC}"
+                    echo -e "${CYAN}─────────────────────────────────────────${NC}"
+                    echo ""
+
+                    # Temporarily set PERSONA for this analysis
+                    PERSONA="$persona_item"
+                    run_org_wide_claude_analysis "$org" "$ORG_ALL_RESULTS" "$repos_count"
+                done
+
+                # Reset PERSONA
+                PERSONA="all"
+            else
+                run_org_wide_claude_analysis "$org" "$ORG_ALL_RESULTS" "$repos_count"
+            fi
+        fi
+
+        # Reset org mode
+        ORG_MODE=false
+        ORG_ALL_RESULTS=""
+        ORG_REPOS_ANALYZED=()
+
     elif [[ "$target" =~ ^repo: ]]; then
         # Direct repository
         repo="${target#repo:}"
