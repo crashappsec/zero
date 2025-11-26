@@ -1,133 +1,150 @@
-# Specialist Agents for Supply Chain Analysis
+# Specialist Agents
 
-Autonomous specialist agents invoked via Claude Code's Task tool. Each agent operates with full autonomy within defined guardrails to provide deep analysis of supply chain security issues.
+Autonomous specialist agents for security and software engineering analysis. Each agent operates with full autonomy within defined guardrails, invoked via Claude Code's Task tool.
+
+## Overview
+
+This framework provides 14 specialist agents across 5 categories:
+- **Security**: Vulnerability analysis, threat modeling, code auditing, secrets scanning
+- **Supply Chain**: Dependency health, license compliance
+- **Engineering**: Code review, refactoring, testing, performance
+- **DevOps**: Infrastructure auditing, CI/CD optimization
+- **Planning**: Remediation and fix planning
+
+See [CATALOG.md](./CATALOG.md) for detailed agent documentation.
+See [ARCHITECTURE.md](./ARCHITECTURE.md) for system design.
 
 ## Quick Start
 
 Invoke an agent using Claude Code's Task tool:
 
 ```
-Use the Task tool with subagent_type="security-analyst" and provide the vulnerability scan results.
+Task: security/vulnerability-analyst
+Prompt: "Analyze CVE-2024-1234 in the context of this codebase..."
 ```
 
-## Available Agents
+## Agent Catalog
 
-| Agent | Purpose | Primary Tools |
-|-------|---------|---------------|
-| **security-analyst** | CVE deep-dive, exploit research, attack chain analysis | Read, Grep, WebSearch |
-| **dependency-investigator** | Package health, abandonment detection, alternatives | Read, WebFetch, Bash |
-| **compliance-auditor** | License audit, policy verification, SBOM assessment | Read, Grep, WebFetch |
-| **remediation-planner** | Prioritized fix plans, upgrade paths, PR suggestions | Read, Grep, Bash |
+### Security Agents
+| Agent | Purpose | Guardrails |
+|-------|---------|------------|
+| `security/vulnerability-analyst` | CVE analysis, exploit research | Read, Grep, WebSearch |
+| `security/threat-modeler` | STRIDE analysis, attack trees | Read, Grep, WebSearch |
+| `security/code-auditor` | SAST-style security review | Read, Grep only |
+| `security/secrets-scanner` | Credential detection | Read, Grep only |
+| `security/container-security` | Docker/K8s security | Read, Grep, WebFetch |
+
+### Supply Chain Agents
+| Agent | Purpose | Guardrails |
+|-------|---------|------------|
+| `supply-chain/dependency-investigator` | Package health, alternatives | Read, WebFetch, Bash |
+| `supply-chain/license-auditor` | License compliance | Read, Grep, WebFetch |
+
+### Engineering Agents
+| Agent | Purpose | Guardrails |
+|-------|---------|------------|
+| `engineering/code-reviewer` | PR review, best practices | Read, Grep only |
+| `engineering/refactoring-advisor` | Tech debt, improvements | Read, Grep only |
+| `engineering/test-strategist` | Coverage gaps, strategies | Read, Grep only |
+| `engineering/performance-analyst` | Bottlenecks, optimization | Read, Grep, WebFetch |
+
+### DevOps Agents
+| Agent | Purpose | Guardrails |
+|-------|---------|------------|
+| `devops/infrastructure-auditor` | IaC security, cost | Read, Grep, WebFetch |
+| `devops/ci-cd-optimizer` | Pipeline optimization | Read, Grep, WebFetch |
+
+### Planning Agents
+| Agent | Purpose | Guardrails |
+|-------|---------|------------|
+| `planning/remediation-planner` | Fix prioritization | Read, Grep, WebFetch, Bash |
 
 ## Directory Structure
 
 ```
 specialist-agents/
-├── definitions/           # Agent prompt definitions
-│   ├── security-analyst.md
-│   ├── dependency-investigator.md
-│   ├── compliance-auditor.md
-│   └── remediation-planner.md
-├── guardrails/           # Safety and output constraints
-│   ├── allowed-tools.json
-│   ├── forbidden-actions.md
-│   └── output-schemas/   # JSON schemas for each agent
-├── knowledge/            # Domain-specific knowledge bases
-│   ├── security/         # CVE, CVSS, exploit knowledge
-│   ├── dependencies/     # Package health, typosquatting
-│   ├── compliance/       # License, audit frameworks
-│   └── remediation/      # Upgrade paths, fix patterns
-└── examples/             # Few-shot examples (per agent)
+├── definitions/              # Agent prompt definitions
+│   ├── security/            # Security agents
+│   ├── supply-chain/        # Supply chain agents
+│   ├── engineering/         # Engineering agents
+│   ├── devops/              # DevOps agents
+│   └── planning/            # Planning agents
+├── guardrails/              # Safety constraints
+│   ├── allowed-tools.json   # Per-agent tool permissions
+│   ├── forbidden-actions.md # Universal restrictions
+│   └── output-schemas/      # JSON output schemas
+├── knowledge/               # Domain knowledge
+│   ├── security/
+│   ├── supply-chain/
+│   ├── engineering/
+│   └── devops/
+├── examples/                # Few-shot examples
+├── CATALOG.md              # Complete agent catalog
+└── ARCHITECTURE.md         # System architecture
 ```
 
-## Agent Capabilities
+## Guardrail Levels
 
-### Security Analyst
-- Analyze CVE details and CVSS breakdowns
-- Research exploit availability via web search
-- Assess reachability in target codebase
-- Correlate with CISA KEV catalog
-- Identify attack chains across dependencies
-
-### Dependency Investigator
-- Fetch live data from package registries
-- Detect abandoned and deprecated packages
-- Identify typosquatting attempts
-- Research superior alternatives
-- Assess migration complexity
-
-### Compliance Auditor
-- Analyze license compatibility chains
-- Detect copyleft infection risks
-- Verify SBOM completeness
-- Check against organization policies
-- Identify disclosure requirements
-
-### Remediation Planner
-- Prioritize by risk × effort matrix
-- Generate specific fix commands
-- Identify safe upgrade paths
-- Suggest logical PR groupings
-- Include rollback procedures
-
-## Guardrails
-
-All agents operate under strict guardrails defined in `guardrails/`:
+| Level | Tools | Use Case |
+|-------|-------|----------|
+| **Level 1** | Read, Grep, Glob | Security audits (no network) |
+| **Level 2** | Level 1 + WebFetch, WebSearch | Research, threat intel |
+| **Level 3** | Level 2 + Bash (allowlisted) | Package queries |
 
 ### Universal Restrictions
-- **No file modifications**: Agents cannot write, edit, or delete files
-- **No code execution**: No arbitrary commands that change state
-- **No credential access**: Cannot read secrets or tokens
-- **Source citations required**: All claims must reference evidence
+All agents **MUST NOT**:
+- Modify any files
+- Execute arbitrary commands
+- Access credentials or secrets
+- Make claims without evidence
 
-### Per-Agent Permissions
-Tool permissions are defined in `allowed-tools.json` and vary by agent. For example:
-- Security Analyst: Read, Grep, Glob, WebSearch, WebFetch
-- Dependency Investigator: Read, Grep, Glob, WebFetch, Bash (read-only commands)
+All agents **MUST**:
+- Cite sources for security claims
+- Include confidence levels
+- Note assumptions and limitations
 
-## Output Schemas
+## Chaining Agents
 
-Each agent has a defined JSON output schema in `guardrails/output-schemas/`. Agents are instructed to format their responses according to these schemas for consistent, parseable output.
-
-## Knowledge Base
-
-The `knowledge/` directory contains domain-specific documentation that agents reference during analysis. This content is derived from the broader RAG knowledge base but focused on each agent's specialization.
-
-## Integration
-
-To integrate with the supply-chain-scanner:
-
-```bash
-# Future: supply-chain-scanner.sh --agent security-analyst
-# Currently: Invoke via Claude Code Task tool
+### Security Assessment
+```
+1. security/secrets-scanner
+2. security/code-auditor
+3. security/container-security
+4. planning/remediation-planner
 ```
 
-## Development
+### Full Code Review
+```
+1. engineering/code-reviewer
+2. security/code-auditor
+3. engineering/test-strategist
+4. engineering/performance-analyst
+```
 
-### Adding a New Agent
+### Supply Chain Analysis
+```
+1. supply-chain/dependency-investigator
+2. security/vulnerability-analyst
+3. supply-chain/license-auditor
+4. planning/remediation-planner
+```
 
-1. Create definition in `definitions/<agent-name>.md`
+## Adding New Agents
+
+1. Create definition in `definitions/<category>/<agent-name>.md`
 2. Add tool permissions to `guardrails/allowed-tools.json`
-3. Create output schema in `guardrails/output-schemas/<agent-name>.json`
-4. Add relevant knowledge to `knowledge/<domain>/`
-5. Add examples to `examples/<agent-name>/`
+3. Create output schema in `guardrails/output-schemas/<category>/<agent-name>.json`
+4. Add knowledge to `knowledge/<domain>/`
+5. Add examples to `examples/<category>/`
+6. Update CATALOG.md
 
-### Testing Agents
+## Testing Agents
 
-Test agents against known vulnerable repositories:
-- OWASP Juice Shop
-- Damn Vulnerable Web Application
-- Known CVE test cases
-
-## Comparison: Agents vs Personas
-
-| Aspect | Personas (Previous) | Specialist Agents |
-|--------|---------------------|-------------------|
-| Invocation | Flag on scanner | Task tool |
-| Autonomy | Format output only | Full analysis capability |
-| Data gathering | Pre-collected | Can explore codebase |
-| Tool access | None | Read, Grep, WebFetch, etc. |
-| Depth | Single pass | Multi-step investigation |
+Test against known repositories:
+- OWASP Juice Shop (security)
+- Damn Vulnerable Web Application (security)
+- Known CVE test cases (vulnerability analysis)
+- Open source projects (engineering review)
 
 ## License
 
