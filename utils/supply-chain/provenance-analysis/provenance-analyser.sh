@@ -47,7 +47,7 @@ CLEANUP=true
 STRICT_MODE=false
 MULTI_REPO_MODE=false
 TARGETS_LIST=()
-PARALLEL=false
+PARALLEL=true
 PARALLEL_JOBS=$(nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo "4")
 
 # Function to print usage
