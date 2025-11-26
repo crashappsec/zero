@@ -188,6 +188,26 @@ log() {
     fi
 }
 
+# Function to extract repo name from URL or path
+extract_repo_name() {
+    local target="$1"
+
+    if [[ "$target" =~ github\.com[/:]([^/]+/[^/.]+) ]]; then
+        echo "${BASH_REMATCH[1]}"
+    elif [[ "$target" =~ ^([a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+)$ ]]; then
+        echo "$target"
+    elif [[ -d "$target/.git" ]]; then
+        local remote=$(git -C "$target" remote get-url origin 2>/dev/null)
+        if [[ "$remote" =~ github\.com[/:]([^/]+/[^/.]+) ]]; then
+            echo "${BASH_REMATCH[1]}"
+        else
+            basename "$target"
+        fi
+    else
+        basename "$target"
+    fi
+}
+
 # Strip temporary file paths from package names for display
 # Removes paths like /var/folders/.../tmp.xxx/ and var/folders/.../tmp.xxx/
 clean_package_name() {
@@ -476,7 +496,7 @@ analyze_from_sbom() {
                 local display_name=$(clean_package_name "$package")
 
                 # Simple progress indicator
-                printf "\r\033[KAnalyzing package %d of %d" "$current_package" "$valid_packages_count" >&2
+                printf "\r\033[KAnalyzing %s: package %d of %d" "$repo_name" "$current_package" "$valid_packages_count" >&2
 
                 # Get package summary (uses cache)
                 local package_summary=$(get_package_summary "$system" "$package")
@@ -590,7 +610,7 @@ analyze_from_sbom() {
             local display_name=$(clean_package_name "$package")
 
             # Simple progress indicator
-            printf "\r\033[KAnalyzing package %d of %d" "$current_package" "$total_packages" >&2
+            printf "\r\033[KAnalyzing %s: package %d of %d" "$repo_name" "$current_package" "$total_packages" >&2
 
             # Analyze package
             local result=$(analyze_package "$system" "$package" "$version")
@@ -1047,11 +1067,18 @@ main() {
 
     # Determine analysis mode
     if [ -n "$SBOM_FILE" ]; then
-        result=$(analyze_from_sbom "$SBOM_FILE")
+        # Try to extract repo name from LOCAL_PATH or SBOM file name
+        local sbom_repo_name
+        if [[ -n "$LOCAL_PATH" ]]; then
+            sbom_repo_name=$(extract_repo_name "$LOCAL_PATH")
+        else
+            sbom_repo_name=$(basename "$SBOM_FILE" .json)
+        fi
+        result=$(analyze_from_sbom "$SBOM_FILE" "$sbom_repo_name")
     elif [ -n "$REPO" ]; then
         temp_sbom=$(generate_sbom_for_repo "$REPO")
         trap "rm -f $temp_sbom" EXIT
-        result=$(analyze_from_sbom "$temp_sbom" "$REPO")
+        result=$(analyze_from_sbom "$temp_sbom" "$(extract_repo_name "$REPO")")
     elif [ -n "$ORG" ]; then
         result=$(analyze_organization "$ORG")
     fi
