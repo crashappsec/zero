@@ -1,0 +1,168 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Dependency Investigator Agent Output",
+  "description": "Required output format for dependency health analysis",
+  "type": "object",
+  "required": ["summary", "packages_analyzed", "health_assessments", "recommendations", "metadata"],
+  "properties": {
+    "summary": {
+      "type": "object",
+      "required": ["total_packages", "deprecated_count", "abandoned_count", "stale_count", "healthy_count"],
+      "properties": {
+        "total_packages": { "type": "integer" },
+        "deprecated_count": { "type": "integer" },
+        "abandoned_count": { "type": "integer" },
+        "stale_count": { "type": "integer" },
+        "healthy_count": { "type": "integer" },
+        "typosquat_suspects": { "type": "integer" },
+        "overall_health": {
+          "type": "string",
+          "enum": ["critical", "poor", "moderate", "good", "excellent"]
+        }
+      }
+    },
+    "packages_analyzed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "version", "ecosystem", "health_status"],
+        "properties": {
+          "name": { "type": "string" },
+          "version": { "type": "string" },
+          "ecosystem": {
+            "type": "string",
+            "enum": ["npm", "pypi", "go", "maven", "rubygems", "cargo"]
+          },
+          "health_status": {
+            "type": "string",
+            "enum": ["healthy", "stale", "abandoned", "deprecated", "suspicious"]
+          }
+        }
+      }
+    },
+    "health_assessments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["package", "ecosystem", "status", "indicators", "confidence"],
+        "properties": {
+          "package": { "type": "string" },
+          "ecosystem": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["healthy", "stale", "abandoned", "deprecated", "suspicious"]
+          },
+          "indicators": {
+            "type": "object",
+            "properties": {
+              "last_release": { "type": "string" },
+              "days_since_release": { "type": "integer" },
+              "weekly_downloads": { "type": "integer" },
+              "download_trend": {
+                "type": "string",
+                "enum": ["growing", "stable", "declining", "unknown"]
+              },
+              "maintainer_count": { "type": "integer" },
+              "open_issues": { "type": "integer" },
+              "open_prs": { "type": "integer" },
+              "last_commit_days": { "type": "integer" },
+              "deprecation_notice": { "type": "string" },
+              "security_issues": { "type": "integer" },
+              "openssf_score": { "type": "number" }
+            }
+          },
+          "concerns": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "confidence": {
+            "type": "string",
+            "enum": ["high", "medium", "low"]
+          }
+        }
+      }
+    },
+    "recommended_alternatives": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["for_package", "alternative", "rationale"],
+        "properties": {
+          "for_package": { "type": "string" },
+          "alternative": { "type": "string" },
+          "rationale": { "type": "string" },
+          "migration_complexity": {
+            "type": "string",
+            "enum": ["trivial", "low", "medium", "high"]
+          },
+          "api_compatibility": {
+            "type": "string",
+            "enum": ["drop-in", "similar", "different", "incompatible"]
+          },
+          "alternative_health": {
+            "type": "object",
+            "properties": {
+              "weekly_downloads": { "type": "integer" },
+              "last_release": { "type": "string" },
+              "maintainer_count": { "type": "integer" },
+              "openssf_score": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "typosquat_analysis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "package": { "type": "string" },
+          "suspected_target": { "type": "string" },
+          "similarity_score": { "type": "number" },
+          "risk_indicators": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "recommendation": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["priority", "action", "packages", "rationale"],
+        "properties": {
+          "priority": { "type": "integer" },
+          "action": {
+            "type": "string",
+            "enum": ["replace", "upgrade", "remove", "investigate", "monitor"]
+          },
+          "packages": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "rationale": { "type": "string" },
+          "effort": { "type": "string" }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["agent", "timestamp", "confidence"],
+      "properties": {
+        "agent": { "type": "string", "const": "dependency-investigator" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "confidence": { "type": "string" },
+        "registries_queried": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

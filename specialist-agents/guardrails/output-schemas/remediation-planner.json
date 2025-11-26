@@ -1,0 +1,221 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Remediation Planner Agent Output",
+  "description": "Required output format for remediation planning",
+  "type": "object",
+  "required": ["summary", "priority_matrix", "fix_plans", "recommendations", "metadata"],
+  "properties": {
+    "summary": {
+      "type": "object",
+      "required": ["total_issues", "total_fix_plans", "estimated_effort"],
+      "properties": {
+        "total_issues": { "type": "integer" },
+        "critical_issues": { "type": "integer" },
+        "total_fix_plans": { "type": "integer" },
+        "quick_wins": { "type": "integer" },
+        "breaking_changes": { "type": "integer" },
+        "estimated_effort": {
+          "type": "string",
+          "enum": ["hours", "days", "weeks", "significant"]
+        }
+      }
+    },
+    "priority_matrix": {
+      "type": "array",
+      "description": "Issues ranked by risk and effort",
+      "items": {
+        "type": "object",
+        "required": ["issue_id", "risk_score", "effort_score", "priority_rank"],
+        "properties": {
+          "issue_id": { "type": "string" },
+          "issue_type": {
+            "type": "string",
+            "enum": ["vulnerability", "deprecated", "abandoned", "license", "outdated"]
+          },
+          "package": { "type": "string" },
+          "risk_score": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "effort_score": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "priority_rank": { "type": "integer" },
+          "quadrant": {
+            "type": "string",
+            "enum": ["quick-win", "major-project", "fill-in", "thankless"]
+          },
+          "rationale": { "type": "string" }
+        }
+      }
+    },
+    "fix_plans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "issues_addressed", "steps", "verification"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "issues_addressed": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "packages_affected": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["order", "action", "command"],
+              "properties": {
+                "order": { "type": "integer" },
+                "action": { "type": "string" },
+                "command": { "type": "string" },
+                "notes": { "type": "string" },
+                "rollback_command": { "type": "string" }
+              }
+            }
+          },
+          "breaking_changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "change": { "type": "string" },
+                "affected_code": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                },
+                "migration_guide": { "type": "string" }
+              }
+            }
+          },
+          "verification": {
+            "type": "object",
+            "required": ["steps"],
+            "properties": {
+              "steps": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "expected_outcome": { "type": "string" }
+            }
+          },
+          "estimated_time": { "type": "string" },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high"]
+          }
+        }
+      }
+    },
+    "upgrade_paths": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["package", "current_version", "target_version", "path"],
+        "properties": {
+          "package": { "type": "string" },
+          "current_version": { "type": "string" },
+          "target_version": { "type": "string" },
+          "path": {
+            "type": "array",
+            "description": "Intermediate versions if direct upgrade not possible",
+            "items": { "type": "string" }
+          },
+          "breaking_changes_in_path": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "version": { "type": "string" },
+                "changes": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          },
+          "direct_upgrade_possible": { "type": "boolean" }
+        }
+      }
+    },
+    "suggested_prs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "description", "fix_plans_included"],
+        "properties": {
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "fix_plans_included": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "labels": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "reviewers_suggested": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "test_plan": { "type": "string" }
+        }
+      }
+    },
+    "rollback_plans": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "fix_plan_id": { "type": "string" },
+          "trigger_conditions": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "rollback_steps": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["priority", "recommendation", "rationale"],
+        "properties": {
+          "priority": { "type": "integer" },
+          "recommendation": { "type": "string" },
+          "rationale": { "type": "string" },
+          "dependencies": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["agent", "timestamp", "confidence"],
+      "properties": {
+        "agent": { "type": "string", "const": "remediation-planner" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "confidence": { "type": "string" },
+        "assumptions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
