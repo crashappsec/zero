@@ -60,7 +60,7 @@ USE_CLAUDE=false
 if [[ -n "$ANTHROPIC_API_KEY" ]]; then
     USE_CLAUDE=true
 fi
-PARALLEL=false
+PARALLEL=true
 
 # Persona configuration
 PERSONA=""
@@ -94,7 +94,7 @@ MODES:
 MODULES:
     --vulnerability, -v     Run vulnerability analysis
     --provenance, -p        Run provenance analysis (SLSA) - slow, queries npm registry per-package
-    --package-health        Run package health analysis (use --parallel for faster batch API)
+    --package-health        Run package health analysis
     --legal                 Run legal compliance analysis (licenses, secrets, content)
     --all, -a               Run all analysis modules (includes provenance - may be slow)
 
@@ -115,7 +115,7 @@ OPTIONS:
     --output DIR, -o DIR    Output directory for reports
     --config FILE           Use alternate config file
     --claude                Use Claude AI for enhanced analysis (requires ANTHROPIC_API_KEY)
-    --parallel              Enable batch API processing (faster, recommended)
+    --parallel              Batch API processing (default: enabled)
     --persona PERSONA       Analysis persona (security-engineer, software-engineer,
                            engineering-leader, auditor, all). Defaults to 'all'
                            which generates reports for all personas.
@@ -1179,11 +1179,6 @@ analyze_target() {
         case "$mod" in
             provenance)
                 echo -e "${YELLOW}⚠ Provenance analysis: queries npm registry per-package (may be slow)${NC}"
-                ;;
-            package-health)
-                if [[ "$PARALLEL" != "true" ]]; then
-                    echo -e "${CYAN}💡 Tip: use --parallel for faster package-health analysis (batch API)${NC}"
-                fi
                 ;;
         esac
     done

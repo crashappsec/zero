@@ -37,7 +37,7 @@ if [[ -n "$ANTHROPIC_API_KEY" ]]; then
     USE_CLAUDE=true
 fi
 COMPARE_MODE=false
-PARALLEL=false
+PARALLEL=true
 BATCH_SIZE=1000  # Process in batches to avoid overwhelming the API
 
 # Track temporary directories for cleanup
