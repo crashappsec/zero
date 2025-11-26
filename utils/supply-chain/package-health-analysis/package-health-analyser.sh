@@ -416,7 +416,8 @@ analyze_from_sbom() {
         # Batch API processing mode
         echo -e "\033[0;32mBatch mode enabled: processing up to $BATCH_SIZE packages per batch\033[0m" >&2
 
-        # Prepare packages for batch request
+        # Prepare packages for batch request - only include ecosystems supported by deps.dev
+        # Supported: npm, pypi, cargo, maven, go, nuget
         local batch_packages=$(echo "$packages" | jq -s 'map({
             system: ((.ecosystem | ascii_downcase) as $eco |
                 if $eco == "npm" or $eco == "javascript" or $eco == "node" then "npm"
@@ -424,22 +425,30 @@ analyze_from_sbom() {
                 elif $eco == "cargo" or $eco == "rust" or $eco == "crates.io" then "cargo"
                 elif $eco == "maven" or $eco == "java" then "maven"
                 elif $eco == "go" or $eco == "golang" then "go"
-                else $eco end
+                elif $eco == "nuget" or $eco == "dotnet" then "nuget"
+                else "unsupported" end
             ),
             name: .package,
             version: .version
-        }) | map(select(.system != "unknown" and .name != null and .version != "unknown"))')
+        }) | map(select(.system != "unsupported" and .name != null and .version != "unknown"))')
 
         local valid_packages_count=$(echo "$batch_packages" | jq 'length')
-        echo -e "\033[0;34mFetching version data for $valid_packages_count packages via batch API...\033[0m" >&2
 
-        # Get batch version data
-        local batch_response=$(get_versions_batch "$batch_packages")
-
-        if echo "$batch_response" | jq -e '.error' > /dev/null 2>&1; then
-            echo -e "\033[0;33mWarning: Batch API failed, falling back to sequential processing\033[0m" >&2
+        # If no valid packages for batch API, fall back to sequential
+        if [[ "$valid_packages_count" -eq 0 ]]; then
+            echo -e "\033[0;33mNo packages with supported ecosystems (npm, pypi, cargo, maven, go, nuget)\033[0m" >&2
+            echo -e "\033[0;33mFalling back to sequential processing for unsupported ecosystems\033[0m" >&2
             PARALLEL=false
         else
+            echo -e "\033[0;34mFetching version data for $valid_packages_count packages via batch API...\033[0m" >&2
+
+            # Get batch version data
+            local batch_response=$(get_versions_batch "$batch_packages")
+
+            if echo "$batch_response" | jq -e '.error' > /dev/null 2>&1; then
+                echo -e "\033[0;33mWarning: Batch API failed, falling back to sequential processing\033[0m" >&2
+                PARALLEL=false
+            else
             # Build a lookup map of version data: {package@version: data}
             local version_lookup=$(echo "$batch_response" | jq -r '
                 [.responses[]? | select(.versionKey) | {
@@ -556,8 +565,9 @@ analyze_from_sbom() {
                 fi
 
             done < <(jq -c '.' <<< "$packages")
-        fi
-    fi
+            fi  # closes .error check
+        fi  # closes valid_packages_count check
+    fi  # closes PARALLEL check
 
     # Sequential processing mode (if not parallel or fallback)
     if [ "$PARALLEL" = false ]; then
