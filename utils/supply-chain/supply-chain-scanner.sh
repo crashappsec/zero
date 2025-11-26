@@ -1228,7 +1228,6 @@ analyze_target() {
     local all_results=""
 
     for module in "${MODULES[@]}"; do
-        echo ""
         # Show module header with package count and mode
         local mode_info=""
         if [[ "$PARALLEL" == "true" ]]; then
