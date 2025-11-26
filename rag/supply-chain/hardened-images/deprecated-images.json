@@ -1,0 +1,151 @@
+{
+  "description": "Images that should be flagged for replacement due to security issues, EOL status, or deprecation",
+  "deprecated_patterns": [
+    {
+      "pattern": "*:latest",
+      "reason": "Unpinned version is a security and reproducibility risk",
+      "severity": "medium",
+      "recommendation": "Use specific version tag"
+    },
+    {
+      "pattern": "openjdk:*",
+      "reason": "openjdk official images are deprecated",
+      "severity": "high",
+      "recommendation": "Use eclipse-temurin instead"
+    },
+    {
+      "pattern": "java:*",
+      "reason": "java official images are deprecated",
+      "severity": "high",
+      "recommendation": "Use eclipse-temurin instead"
+    },
+    {
+      "pattern": "*-stretch*",
+      "reason": "Debian Stretch is End of Life (EOL)",
+      "severity": "critical",
+      "recommendation": "Upgrade to Bookworm-based image"
+    },
+    {
+      "pattern": "*-jessie*",
+      "reason": "Debian Jessie is End of Life (EOL)",
+      "severity": "critical",
+      "recommendation": "Upgrade to Bookworm-based image"
+    },
+    {
+      "pattern": "*-buster*",
+      "reason": "Debian Buster LTS ends June 2024",
+      "severity": "high",
+      "recommendation": "Upgrade to Bookworm-based image"
+    },
+    {
+      "pattern": "ubuntu:18.04*",
+      "reason": "Ubuntu 18.04 is End of Life (EOL)",
+      "severity": "critical",
+      "recommendation": "Upgrade to Ubuntu 22.04 or 24.04"
+    },
+    {
+      "pattern": "ubuntu:16.04*",
+      "reason": "Ubuntu 16.04 is End of Life (EOL)",
+      "severity": "critical",
+      "recommendation": "Upgrade to Ubuntu 22.04 or 24.04"
+    },
+    {
+      "pattern": "ubuntu:14.04*",
+      "reason": "Ubuntu 14.04 is End of Life (EOL)",
+      "severity": "critical",
+      "recommendation": "Upgrade to Ubuntu 22.04 or 24.04"
+    },
+    {
+      "pattern": "debian:stretch*",
+      "reason": "Debian Stretch is End of Life (EOL)",
+      "severity": "critical",
+      "recommendation": "Upgrade to debian:bookworm"
+    },
+    {
+      "pattern": "debian:jessie*",
+      "reason": "Debian Jessie is End of Life (EOL)",
+      "severity": "critical",
+      "recommendation": "Upgrade to debian:bookworm"
+    },
+    {
+      "pattern": "centos:*",
+      "reason": "CentOS is End of Life (EOL)",
+      "severity": "critical",
+      "recommendation": "Migrate to AlmaLinux, Rocky Linux, or RHEL UBI"
+    },
+    {
+      "pattern": "node:*-stretch*",
+      "reason": "Debian Stretch base is End of Life (EOL)",
+      "severity": "critical",
+      "recommendation": "Use node:*-bookworm-slim or node:*-alpine"
+    },
+    {
+      "pattern": "python:*-stretch*",
+      "reason": "Debian Stretch base is End of Life (EOL)",
+      "severity": "critical",
+      "recommendation": "Use python:*-bookworm-slim or python:*-alpine"
+    },
+    {
+      "pattern": "node:14*",
+      "reason": "Node.js 14 is End of Life (EOL)",
+      "severity": "high",
+      "recommendation": "Upgrade to Node.js 20 LTS"
+    },
+    {
+      "pattern": "node:16*",
+      "reason": "Node.js 16 is End of Life (EOL)",
+      "severity": "high",
+      "recommendation": "Upgrade to Node.js 20 LTS"
+    },
+    {
+      "pattern": "python:3.7*",
+      "reason": "Python 3.7 is End of Life (EOL)",
+      "severity": "high",
+      "recommendation": "Upgrade to Python 3.11 or 3.12"
+    },
+    {
+      "pattern": "python:3.8*",
+      "reason": "Python 3.8 security support ends October 2024",
+      "severity": "medium",
+      "recommendation": "Plan upgrade to Python 3.11 or 3.12"
+    }
+  ],
+  "security_antipatterns": [
+    {
+      "pattern": "curl.*\\|.*sh",
+      "reason": "Piping curl to shell is a security risk",
+      "severity": "high",
+      "recommendation": "Download file first, verify integrity, then execute"
+    },
+    {
+      "pattern": "apt-get install(?!.*=)",
+      "reason": "Unpinned package versions",
+      "severity": "medium",
+      "recommendation": "Pin package versions for reproducibility"
+    },
+    {
+      "pattern": "npm install -g",
+      "reason": "Global npm installs may have permission issues",
+      "severity": "low",
+      "recommendation": "Use npx or local installs"
+    },
+    {
+      "pattern": "pip install(?!.*==)",
+      "reason": "Unpinned pip packages",
+      "severity": "medium",
+      "recommendation": "Use requirements.txt with pinned versions"
+    },
+    {
+      "pattern": "RUN.*chmod 777",
+      "reason": "World-writable files are a security risk",
+      "severity": "high",
+      "recommendation": "Use more restrictive permissions"
+    },
+    {
+      "pattern": "USER root",
+      "reason": "Running as root increases attack surface",
+      "severity": "medium",
+      "recommendation": "Create and use a non-root user"
+    }
+  ]
+}

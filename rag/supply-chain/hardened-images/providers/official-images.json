@@ -1,0 +1,148 @@
+{
+  "provider": "official",
+  "name": "Docker Official Images",
+  "description": "Docker Official Images are curated images maintained by the Docker community with security best practices.",
+  "registry": "docker.io",
+  "documentation": "https://docs.docker.com/trusted-content/official-images/",
+  "security_rating": "high",
+  "features": [
+    "Community maintained",
+    "Regular security updates",
+    "Well-documented",
+    "Multiple architecture support"
+  ],
+  "images": [
+    {
+      "name": "node:20-alpine",
+      "languages": ["nodejs", "javascript", "typescript"],
+      "use_case": "Node.js production - minimal",
+      "stage": "production",
+      "notes": "Alpine-based, minimal footprint, LTS version"
+    },
+    {
+      "name": "node:20-slim",
+      "languages": ["nodejs", "javascript", "typescript"],
+      "use_case": "Node.js production - Debian compatible",
+      "stage": "production",
+      "notes": "Debian slim, good npm compatibility"
+    },
+    {
+      "name": "node:20-bookworm-slim",
+      "languages": ["nodejs", "javascript", "typescript"],
+      "use_case": "Node.js production - latest Debian",
+      "stage": "production",
+      "notes": "Debian Bookworm slim base"
+    },
+    {
+      "name": "python:3.12-alpine",
+      "languages": ["python"],
+      "use_case": "Python production - minimal",
+      "stage": "production",
+      "notes": "Alpine-based, may need build tools for some packages"
+    },
+    {
+      "name": "python:3.12-slim",
+      "languages": ["python"],
+      "use_case": "Python production - Debian compatible",
+      "stage": "production",
+      "notes": "Debian slim, good pip compatibility"
+    },
+    {
+      "name": "python:3.12-slim-bookworm",
+      "languages": ["python"],
+      "use_case": "Python production - latest Debian",
+      "stage": "production",
+      "notes": "Debian Bookworm slim base"
+    },
+    {
+      "name": "golang:1.22-alpine",
+      "languages": ["go"],
+      "use_case": "Go builds",
+      "stage": "build",
+      "notes": "Build only, deploy to distroless/chainguard"
+    },
+    {
+      "name": "rust:1.77-alpine",
+      "languages": ["rust"],
+      "use_case": "Rust builds",
+      "stage": "build",
+      "notes": "Build only, deploy to distroless/chainguard"
+    },
+    {
+      "name": "ruby:3.3-alpine",
+      "languages": ["ruby"],
+      "use_case": "Ruby production - minimal",
+      "stage": "production",
+      "notes": "Alpine-based"
+    },
+    {
+      "name": "ruby:3.3-slim",
+      "languages": ["ruby"],
+      "use_case": "Ruby production - Debian",
+      "stage": "production",
+      "notes": "Debian slim"
+    },
+    {
+      "name": "eclipse-temurin:21-jre-alpine",
+      "languages": ["java", "kotlin", "scala"],
+      "use_case": "Java 21 production",
+      "stage": "production",
+      "notes": "Eclipse Temurin JRE on Alpine"
+    },
+    {
+      "name": "eclipse-temurin:21-jdk-alpine",
+      "languages": ["java", "kotlin", "scala"],
+      "use_case": "Java 21 builds",
+      "stage": "build",
+      "notes": "Eclipse Temurin JDK for building"
+    },
+    {
+      "name": "amazoncorretto:21-alpine",
+      "languages": ["java", "kotlin", "scala"],
+      "use_case": "Java 21 production - Amazon",
+      "stage": "production",
+      "notes": "Amazon's OpenJDK distribution"
+    },
+    {
+      "name": "mcr.microsoft.com/dotnet/aspnet:8.0-alpine",
+      "languages": ["dotnet", "csharp"],
+      "use_case": "ASP.NET 8 production",
+      "stage": "production",
+      "notes": "ASP.NET runtime"
+    },
+    {
+      "name": "mcr.microsoft.com/dotnet/runtime:8.0-alpine",
+      "languages": ["dotnet", "csharp", "fsharp"],
+      "use_case": ".NET 8 production",
+      "stage": "production",
+      "notes": ".NET runtime"
+    },
+    {
+      "name": "mcr.microsoft.com/dotnet/runtime-deps:8.0-alpine",
+      "languages": ["dotnet", "csharp", "fsharp"],
+      "use_case": ".NET 8 self-contained",
+      "stage": "production",
+      "notes": "For self-contained deployments"
+    },
+    {
+      "name": "alpine:3.19",
+      "languages": [],
+      "use_case": "Minimal general purpose",
+      "stage": "production",
+      "notes": "Very small base, good for custom images"
+    },
+    {
+      "name": "scratch",
+      "languages": ["go", "rust"],
+      "use_case": "Empty image for static binaries",
+      "stage": "production",
+      "notes": "Zero size base, static binaries only"
+    }
+  ],
+  "best_practices": [
+    "Always use specific version tags, never :latest",
+    "Prefer -alpine or -slim variants for smaller images",
+    "Use multi-stage builds to separate build from runtime",
+    "Keep base images updated with security patches"
+  ]
+}
