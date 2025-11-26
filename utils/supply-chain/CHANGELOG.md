@@ -11,6 +11,28 @@ All notable changes to the Supply Chain Security Analyser will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.3] - 2025-11-26
+
+**Status**: 🚀 Beta
+
+### Added
+- **Live Package Data Fetching for Library Recommender**: Queries registries in real-time
+  - npm: Fetches deprecation status, monthly downloads, latest version, last publish date
+  - PyPI: Fetches development status classifiers, yanked releases, version info
+  - Go: Fetches module deprecation status from proxy.golang.org
+  - Detects deprecated packages even if not in static replacement database
+  - Shows live download counts and last publish dates
+  - Warns about packages with no updates in 1-2+ years (staleness detection)
+  - Results cached per-session for performance
+
+### Changed
+- **Library Recommendation Output**: Now includes live_info with real-time data
+  - `is_deprecated`: Live deprecation status from registry
+  - `deprecation_message`: Actual message from package maintainer
+  - `monthly_downloads`: Real download stats (npm)
+  - `last_publish`: When package was last updated
+  - Shows actual OpenSSF scores in recommendations
+
 ## [3.1.2] - 2025-11-26
 
 **Status**: 🚀 Beta

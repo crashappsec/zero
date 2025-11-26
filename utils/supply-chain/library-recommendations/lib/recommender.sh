@@ -19,6 +19,252 @@ if [[ -f "$SUPPLY_CHAIN_DIR/lib/deps-dev-client.sh" ]]; then
     source "$SUPPLY_CHAIN_DIR/lib/deps-dev-client.sh"
 fi
 
+# Cache for live package data
+declare -A LIVE_PACKAGE_CACHE
+LIVE_DATA_ENABLED=true
+
+#############################################################################
+# Live Package Data Fetching - Real-time Registry Queries
+#############################################################################
+
+# Fetch npm package info (deprecated status, downloads, latest version)
+# Usage: fetch_npm_package_info <package>
+fetch_npm_package_info() {
+    local pkg="$1"
+    local cache_key="npm:$pkg"
+
+    # Check cache
+    if [[ -n "${LIVE_PACKAGE_CACHE[$cache_key]:-}" ]]; then
+        echo "${LIVE_PACKAGE_CACHE[$cache_key]}"
+        return
+    fi
+
+    # URL encode package name for scoped packages
+    local encoded_pkg="${pkg//@/%40}"
+    encoded_pkg="${encoded_pkg//\//%2F}"
+
+    local response=$(curl -s "https://registry.npmjs.org/${encoded_pkg}" 2>/dev/null)
+
+    if [[ -z "$response" ]] || echo "$response" | jq -e '.error' >/dev/null 2>&1; then
+        echo '{"error": "not_found"}'
+        return
+    fi
+
+    # Extract relevant info
+    local deprecated=$(echo "$response" | jq -r '.versions[.["dist-tags"].latest].deprecated // null')
+    local latest_version=$(echo "$response" | jq -r '.["dist-tags"].latest // null')
+    local repository=$(echo "$response" | jq -r '.repository.url // null')
+    local homepage=$(echo "$response" | jq -r '.homepage // null')
+    local last_publish=$(echo "$response" | jq -r '.time[.["dist-tags"].latest] // null')
+
+    # Fetch download stats
+    local downloads_response=$(curl -s "https://api.npmjs.org/downloads/point/last-month/${encoded_pkg}" 2>/dev/null)
+    local monthly_downloads=$(echo "$downloads_response" | jq -r '.downloads // 0')
+
+    local result=$(jq -n \
+        --arg deprecated "$deprecated" \
+        --arg latest "$latest_version" \
+        --arg repo "$repository" \
+        --arg homepage "$homepage" \
+        --arg last_publish "$last_publish" \
+        --argjson downloads "$monthly_downloads" \
+        '{
+            deprecated: (if $deprecated == "null" then null else $deprecated end),
+            latest_version: $latest,
+            repository: $repo,
+            homepage: $homepage,
+            last_publish: $last_publish,
+            monthly_downloads: $downloads,
+            is_deprecated: ($deprecated != "null" and $deprecated != null)
+        }')
+
+    LIVE_PACKAGE_CACHE[$cache_key]="$result"
+    echo "$result"
+}
+
+# Fetch PyPI package info
+# Usage: fetch_pypi_package_info <package>
+fetch_pypi_package_info() {
+    local pkg="$1"
+    local cache_key="pypi:$pkg"
+
+    # Check cache
+    if [[ -n "${LIVE_PACKAGE_CACHE[$cache_key]:-}" ]]; then
+        echo "${LIVE_PACKAGE_CACHE[$cache_key]}"
+        return
+    fi
+
+    local response=$(curl -s "https://pypi.org/pypi/${pkg}/json" 2>/dev/null)
+
+    if [[ -z "$response" ]] || echo "$response" | jq -e '.message' >/dev/null 2>&1; then
+        echo '{"error": "not_found"}'
+        return
+    fi
+
+    # Extract relevant info
+    local latest_version=$(echo "$response" | jq -r '.info.version // null')
+    local summary=$(echo "$response" | jq -r '.info.summary // null')
+    local homepage=$(echo "$response" | jq -r '.info.home_page // null')
+    local project_url=$(echo "$response" | jq -r '.info.project_url // null')
+
+    # Check for development status classifiers (deprecated indicators)
+    local dev_status=$(echo "$response" | jq -r '.info.classifiers[] | select(startswith("Development Status"))' 2>/dev/null | head -1)
+    local is_inactive="false"
+    if [[ "$dev_status" == *"Inactive"* ]] || [[ "$dev_status" == *"1 - Planning"* ]]; then
+        is_inactive="true"
+    fi
+
+    # Check for "yanked" releases or maintenance warnings
+    local yanked=$(echo "$response" | jq -r '[.releases[][] | select(.yanked == true)] | length > 0')
+
+    local result=$(jq -n \
+        --arg latest "$latest_version" \
+        --arg summary "$summary" \
+        --arg homepage "$homepage" \
+        --arg project_url "$project_url" \
+        --arg dev_status "$dev_status" \
+        --argjson is_inactive "$is_inactive" \
+        --argjson has_yanked "$yanked" \
+        '{
+            latest_version: $latest,
+            summary: $summary,
+            homepage: $homepage,
+            project_url: $project_url,
+            development_status: $dev_status,
+            is_inactive: $is_inactive,
+            has_yanked_releases: $has_yanked
+        }')
+
+    LIVE_PACKAGE_CACHE[$cache_key]="$result"
+    echo "$result"
+}
+
+# Fetch Go package info from pkg.go.dev
+# Usage: fetch_go_package_info <package>
+fetch_go_package_info() {
+    local pkg="$1"
+    local cache_key="go:$pkg"
+
+    # Check cache
+    if [[ -n "${LIVE_PACKAGE_CACHE[$cache_key]:-}" ]]; then
+        echo "${LIVE_PACKAGE_CACHE[$cache_key]}"
+        return
+    fi
+
+    # pkg.go.dev doesn't have a public API, use proxy.golang.org for version info
+    local encoded_pkg="${pkg}"
+    local response=$(curl -s "https://proxy.golang.org/${encoded_pkg}/@latest" 2>/dev/null)
+
+    if [[ -z "$response" ]] || [[ "$response" == *"not found"* ]]; then
+        echo '{"error": "not_found"}'
+        return
+    fi
+
+    local latest_version=$(echo "$response" | jq -r '.Version // null')
+    local timestamp=$(echo "$response" | jq -r '.Time // null')
+
+    # Check if module is deprecated via go.mod retract or module deprecation
+    local mod_response=$(curl -s "https://proxy.golang.org/${encoded_pkg}/@v/${latest_version}.mod" 2>/dev/null)
+    local is_deprecated="false"
+    if [[ "$mod_response" == *"// Deprecated:"* ]] || [[ "$mod_response" == *"retract"* ]]; then
+        is_deprecated="true"
+    fi
+
+    local result=$(jq -n \
+        --arg latest "$latest_version" \
+        --arg timestamp "$timestamp" \
+        --argjson is_deprecated "$is_deprecated" \
+        '{
+            latest_version: $latest,
+            last_publish: $timestamp,
+            is_deprecated: $is_deprecated
+        }')
+
+    LIVE_PACKAGE_CACHE[$cache_key]="$result"
+    echo "$result"
+}
+
+# Get live package info based on ecosystem
+# Usage: get_live_package_info <package> <ecosystem>
+get_live_package_info() {
+    local pkg="$1"
+    local ecosystem="${2:-npm}"
+
+    if [[ "$LIVE_DATA_ENABLED" != "true" ]]; then
+        echo '{"live_data": false}'
+        return
+    fi
+
+    case "$ecosystem" in
+        npm|node)
+            fetch_npm_package_info "$pkg"
+            ;;
+        pypi|python)
+            fetch_pypi_package_info "$pkg"
+            ;;
+        go|golang)
+            fetch_go_package_info "$pkg"
+            ;;
+        *)
+            echo '{"error": "unsupported_ecosystem"}'
+            ;;
+    esac
+}
+
+# Check if package is deprecated using live data
+# Usage: is_package_deprecated <package> <ecosystem>
+is_package_deprecated() {
+    local pkg="$1"
+    local ecosystem="${2:-npm}"
+
+    local live_info=$(get_live_package_info "$pkg" "$ecosystem")
+
+    case "$ecosystem" in
+        npm|node)
+            echo "$live_info" | jq -r '.is_deprecated // false'
+            ;;
+        pypi|python)
+            echo "$live_info" | jq -r '.is_inactive // false'
+            ;;
+        go|golang)
+            echo "$live_info" | jq -r '.is_deprecated // false'
+            ;;
+        *)
+            echo "false"
+            ;;
+    esac
+}
+
+# Get deprecation message if available
+# Usage: get_deprecation_message <package> <ecosystem>
+get_deprecation_message() {
+    local pkg="$1"
+    local ecosystem="${2:-npm}"
+
+    local live_info=$(get_live_package_info "$pkg" "$ecosystem")
+
+    case "$ecosystem" in
+        npm|node)
+            local msg=$(echo "$live_info" | jq -r '.deprecated // null')
+            if [[ "$msg" != "null" && -n "$msg" ]]; then
+                echo "$msg"
+            fi
+            ;;
+        pypi|python)
+            local status=$(echo "$live_info" | jq -r '.development_status // null')
+            if [[ "$status" == *"Inactive"* ]]; then
+                echo "Project marked as Inactive"
+            fi
+            ;;
+        go|golang)
+            local dep=$(echo "$live_info" | jq -r '.is_deprecated // false')
+            if [[ "$dep" == "true" ]]; then
+                echo "Module is deprecated or retracted"
+            fi
+            ;;
+    esac
+}
+
 #############################################################################
 # Library Replacement Database
 # Format: old_package|replacement|reason|migration_effort
@@ -197,18 +443,38 @@ analyze_package() {
     local recommendations=()
     local risk_level="low"
     local action_required="false"
+    local deprecation_source=""
+    local deprecation_message=""
 
-    # Check for known replacements
+    # Get live package info first (checks deprecation status from registry)
+    local live_info=$(get_live_package_info "$pkg" "$ecosystem")
+    local live_deprecated=$(is_package_deprecated "$pkg" "$ecosystem")
+
+    # Check for LIVE deprecation from registry
+    if [[ "$live_deprecated" == "true" ]]; then
+        action_required="true"
+        risk_level="high"
+        deprecation_source="registry"
+        deprecation_message=$(get_deprecation_message "$pkg" "$ecosystem")
+        recommendations+=("⚠️ DEPRECATED: Package is marked deprecated in the registry")
+        if [[ -n "$deprecation_message" ]]; then
+            recommendations+=("Registry message: $deprecation_message")
+        fi
+    fi
+
+    # Check for known replacements from our database
     local replacements=$(get_replacements "$pkg" "$ecosystem")
     local replacement_count=$(echo "$replacements" | jq 'length')
 
     if [[ $replacement_count -gt 0 ]]; then
         action_required="true"
-        risk_level="medium"
+        if [[ "$risk_level" == "low" ]]; then
+            risk_level="medium"
+        fi
         recommendations+=("This package has recommended replacements available")
     fi
 
-    # Get health metrics
+    # Get health metrics from deps.dev
     local health=$(get_health_score "$pkg" "$ecosystem")
     local openssf_score=$(echo "$health" | jq -r '.openssf_score // null')
     local dependent_count=$(echo "$health" | jq -r '.dependent_count // 0')
@@ -216,22 +482,54 @@ analyze_package() {
     # Analyze health
     if [[ "$openssf_score" != "null" ]]; then
         if [[ $(echo "$openssf_score < 4" | bc -l 2>/dev/null || echo "0") == "1" ]]; then
-            risk_level="high"
-            recommendations+=("Low OpenSSF Scorecard score indicates maintenance concerns")
+            if [[ "$risk_level" != "high" ]]; then
+                risk_level="high"
+            fi
+            recommendations+=("Low OpenSSF Scorecard score ($openssf_score) indicates maintenance concerns")
         elif [[ $(echo "$openssf_score < 6" | bc -l 2>/dev/null || echo "0") == "1" ]]; then
             if [[ "$risk_level" == "low" ]]; then
                 risk_level="medium"
             fi
-            recommendations+=("Moderate OpenSSF Scorecard score - monitor for issues")
+            recommendations+=("Moderate OpenSSF Scorecard score ($openssf_score) - monitor for issues")
         fi
     fi
 
-    # Check adoption
-    if [[ $dependent_count -lt 100 ]]; then
-        recommendations+=("Low adoption - consider more established alternatives")
+    # Check adoption from live data
+    local monthly_downloads=$(echo "$live_info" | jq -r '.monthly_downloads // 0')
+    if [[ "$monthly_downloads" != "null" && "$monthly_downloads" -gt 0 ]]; then
+        if [[ $monthly_downloads -lt 1000 ]]; then
+            recommendations+=("Low download count ($monthly_downloads/month) - consider more established alternatives")
+        fi
+    elif [[ $dependent_count -lt 100 ]]; then
+        recommendations+=("Low adoption ($dependent_count dependents) - consider more established alternatives")
+    fi
+
+    # Check last publish date for staleness
+    local last_publish=$(echo "$live_info" | jq -r '.last_publish // null')
+    if [[ "$last_publish" != "null" && -n "$last_publish" ]]; then
+        local publish_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%S" "$(echo "$last_publish" | cut -d'.' -f1)" "+%s" 2>/dev/null || echo "0")
+        local now_epoch=$(date "+%s")
+        local days_since=$(( (now_epoch - publish_epoch) / 86400 ))
+
+        if [[ $days_since -gt 730 ]]; then
+            if [[ "$risk_level" == "low" ]]; then
+                risk_level="medium"
+            fi
+            recommendations+=("No updates in over 2 years ($days_since days) - may be abandoned")
+        elif [[ $days_since -gt 365 ]]; then
+            recommendations+=("No updates in over 1 year ($days_since days) - check if actively maintained")
+        fi
     fi
 
     local recommendations_json=$(printf '%s\n' "${recommendations[@]}" 2>/dev/null | jq -R . | jq -s '.' || echo "[]")
+
+    # Build live_info for output
+    local live_info_output=$(echo "$live_info" | jq '{
+        latest_version: .latest_version,
+        monthly_downloads: .monthly_downloads,
+        last_publish: .last_publish,
+        is_deprecated: .is_deprecated
+    }' 2>/dev/null || echo '{}')
 
     echo "{
         \"package\": \"$pkg\",
@@ -239,8 +537,11 @@ analyze_package() {
         \"version\": \"$version\",
         \"risk_level\": \"$risk_level\",
         \"action_required\": $action_required,
+        \"is_deprecated\": $live_deprecated,
+        \"deprecation_message\": $(echo "$deprecation_message" | jq -Rs '.'),
         \"replacements\": $replacements,
         \"health_metrics\": $health,
+        \"live_info\": $live_info_output,
         \"recommendations\": $recommendations_json
     }" | jq '.'
 }
@@ -406,6 +707,12 @@ generate_migration_plan() {
 # Export Functions
 #############################################################################
 
+export -f fetch_npm_package_info
+export -f fetch_pypi_package_info
+export -f fetch_go_package_info
+export -f get_live_package_info
+export -f is_package_deprecated
+export -f get_deprecation_message
 export -f get_replacements
 export -f has_replacement
 export -f get_health_score
