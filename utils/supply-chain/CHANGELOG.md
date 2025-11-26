@@ -11,90 +11,38 @@ All notable changes to the Supply Chain Security Analyser will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.0.0] - 2025-11-25
+## [3.1.0] - 2025-11-26
 
 **Status**: 🚀 Beta
 
 ### Added
-
-#### Security Modules
-- **Typosquatting Detection** (`--typosquat`): Detect potential typosquatting attacks
-  - Levenshtein distance analysis for similar package names
-  - Detection of common typosquatting patterns (character swaps, omissions, additions)
-  - Popular package similarity checking
-  - Registry-specific analysis (npm, PyPI, Go)
-
-#### Package Health Modules
-- **Abandoned Package Detection** (`--abandoned`): Identify unmaintained packages
-  - Last update date analysis via deps.dev API
-  - OpenSSF Scorecard "Maintained" check integration
-  - Deprecated package detection
-  - Archived repository detection
-  - Risk level scoring (healthy, stale, abandoned, deprecated, archived)
-  - Configurable thresholds (180/365/730 days)
-
-- **Unused Dependency Analysis** (`--unused`): Find dead code dependencies
-  - Import/require pattern analysis
-  - Cross-reference with SBOM
-  - Safe-to-remove confidence scoring
-  - Reduces attack surface by removing unused packages
-
-- **Technical Debt Scoring** (`--debt-score`): Quantify dependency technical debt
-  - Multi-factor scoring (abandonment, deprecation, security, outdated versions)
-  - OpenSSF Scorecard integration for maintenance scoring
-  - Replacement availability checking
-  - Project-level aggregation
-  - Debt reduction roadmap generation
-  - Score ranges: Low (0-20), Medium (21-40), High (41-60), Critical (61-100)
-
-#### Developer Productivity Modules
-- **Library Recommendations** (`--library-recommend`): Suggest modern alternatives
-  - Deprecated package replacement suggestions
-  - Modern alternative recommendations
-  - Migration effort estimation (trivial, easy, moderate, significant, major)
-  - API compatibility analysis
-  - Community adoption metrics
-
-- **Container Image Analysis** (`--container-images`): Recommend secure base images
-  - Dockerfile analysis
-  - Base image security assessment
-  - Distroless image recommendations
-  - Chainguard image recommendations
-  - Alpine image recommendations
-  - Size and security tradeoff analysis
-
-#### Infrastructure
-- **Global deps.dev API Client** (`lib/deps-dev-client.sh`): Shared library for all modules
-  - Package information retrieval
-  - OpenSSF Scorecard data
-  - Caching with configurable TTL
-  - Rate limiting and retry logic
-  - Batch request support
-
-- **RAG Knowledge Base**: Comprehensive documentation for AI analysis
-  - Technical debt scoring guide
-  - Library replacement knowledge base
-  - Container image recommendations database
-  - Typosquatting patterns reference
+- **Org-Wide Claude Analysis**: Strategic, team-level AI analysis for organization scans
+  - When using `--org` flag, Claude analysis now runs ONCE after ALL repositories are scanned
+  - Provides portfolio-wide strategic recommendations instead of per-repo analysis
+  - New `run_org_wide_claude_analysis()` function with strategic prompt
+  - Identifies systemic issues appearing across multiple repositories
+  - Generates repository prioritization matrix for remediation
+  - Includes org-wide automation and tooling recommendations
+  - Supports all personas (security-engineer, software-engineer, engineering-leader, auditor)
 
 ### Changed
-- **Claude AI Unified Analysis**: Single AI analysis across all modules
-  - Collects results from all modules before AI analysis
-  - Comprehensive cross-module insights
-  - Reduced API costs (one call vs multiple)
-  - Better context for recommendations
-
-- **Module Architecture**: Consistent structure across all modules
-  - Each module in separate directory with `lib/` subdirectory
-  - Shared libraries in `lib/deps-dev-client.sh`
-  - Standalone and combined execution modes
+- **Execution Flow for `--org`**: Results accumulated during repo loop, single Claude analysis at end
+- **Terminal Output**: Shows "Results collected for org-wide analysis (X repos scanned)" during scan
+- **Help Documentation**: Updated to document org-wide analysis behavior
 
 ### Technical Details
-- deps.dev API v3alpha integration
-- OpenSSF Scorecard data extraction
-- JSON-based result aggregation
-- Parallel module execution support
-- macOS/Linux compatibility
+- New global variables: `ORG_MODE`, `ORG_ALL_RESULTS`, `ORG_REPOS_ANALYZED`
+- Modified `analyze_target()` to accumulate results in org mode
+- Strategic prompt focuses on patterns across repos, not individual findings
+- Multi-persona support for org-wide analysis
+
+## [3.0.0] - 2024-11-25
+
+### Added
+- **Supply Chain Scanner v3.0**: 6 new analysis modules
+- **Persona System**: 4 personas (security-engineer, software-engineer, engineering-leader, auditor)
+- **Progress Indicators**: Real-time "X of Y" progress for all analyzers
+- **Compact Terminal Output**: Summary stats only, details in reports
 
 ## [2.2.0] - 2024-11-21
 

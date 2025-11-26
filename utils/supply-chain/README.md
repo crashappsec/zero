@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0
 
 # Supply Chain Security Analyser
 
-**Status**: 🚀 Beta | **Version**: 3.0.0
+**Status**: 🚀 Beta | **Version**: 3.1.0
 
 Comprehensive supply chain security analysis toolkit with vulnerability scanning, SLSA provenance verification, package health analysis, and AI-powered insights.
 
@@ -483,6 +483,31 @@ Scan all repositories in a GitHub organization:
 ./supply-chain-scanner.sh --vulnerability --org crashappsec
 ```
 
+**Org-Wide Claude Analysis**: When using `--org` with Claude enabled, the AI analysis runs **once** after ALL repositories are scanned, providing strategic, team-level recommendations instead of per-repo analysis:
+
+```bash
+# Org-wide strategic analysis
+export ANTHROPIC_API_KEY="your-key"
+./supply-chain-scanner.sh --vulnerability --package-health --org myorg
+
+# Output:
+# ├── Repo 1 scanned → results collected
+# ├── Repo 2 scanned → results collected
+# ├── Repo N scanned → results collected
+# └── 🏢 Organization-Wide Claude AI Analysis
+#     ├── Portfolio Health Dashboard
+#     ├── Systemic Issues (vulns in multiple repos)
+#     ├── Repository Prioritization Matrix
+#     └── Strategic Recommendations for Team
+```
+
+**What Org-Wide Analysis Provides**:
+- **Portfolio Health Dashboard**: Aggregate metrics across all repos
+- **Systemic Issues**: Vulnerabilities appearing in multiple repositories
+- **Repository Prioritization**: Risk-ranked list of repos for remediation
+- **Strategic Recommendations**: Team-level initiatives vs per-repo fixes
+- **Automation Opportunities**: Org-wide CI/CD and policy improvements
+
 ### Multiple Repositories
 
 ```bash
@@ -707,7 +732,7 @@ cosign version
 
 ## Development Status
 
-**Current Status**: 🚀 Beta | **Version**: 3.0.0
+**Current Status**: 🚀 Beta | **Version**: 3.1.0
 
 ### Completed Features (v3.0.0)
 
@@ -869,6 +894,6 @@ GPL-3.0 - See [LICENSE](../../LICENSE) for details.
 
 ## Version
 
-Current version: 3.0.0
+Current version: 3.1.0
 
 See [CHANGELOG.md](./CHANGELOG.md) for version history and release notes.
