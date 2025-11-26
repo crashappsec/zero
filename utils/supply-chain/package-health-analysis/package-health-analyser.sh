@@ -472,31 +472,29 @@ analyze_from_sbom() {
             ')
 
             # Now fetch package summary data (no batch endpoint, use sequential with cache)
+            # Iterate over the filtered batch_packages to match the count
             local current_package=0
-            local batch_start_time=$(date +%s)
-            local batch_processed=0
 
             while IFS= read -r pkg_info; do
                 [ -z "$pkg_info" ] && continue
 
-                local package=$(jq -r '.package' <<< "$pkg_info")
-                local version=$(jq -r '.version' <<< "$pkg_info")
-                local ecosystem=$(jq -r '.ecosystem' <<< "$pkg_info")
-                local system=$(map_ecosystem "$ecosystem")
+                local package=$(echo "$pkg_info" | jq -r '.name')
+                local version=$(echo "$pkg_info" | jq -r '.version')
+                local system=$(echo "$pkg_info" | jq -r '.system')
 
-                # Skip if invalid
-                if [ "$system" = "unknown" ] || [ -z "$package" ] || [ "$version" = "unknown" ]; then
-                    local display_name=$(clean_package_name "$package")
-                    log "Skipping invalid package: $display_name"
+                # Skip if invalid (shouldn't happen since batch_packages is pre-filtered)
+                if [ "$system" = "unsupported" ] || [ -z "$package" ] || [ "$version" = "unknown" ]; then
                     continue
                 fi
 
                 ((current_package++))
-                ((batch_processed++))
                 local display_name=$(clean_package_name "$package")
 
                 # Simple progress indicator
                 printf "\r\033[KAnalyzing %s: package %d of %d" "$repo_name" "$current_package" "$valid_packages_count" >&2
+
+                # Map system back to ecosystem for SBOM lookup
+                local ecosystem="$system"
 
                 # Get package summary (uses cache)
                 local package_summary=$(get_package_summary "$system" "$package")
@@ -580,7 +578,7 @@ analyze_from_sbom() {
                     ' <<< "$package_usage")
                 fi
 
-            done < <(jq -c '.' <<< "$packages")
+            done < <(echo "$batch_packages" | jq -c '.[]')
             echo "" >&2  # newline after progress
             fi  # closes .error check
         fi  # closes valid_packages_count check
