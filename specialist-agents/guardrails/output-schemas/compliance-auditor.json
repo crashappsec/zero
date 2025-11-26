@@ -1,0 +1,191 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Compliance Auditor Agent Output",
+  "description": "Required output format for license compliance analysis",
+  "type": "object",
+  "required": ["summary", "license_inventory", "compatibility_analysis", "recommendations", "metadata"],
+  "properties": {
+    "summary": {
+      "type": "object",
+      "required": ["total_packages", "licenses_found", "compliance_status"],
+      "properties": {
+        "total_packages": { "type": "integer" },
+        "licenses_found": { "type": "integer" },
+        "unknown_licenses": { "type": "integer" },
+        "copyleft_count": { "type": "integer" },
+        "permissive_count": { "type": "integer" },
+        "proprietary_count": { "type": "integer" },
+        "conflicts_detected": { "type": "integer" },
+        "compliance_status": {
+          "type": "string",
+          "enum": ["compliant", "warnings", "violations", "unknown"]
+        }
+      }
+    },
+    "license_inventory": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["package", "license", "category"],
+        "properties": {
+          "package": { "type": "string" },
+          "version": { "type": "string" },
+          "license": { "type": "string" },
+          "spdx_id": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": ["permissive", "copyleft-weak", "copyleft-strong", "proprietary", "public-domain", "unknown"]
+          },
+          "obligations": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "restrictions": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "compatibility_analysis": {
+      "type": "object",
+      "required": ["project_license", "issues"],
+      "properties": {
+        "project_license": {
+          "type": "object",
+          "properties": {
+            "declared": { "type": "string" },
+            "spdx_id": { "type": "string" },
+            "category": { "type": "string" }
+          }
+        },
+        "issues": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["severity", "type", "description"],
+            "properties": {
+              "severity": {
+                "type": "string",
+                "enum": ["critical", "high", "medium", "low", "info"]
+              },
+              "type": {
+                "type": "string",
+                "enum": ["incompatible", "copyleft-conflict", "attribution-missing", "distribution-restricted", "unknown-license"]
+              },
+              "packages": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "description": { "type": "string" },
+              "legal_review_recommended": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+    "disclosure_requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["obligation", "packages", "how_to_comply"],
+        "properties": {
+          "obligation": {
+            "type": "string",
+            "enum": ["attribution", "source-disclosure", "license-inclusion", "modification-notice", "patent-grant"]
+          },
+          "packages": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "how_to_comply": { "type": "string" },
+          "deadline": { "type": "string" }
+        }
+      }
+    },
+    "policy_violations": {
+      "type": "array",
+      "description": "Violations of organization license policies if configured",
+      "items": {
+        "type": "object",
+        "properties": {
+          "policy": { "type": "string" },
+          "packages": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "violation_type": { "type": "string" },
+          "remediation": { "type": "string" }
+        }
+      }
+    },
+    "sbom_assessment": {
+      "type": "object",
+      "properties": {
+        "sbom_present": { "type": "boolean" },
+        "sbom_format": { "type": "string" },
+        "completeness": {
+          "type": "string",
+          "enum": ["complete", "partial", "minimal", "missing"]
+        },
+        "missing_components": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "recommendations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["priority", "action", "rationale"],
+        "properties": {
+          "priority": { "type": "integer" },
+          "action": { "type": "string" },
+          "packages": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "rationale": { "type": "string" },
+          "legal_review": { "type": "boolean" }
+        }
+      }
+    },
+    "legal_review_flags": {
+      "type": "array",
+      "description": "Items requiring legal team review",
+      "items": {
+        "type": "object",
+        "properties": {
+          "item": { "type": "string" },
+          "reason": { "type": "string" },
+          "urgency": {
+            "type": "string",
+            "enum": ["immediate", "before-release", "advisory"]
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["agent", "timestamp", "confidence"],
+      "properties": {
+        "agent": { "type": "string", "const": "compliance-auditor" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "confidence": { "type": "string" },
+        "disclaimer": {
+          "type": "string",
+          "default": "This analysis is for informational purposes only and does not constitute legal advice."
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

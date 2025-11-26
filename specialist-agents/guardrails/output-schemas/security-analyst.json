@@ -1,0 +1,164 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Security Analyst Agent Output",
+  "description": "Required output format for security analyst findings",
+  "type": "object",
+  "required": ["summary", "critical_findings", "vulnerability_analysis", "recommendations", "metadata"],
+  "properties": {
+    "summary": {
+      "type": "object",
+      "required": ["total_vulnerabilities", "critical_count", "high_count", "exploitable_count", "overall_risk"],
+      "properties": {
+        "total_vulnerabilities": { "type": "integer" },
+        "critical_count": { "type": "integer" },
+        "high_count": { "type": "integer" },
+        "medium_count": { "type": "integer" },
+        "low_count": { "type": "integer" },
+        "exploitable_count": { "type": "integer" },
+        "kev_count": { "type": "integer" },
+        "overall_risk": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low", "minimal"]
+        }
+      }
+    },
+    "critical_findings": {
+      "type": "array",
+      "description": "Top priority issues requiring immediate attention",
+      "items": {
+        "type": "object",
+        "required": ["id", "severity", "title", "reason", "affected_packages"],
+        "properties": {
+          "id": { "type": "string" },
+          "severity": { "type": "string", "enum": ["critical", "high"] },
+          "title": { "type": "string" },
+          "reason": { "type": "string" },
+          "affected_packages": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "exploit_available": { "type": "boolean" },
+          "in_kev": { "type": "boolean" },
+          "cvss_score": { "type": "number" }
+        }
+      }
+    },
+    "vulnerability_analysis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["cve_id", "package", "version", "severity", "analysis"],
+        "properties": {
+          "cve_id": { "type": "string" },
+          "package": { "type": "string" },
+          "version": { "type": "string" },
+          "severity": { "type": "string" },
+          "cvss_score": { "type": "number" },
+          "cvss_vector": { "type": "string" },
+          "analysis": {
+            "type": "object",
+            "required": ["description", "attack_vector", "reachability", "confidence"],
+            "properties": {
+              "description": { "type": "string" },
+              "attack_vector": { "type": "string" },
+              "exploit_maturity": {
+                "type": "string",
+                "enum": ["proof-of-concept", "functional", "weaponized", "unknown"]
+              },
+              "reachability": {
+                "type": "string",
+                "enum": ["confirmed", "likely", "unlikely", "unknown"]
+              },
+              "affected_functions": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "code_locations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "file": { "type": "string" },
+                    "line": { "type": "integer" }
+                  }
+                }
+              },
+              "confidence": {
+                "type": "string",
+                "enum": ["high", "medium", "low"]
+              }
+            }
+          },
+          "references": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": { "type": "string" },
+                "type": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "attack_chains": {
+      "type": "array",
+      "description": "Potential attack paths combining multiple vulnerabilities",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "vulnerabilities": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "likelihood": { "type": "string" },
+          "impact": { "type": "string" }
+        }
+      }
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["priority", "action", "rationale"],
+        "properties": {
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 10
+          },
+          "action": { "type": "string" },
+          "rationale": { "type": "string" },
+          "affected_cves": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "effort": {
+            "type": "string",
+            "enum": ["trivial", "low", "medium", "high"]
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["agent", "timestamp", "confidence"],
+      "properties": {
+        "agent": { "type": "string", "const": "security-analyst" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+        "sources_consulted": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "limitations": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

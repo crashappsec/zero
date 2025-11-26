@@ -1,0 +1,163 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "Tool permissions for specialist agents",
+  "agents": {
+    "security-analyst": {
+      "description": "Deep vulnerability analysis with exploit context",
+      "allowed_tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "WebSearch",
+        "WebFetch"
+      ],
+      "forbidden_tools": [
+        "Write",
+        "Edit",
+        "Bash",
+        "NotebookEdit"
+      ],
+      "tool_restrictions": {
+        "WebFetch": {
+          "allowed_domains": [
+            "nvd.nist.gov",
+            "cve.mitre.org",
+            "osv.dev",
+            "deps.dev",
+            "github.com",
+            "exploit-db.com",
+            "cisa.gov",
+            "security.snyk.io"
+          ]
+        }
+      }
+    },
+    "dependency-investigator": {
+      "description": "Package health analysis and alternative recommendations",
+      "allowed_tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "WebFetch",
+        "Bash"
+      ],
+      "forbidden_tools": [
+        "Write",
+        "Edit",
+        "NotebookEdit"
+      ],
+      "tool_restrictions": {
+        "Bash": {
+          "allowed_commands": [
+            "npm info",
+            "npm view",
+            "pip show",
+            "pip index versions",
+            "go list -m",
+            "gem info",
+            "cargo search"
+          ],
+          "forbidden_patterns": [
+            "rm ",
+            "mv ",
+            "cp ",
+            "chmod",
+            "chown",
+            "sudo",
+            "curl.*|.*sh",
+            "wget.*|.*sh"
+          ]
+        },
+        "WebFetch": {
+          "allowed_domains": [
+            "registry.npmjs.org",
+            "pypi.org",
+            "proxy.golang.org",
+            "rubygems.org",
+            "crates.io",
+            "deps.dev",
+            "github.com",
+            "libraries.io",
+            "snyk.io"
+          ]
+        }
+      }
+    },
+    "compliance-auditor": {
+      "description": "License compliance and policy verification",
+      "allowed_tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "WebFetch"
+      ],
+      "forbidden_tools": [
+        "Write",
+        "Edit",
+        "Bash",
+        "NotebookEdit"
+      ],
+      "tool_restrictions": {
+        "WebFetch": {
+          "allowed_domains": [
+            "spdx.org",
+            "opensource.org",
+            "choosealicense.com",
+            "tldrlegal.com",
+            "github.com",
+            "deps.dev"
+          ]
+        }
+      }
+    },
+    "remediation-planner": {
+      "description": "Prioritized fix plans with implementation guidance",
+      "allowed_tools": [
+        "Read",
+        "Grep",
+        "Glob",
+        "WebFetch",
+        "Bash"
+      ],
+      "forbidden_tools": [
+        "Write",
+        "Edit",
+        "NotebookEdit"
+      ],
+      "tool_restrictions": {
+        "Bash": {
+          "allowed_commands": [
+            "npm outdated",
+            "npm ls",
+            "npm view",
+            "pip list --outdated",
+            "pip show",
+            "go list -m -u",
+            "bundle outdated",
+            "cargo outdated"
+          ],
+          "forbidden_patterns": [
+            "npm install",
+            "npm update",
+            "pip install",
+            "go get",
+            "rm ",
+            "mv ",
+            "chmod",
+            "sudo"
+          ]
+        },
+        "WebFetch": {
+          "allowed_domains": [
+            "registry.npmjs.org",
+            "pypi.org",
+            "proxy.golang.org",
+            "github.com",
+            "deps.dev",
+            "snyk.io"
+          ]
+        }
+      }
+    }
+  }
+}
