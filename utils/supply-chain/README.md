@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0
 
 # Supply Chain Security Analyser
 
-**Status**: 🚀 Beta | **Version**: 3.1.0
+**Status**: 🚀 Beta | **Version**: 3.1.1
 
 Comprehensive supply chain security analysis toolkit with vulnerability scanning, SLSA provenance verification, package health analysis, and AI-powered insights.
 
@@ -732,7 +732,7 @@ cosign version
 
 ## Development Status
 
-**Current Status**: 🚀 Beta | **Version**: 3.1.0
+**Current Status**: 🚀 Beta | **Version**: 3.1.1
 
 ### Completed Features (v3.0.0)
 
@@ -894,6 +894,6 @@ GPL-3.0 - See [LICENSE](../../LICENSE) for details.
 
 ## Version
 
-Current version: 3.1.0
+Current version: 3.1.1
 
 See [CHANGELOG.md](./CHANGELOG.md) for version history and release notes.

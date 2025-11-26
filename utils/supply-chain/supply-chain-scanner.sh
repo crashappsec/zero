@@ -101,7 +101,7 @@ MODULES:
     --provenance, -p        Run provenance analysis (SLSA) - slow, queries npm registry per-package
     --package-health        Run package health analysis
     --legal                 Run legal compliance analysis (licenses, secrets, content)
-    --all, -a               Run all analysis modules (includes provenance - may be slow)
+    --all, -a               Run all analysis modules (default when no modules specified)
 
 ENHANCED ANALYSIS:
     --abandoned             Detect abandoned/deprecated packages
@@ -1686,7 +1686,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -a|--all)
-            MODULES=("vulnerability" "provenance" "package-health" "abandoned" "typosquat" "unused" "debt-score")
+            MODULES=("vulnerability" "provenance" "package-health" "abandoned" "typosquat" "unused" "debt-score" "container-images" "library-recommend")
             shift
             ;;
         --org)
@@ -1785,11 +1785,10 @@ if [[ ${#MODULES[@]} -eq 0 ]]; then
         fi
     fi
 
-    # If still no modules, default to core modules (excludes slow provenance)
+    # If still no modules, default to ALL modules
     if [[ ${#MODULES[@]} -eq 0 ]]; then
-        echo -e "${BLUE}No modules specified, running core modules${NC}"
-        echo -e "${CYAN}  (use --all or -p to include provenance analysis)${NC}"
-        MODULES=("vulnerability" "package-health")
+        echo -e "${BLUE}No modules specified, running all analysis modules${NC}"
+        MODULES=("vulnerability" "provenance" "package-health" "abandoned" "typosquat" "unused" "debt-score" "container-images" "library-recommend")
     fi
 fi
 

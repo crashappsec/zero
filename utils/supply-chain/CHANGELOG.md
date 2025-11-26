@@ -11,6 +11,17 @@ All notable changes to the Supply Chain Security Analyser will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2025-11-26
+
+**Status**: 🚀 Beta
+
+### Changed
+- **Default Modules**: Running without flags now executes ALL analysis modules
+  - Previously defaulted to only `vulnerability` and `package-health`
+  - Now runs: vulnerability, provenance, package-health, abandoned, typosquat, unused, debt-score, container-images, library-recommend
+- **--all Flag**: Now includes `container-images` and `library-recommend` modules
+  - Previously missing these two modules from the `--all` flag
+
 ## [3.1.0] - 2025-11-26
 
 **Status**: 🚀 Beta
