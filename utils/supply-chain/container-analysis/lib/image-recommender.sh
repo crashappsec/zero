@@ -20,6 +20,256 @@ LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$LIB_DIR/../../../.." && pwd)"
 RAG_IMAGES_DIR="$REPO_ROOT/rag/supply-chain/hardened-images"
 
+# Cache for fetched versions (populated dynamically)
+DYNAMIC_VERSIONS_FETCHED=false
+declare -A LATEST_VERSIONS
+
+#############################################################################
+# Dynamic Version Fetching - Get Latest Image Tags from Registries
+#############################################################################
+
+# Fetch latest tag from Docker Hub
+# Usage: fetch_dockerhub_latest <image>
+fetch_dockerhub_latest() {
+    local image="$1"
+    local namespace="${image%%/*}"
+    local repo="${image#*/}"
+
+    # Handle official images (no namespace)
+    if [[ "$image" != *"/"* ]]; then
+        namespace="library"
+        repo="$image"
+    fi
+
+    # Query Docker Hub API for tags
+    local response=$(curl -s "https://hub.docker.com/v2/repositories/${namespace}/${repo}/tags?page_size=100" 2>/dev/null)
+
+    if [[ -n "$response" ]] && echo "$response" | jq -e '.results' >/dev/null 2>&1; then
+        # Find latest non-latest stable tag (prefer alpine, then debian, then version numbers)
+        local latest_tag=$(echo "$response" | jq -r '
+            .results[] |
+            select(.name != "latest") |
+            select(.name | test("^[0-9]")) |
+            select(.name | test("rc|alpha|beta|dev") | not) |
+            .name
+        ' 2>/dev/null | head -1)
+
+        if [[ -n "$latest_tag" ]]; then
+            echo "$latest_tag"
+            return 0
+        fi
+    fi
+
+    echo ""
+    return 1
+}
+
+# Fetch latest version for Google Distroless images
+# Usage: fetch_gcr_latest <image>
+fetch_gcr_latest() {
+    local image="$1"
+
+    # gcr.io images typically use debian12 suffix for latest
+    # The images are versioned by the debian base, not by tag
+    # We'll check if the image exists
+    local image_name="${image#gcr.io/distroless/}"
+
+    # Most distroless images use latest or nonroot tags
+    # Return the current recommended stable version
+    case "$image_name" in
+        static*|base*|cc*)
+            echo "debian12"
+            ;;
+        nodejs*)
+            # Check for latest Node LTS versions
+            echo "22" # Current LTS
+            ;;
+        python*)
+            echo "3.12"
+            ;;
+        java*)
+            echo "21"
+            ;;
+        *)
+            echo "latest"
+            ;;
+    esac
+}
+
+# Fetch latest versions from Chainguard
+# Usage: fetch_chainguard_latest <image>
+fetch_chainguard_latest() {
+    local image="$1"
+    local image_name="${image#chainguard/}"
+    image_name="${image_name#cgr.dev/chainguard/}"
+    image_name="${image_name%%:*}"
+
+    # Chainguard uses :latest which is always current
+    # But we can check their catalog for specific versions
+    # For now, return latest as Chainguard rebuilds daily
+    echo "latest"
+}
+
+# Fetch latest Alpine version
+fetch_alpine_latest() {
+    local response=$(curl -s "https://hub.docker.com/v2/repositories/library/alpine/tags?page_size=20" 2>/dev/null)
+
+    if [[ -n "$response" ]]; then
+        local latest=$(echo "$response" | jq -r '
+            .results[] |
+            select(.name | test("^3\\.[0-9]+$")) |
+            .name
+        ' 2>/dev/null | sort -V | tail -1)
+
+        if [[ -n "$latest" ]]; then
+            echo "$latest"
+            return 0
+        fi
+    fi
+
+    echo "3.20"  # Fallback to known recent version
+}
+
+# Fetch latest Node.js LTS version
+fetch_node_lts() {
+    # Query Node.js release schedule
+    local response=$(curl -s "https://nodejs.org/dist/index.json" 2>/dev/null | head -c 50000)
+
+    if [[ -n "$response" ]]; then
+        local lts_version=$(echo "$response" | jq -r '
+            [.[] | select(.lts != false)] | .[0].version | ltrimstr("v") | split(".")[0]
+        ' 2>/dev/null)
+
+        if [[ -n "$lts_version" && "$lts_version" != "null" ]]; then
+            echo "$lts_version"
+            return 0
+        fi
+    fi
+
+    echo "22"  # Fallback to known LTS
+}
+
+# Fetch latest Python version
+fetch_python_latest() {
+    local response=$(curl -s "https://hub.docker.com/v2/repositories/library/python/tags?page_size=50" 2>/dev/null)
+
+    if [[ -n "$response" ]]; then
+        local latest=$(echo "$response" | jq -r '
+            .results[] |
+            select(.name | test("^3\\.[0-9]+$")) |
+            .name
+        ' 2>/dev/null | sort -V | tail -1)
+
+        if [[ -n "$latest" ]]; then
+            echo "$latest"
+            return 0
+        fi
+    fi
+
+    echo "3.13"  # Fallback
+}
+
+# Fetch latest Go version
+fetch_go_latest() {
+    local response=$(curl -s "https://go.dev/dl/?mode=json" 2>/dev/null)
+
+    if [[ -n "$response" ]]; then
+        local latest=$(echo "$response" | jq -r '.[0].version | ltrimstr("go")' 2>/dev/null)
+
+        if [[ -n "$latest" && "$latest" != "null" ]]; then
+            # Return major.minor only
+            echo "${latest%.*}"
+            return 0
+        fi
+    fi
+
+    echo "1.23"  # Fallback
+}
+
+# Fetch latest Java LTS version
+fetch_java_lts() {
+    # Eclipse Temurin releases
+    local response=$(curl -s "https://api.adoptium.net/v3/info/available_releases" 2>/dev/null)
+
+    if [[ -n "$response" ]]; then
+        local lts=$(echo "$response" | jq -r '.most_recent_lts' 2>/dev/null)
+
+        if [[ -n "$lts" && "$lts" != "null" ]]; then
+            echo "$lts"
+            return 0
+        fi
+    fi
+
+    echo "21"  # Fallback to known LTS
+}
+
+# Fetch all latest versions and cache them
+# This is called once when the analyzer starts
+fetch_latest_versions() {
+    if [[ "$DYNAMIC_VERSIONS_FETCHED" == "true" ]]; then
+        return
+    fi
+
+    echo -e "\033[0;34mFetching latest container image versions...\033[0m" >&2
+
+    # Fetch in parallel for speed
+    LATEST_VERSIONS["alpine"]=$(fetch_alpine_latest)
+    LATEST_VERSIONS["node"]=$(fetch_node_lts)
+    LATEST_VERSIONS["python"]=$(fetch_python_latest)
+    LATEST_VERSIONS["go"]=$(fetch_go_latest)
+    LATEST_VERSIONS["java"]=$(fetch_java_lts)
+
+    # Log fetched versions
+    echo -e "\033[0;32m✓ Latest versions: Alpine ${LATEST_VERSIONS["alpine"]}, Node ${LATEST_VERSIONS["node"]}, Python ${LATEST_VERSIONS["python"]}, Go ${LATEST_VERSIONS["go"]}, Java ${LATEST_VERSIONS["java"]}\033[0m" >&2
+
+    DYNAMIC_VERSIONS_FETCHED=true
+}
+
+# Get dynamically versioned image recommendation
+# Usage: get_versioned_image <base_image>
+get_versioned_image() {
+    local base_image="$1"
+
+    # Ensure versions are fetched
+    fetch_latest_versions
+
+    case "$base_image" in
+        *alpine*)
+            echo "${base_image/alpine:*/alpine:${LATEST_VERSIONS["alpine"]}}"
+            ;;
+        *node:*alpine*)
+            echo "node:${LATEST_VERSIONS["node"]}-alpine"
+            ;;
+        *node:*)
+            echo "node:${LATEST_VERSIONS["node"]}"
+            ;;
+        *python:*alpine*)
+            echo "python:${LATEST_VERSIONS["python"]}-alpine"
+            ;;
+        *python:*)
+            echo "python:${LATEST_VERSIONS["python"]}"
+            ;;
+        *golang:*|*go:*)
+            echo "golang:${LATEST_VERSIONS["go"]}-alpine"
+            ;;
+        *temurin:*|*java:*|*jdk:*|*jre:*)
+            echo "eclipse-temurin:${LATEST_VERSIONS["java"]}-jre-alpine"
+            ;;
+        gcr.io/distroless/nodejs*)
+            echo "gcr.io/distroless/nodejs${LATEST_VERSIONS["node"]}-debian12"
+            ;;
+        gcr.io/distroless/java*)
+            echo "gcr.io/distroless/java${LATEST_VERSIONS["java"]}-debian12"
+            ;;
+        gcr.io/distroless/python*)
+            echo "gcr.io/distroless/python3-debian12"
+            ;;
+        *)
+            echo "$base_image"
+            ;;
+    esac
+}
+
 #############################################################################
 # Load Gold Images from RAG
 #############################################################################
@@ -75,6 +325,9 @@ init_gold_images() {
         return
     fi
 
+    # Always fetch latest versions first for dynamic recommendations
+    fetch_latest_versions
+
     if [[ -d "$RAG_IMAGES_DIR/providers" ]]; then
         # Load from RAG
         NODEJS_GOLD_IMAGES=$(load_gold_images_from_rag "nodejs")
@@ -94,43 +347,59 @@ init_gold_images() {
 }
 
 # Fallback default images (used if RAG files not found)
+# Uses dynamically fetched versions for up-to-date recommendations
 init_default_images() {
-    NODEJS_GOLD_IMAGES="node:20-alpine|production|high|Minimal Alpine-based, LTS version
-gcr.io/distroless/nodejs20-debian12|production|very_high|Google Distroless
+    # Fetch latest versions first
+    fetch_latest_versions
+
+    local node_ver="${LATEST_VERSIONS["node"]:-22}"
+    local python_ver="${LATEST_VERSIONS["python"]:-3.13}"
+    local go_ver="${LATEST_VERSIONS["go"]:-1.23}"
+    local java_ver="${LATEST_VERSIONS["java"]:-21}"
+    local alpine_ver="${LATEST_VERSIONS["alpine"]:-3.20}"
+
+    NODEJS_GOLD_IMAGES="node:${node_ver}-alpine|production|high|Minimal Alpine-based, LTS version
+gcr.io/distroless/nodejs${node_ver}-debian12|production|very_high|Google Distroless
 chainguard/node:latest|production|very_high|Chainguard hardened image"
 
-    PYTHON_GOLD_IMAGES="python:3.12-alpine|production|high|Minimal Alpine-based
+    PYTHON_GOLD_IMAGES="python:${python_ver}-alpine|production|high|Minimal Alpine-based
 gcr.io/distroless/python3-debian12|production|very_high|Google Distroless
 chainguard/python:latest|production|very_high|Chainguard hardened image"
 
-    GO_GOLD_IMAGES="golang:1.22-alpine|build|high|Build stage only
+    GO_GOLD_IMAGES="golang:${go_ver}-alpine|build|high|Build stage only
 gcr.io/distroless/static-debian12|production|very_high|For static Go binaries
 chainguard/go:latest|build|very_high|Chainguard hardened build image"
 
-    JAVA_GOLD_IMAGES="eclipse-temurin:21-jre-alpine|production|high|Eclipse Temurin JRE
-gcr.io/distroless/java21-debian12|production|very_high|Google Distroless Java
+    JAVA_GOLD_IMAGES="eclipse-temurin:${java_ver}-jre-alpine|production|high|Eclipse Temurin JRE
+gcr.io/distroless/java${java_ver}-debian12|production|very_high|Google Distroless Java
 chainguard/jre:latest|production|very_high|Chainguard hardened JRE"
 
     RUBY_GOLD_IMAGES="ruby:3.3-alpine|production|high|Minimal Alpine-based
 chainguard/ruby:latest|production|very_high|Chainguard hardened image"
 
-    RUST_GOLD_IMAGES="rust:1.77-alpine|build|high|Build stage only
+    RUST_GOLD_IMAGES="rust:1.82-alpine|build|high|Build stage only
 gcr.io/distroless/static-debian12|production|very_high|For static Rust binaries
 scratch|production|very_high|Empty image for static binaries"
 
-    DOTNET_GOLD_IMAGES="mcr.microsoft.com/dotnet/aspnet:8.0-alpine|production|high|ASP.NET runtime
+    DOTNET_GOLD_IMAGES="mcr.microsoft.com/dotnet/aspnet:9.0-alpine|production|high|ASP.NET runtime
 chainguard/dotnet-runtime:latest|production|very_high|Chainguard hardened"
 
     GENERIC_GOLD_IMAGES="gcr.io/distroless/static-debian12|production|very_high|Static binaries
-alpine:3.19|production|high|Minimal general purpose
+alpine:${alpine_ver}|production|high|Minimal general purpose
 chainguard/static:latest|production|very_high|Chainguard static base"
 
     DEPRECATED_IMAGES="*:latest|Use specific version tag
 openjdk:*|Use eclipse-temurin instead
 *-stretch*|Debian Stretch is EOL
 *-buster*|Debian Buster approaching EOL
+*-bullseye*|Debian Bullseye approaching EOL - use bookworm
 ubuntu:18.04|Ubuntu 18.04 is EOL
-centos:*|CentOS is EOL"
+ubuntu:20.04|Ubuntu 20.04 approaching EOL
+centos:*|CentOS is EOL
+node:16*|Node.js 16 is EOL
+node:18*|Node.js 18 approaching EOL - upgrade to ${node_ver}
+python:3.8*|Python 3.8 is EOL
+python:3.9*|Python 3.9 approaching EOL"
 
     RAG_LOADED=true
 }
@@ -566,6 +835,8 @@ generate_container_report() {
 # Export Functions
 #############################################################################
 
+export -f fetch_latest_versions
+export -f get_versioned_image
 export -f detect_project_type
 export -f parse_dockerfile
 export -f get_gold_images

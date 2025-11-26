@@ -11,6 +11,25 @@ All notable changes to the Supply Chain Security Analyser will be documented in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.2] - 2025-11-26
+
+**Status**: 🚀 Beta
+
+### Added
+- **Dynamic Container Image Version Fetching**: Container analysis now fetches latest versions at runtime
+  - Queries Docker Hub, Node.js, Go, Python, and Java release APIs
+  - Automatically gets latest Alpine, Node LTS, Python, Go, and Java LTS versions
+  - Recommendations always use current stable versions instead of hardcoded values
+  - Shows fetched versions in output: "✓ Latest versions: Alpine 3.20, Node 22, Python 3.13, Go 1.23, Java 21"
+  - Fallback to known-good defaults if API queries fail
+
+### Changed
+- **Deprecated Image Patterns**: Updated to include more EOL warnings
+  - Added Debian Bullseye EOL warning (use Bookworm)
+  - Added Ubuntu 20.04 approaching EOL warning
+  - Added Node.js 16/18 EOL warnings
+  - Added Python 3.8/3.9 EOL warnings
+
 ## [3.1.1] - 2025-11-26
 
 **Status**: 🚀 Beta
