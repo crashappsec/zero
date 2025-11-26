@@ -169,6 +169,12 @@ calculate_freshness_score() {
 calculate_popularity_score() {
     local dependent_count=$1
 
+    # Handle null or empty values
+    if [[ -z "$dependent_count" ]] || [[ "$dependent_count" == "null" ]]; then
+        echo "0"
+        return
+    fi
+
     # Logarithmic scale for popularity
     if [ "$dependent_count" -ge 10000 ]; then
         echo "100"
@@ -232,7 +238,7 @@ calculate_health_score() {
     local latest_version=$(echo "$package_summary" | jq -r '.latest_version // "unknown"')
     local freshness_score=$(calculate_freshness_score "$current_version" "$latest_version")
 
-    local dependent_count=$(echo "$package_summary" | jq -r '.dependent_count // 0')
+    local dependent_count=$(echo "$package_summary" | jq -r '.dependent_count // 0 | if . == null then 0 else . end')
     local popularity_score=$(calculate_popularity_score "$dependent_count")
 
     # Calculate weighted score
@@ -251,6 +257,12 @@ calculate_health_score() {
 # Usage: get_health_grade <score>
 get_health_grade() {
     local score=$1
+
+    # Handle null or empty values
+    if [[ -z "$score" ]] || [[ "$score" == "null" ]]; then
+        echo "Unknown"
+        return
+    fi
 
     if [ "$score" -ge "$THRESHOLD_EXCELLENT" ]; then
         echo "Excellent"
