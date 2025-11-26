@@ -446,19 +446,34 @@ normalize_target() {
     echo "$target"
 }
 
+# Function to extract repo name from URL
+extract_repo_name() {
+    local url="$1"
+    if [[ "$url" =~ github\.com[/:]([^/]+/[^/.]+) ]]; then
+        echo "${BASH_REMATCH[1]}"
+    elif [[ "$url" =~ ^([a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+)$ ]]; then
+        echo "$url"
+    else
+        basename "$url" .git
+    fi
+}
+
 # Function to clone repository once for sharing across modules
 clone_shared_repository() {
     local repo_url="$1"
 
+    # Extract repo name for display
+    SHARED_REPO_NAME=$(extract_repo_name "$repo_url")
+
     # Create temp directory for shared clone
     SHARED_REPO_DIR=$(mktemp -d)
 
-    echo -e "${BLUE}Cloning repository for shared analysis...${NC}"
+    echo -e "${BLUE}Cloning ${SHARED_REPO_NAME}...${NC}"
     if git clone --depth 1 --quiet "$repo_url" "$SHARED_REPO_DIR" 2>/dev/null; then
         # Count files and calculate repo size
         local file_count=$(find "$SHARED_REPO_DIR" -type f | wc -l | tr -d ' ')
         local repo_size=$(du -sh "$SHARED_REPO_DIR" 2>/dev/null | cut -f1)
-        echo -e "${GREEN}✓ Repository cloned: ${file_count} files, ${repo_size}${NC}"
+        echo -e "${GREEN}✓ Cloned ${SHARED_REPO_NAME}: ${file_count} files, ${repo_size}${NC}"
 
         # Generate SBOM for shared use
         echo -e "${BLUE}Generating SBOM for shared analysis...${NC}"
@@ -472,14 +487,14 @@ clone_shared_repository() {
 
             # Generate SBOM
             if generate_sbom "$SHARED_REPO_DIR" "$SHARED_SBOM_FILE" "true" 2>&1 | grep -v "^\["; then
-                # Display SBOM summary
-                local package_count=$(jq '.components | length' "$SHARED_SBOM_FILE" 2>/dev/null || echo "0")
+                # Display SBOM summary - make package_count global for progress display
+                SHARED_PACKAGE_COUNT=$(jq '.components | length' "$SHARED_SBOM_FILE" 2>/dev/null || echo "0")
                 local sbom_format=$(jq -r '.bomFormat // "unknown"' "$SHARED_SBOM_FILE" 2>/dev/null || echo "unknown")
 
                 # Count packages by language/type
                 local package_by_lang=$(jq -r '.components[]? | .type + "/" + (.purl // "unknown" | split(":")[0])' "$SHARED_SBOM_FILE" 2>/dev/null | sort | uniq -c | sort -rn)
 
-                echo -e "${GREEN}✓ SBOM generated: ${package_count} components (${sbom_format} format)${NC}"
+                echo -e "${GREEN}✓ SBOM generated: ${SHARED_PACKAGE_COUNT} components (${sbom_format} format)${NC}"
 
                 # Display language breakdown
                 if [[ -n "$package_by_lang" ]]; then
@@ -1214,48 +1229,73 @@ analyze_target() {
 
     for module in "${MODULES[@]}"; do
         echo ""
-        echo -e "${BLUE}▶ Running ${module} analysis...${NC}"
-        echo ""
+        # Show module header with package count and mode
+        local mode_info=""
+        if [[ "$PARALLEL" == "true" ]]; then
+            mode_info=" (batch mode)"
+        fi
+        local pkg_info=""
+        if [[ -n "$SHARED_PACKAGE_COUNT" ]] && [[ "$SHARED_PACKAGE_COUNT" -gt 0 ]]; then
+            pkg_info=" - ${SHARED_PACKAGE_COUNT} packages"
+        fi
+        local repo_display=""
+        if [[ -n "$SHARED_REPO_NAME" ]]; then
+            repo_display=" on ${SHARED_REPO_NAME}"
+        fi
+        echo -e "${BLUE}▶ Running ${module} analysis${repo_display}${pkg_info}${mode_info}${NC}"
 
+        # Run analysis - stderr (progress) goes to terminal, stdout captured
+        # Use a temp file to capture output while allowing stderr to display
+        local temp_output=$(mktemp)
         local module_output=""
         case "$module" in
             vulnerability)
-                module_output=$(run_vulnerability_analysis "$target" 2>&1)
+                run_vulnerability_analysis "$target" 2>&1 | tee "$temp_output"
+                module_output=$(cat "$temp_output")
                 ;;
             provenance)
-                module_output=$(run_provenance_analysis "$target" 2>&1)
+                run_provenance_analysis "$target" 2>&1 | tee "$temp_output"
+                module_output=$(cat "$temp_output")
                 ;;
             package-health)
-                module_output=$(run_package_health_analysis "$target" 2>&1)
+                run_package_health_analysis "$target" 2>&1 | tee "$temp_output"
+                module_output=$(cat "$temp_output")
                 ;;
             legal)
-                module_output=$(run_legal_analysis "$target" 2>&1)
+                run_legal_analysis "$target" 2>&1 | tee "$temp_output"
+                module_output=$(cat "$temp_output")
                 ;;
             abandoned)
-                module_output=$(run_abandoned_analysis "$target" 2>&1)
+                run_abandoned_analysis "$target" 2>&1 | tee "$temp_output"
+                module_output=$(cat "$temp_output")
                 ;;
             typosquat)
-                module_output=$(run_typosquat_analysis "$target" 2>&1)
+                run_typosquat_analysis "$target" 2>&1 | tee "$temp_output"
+                module_output=$(cat "$temp_output")
                 ;;
             unused)
-                module_output=$(run_unused_analysis "$target" 2>&1)
+                run_unused_analysis "$target" 2>&1 | tee "$temp_output"
+                module_output=$(cat "$temp_output")
                 ;;
             debt-score)
-                module_output=$(run_debt_score_analysis "$target" 2>&1)
+                run_debt_score_analysis "$target" 2>&1 | tee "$temp_output"
+                module_output=$(cat "$temp_output")
                 ;;
             container-images)
-                module_output=$(run_container_analysis "$target" 2>&1)
+                run_container_analysis "$target" 2>&1 | tee "$temp_output"
+                module_output=$(cat "$temp_output")
                 ;;
             library-recommend)
-                module_output=$(run_library_recommendation_analysis "$target" 2>&1)
+                run_library_recommendation_analysis "$target" 2>&1 | tee "$temp_output"
+                module_output=$(cat "$temp_output")
                 ;;
             *)
                 echo -e "${YELLOW}⚠ Unknown module: $module${NC}"
                 ;;
         esac
 
-        # Display the module output
-        echo "$module_output"
+        # Clean up temp file
+        rm -f "$temp_output"
 
         # Extract metrics from module output for summary
         case "$module" in
