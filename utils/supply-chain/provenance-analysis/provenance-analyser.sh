@@ -185,6 +185,26 @@ is_sbom_file() {
     [[ -f "$file" ]] && ([[ "$file" =~ \.json$ ]] || [[ "$file" =~ \.xml$ ]] || [[ "$file" =~ \.cdx\. ]] || [[ "$file" =~ bom\. ]])
 }
 
+# Function to extract repo name from URL or path
+extract_repo_name() {
+    local target="$1"
+
+    if [[ "$target" =~ github\.com[/:]([^/]+/[^/.]+) ]]; then
+        echo "${BASH_REMATCH[1]}"
+    elif [[ "$target" =~ ^([a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+)$ ]]; then
+        echo "$target"
+    elif [[ -d "$target/.git" ]]; then
+        local remote=$(git -C "$target" remote get-url origin 2>/dev/null)
+        if [[ "$remote" =~ github\.com[/:]([^/]+/[^/.]+) ]]; then
+            echo "${BASH_REMATCH[1]}"
+        else
+            basename "$target"
+        fi
+    else
+        basename "$target"
+    fi
+}
+
 # Function to detect if target is a package URL
 is_purl() {
     [[ "$1" =~ ^pkg: ]]
@@ -323,6 +343,7 @@ assess_slsa_level() {
 # Function to analyze SBOM for provenance
 analyze_sbom() {
     local sbom_file="$1"
+    local repo_name="${2:-$(basename "$sbom_file" .json)}"
 
     # Parse SBOM and extract components
     local components=$(jq -r '.components[]? | @json' "$sbom_file" 2>/dev/null)
@@ -347,7 +368,7 @@ analyze_sbom() {
 
     if [[ "$PARALLEL" == "true" ]]; then
         # Parallel processing mode
-        printf "\r\033[KAnalyzing provenance: %d packages (parallel)" "$total_components" >&2
+        printf "\r\033[KAnalyzing provenance for %s: %d packages" "$repo_name" "$total_components" >&2
 
         # Create temp directory for results
         local results_dir=$(mktemp -d)
@@ -415,7 +436,7 @@ analyze_sbom() {
             ((total++))
 
             # Progress indicator
-            printf "\r\033[KAnalyzing provenance: package %d of %d" "$total" "$total_components" >&2
+            printf "\r\033[KAnalyzing provenance for %s: package %d of %d" "$repo_name" "$total" "$total_components" >&2
 
             local purl=$(echo "$component" | jq -r '.purl // empty')
 
@@ -480,6 +501,7 @@ analyze_sbom() {
 # Function to analyze repository
 analyze_repository() {
     local repo_path="$1"
+    local repo_name="${2:-$(extract_repo_name "$repo_path")}"
 
     # Use shared SBOM if provided, otherwise generate new one
     local sbom_file=""
@@ -500,7 +522,7 @@ analyze_repository() {
     fi
 
     # Analyze the SBOM
-    analyze_sbom "$sbom_file"
+    analyze_sbom "$sbom_file" "$repo_name"
 
     # Clean up only if we generated it
     if [[ "$cleanup_sbom" == "true" ]]; then
@@ -653,22 +675,19 @@ analyze_single_target() {
         return $?
     fi
 
+    # Extract repo name for display
+    local repo_name=$(extract_repo_name "$target")
+
     if is_purl "$target"; then
         analyze_package "$target"
     elif is_sbom_file "$target"; then
-        echo -e "${GREEN}Target: SBOM file${NC}"
-        echo ""
-        analyze_sbom "$target"
+        analyze_sbom "$target" "$repo_name"
     elif is_git_url "$target"; then
-        echo -e "${GREEN}Target: Git repository${NC}"
-        echo ""
         if clone_repository "$target"; then
-            analyze_repository "$TEMP_DIR"
+            analyze_repository "$TEMP_DIR" "$repo_name"
         fi
     elif [[ -d "$target" ]]; then
-        echo -e "${GREEN}Target: Local directory${NC}"
-        echo ""
-        analyze_repository "$target"
+        analyze_repository "$target" "$repo_name"
     else
         echo -e "${RED}Error: Invalid target${NC}"
         echo "Target must be:"
