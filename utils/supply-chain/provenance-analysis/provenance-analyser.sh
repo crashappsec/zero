@@ -324,14 +324,12 @@ assess_slsa_level() {
 analyze_sbom() {
     local sbom_file="$1"
 
-    echo -e "${BLUE}Analyzing SBOM for provenance...${NC}"
-    echo ""
-
     # Parse SBOM and extract components
     local components=$(jq -r '.components[]? | @json' "$sbom_file" 2>/dev/null)
 
     if [[ -z "$components" ]]; then
-        echo -e "${RED}No components found in SBOM${NC}"
+        echo -e "${GREEN}Provenance Summary:${NC}"
+        echo "  No components found in SBOM"
         return 1
     fi
 
@@ -344,15 +342,8 @@ analyze_sbom() {
     local level_3=0
     local level_4=0
 
-    echo "Package Analysis:"
-    echo "==============================================="
-    echo ""
-
     if [[ "$PARALLEL" == "true" ]]; then
         # Parallel processing mode
-        echo -e "${CYAN}Parallel mode enabled: using $PARALLEL_JOBS workers${NC}"
-        echo ""
-
         # Create temp directory for results
         local results_dir=$(mktemp -d)
 
@@ -360,15 +351,11 @@ analyze_sbom() {
         export -f check_npm_provenance
         export -f parse_purl
 
-        # Process components in parallel
+        # Process components in parallel (silent)
         echo "$components" | nl -w1 -s'|' | xargs -P "$PARALLEL_JOBS" -I {} bash -c '
             IFS="|" read -r num component <<< "{}"
 
-            name=$(echo "$component" | jq -r ".name // \"unknown\"")
-            version=$(echo "$component" | jq -r ".version // \"unknown\"")
             purl=$(echo "$component" | jq -r ".purl // empty")
-
-            echo "Package: $name@$version" >&2
 
             if [[ -n "$purl" ]]; then
                 IFS="|" read -r ecosystem pkg ver <<< "$(parse_purl "$purl")"
@@ -380,24 +367,14 @@ analyze_sbom() {
                     *)
                         status="UNSUPPORTED"
                         level="0"
-                        detail="Ecosystem not yet supported"
                         ;;
                 esac
 
-                echo "  Provenance:    $status" >&2
-                echo "  SLSA Level:    $level" >&2
-                echo "  Details:       $detail" >&2
-
-                # Write results to file
                 echo "$status|$level" > "'"$results_dir"'/result_$num.txt"
             else
-                echo "  Provenance:    UNKNOWN (no purl)" >&2
-                echo "  SLSA Level:    0" >&2
                 echo "UNKNOWN|0" > "'"$results_dir"'/result_$num.txt"
             fi
-
-            echo "" >&2
-        '
+        ' 2>/dev/null
 
         # Aggregate results
         for result_file in "$results_dir"/result_*.txt; do
@@ -427,15 +404,11 @@ analyze_sbom() {
         rm -rf "$results_dir"
 
     else
-        # Sequential processing mode
+        # Sequential processing mode (silent)
         while IFS= read -r component; do
             ((total++))
 
-            local name=$(echo "$component" | jq -r '.name // "unknown"')
-            local version=$(echo "$component" | jq -r '.version // "unknown"')
             local purl=$(echo "$component" | jq -r '.purl // empty')
-
-            echo "Package: $name@$version"
 
             if [[ -n "$purl" ]]; then
                 IFS='|' read -r ecosystem pkg ver <<< "$(parse_purl "$purl")"
@@ -447,13 +420,8 @@ analyze_sbom() {
                     *)
                         status="UNSUPPORTED"
                         level="0"
-                        detail="Ecosystem not yet supported"
                         ;;
                 esac
-
-                echo "  Provenance:    $status"
-                echo "  SLSA Level:    $level"
-                echo "  Details:       $detail"
 
                 if [[ "$status" != "NONE" ]] && [[ "$status" != "UNSUPPORTED" ]]; then
                     ((with_provenance++))
@@ -472,28 +440,15 @@ analyze_sbom() {
                 esac
 
             else
-                echo "  Provenance:    UNKNOWN (no purl)"
-                echo "  SLSA Level:    0"
                 ((level_0++))
             fi
-
-            echo ""
         done <<< "$components"
     fi
 
-    echo "==============================================="
-    echo "Summary:"
-    echo "  Total packages:        $total"
-    echo "  With provenance:       $with_provenance ($(( total > 0 ? with_provenance * 100 / total : 0 ))%)"
-    echo "  Verified:              $verified ($(( total > 0 ? verified * 100 / total : 0 ))%)"
-    echo ""
-    echo "SLSA Level Distribution:"
-    echo "  Level 0 (No guarantees):         $level_0"
-    echo "  Level 1 (Documentation):         $level_1"
-    echo "  Level 2 (Signed provenance):     $level_2"
-    echo "  Level 3 (Hardened builds):       $level_3"
-    echo "  Level 4 (Highest assurance):     $level_4"
-    echo ""
+    # Terminal output: summary only
+    echo -e "${GREEN}Provenance Summary:${NC}"
+    echo "  Total: $total, With provenance: $with_provenance ($(( total > 0 ? with_provenance * 100 / total : 0 ))%), Verified: $verified"
+    echo "  SLSA Levels: L0=$level_0, L1=$level_1, L2=$level_2, L3=$level_3, L4=$level_4"
 
     # Check against minimum level if specified
     if [[ $MIN_SLSA_LEVEL -gt 0 ]]; then
@@ -503,10 +458,10 @@ analyze_sbom() {
         done
 
         local pct=$(( total > 0 ? meeting_min * 100 / total : 0 ))
-        echo "Packages meeting minimum SLSA Level $MIN_SLSA_LEVEL: $meeting_min ($pct%)"
+        echo "  Meeting SLSA Level $MIN_SLSA_LEVEL+: $meeting_min ($pct%)"
 
         if [[ "$STRICT_MODE" == "true" ]] && [[ $meeting_min -lt $total ]]; then
-            echo -e "${RED}✗ STRICT MODE: Not all packages meet minimum SLSA level${NC}"
+            echo -e "  ${RED}STRICT MODE: Not all packages meet minimum SLSA level${NC}"
             return 1
         fi
     fi
@@ -516,15 +471,11 @@ analyze_sbom() {
 analyze_repository() {
     local repo_path="$1"
 
-    echo -e "${BLUE}Analyzing repository for provenance...${NC}"
-    echo ""
-
     # Use shared SBOM if provided, otherwise generate new one
     local sbom_file=""
     local cleanup_sbom=false
 
     if [[ -n "$SBOM_FILE" ]] && [[ -f "$SBOM_FILE" ]]; then
-        echo -e "${GREEN}Using shared SBOM file${NC}"
         sbom_file="$SBOM_FILE"
         cleanup_sbom=false
     else
@@ -551,19 +502,12 @@ analyze_repository() {
 analyze_package() {
     local purl="$1"
 
-    echo -e "${BLUE}Analyzing package: $purl${NC}"
-    echo ""
-
     IFS='|' read -r ecosystem pkg ver <<< "$(parse_purl "$purl")"
 
     if [[ -z "$ecosystem" ]]; then
         echo -e "${RED}Invalid package URL format${NC}"
         return 1
     fi
-
-    echo "Package: $pkg@$ver"
-    echo "Ecosystem: $ecosystem"
-    echo ""
 
     case "$ecosystem" in
         npm)
@@ -576,13 +520,12 @@ analyze_package() {
             ;;
     esac
 
-    echo "Provenance Status: $status"
-    echo "SLSA Level: $level"
-    echo "Details: $detail"
-    echo ""
+    # Terminal output: summary only
+    echo -e "${GREEN}Package Provenance:${NC}"
+    echo "  $pkg@$ver: $status (SLSA Level $level)"
 
     if [[ $level -lt $MIN_SLSA_LEVEL ]] && [[ "$STRICT_MODE" == "true" ]]; then
-        echo -e "${RED}✗ STRICT MODE: Package does not meet minimum SLSA level $MIN_SLSA_LEVEL${NC}"
+        echo -e "  ${RED}STRICT MODE: Does not meet minimum SLSA level $MIN_SLSA_LEVEL${NC}"
         return 1
     fi
 }
