@@ -6,94 +6,136 @@
 #
 # Recommends secure, standardized container base images based on project requirements.
 # Part of the Reliability & Standardization module.
+#
+# Gold images are loaded from RAG:
+#   - rag/supply-chain/hardened-images/providers/google-distroless.json
+#   - rag/supply-chain/hardened-images/providers/chainguard.json
+#   - rag/supply-chain/hardened-images/providers/official-images.json
+#   - rag/supply-chain/hardened-images/deprecated-images.json
 
 set -eo pipefail
 
-# Get script directory
+# Get script directory and repo root
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$LIB_DIR/../../../.." && pwd)"
+RAG_IMAGES_DIR="$REPO_ROOT/rag/supply-chain/hardened-images"
 
 #############################################################################
-# Gold Image Database
-# Recommended container images by language/framework with security ratings
+# Load Gold Images from RAG
 #############################################################################
 
-# Image recommendation structure:
-# language|framework|recommended_image|tag_pattern|security_rating|notes
+# Load images from provider JSON files
+load_gold_images_from_rag() {
+    local language="$1"
+    local rag_images=""
 
-# Node.js Gold Images
-NODEJS_GOLD_IMAGES="node:20-alpine|production|high|Minimal Alpine-based, LTS version
-node:20-slim|production|high|Debian slim, good compatibility
-node:20-bookworm-slim|production|high|Latest Debian slim base
-gcr.io/distroless/nodejs20-debian12|production|very_high|Google Distroless, minimal attack surface
+    # Load from each provider
+    for provider_file in "$RAG_IMAGES_DIR/providers"/*.json; do
+        [[ -f "$provider_file" ]] || continue
+
+        # Extract images for the specified language
+        local provider_images=$(jq -r --arg lang "$language" '
+            .images[] |
+            select(.languages as $langs |
+                ($langs | length == 0) or
+                ($langs | map(ascii_downcase) | index($lang | ascii_downcase))
+            ) |
+            "\(.name)|\(.stage)|\(.security_rating // "high")|\(.notes)"
+        ' "$provider_file" 2>/dev/null || echo "")
+
+        if [[ -n "$provider_images" ]]; then
+            if [[ -n "$rag_images" ]]; then
+                rag_images+=$'\n'
+            fi
+            rag_images+="$provider_images"
+        fi
+    done
+
+    echo "$rag_images"
+}
+
+# Load deprecated patterns from RAG
+load_deprecated_patterns() {
+    local deprecated_file="$RAG_IMAGES_DIR/deprecated-images.json"
+
+    if [[ -f "$deprecated_file" ]]; then
+        jq -r '.deprecated_patterns[] | "\(.pattern)|\(.reason)"' "$deprecated_file" 2>/dev/null || echo ""
+    else
+        echo ""
+    fi
+}
+
+# Cache for loaded images (populated on first use)
+declare -A GOLD_IMAGE_CACHE
+RAG_LOADED=false
+
+# Initialize gold images from RAG (called once)
+init_gold_images() {
+    if [[ "$RAG_LOADED" == "true" ]]; then
+        return
+    fi
+
+    if [[ -d "$RAG_IMAGES_DIR/providers" ]]; then
+        # Load from RAG
+        NODEJS_GOLD_IMAGES=$(load_gold_images_from_rag "nodejs")
+        PYTHON_GOLD_IMAGES=$(load_gold_images_from_rag "python")
+        GO_GOLD_IMAGES=$(load_gold_images_from_rag "go")
+        JAVA_GOLD_IMAGES=$(load_gold_images_from_rag "java")
+        RUBY_GOLD_IMAGES=$(load_gold_images_from_rag "ruby")
+        RUST_GOLD_IMAGES=$(load_gold_images_from_rag "rust")
+        DOTNET_GOLD_IMAGES=$(load_gold_images_from_rag "dotnet")
+        GENERIC_GOLD_IMAGES=$(load_gold_images_from_rag "")
+        DEPRECATED_IMAGES=$(load_deprecated_patterns)
+        RAG_LOADED=true
+    else
+        # Fallback to embedded defaults if RAG not available
+        init_default_images
+    fi
+}
+
+# Fallback default images (used if RAG files not found)
+init_default_images() {
+    NODEJS_GOLD_IMAGES="node:20-alpine|production|high|Minimal Alpine-based, LTS version
+gcr.io/distroless/nodejs20-debian12|production|very_high|Google Distroless
 chainguard/node:latest|production|very_high|Chainguard hardened image"
 
-# Python Gold Images
-PYTHON_GOLD_IMAGES="python:3.12-alpine|production|high|Minimal Alpine-based
-python:3.12-slim|production|high|Debian slim, good compatibility
-python:3.12-slim-bookworm|production|high|Latest Debian slim
+    PYTHON_GOLD_IMAGES="python:3.12-alpine|production|high|Minimal Alpine-based
 gcr.io/distroless/python3-debian12|production|very_high|Google Distroless
 chainguard/python:latest|production|very_high|Chainguard hardened image"
 
-# Go Gold Images
-GO_GOLD_IMAGES="golang:1.22-alpine|build|high|Build stage only
+    GO_GOLD_IMAGES="golang:1.22-alpine|build|high|Build stage only
 gcr.io/distroless/static-debian12|production|very_high|For static Go binaries
-gcr.io/distroless/base-debian12|production|very_high|For dynamic Go binaries
-chainguard/go:latest|build|very_high|Chainguard hardened build image
-scratch|production|very_high|Empty image for static binaries"
+chainguard/go:latest|build|very_high|Chainguard hardened build image"
 
-# Java Gold Images
-JAVA_GOLD_IMAGES="eclipse-temurin:21-jre-alpine|production|high|Eclipse Temurin JRE
-eclipse-temurin:21-jdk-alpine|build|high|Eclipse Temurin JDK for builds
+    JAVA_GOLD_IMAGES="eclipse-temurin:21-jre-alpine|production|high|Eclipse Temurin JRE
 gcr.io/distroless/java21-debian12|production|very_high|Google Distroless Java
-chainguard/jre:latest|production|very_high|Chainguard hardened JRE
-amazoncorretto:21-alpine|production|high|Amazon Corretto"
+chainguard/jre:latest|production|very_high|Chainguard hardened JRE"
 
-# Ruby Gold Images
-RUBY_GOLD_IMAGES="ruby:3.3-alpine|production|high|Minimal Alpine-based
-ruby:3.3-slim|production|high|Debian slim
+    RUBY_GOLD_IMAGES="ruby:3.3-alpine|production|high|Minimal Alpine-based
 chainguard/ruby:latest|production|very_high|Chainguard hardened image"
 
-# Rust Gold Images
-RUST_GOLD_IMAGES="rust:1.77-alpine|build|high|Build stage only
-gcr.io/distroless/cc-debian12|production|very_high|For Rust binaries with C deps
+    RUST_GOLD_IMAGES="rust:1.77-alpine|build|high|Build stage only
 gcr.io/distroless/static-debian12|production|very_high|For static Rust binaries
 scratch|production|very_high|Empty image for static binaries"
 
-# .NET Gold Images
-DOTNET_GOLD_IMAGES="mcr.microsoft.com/dotnet/aspnet:8.0-alpine|production|high|ASP.NET runtime
-mcr.microsoft.com/dotnet/runtime:8.0-alpine|production|high|.NET runtime
-mcr.microsoft.com/dotnet/runtime-deps:8.0-alpine|production|high|Self-contained apps
+    DOTNET_GOLD_IMAGES="mcr.microsoft.com/dotnet/aspnet:8.0-alpine|production|high|ASP.NET runtime
 chainguard/dotnet-runtime:latest|production|very_high|Chainguard hardened"
 
-# Generic/Multi-purpose Gold Images
-GENERIC_GOLD_IMAGES="gcr.io/distroless/static-debian12|production|very_high|Static binaries
-gcr.io/distroless/base-debian12|production|very_high|Dynamic binaries
+    GENERIC_GOLD_IMAGES="gcr.io/distroless/static-debian12|production|very_high|Static binaries
 alpine:3.19|production|high|Minimal general purpose
-chainguard/static:latest|production|very_high|Chainguard static base
-chainguard/glibc-dynamic:latest|production|very_high|Chainguard with glibc"
+chainguard/static:latest|production|very_high|Chainguard static base"
 
-#############################################################################
-# Anti-patterns - Images to Avoid
-#############################################################################
-
-# Images that should be flagged for replacement
-DEPRECATED_IMAGES="node:latest|Use specific version tag
-python:latest|Use specific version tag
-golang:latest|Use specific version tag
-ruby:latest|Use specific version tag
+    DEPRECATED_IMAGES="*:latest|Use specific version tag
 openjdk:*|Use eclipse-temurin instead
-java:*|Deprecated, use eclipse-temurin
-node:*-stretch|Debian Stretch is EOL
-python:*-stretch|Debian Stretch is EOL
-node:*-buster|Debian Buster approaching EOL
-python:*-buster|Debian Buster approaching EOL
+*-stretch*|Debian Stretch is EOL
+*-buster*|Debian Buster approaching EOL
 ubuntu:18.04|Ubuntu 18.04 is EOL
-ubuntu:16.04|Ubuntu 16.04 is EOL
-debian:stretch|Debian Stretch is EOL
-debian:jessie|Debian Jessie is EOL
-centos:*|CentOS is EOL, use alternatives"
+centos:*|CentOS is EOL"
 
-# Security anti-patterns
+    RAG_LOADED=true
+}
+
+# Security anti-patterns (kept inline as they're detection patterns, not data)
 SECURITY_ANTIPATTERNS="*:latest|Unpinned version is a security risk
 FROM scratch AS|Multi-stage builds recommended
 apt-get install|Pin package versions
@@ -261,6 +303,9 @@ get_gold_images() {
     local language="$1"
     local images=""
 
+    # Initialize gold images from RAG on first call
+    init_gold_images
+
     case "$language" in
         nodejs|nextjs|nuxt|express|fastify|nestjs)
             images="$NODEJS_GOLD_IMAGES"
@@ -309,6 +354,9 @@ get_gold_images() {
 check_image_issues() {
     local image="$1"
     local issues=()
+
+    # Initialize from RAG on first call
+    init_gold_images
 
     # Check deprecated images
     while IFS= read -r pattern; do
