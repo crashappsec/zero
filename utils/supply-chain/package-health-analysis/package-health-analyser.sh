@@ -475,6 +475,9 @@ analyze_from_sbom() {
                 ((batch_processed++))
                 local display_name=$(clean_package_name "$package")
 
+                # Simple progress indicator
+                printf "\r\033[KAnalyzing package %d of %d" "$current_package" "$valid_packages_count" >&2
+
                 # Get package summary (uses cache)
                 local package_summary=$(get_package_summary "$system" "$package")
 
@@ -558,6 +561,7 @@ analyze_from_sbom() {
                 fi
 
             done < <(jq -c '.' <<< "$packages")
+            echo "" >&2  # newline after progress
             fi  # closes .error check
         fi  # closes valid_packages_count check
     fi  # closes PARALLEL check
@@ -585,6 +589,9 @@ analyze_from_sbom() {
             ((current_package++))
             local display_name=$(clean_package_name "$package")
 
+            # Simple progress indicator
+            printf "\r\033[KAnalyzing package %d of %d" "$current_package" "$total_packages" >&2
+
             # Analyze package
             local result=$(analyze_package "$system" "$package" "$version")
 
@@ -605,6 +612,7 @@ analyze_from_sbom() {
             fi
 
         done < <(jq -c '.' <<< "$packages")
+        echo "" >&2  # newline after progress
     fi
 
     # Analyze version inconsistencies (if multiple repos)
