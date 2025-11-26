@@ -1533,15 +1533,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Main execution
-echo ""
-echo -e "${CYAN}=========================================${NC}"
-echo -e "${CYAN}  Supply Chain Scanner${NC}"
-echo -e "${CYAN}=========================================${NC}"
-echo ""
-
 check_prerequisites
 check_api_key || true  # Don't exit if API key not set, just inform user
-echo ""
 
 # Setup mode
 if [[ "$SETUP_MODE" == "true" ]]; then
@@ -1615,7 +1608,3 @@ for target in "${TARGETS[@]}"; do
         analyze_target "$target"
     fi
 done
-
-echo ""
-echo -e "${GREEN}✓ Analysis Complete${NC}"
-echo ""

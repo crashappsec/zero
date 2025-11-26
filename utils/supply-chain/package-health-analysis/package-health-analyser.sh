@@ -1020,30 +1020,9 @@ main() {
 
     parse_args "$@"
 
-    echo ""
-    echo "========================================="
-    echo "  Package Health Analysis"
-    echo "========================================="
-    echo ""
-
-    # Check Claude AI status first
-    if [[ "$USE_CLAUDE" == "true" ]] && [[ -n "$ANTHROPIC_API_KEY" ]] && [[ "$COMPARE_MODE" != "true" ]]; then
-        echo -e "\033[0;32m🤖 Claude AI: ENABLED (analyzing results with AI)\033[0m"
-        echo ""
-    elif [[ -z "$ANTHROPIC_API_KEY" ]] && [[ "$COMPARE_MODE" != "true" ]]; then
-        echo -e "\033[1;33mℹ️  Claude AI: DISABLED (no API key found)\033[0m"
-        echo -e "\033[0;36m   Set ANTHROPIC_API_KEY to enable AI-enhanced analysis\033[0m"
-        echo -e "\033[0;36m   Get your key at: https://console.anthropic.com/settings/keys\033[0m"
-        echo ""
+    # Check Claude AI status (silent unless explicitly enabled)
+    if [[ -z "$ANTHROPIC_API_KEY" ]]; then
         USE_CLAUDE=false
-    fi
-
-    # Inform about batch mode for faster processing
-    if [[ "$PARALLEL" != "true" ]]; then
-        echo -e "\033[0;36m⚡ Batch API mode available with --parallel flag\033[0m"
-        echo -e "\033[0;36m   Processes packages 6-10x faster using deps.dev batch API\033[0m"
-        echo -e "\033[0;36m   Recommended for repositories with many dependencies\033[0m"
-        echo ""
     fi
 
     # Validate input

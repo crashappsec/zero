@@ -804,21 +804,8 @@ if [[ "$MULTI_REPO_MODE" == false ]] && [[ -z "$TARGET" ]] && [[ ${#TARGETS_LIST
 fi
 
 # Main script
-echo ""
-echo "========================================="
-echo "  Provenance Analyser (SLSA)"
-echo "========================================="
-echo ""
-
-# Check Claude AI status first
-if [[ "$USE_CLAUDE" == "true" ]] && [[ -n "$ANTHROPIC_API_KEY" ]]; then
-    echo -e "${GREEN}🤖 Claude AI: ENABLED (analyzing results with AI)${NC}"
-    echo ""
-elif [[ -z "$ANTHROPIC_API_KEY" ]]; then
-    echo -e "${YELLOW}ℹ️  Claude AI: DISABLED (no API key found)${NC}"
-    echo -e "${CYAN}   Set ANTHROPIC_API_KEY to enable AI-enhanced analysis${NC}"
-    echo -e "${CYAN}   Get your key at: https://console.anthropic.com/settings/keys${NC}"
-    echo ""
+# Check Claude AI status (silent unless explicitly enabled)
+if [[ -z "$ANTHROPIC_API_KEY" ]]; then
     USE_CLAUDE=false
 fi
 
@@ -941,12 +928,6 @@ else
     fi
 fi
 
-echo ""
-echo -e "${GREEN}✓ Analysis Complete${NC}"
-
 if [[ -n "$OUTPUT_FILE" ]]; then
-    echo ""
     echo -e "Results saved to: ${BLUE}$OUTPUT_FILE${NC}"
 fi
-
-echo ""
