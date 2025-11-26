@@ -1800,8 +1800,52 @@ if [[ ${#TARGETS[@]} -eq 0 ]]; then
     exit 1
 fi
 
-echo "Analysis modules: ${MODULES[*]}"
-echo "Targets: ${#TARGETS[@]}"
+# Display analysis plan
+echo ""
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo -e "${CYAN}  Supply Chain Security Scanner v3.1.3${NC}"
+echo -e "${CYAN}═══════════════════════════════════════════════════════════════${NC}"
+echo ""
+echo -e "${BLUE}Analysis modules to run (${#MODULES[@]} total):${NC}"
+for mod in "${MODULES[@]}"; do
+    case "$mod" in
+        vulnerability)
+            echo -e "  • ${GREEN}vulnerability${NC}     - CVE scanning via OSV.dev, CISA KEV checking"
+            ;;
+        provenance)
+            echo -e "  • ${GREEN}provenance${NC}        - SLSA level assessment, signature verification"
+            ;;
+        package-health)
+            echo -e "  • ${GREEN}package-health${NC}    - OpenSSF scores, maintenance status, health metrics"
+            ;;
+        abandoned)
+            echo -e "  • ${GREEN}abandoned${NC}         - Detect unmaintained/deprecated packages"
+            ;;
+        typosquat)
+            echo -e "  • ${GREEN}typosquat${NC}         - Check for typosquatting risks"
+            ;;
+        unused)
+            echo -e "  • ${GREEN}unused${NC}            - Find unused dependencies"
+            ;;
+        debt-score)
+            echo -e "  • ${GREEN}debt-score${NC}        - Calculate technical debt scores"
+            ;;
+        container-images)
+            echo -e "  • ${GREEN}container-images${NC}  - Dockerfile analysis, secure base image recommendations"
+            ;;
+        library-recommend)
+            echo -e "  • ${GREEN}library-recommend${NC} - Suggest modern alternatives for outdated packages"
+            ;;
+        legal)
+            echo -e "  • ${GREEN}legal${NC}             - License compliance analysis"
+            ;;
+        *)
+            echo -e "  • ${GREEN}${mod}${NC}"
+            ;;
+    esac
+done
+echo ""
+echo -e "${BLUE}Targets: ${#TARGETS[@]}${NC}"
 echo ""
 
 # Default to all personas when Claude enabled but no persona specified
