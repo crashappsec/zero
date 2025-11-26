@@ -1582,7 +1582,5 @@ for target in "${TARGETS[@]}"; do
 done
 
 echo ""
-echo -e "${GREEN}=========================================${NC}"
-echo -e "${GREEN}  Analysis Complete${NC}"
-echo -e "${GREEN}=========================================${NC}"
+echo -e "${GREEN}✓ Analysis Complete${NC}"
 echo ""

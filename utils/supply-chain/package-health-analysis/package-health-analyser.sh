@@ -458,8 +458,9 @@ analyze_from_sbom() {
             ')
 
             # Now fetch package summary data (no batch endpoint, use sequential with cache)
-            echo -e "\033[0;34mFetching package metadata...\033[0m" >&2
             local current_package=0
+            local batch_start_time=$(date +%s)
+            local batch_processed=0
 
             while IFS= read -r pkg_info; do
                 [ -z "$pkg_info" ] && continue
@@ -477,10 +478,25 @@ analyze_from_sbom() {
                 fi
 
                 ((current_package++))
-                if [ $((current_package % 10)) -eq 0 ] || [ $current_package -eq 1 ] || [ $current_package -eq $valid_packages_count ]; then
-                    local display_name=$(clean_package_name "$package")
-                    echo -e "\033[0;34mProcessing package $current_package of $valid_packages_count: ${display_name}\033[0m" >&2
+                ((batch_processed++))
+                local display_name=$(clean_package_name "$package")
+
+                # Calculate ETA
+                local eta_str=""
+                if [ $batch_processed -gt 1 ]; then
+                    local elapsed=$(($(date +%s) - batch_start_time))
+                    local avg_time=$((elapsed / batch_processed))
+                    local remaining=$((valid_packages_count - current_package))
+                    local eta_secs=$((avg_time * remaining))
+                    if [ $eta_secs -ge 60 ]; then
+                        eta_str=" (ETA: $((eta_secs / 60))m $((eta_secs % 60))s)"
+                    elif [ $eta_secs -gt 0 ]; then
+                        eta_str=" (ETA: ${eta_secs}s)"
+                    fi
                 fi
+
+                printf "\r\033[K\033[0;34mProcessing package %d of %d: %s%s\033[0m" \
+                    "$current_package" "$valid_packages_count" "${display_name:0:35}" "$eta_str" >&2
 
                 # Get package summary (uses cache)
                 local package_summary=$(get_package_summary "$system" "$package")
@@ -565,12 +581,19 @@ analyze_from_sbom() {
                 fi
 
             done < <(jq -c '.' <<< "$packages")
+
+            # Print newline after progress indicator
+            echo "" >&2
             fi  # closes .error check
         fi  # closes valid_packages_count check
     fi  # closes PARALLEL check
 
     # Sequential processing mode (if not parallel or fallback)
     if [ "$PARALLEL" = false ]; then
+        # Track start time for ETA calculation
+        local start_time=$(date +%s)
+        local processed_count=0
+
         # Sequential processing mode (original)
         while IFS= read -r pkg_info; do
             [ -z "$pkg_info" ] && continue
@@ -589,10 +612,30 @@ analyze_from_sbom() {
                 continue
             fi
 
-            # Increment counter and display progress
+            # Increment counter and display progress with ETA
             ((current_package++))
+            ((processed_count++))
             local display_name=$(clean_package_name "$package")
-            echo -e "\033[0;34mAnalyzing package $current_package of $total_packages: ${display_name}@${version}\033[0m" >&2
+
+            # Calculate ETA
+            local eta_str=""
+            if [ $processed_count -gt 1 ]; then
+                local elapsed=$(($(date +%s) - start_time))
+                local avg_time_per_pkg=$((elapsed / processed_count))
+                local remaining_pkgs=$((total_packages - current_package))
+                local eta_seconds=$((avg_time_per_pkg * remaining_pkgs))
+                if [ $eta_seconds -ge 60 ]; then
+                    local eta_mins=$((eta_seconds / 60))
+                    local eta_secs=$((eta_seconds % 60))
+                    eta_str=" (ETA: ${eta_mins}m ${eta_secs}s)"
+                elif [ $eta_seconds -gt 0 ]; then
+                    eta_str=" (ETA: ${eta_seconds}s)"
+                fi
+            fi
+
+            # Use \r to overwrite line for cleaner output
+            printf "\r\033[K\033[0;34mAnalyzing package %d of %d: %s@%s%s\033[0m" \
+                "$current_package" "$total_packages" "${display_name:0:30}" "${version:0:10}" "$eta_str" >&2
 
             # Analyze package
             local result=$(analyze_package "$system" "$package" "$version")
@@ -614,6 +657,9 @@ analyze_from_sbom() {
             fi
 
         done < <(jq -c '.' <<< "$packages")
+
+        # Print newline after progress indicator
+        echo "" >&2
     fi
 
     # Analyze version inconsistencies (if multiple repos)
