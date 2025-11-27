@@ -1097,7 +1097,8 @@ main() {
 
     local langs_display=$(echo "$languages" | jq -r 'join(", ")' 2>/dev/null)
     local fwks_display=$(echo "$frameworks" | jq -r 'join(", ")' 2>/dev/null)
-    [[ -n "$langs_display" ]] && echo -e "  Languages: ${CYAN}$langs_display${NC}"
+    # Always print Languages line (hydrate.sh uses this as phase marker)
+    echo -e "  Languages: ${CYAN}${langs_display:-unknown}${NC}"
     [[ -n "$fwks_display" ]] && echo -e "  Frameworks: ${CYAN}$fwks_display${NC}"
 
     # Determine source type
