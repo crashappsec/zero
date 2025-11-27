@@ -1,0 +1,1738 @@
+
+[0;36m=========================================[0m
+[0;36m  Supply Chain Scanner[0m
+[0;36m=========================================[0m
+
+[0;34mChecking Claude AI configuration...[0m
+[0;32m✓ ANTHROPIC_API_KEY is set (108 chars)[0m
+[0;32m  Claude AI enhanced analysis is available[0m
+
+Analysis modules: vulnerability package-health
+Targets: 1
+
+
+[0;36m=========================================[0m
+[0;36mAnalyzing: facebook/react[0m
+[0;32mClaude AI: ENABLED (will run after all scans)[0m
+[0;36m💡 Tip: use --parallel for faster package-health analysis (batch API)[0m
+[0;36m=========================================[0m
+
+[0;34mCloning repository for shared analysis...[0m
+[0;32m✓ Repository cloned: 6939 files,  65M[0m
+[0;34mGenerating SBOM for shared analysis...[0m
+Detected package manager: yarn
+Found lock file: /var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.IwhEC2r6UN/yarn.lock
+Generating SBOM with: syft scan --source-name tmp.IwhEC2r6UN --source-version 74fa166 --exclude **/test/** --exclude **/tests/** --exclude **/node_modules -o cyclonedx-json=/var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.IJI71aJ9gG dir:/var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.IwhEC2r6UN
+SBOM generated: /var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.IJI71aJ9gG
+[0;32m✓ SBOM generated: 21256 components (CycloneDX format)[0m
+[0;36m  Package breakdown:[0m
+[0;36m    - library/pkg: 21189[0m
+[0;36m    - file/unknown: 67[0m
+
+[0;34m▶ Running vulnerability analysis...[0m
+
+
+=========================================
+  Vulnerability Analyser (osv-scanner)
+=========================================
+
+[0;34mFetching CISA KEV catalog...[0m
+[0;32m✓ KEV catalog downloaded[0m
+[0;32mTarget type: Local directory (provided)[0m
+[0;34mScanning repository: /var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.IwhEC2r6UN[0m
+
+
+[0;34mAnalyzing and prioritizing vulnerabilities...[0m
+
+# Vulnerability Analysis Report
+
+## Prioritized Vulnerabilities
+
+| Priority | Flags | CVE ID | Package | Version | CVSS | Description |
+|----------|-------|--------|---------|---------|------|-------------|
+| ⚪ LOW |  | MAL-2025-19860 | eslint-plugin-react- | 0.0.0 | 0 | Malicious code in eslint-plugin-react-internal (np |
+| ⚪ LOW |  | MAL-2023-462 | fsevents | 1.1.3 | 0 | Malicious code in fsevents (npm) |
+| ⚪ LOW |  | MAL-2023-462 | fsevents | 1.1.2 | 0 | Malicious code in fsevents (npm) |
+| ⚪ LOW |  | MAL-2023-462 | fsevents | 1.1.2 | 0 | Malicious code in fsevents (npm) |
+| ⚪ LOW |  | MAL-2023-462 | fsevents | 1.1.2 | 0 | Malicious code in fsevents (npm) |
+| ⚪ LOW |  | MAL-2023-462 | fsevents | 1.1.2 | 0 | Malicious code in fsevents (npm) |
+| ⚪ LOW |  | MAL-2023-462 | fsevents | 1.1.2 | 0 | Malicious code in fsevents (npm) |
+| ⚪ LOW |  | MAL-2023-462 | fsevents | 1.1.2 | 0 | Malicious code in fsevents (npm) |
+| ⚪ LOW |  | MAL-2023-462 | fsevents | 1.1.2 | 0 | Malicious code in fsevents (npm) |
+| ⚪ LOW |  | MAL-2023-462 | fsevents | 1.1.1 | 0 | Malicious code in fsevents (npm) |
+| ⚪ LOW |  | MAL-2023-462 | fsevents | 1.0.17 | 0 | Malicious code in fsevents (npm) |
+| ⚪ LOW |  | MAL-2023-462 | fsevents | 1.0.17 | 0 | Malicious code in fsevents (npm) |
+| ⚪ LOW |  | GHSA-xx4v-prfh-6cgc | @octokit/request-err | 2.1.0 |  | @octokit/request-error has a Regular Expression in |
+| ⚪ LOW |  | GHSA-xvf7-4v9q-58w6 | jpeg-js | 0.1.2 |  | Infinite loop in jpeg-js |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.5 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.5 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.5 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.5 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.5 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.5 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.5 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.5 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.5 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.3 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xvch-5gv4-984h | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-xq7p-g2vc-g82p | base-x | 3.0.10 |  | Homograph attack allows Unicode lookalike characte |
+| ⚪ LOW |  | GHSA-xffm-g5w8-qvg7 | @eslint/plugin-kit | 0.2.4 |  | @eslint/plugin-kit is vulnerable to Regular Expres |
+| ⚪ LOW |  | GHSA-xf7w-r453-m56c | fstream | 1.0.11 |  | Arbitrary File Overwrite in fstream |
+| ⚪ LOW |  | GHSA-xf7w-r453-m56c | fstream | 1.0.11 |  | Arbitrary File Overwrite in fstream |
+| ⚪ LOW |  | GHSA-xf7w-r453-m56c | fstream | 1.0.11 |  | Arbitrary File Overwrite in fstream |
+| ⚪ LOW |  | GHSA-xf7w-r453-m56c | fstream | 1.0.11 |  | Arbitrary File Overwrite in fstream |
+| ⚪ LOW |  | GHSA-xf7w-r453-m56c | fstream | 1.0.11 |  | Arbitrary File Overwrite in fstream |
+| ⚪ LOW |  | GHSA-xf7w-r453-m56c | fstream | 1.0.11 |  | Arbitrary File Overwrite in fstream |
+| ⚪ LOW |  | GHSA-xf7w-r453-m56c | fstream | 1.0.11 |  | Arbitrary File Overwrite in fstream |
+| ⚪ LOW |  | GHSA-xf7w-r453-m56c | fstream | 1.0.11 |  | Arbitrary File Overwrite in fstream |
+| ⚪ LOW |  | GHSA-xf7w-r453-m56c | fstream | 1.0.11 |  | Arbitrary File Overwrite in fstream |
+| ⚪ LOW |  | GHSA-xf7w-r453-m56c | fstream | 1.0.10 |  | Arbitrary File Overwrite in fstream |
+| ⚪ LOW |  | GHSA-xc7v-wxcw-j472 | tunnel-agent | 0.4.3 |  | Memory Exposure in tunnel-agent |
+| ⚪ LOW |  | GHSA-x5rq-j2xg-h7qm | lodash | 4.17.4 |  | Regular Expression Denial of Service (ReDoS) in lo |
+| ⚪ LOW |  | GHSA-x5rq-j2xg-h7qm | lodash | 4.17.4 |  | Regular Expression Denial of Service (ReDoS) in lo |
+| ⚪ LOW |  | GHSA-x5rq-j2xg-h7qm | lodash | 4.17.4 |  | Regular Expression Denial of Service (ReDoS) in lo |
+| ⚪ LOW |  | GHSA-x5pg-88wf-qq4p | marked | 0.3.6 |  | Regular Expression Denial of Service in marked |
+| ⚪ LOW |  | GHSA-x4jg-mjrx-434g | node-forge | 0.6.33 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-x4jg-mjrx-434g | node-forge | 0.6.33 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-x4jg-mjrx-434g | node-forge | 0.10.0 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-x4jg-mjrx-434g | node-forge | 0.10.0 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-x3m3-4wpv-5vgc | requirejs | 2.3.5 |  | jrburke requirejs vulnerable to prototype pollutio |
+| ⚪ LOW |  | GHSA-x3m3-4wpv-5vgc | requirejs | 2.3.5 |  | jrburke requirejs vulnerable to prototype pollutio |
+| ⚪ LOW |  | GHSA-x3cc-x39p-42qx | fast-xml-parser | 3.19.0 |  | fast-xml-parser vulnerable to Prototype Pollution  |
+| ⚪ LOW |  | GHSA-x2mc-8fgj-3wmr | tar-fs | 1.16.0 |  | Improper Input Validation in tar-fs |
+| ⚪ LOW |  | GHSA-wxhq-pm8v-cw75 | clean-css | 4.1.9 |  | Regular Expression Denial of Service in clean-css |
+| ⚪ LOW |  | GHSA-wxhq-pm8v-cw75 | clean-css | 4.1.7 |  | Regular Expression Denial of Service in clean-css |
+| ⚪ LOW |  | GHSA-wxhq-pm8v-cw75 | clean-css | 3.4.23 |  | Regular Expression Denial of Service in clean-css |
+| ⚪ LOW |  | GHSA-wxgw-qj99-44c2 | node-forge | 0.6.33 |  | Prototype Pollution in node-forge util.setPath API |
+| ⚪ LOW |  | GHSA-wxgw-qj99-44c2 | node-forge | 0.6.33 |  | Prototype Pollution in node-forge util.setPath API |
+| ⚪ LOW |  | GHSA-ww39-953v-wcq6 | glob-parent | 5.1.1 |  | glob-parent vulnerable to Regular Expression Denia |
+| ⚪ LOW |  | GHSA-ww39-953v-wcq6 | glob-parent | 5.1.1 |  | glob-parent vulnerable to Regular Expression Denia |
+| ⚪ LOW |  | GHSA-wrvr-8mpx-r7pp | mime | 1.3.6 |  | mime Regular Expression Denial of Service when MIM |
+| ⚪ LOW |  | GHSA-wrvr-8mpx-r7pp | mime | 1.3.4 |  | mime Regular Expression Denial of Service when MIM |
+| ⚪ LOW |  | GHSA-wrvr-8mpx-r7pp | mime | 1.3.4 |  | mime Regular Expression Denial of Service when MIM |
+| ⚪ LOW |  | GHSA-wrvr-8mpx-r7pp | mime | 1.3.4 |  | mime Regular Expression Denial of Service when MIM |
+| ⚪ LOW |  | GHSA-wrvr-8mpx-r7pp | mime | 1.2.11 |  | mime Regular Expression Denial of Service when MIM |
+| ⚪ LOW |  | GHSA-wrvr-8mpx-r7pp | mime | 1.2.11 |  | mime Regular Expression Denial of Service when MIM |
+| ⚪ LOW |  | GHSA-wr3j-pwj9-hqq6 | webpack-dev-middlewa | 1.9.0 |  | Path traversal in webpack-dev-middleware |
+| ⚪ LOW |  | GHSA-wr3j-pwj9-hqq6 | webpack-dev-middlewa | 1.12.2 |  | Path traversal in webpack-dev-middleware |
+| ⚪ LOW |  | GHSA-wr3j-pwj9-hqq6 | webpack-dev-middlewa | 1.12.2 |  | Path traversal in webpack-dev-middleware |
+| ⚪ LOW |  | GHSA-wr3j-pwj9-hqq6 | webpack-dev-middlewa | 1.12.2 |  | Path traversal in webpack-dev-middleware |
+| ⚪ LOW |  | GHSA-wr3j-pwj9-hqq6 | webpack-dev-middlewa | 1.12.0 |  | Path traversal in webpack-dev-middleware |
+| ⚪ LOW |  | GHSA-wr3j-pwj9-hqq6 | webpack-dev-middlewa | 1.12.0 |  | Path traversal in webpack-dev-middleware |
+| ⚪ LOW |  | GHSA-wqq4-5wpv-mx2g | undici | 5.22.1 |  | Undici's cookie header not cleared on cross-origin |
+| ⚪ LOW |  | GHSA-wqch-xfxh-vrr4 | body-parser | 2.2.0 |  | body-parser is vulnerable to denial of service whe |
+| ⚪ LOW |  | GHSA-whgm-jr23-g3j9 | ansi-html | 0.0.7 |  | Uncontrolled Resource Consumption in ansi-html |
+| ⚪ LOW |  | GHSA-whgm-jr23-g3j9 | ansi-html | 0.0.7 |  | Uncontrolled Resource Consumption in ansi-html |
+| ⚪ LOW |  | GHSA-whgm-jr23-g3j9 | ansi-html | 0.0.7 |  | Uncontrolled Resource Consumption in ansi-html |
+| ⚪ LOW |  | GHSA-whgm-jr23-g3j9 | ansi-html | 0.0.7 |  | Uncontrolled Resource Consumption in ansi-html |
+| ⚪ LOW |  | GHSA-whgm-jr23-g3j9 | ansi-html | 0.0.7 |  | Uncontrolled Resource Consumption in ansi-html |
+| ⚪ LOW |  | GHSA-whgm-jr23-g3j9 | ansi-html | 0.0.5 |  | Uncontrolled Resource Consumption in ansi-html |
+| ⚪ LOW |  | GHSA-whgm-jr23-g3j9 | ansi-html | 0.0.5 |  | Uncontrolled Resource Consumption in ansi-html |
+| ⚪ LOW |  | GHSA-wg6g-ppvx-927h | cached-path-relative | 1.0.1 |  | Prototype Pollution in cached-path-relative |
+| ⚪ LOW |  | GHSA-wg6g-ppvx-927h | cached-path-relative | 1.0.1 |  | Prototype Pollution in cached-path-relative |
+| ⚪ LOW |  | GHSA-w9mr-4mfr-499f | ms | 0.7.2 |  | Vercel ms Inefficient Regular Expression Complexit |
+| ⚪ LOW |  | GHSA-w9mr-4mfr-499f | ms | 0.7.2 |  | Vercel ms Inefficient Regular Expression Complexit |
+| ⚪ LOW |  | GHSA-w9mr-4mfr-499f | ms | 0.7.1 |  | Vercel ms Inefficient Regular Expression Complexit |
+| ⚪ LOW |  | GHSA-w9mr-4mfr-499f | ms | 0.7.1 |  | Vercel ms Inefficient Regular Expression Complexit |
+| ⚪ LOW |  | GHSA-w9mr-4mfr-499f | ms | 0.7.1 |  | Vercel ms Inefficient Regular Expression Complexit |
+| ⚪ LOW |  | GHSA-w9mr-4mfr-499f | ms | 0.7.1 |  | Vercel ms Inefficient Regular Expression Complexit |
+| ⚪ LOW |  | GHSA-w8qv-6jwh-64r5 | browserslist | 4.8.5 |  | Regular Expression Denial of Service in browsersli |
+| ⚪ LOW |  | GHSA-w8qv-6jwh-64r5 | browserslist | 4.14.0 |  | Regular Expression Denial of Service in browsersli |
+| ⚪ LOW |  | GHSA-w8qv-6jwh-64r5 | browserslist | 4.13.0 |  | Regular Expression Denial of Service in browsersli |
+| ⚪ LOW |  | GHSA-w8qv-6jwh-64r5 | browserslist | 4.1.2 |  | Regular Expression Denial of Service in browsersli |
+| ⚪ LOW |  | GHSA-w7q9-p3jq-fmhm | jpeg-js | 0.1.2 |  | Uncontrolled resource consumption in jpeg-js |
+| ⚪ LOW |  | GHSA-w5p7-h5w8-2hfq | trim | 0.0.1 |  | Regular Expression Denial of Service in trim |
+| ⚪ LOW |  | GHSA-w573-4hg7-7wgq | decode-uri-component | 0.2.0 |  | decode-uri-component vulnerable to Denial of Servi |
+| ⚪ LOW |  | GHSA-w573-4hg7-7wgq | decode-uri-component | 0.2.0 |  | decode-uri-component vulnerable to Denial of Servi |
+| ⚪ LOW |  | GHSA-vvv8-xw5f-3f88 | mout | 1.1.0 |  | Prototype Pollution in mout |
+| ⚪ LOW |  | GHSA-vmqv-hx8q-j7mg | electron | 23.1.2 |  | Electron has ASAR Integrity Bypass via resource mo |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.5.4 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.5.4 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.5.4 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.5.4 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.5.4 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.5.4 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.5.4 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.5.4 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.5.4 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.5.4 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.4.0 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.4.0 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.4.0 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.4.0 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.4.0 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vjh7-7g9h-fjfh | elliptic | 6.4.0 |  | Elliptic's private key extraction in ECDSA upon si |
+| ⚪ LOW |  | GHSA-vj76-c3g6-qr5v | tar-fs | 3.0.8 |  | tar-fs has a symlink validation bypass if destinat |
+| ⚪ LOW |  | GHSA-vj76-c3g6-qr5v | tar-fs | 2.1.2 |  | tar-fs has a symlink validation bypass if destinat |
+| ⚪ LOW |  | GHSA-vj76-c3g6-qr5v | tar-fs | 1.16.0 |  | tar-fs has a symlink validation bypass if destinat |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 1.2.0 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.8 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh95-rmgr-6w4m | minimist | 0.0.10 |  | Prototype Pollution in minimist |
+| ⚪ LOW |  | GHSA-vh7m-p724-62c2 | elliptic | 6.4.0 |  | Signature Malleabillity in elliptic |
+| ⚪ LOW |  | GHSA-vh7m-p724-62c2 | elliptic | 6.4.0 |  | Signature Malleabillity in elliptic |
+| ⚪ LOW |  | GHSA-vh7m-p724-62c2 | elliptic | 6.4.0 |  | Signature Malleabillity in elliptic |
+| ⚪ LOW |  | GHSA-vh7m-p724-62c2 | elliptic | 6.4.0 |  | Signature Malleabillity in elliptic |
+| ⚪ LOW |  | GHSA-vh7m-p724-62c2 | elliptic | 6.4.0 |  | Signature Malleabillity in elliptic |
+| ⚪ LOW |  | GHSA-vh7m-p724-62c2 | elliptic | 6.4.0 |  | Signature Malleabillity in elliptic |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 6.12.2 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 5.5.2 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 5.5.2 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 5.3.0 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 5.2.2 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.11.8 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.11.8 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.11.8 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.11.8 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.11.8 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.11.8 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.11.8 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.11.8 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.11.8 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.11.8 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.11.5 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v88g-cgmw-v5xw | ajv | 4.10.4 |  | Prototype Pollution in Ajv |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 2.0.1 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 2.0.1 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 2.0.1 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 2.0.1 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 2.0.1 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 2.0.1 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 2.0.1 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.8 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.6 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.6 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v6h2-p8h4-qcjw | brace-expansion | 1.1.11 |  | brace-expansion Regular Expression Denial of Servi |
+| ⚪ LOW |  | GHSA-v62p-rq8g-8h59 | pbkdf2 | 3.1.2 |  | pbkdf2 silently disregards Uint8Array input, retur |
+| ⚪ LOW |  | GHSA-v62p-rq8g-8h59 | pbkdf2 | 3.1.2 |  | pbkdf2 silently disregards Uint8Array input, retur |
+| ⚪ LOW |  | GHSA-v62p-rq8g-8h59 | pbkdf2 | 3.1.2 |  | pbkdf2 silently disregards Uint8Array input, retur |
+| ⚪ LOW |  | GHSA-v62p-rq8g-8h59 | pbkdf2 | 3.1.2 |  | pbkdf2 silently disregards Uint8Array input, retur |
+| ⚪ LOW |  | GHSA-v62p-rq8g-8h59 | pbkdf2 | 3.1.1 |  | pbkdf2 silently disregards Uint8Array input, retur |
+| ⚪ LOW |  | GHSA-v62p-rq8g-8h59 | pbkdf2 | 3.0.14 |  | pbkdf2 silently disregards Uint8Array input, retur |
+| ⚪ LOW |  | GHSA-v62p-rq8g-8h59 | pbkdf2 | 3.0.14 |  | pbkdf2 silently disregards Uint8Array input, retur |
+| ⚪ LOW |  | GHSA-v62p-rq8g-8h59 | pbkdf2 | 3.0.14 |  | pbkdf2 silently disregards Uint8Array input, retur |
+| ⚪ LOW |  | GHSA-v62p-rq8g-8h59 | pbkdf2 | 3.0.14 |  | pbkdf2 silently disregards Uint8Array input, retur |
+| ⚪ LOW |  | GHSA-v62p-rq8g-8h59 | pbkdf2 | 3.0.14 |  | pbkdf2 silently disregards Uint8Array input, retur |
+| ⚪ LOW |  | GHSA-v62p-rq8g-8h59 | pbkdf2 | 3.0.13 |  | pbkdf2 silently disregards Uint8Array input, retur |
+| ⚪ LOW |  | GHSA-rv95-896h-c2vc | express | 4.17.3 |  | Express.js Open Redirect in malformed URLs |
+| ⚪ LOW |  | GHSA-rv95-896h-c2vc | express | 4.17.1 |  | Express.js Open Redirect in malformed URLs |
+| ⚪ LOW |  | GHSA-rv95-896h-c2vc | express | 4.17.1 |  | Express.js Open Redirect in malformed URLs |
+| ⚪ LOW |  | GHSA-rv95-896h-c2vc | express | 4.17.1 |  | Express.js Open Redirect in malformed URLs |
+| ⚪ LOW |  | GHSA-rv95-896h-c2vc | express | 4.17.1 |  | Express.js Open Redirect in malformed URLs |
+| ⚪ LOW |  | GHSA-rv95-896h-c2vc | express | 4.16.2 |  | Express.js Open Redirect in malformed URLs |
+| ⚪ LOW |  | GHSA-rv95-896h-c2vc | express | 4.16.2 |  | Express.js Open Redirect in malformed URLs |
+| ⚪ LOW |  | GHSA-rv95-896h-c2vc | express | 4.16.2 |  | Express.js Open Redirect in malformed URLs |
+| ⚪ LOW |  | GHSA-rv95-896h-c2vc | express | 4.15.4 |  | Express.js Open Redirect in malformed URLs |
+| ⚪ LOW |  | GHSA-rv95-896h-c2vc | express | 4.14.0 |  | Express.js Open Redirect in malformed URLs |
+| ⚪ LOW |  | GHSA-rrrm-qjm4-v8hf | marked | 0.7.0 |  | Inefficient Regular Expression Complexity in marke |
+| ⚪ LOW |  | GHSA-rrrm-qjm4-v8hf | marked | 0.3.6 |  | Inefficient Regular Expression Complexity in marke |
+| ⚪ LOW |  | GHSA-rqff-837h-mm52 | url-parse | 1.5.1 |  | Authorization bypass in url-parse |
+| ⚪ LOW |  | GHSA-rqff-837h-mm52 | url-parse | 1.5.1 |  | Authorization bypass in url-parse |
+| ⚪ LOW |  | GHSA-rqff-837h-mm52 | url-parse | 1.2.0 |  | Authorization bypass in url-parse |
+| ⚪ LOW |  | GHSA-rqff-837h-mm52 | url-parse | 1.1.9 |  | Authorization bypass in url-parse |
+| ⚪ LOW |  | GHSA-rqff-837h-mm52 | url-parse | 1.1.7 |  | Authorization bypass in url-parse |
+| ⚪ LOW |  | GHSA-rqff-837h-mm52 | url-parse | 1.0.5 |  | Authorization bypass in url-parse |
+| ⚪ LOW |  | GHSA-rqff-837h-mm52 | url-parse | 1.0.5 |  | Authorization bypass in url-parse |
+| ⚪ LOW |  | GHSA-rqff-837h-mm52 | url-parse | 1.0.5 |  | Authorization bypass in url-parse |
+| ⚪ LOW |  | GHSA-rq8g-5pc5-wrhr | cryptiles | 3.1.2 |  | Insufficient Entropy in cryptiles |
+| ⚪ LOW |  | GHSA-rp65-9cf3-cjxr | nth-check | 1.0.2 |  | Inefficient Regular Expression Complexity in nth-c |
+| ⚪ LOW |  | GHSA-rp65-9cf3-cjxr | nth-check | 1.0.2 |  | Inefficient Regular Expression Complexity in nth-c |
+| ⚪ LOW |  | GHSA-rp65-9cf3-cjxr | nth-check | 1.0.2 |  | Inefficient Regular Expression Complexity in nth-c |
+| ⚪ LOW |  | GHSA-rp65-9cf3-cjxr | nth-check | 1.0.2 |  | Inefficient Regular Expression Complexity in nth-c |
+| ⚪ LOW |  | GHSA-rp65-9cf3-cjxr | nth-check | 1.0.2 |  | Inefficient Regular Expression Complexity in nth-c |
+| ⚪ LOW |  | GHSA-rp65-9cf3-cjxr | nth-check | 1.0.1 |  | Inefficient Regular Expression Complexity in nth-c |
+| ⚪ LOW |  | GHSA-rp65-9cf3-cjxr | nth-check | 1.0.1 |  | Inefficient Regular Expression Complexity in nth-c |
+| ⚪ LOW |  | GHSA-rp65-9cf3-cjxr | nth-check | 1.0.1 |  | Inefficient Regular Expression Complexity in nth-c |
+| ⚪ LOW |  | GHSA-rp65-9cf3-cjxr | nth-check | 1.0.1 |  | Inefficient Regular Expression Complexity in nth-c |
+| ⚪ LOW |  | GHSA-rmvr-2pp2-xj38 | @octokit/request | 5.6.3 |  | @octokit/request has a Regular Expression in fetch |
+| ⚪ LOW |  | GHSA-rhx6-c78j-4q9w | path-to-regexp | 0.1.7 |  | path-to-regexp contains a ReDoS |
+| ⚪ LOW |  | GHSA-rhx6-c78j-4q9w | path-to-regexp | 0.1.7 |  | path-to-regexp contains a ReDoS |
+| ⚪ LOW |  | GHSA-rhx6-c78j-4q9w | path-to-regexp | 0.1.7 |  | path-to-regexp contains a ReDoS |
+| ⚪ LOW |  | GHSA-rhx6-c78j-4q9w | path-to-regexp | 0.1.7 |  | path-to-regexp contains a ReDoS |
+| ⚪ LOW |  | GHSA-rhx6-c78j-4q9w | path-to-regexp | 0.1.7 |  | path-to-regexp contains a ReDoS |
+| ⚪ LOW |  | GHSA-rhx6-c78j-4q9w | path-to-regexp | 0.1.7 |  | path-to-regexp contains a ReDoS |
+| ⚪ LOW |  | GHSA-rhx6-c78j-4q9w | path-to-regexp | 0.1.7 |  | path-to-regexp contains a ReDoS |
+| ⚪ LOW |  | GHSA-rhx6-c78j-4q9w | path-to-regexp | 0.1.7 |  | path-to-regexp contains a ReDoS |
+| ⚪ LOW |  | GHSA-rhx6-c78j-4q9w | path-to-regexp | 0.1.7 |  | path-to-regexp contains a ReDoS |
+| ⚪ LOW |  | GHSA-rhx6-c78j-4q9w | path-to-regexp | 0.1.7 |  | path-to-regexp contains a ReDoS |
+| ⚪ LOW |  | GHSA-rhx6-c78j-4q9w | path-to-regexp | 0.1.10 |  | path-to-regexp contains a ReDoS |
+| ⚪ LOW |  | GHSA-rc47-6667-2j5j | http-cache-semantics | 4.1.0 |  | http-cache-semantics vulnerable to Regular Express |
+| ⚪ LOW |  | GHSA-rc47-6667-2j5j | http-cache-semantics | 4.1.0 |  | http-cache-semantics vulnerable to Regular Express |
+| ⚪ LOW |  | GHSA-rc47-6667-2j5j | http-cache-semantics | 4.1.0 |  | http-cache-semantics vulnerable to Regular Express |
+| ⚪ LOW |  | GHSA-rc47-6667-2j5j | http-cache-semantics | 4.0.3 |  | http-cache-semantics vulnerable to Regular Express |
+| ⚪ LOW |  | GHSA-rc47-6667-2j5j | http-cache-semantics | 3.8.1 |  | http-cache-semantics vulnerable to Regular Express |
+| ⚪ LOW |  | GHSA-r9p9-mrjm-926w | elliptic | 6.4.0 |  | Elliptic Uses a Broken or Risky Cryptographic Algo |
+| ⚪ LOW |  | GHSA-r9p9-mrjm-926w | elliptic | 6.4.0 |  | Elliptic Uses a Broken or Risky Cryptographic Algo |
+| ⚪ LOW |  | GHSA-r9p9-mrjm-926w | elliptic | 6.4.0 |  | Elliptic Uses a Broken or Risky Cryptographic Algo |
+| ⚪ LOW |  | GHSA-r9p9-mrjm-926w | elliptic | 6.4.0 |  | Elliptic Uses a Broken or Risky Cryptographic Algo |
+| ⚪ LOW |  | GHSA-r9p9-mrjm-926w | elliptic | 6.4.0 |  | Elliptic Uses a Broken or Risky Cryptographic Algo |
+| ⚪ LOW |  | GHSA-r9p9-mrjm-926w | elliptic | 6.4.0 |  | Elliptic Uses a Broken or Risky Cryptographic Algo |
+| ⚪ LOW |  | GHSA-r8j5-h5cx-65gg | is-svg | 2.1.0 |  | ReDOS in IS-SVG |
+| ⚪ LOW |  | GHSA-r8j5-h5cx-65gg | is-svg | 2.1.0 |  | ReDOS in IS-SVG |
+| ⚪ LOW |  | GHSA-r8j5-h5cx-65gg | is-svg | 2.1.0 |  | ReDOS in IS-SVG |
+| ⚪ LOW |  | GHSA-r8j5-h5cx-65gg | is-svg | 2.1.0 |  | ReDOS in IS-SVG |
+| ⚪ LOW |  | GHSA-r8j5-h5cx-65gg | is-svg | 2.1.0 |  | ReDOS in IS-SVG |
+| ⚪ LOW |  | GHSA-r8j5-h5cx-65gg | is-svg | 2.1.0 |  | ReDOS in IS-SVG |
+| ⚪ LOW |  | GHSA-r683-j2x4-v87g | node-fetch | 1.7.3 |  | node-fetch forwards secure headers to untrusted si |
+| ⚪ LOW |  | GHSA-r683-j2x4-v87g | node-fetch | 1.7.3 |  | node-fetch forwards secure headers to untrusted si |
+| ⚪ LOW |  | GHSA-r683-j2x4-v87g | node-fetch | 1.7.3 |  | node-fetch forwards secure headers to untrusted si |
+| ⚪ LOW |  | GHSA-r683-j2x4-v87g | node-fetch | 1.7.3 |  | node-fetch forwards secure headers to untrusted si |
+| ⚪ LOW |  | GHSA-r683-j2x4-v87g | node-fetch | 1.7.3 |  | node-fetch forwards secure headers to untrusted si |
+| ⚪ LOW |  | GHSA-r683-j2x4-v87g | node-fetch | 1.7.2 |  | node-fetch forwards secure headers to untrusted si |
+| ⚪ LOW |  | GHSA-r683-j2x4-v87g | node-fetch | 1.7.1 |  | node-fetch forwards secure headers to untrusted si |
+| ⚪ LOW |  | GHSA-qwcr-r2fm-qrc7 | body-parser | 1.20.2 |  | body-parser vulnerable to denial of service when u |
+| ⚪ LOW |  | GHSA-qwcr-r2fm-qrc7 | body-parser | 1.20.1 |  | body-parser vulnerable to denial of service when u |
+| ⚪ LOW |  | GHSA-qwcr-r2fm-qrc7 | body-parser | 1.19.2 |  | body-parser vulnerable to denial of service when u |
+| ⚪ LOW |  | GHSA-qwcr-r2fm-qrc7 | body-parser | 1.19.0 |  | body-parser vulnerable to denial of service when u |
+| ⚪ LOW |  | GHSA-qwcr-r2fm-qrc7 | body-parser | 1.19.0 |  | body-parser vulnerable to denial of service when u |
+| ⚪ LOW |  | GHSA-qwcr-r2fm-qrc7 | body-parser | 1.19.0 |  | body-parser vulnerable to denial of service when u |
+| ⚪ LOW |  | GHSA-qwcr-r2fm-qrc7 | body-parser | 1.19.0 |  | body-parser vulnerable to denial of service when u |
+| ⚪ LOW |  | GHSA-qwcr-r2fm-qrc7 | body-parser | 1.18.2 |  | body-parser vulnerable to denial of service when u |
+| ⚪ LOW |  | GHSA-qwcr-r2fm-qrc7 | body-parser | 1.18.2 |  | body-parser vulnerable to denial of service when u |
+| ⚪ LOW |  | GHSA-qwcr-r2fm-qrc7 | body-parser | 1.18.2 |  | body-parser vulnerable to denial of service when u |
+| ⚪ LOW |  | GHSA-qw6h-vgh9-j6wx | express | 4.17.3 |  | express vulnerable to XSS via response.redirect() |
+| ⚪ LOW |  | GHSA-qw6h-vgh9-j6wx | express | 4.17.1 |  | express vulnerable to XSS via response.redirect() |
+| ⚪ LOW |  | GHSA-qw6h-vgh9-j6wx | express | 4.17.1 |  | express vulnerable to XSS via response.redirect() |
+| ⚪ LOW |  | GHSA-qw6h-vgh9-j6wx | express | 4.17.1 |  | express vulnerable to XSS via response.redirect() |
+| ⚪ LOW |  | GHSA-qw6h-vgh9-j6wx | express | 4.17.1 |  | express vulnerable to XSS via response.redirect() |
+| ⚪ LOW |  | GHSA-qw6h-vgh9-j6wx | express | 4.16.2 |  | express vulnerable to XSS via response.redirect() |
+| ⚪ LOW |  | GHSA-qw6h-vgh9-j6wx | express | 4.16.2 |  | express vulnerable to XSS via response.redirect() |
+| ⚪ LOW |  | GHSA-qw6h-vgh9-j6wx | express | 4.16.2 |  | express vulnerable to XSS via response.redirect() |
+| ⚪ LOW |  | GHSA-qw6h-vgh9-j6wx | express | 4.15.4 |  | express vulnerable to XSS via response.redirect() |
+| ⚪ LOW |  | GHSA-qw6h-vgh9-j6wx | express | 4.14.0 |  | express vulnerable to XSS via response.redirect() |
+| ⚪ LOW |  | GHSA-qrmc-fj45-qfc2 | extend | 3.0.1 |  | Prototype Pollution in extend |
+| ⚪ LOW |  | GHSA-qrmc-fj45-qfc2 | extend | 3.0.1 |  | Prototype Pollution in extend |
+| ⚪ LOW |  | GHSA-qrmc-fj45-qfc2 | extend | 3.0.1 |  | Prototype Pollution in extend |
+| ⚪ LOW |  | GHSA-qrmc-fj45-qfc2 | extend | 3.0.1 |  | Prototype Pollution in extend |
+| ⚪ LOW |  | GHSA-qrmc-fj45-qfc2 | extend | 3.0.1 |  | Prototype Pollution in extend |
+| ⚪ LOW |  | GHSA-qrmc-fj45-qfc2 | extend | 3.0.1 |  | Prototype Pollution in extend |
+| ⚪ LOW |  | GHSA-qrmc-fj45-qfc2 | extend | 3.0.1 |  | Prototype Pollution in extend |
+| ⚪ LOW |  | GHSA-qrmc-fj45-qfc2 | extend | 3.0.1 |  | Prototype Pollution in extend |
+| ⚪ LOW |  | GHSA-qrmc-fj45-qfc2 | extend | 3.0.1 |  | Prototype Pollution in extend |
+| ⚪ LOW |  | GHSA-qrmc-fj45-qfc2 | extend | 3.0.0 |  | Prototype Pollution in extend |
+| ⚪ LOW |  | GHSA-qrmc-fj45-qfc2 | extend | 3.0.0 |  | Prototype Pollution in extend |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.5 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.5 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.4 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.4 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.4 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.4 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.4 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.4 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.4 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.4 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.4 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.4 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qqgx-2p2h-9c37 | ini | 1.3.4 |  | ini before 1.3.6 vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-qm9p-f9j5-w83w | @parcel/reporter-dev | 2.0.0-cana |  | Parcel has an Origin Validation Error vulnerabilit |
+| ⚪ LOW |  | GHSA-qh2h-chj9-jffq | growl | 1.8.1 |  | Growl before 1.10.0 vulnerable to Command Injectio |
+| ⚪ LOW |  | GHSA-qh2h-chj9-jffq | growl | 1.8.1 |  | Growl before 1.10.0 vulnerable to Command Injectio |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.6.0 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.4.2 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.4.0 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.4.0 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.4.0 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.4.0 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.3.1 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.3.1 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.3.1 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.3.1 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.3.1 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.3.1 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-pxg6-pf52-xh8x | cookie | 0.3.1 |  | cookie accepts cookie name, path, and domain with  |
+| ⚪ LOW |  | GHSA-px4h-xg32-q955 | normalize-url | 4.5.0 |  | ReDoS in normalize-url |
+| ⚪ LOW |  | GHSA-px4h-xg32-q955 | normalize-url | 4.3.0 |  | ReDoS in normalize-url |
+| ⚪ LOW |  | GHSA-pv4c-p2j5-38j4 | url-parse | 1.2.0 |  | Open Redirect in url-parse |
+| ⚪ LOW |  | GHSA-pv4c-p2j5-38j4 | url-parse | 1.1.9 |  | Open Redirect in url-parse |
+| ⚪ LOW |  | GHSA-pv4c-p2j5-38j4 | url-parse | 1.1.7 |  | Open Redirect in url-parse |
+| ⚪ LOW |  | GHSA-pv4c-p2j5-38j4 | url-parse | 1.0.5 |  | Open Redirect in url-parse |
+| ⚪ LOW |  | GHSA-pv4c-p2j5-38j4 | url-parse | 1.0.5 |  | Open Redirect in url-parse |
+| ⚪ LOW |  | GHSA-pv4c-p2j5-38j4 | url-parse | 1.0.5 |  | Open Redirect in url-parse |
+| ⚪ LOW |  | GHSA-pq67-2wwv-3xjx | tar-fs | 1.16.0 |  | tar-fs Vulnerable to Link Following and Path Trave |
+| ⚪ LOW |  | GHSA-pp7h-53gx-mx7r | bl | 3.0.0 |  | Remote Memory Exposure in bl |
+| ⚪ LOW |  | GHSA-pp7h-53gx-mx7r | bl | 1.2.1 |  | Remote Memory Exposure in bl |
+| ⚪ LOW |  | GHSA-pp57-mqmh-44h7 | macaddress | 0.2.8 |  | Command Injection in macaddress |
+| ⚪ LOW |  | GHSA-pp57-mqmh-44h7 | macaddress | 0.2.8 |  | Command Injection in macaddress |
+| ⚪ LOW |  | GHSA-pp57-mqmh-44h7 | macaddress | 0.2.8 |  | Command Injection in macaddress |
+| ⚪ LOW |  | GHSA-pfrx-2q88-qq97 | got | 9.6.0 |  | Got allows a redirect to a UNIX socket |
+| ⚪ LOW |  | GHSA-pfrx-2q88-qq97 | got | 9.6.0 |  | Got allows a redirect to a UNIX socket |
+| ⚪ LOW |  | GHSA-pfrx-2q88-qq97 | got | 9.6.0 |  | Got allows a redirect to a UNIX socket |
+| ⚪ LOW |  | GHSA-pfrx-2q88-qq97 | got | 9.6.0 |  | Got allows a redirect to a UNIX socket |
+| ⚪ LOW |  | GHSA-pfrx-2q88-qq97 | got | 8.3.2 |  | Got allows a redirect to a UNIX socket |
+| ⚪ LOW |  | GHSA-pfrx-2q88-qq97 | got | 7.1.0 |  | Got allows a redirect to a UNIX socket |
+| ⚪ LOW |  | GHSA-pfrx-2q88-qq97 | got | 6.7.1 |  | Got allows a redirect to a UNIX socket |
+| ⚪ LOW |  | GHSA-pfrx-2q88-qq97 | got | 6.7.1 |  | Got allows a redirect to a UNIX socket |
+| ⚪ LOW |  | GHSA-pfrx-2q88-qq97 | got | 6.7.1 |  | Got allows a redirect to a UNIX socket |
+| ⚪ LOW |  | GHSA-pfrx-2q88-qq97 | got | 5.7.1 |  | Got allows a redirect to a UNIX socket |
+| ⚪ LOW |  | GHSA-pfrx-2q88-qq97 | got | 5.7.1 |  | Got allows a redirect to a UNIX socket |
+| ⚪ LOW |  | GHSA-pfq8-rq6v-vf5m | html-minifier | 3.5.6 |  | kangax html-minifier REDoS vulnerability |
+| ⚪ LOW |  | GHSA-pfq8-rq6v-vf5m | html-minifier | 3.5.3 |  | kangax html-minifier REDoS vulnerability |
+| ⚪ LOW |  | GHSA-pfq8-rq6v-vf5m | html-minifier | 3.5.21 |  | kangax html-minifier REDoS vulnerability |
+| ⚪ LOW |  | GHSA-pfq8-rq6v-vf5m | html-minifier | 3.5.21 |  | kangax html-minifier REDoS vulnerability |
+| ⚪ LOW |  | GHSA-pfq8-rq6v-vf5m | html-minifier | 3.5.21 |  | kangax html-minifier REDoS vulnerability |
+| ⚪ LOW |  | GHSA-pfq8-rq6v-vf5m | html-minifier | 3.2.3 |  | kangax html-minifier REDoS vulnerability |
+| ⚪ LOW |  | GHSA-pc58-wgmc-hfjr | mout | 1.1.0 |  | Prototype Pollution in mout |
+| ⚪ LOW |  | GHSA-p9wx-2529-fp83 | marked | 0.3.6 |  | Marked allows Regular Expression Denial of Service |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 7.0.0 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 7.0.0 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 7.0.0 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 7.0.0 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 7.0.0 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 5.0.0 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 5.0.0 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 4.2.1 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 4.2.1 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 4.2.1 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 4.2.1 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 4.2.1 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p9pc-299p-vxgp | yargs-parser | 4.2.1 |  | yargs-parser Vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.88.2 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.88.2 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.88.2 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.83.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.81.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.81.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.81.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.81.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.81.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.81.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.81.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.81.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.81.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.81.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.81.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p8p7-x288-28g6 | request | 2.79.0 |  | Server-Side Request Forgery in Request |
+| ⚪ LOW |  | GHSA-p7v2-p9m8-qqg7 | electron | 23.1.2 |  | Electron context isolation bypass via nested unser |
+| ⚪ LOW |  | GHSA-p6mc-m468-83gw | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-p6mc-m468-83gw | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-p6mc-m468-83gw | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-p6mc-m468-83gw | lodash | 4.17.15 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-p6mc-m468-83gw | lodash | 4.17.11 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-p6mc-m468-83gw | lodash | 4.17.11 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-p6mc-m468-83gw | lodash | 3.10.1 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-p6j9-7xhc-rhwp | urijs | 1.19.0 |  | URIjs Hostname spoofing via backslashes in URL |
+| ⚪ LOW |  | GHSA-p6j9-7xhc-rhwp | urijs | 1.18.12 |  | URIjs Hostname spoofing via backslashes in URL |
+| ⚪ LOW |  | GHSA-mwcw-c2x4-8c55 | nanoid | 3.3.7 |  | Predictable results in nanoid generation when give |
+| ⚪ LOW |  | GHSA-mwcw-c2x4-8c55 | nanoid | 3.3.7 |  | Predictable results in nanoid generation when give |
+| ⚪ LOW |  | GHSA-mwcw-c2x4-8c55 | nanoid | 3.3.7 |  | Predictable results in nanoid generation when give |
+| ⚪ LOW |  | GHSA-mwcw-c2x4-8c55 | nanoid | 3.3.4 |  | Predictable results in nanoid generation when give |
+| ⚪ LOW |  | GHSA-mvjj-gqq2-p4hw | react-dom | 16.2.0 |  | Cross-Site Scripting in react-dom |
+| ⚪ LOW |  | GHSA-mpcf-4gmh-23w8 | forwarded | 0.1.0 |  | Regular Expression Denial of Service in forwarded |
+| ⚪ LOW |  | GHSA-mpcf-4gmh-23w8 | forwarded | 0.1.0 |  | Regular Expression Denial of Service in forwarded |
+| ⚪ LOW |  | GHSA-mhxj-85r3-2x55 | file-type | 14.7.1 |  | file-type vulnerable to Infinite Loop via malforme |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 4.1.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 4.1.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 4.1.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 4.1.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 4.1.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 4.1.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 4.1.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 4.1.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.9.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.7.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.7.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.7.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.7.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.7.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.7.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.6.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.14.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.14.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.14.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.14.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.14.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.14.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.14.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.14.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.14.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.14.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.13.1 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mh29-5h37-fv8m | js-yaml | 3.10.0 |  | js-yaml has prototype pollution in merge (<<) |
+| ⚪ LOW |  | GHSA-mf6x-7mm4-x2g7 | stringstream | 0.0.5 |  | Out-of-bounds Read in stringstream |
+| ⚪ LOW |  | GHSA-mf6x-7mm4-x2g7 | stringstream | 0.0.5 |  | Out-of-bounds Read in stringstream |
+| ⚪ LOW |  | GHSA-mf6x-7mm4-x2g7 | stringstream | 0.0.5 |  | Out-of-bounds Read in stringstream |
+| ⚪ LOW |  | GHSA-mf6x-7mm4-x2g7 | stringstream | 0.0.5 |  | Out-of-bounds Read in stringstream |
+| ⚪ LOW |  | GHSA-mf6x-7mm4-x2g7 | stringstream | 0.0.5 |  | Out-of-bounds Read in stringstream |
+| ⚪ LOW |  | GHSA-mf6x-7mm4-x2g7 | stringstream | 0.0.5 |  | Out-of-bounds Read in stringstream |
+| ⚪ LOW |  | GHSA-mf6x-7mm4-x2g7 | stringstream | 0.0.5 |  | Out-of-bounds Read in stringstream |
+| ⚪ LOW |  | GHSA-mf6x-7mm4-x2g7 | stringstream | 0.0.5 |  | Out-of-bounds Read in stringstream |
+| ⚪ LOW |  | GHSA-mf6x-7mm4-x2g7 | stringstream | 0.0.5 |  | Out-of-bounds Read in stringstream |
+| ⚪ LOW |  | GHSA-mf6x-7mm4-x2g7 | stringstream | 0.0.5 |  | Out-of-bounds Read in stringstream |
+| ⚪ LOW |  | GHSA-mf6x-7mm4-x2g7 | stringstream | 0.0.5 |  | Out-of-bounds Read in stringstream |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.17.2 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.17.1 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.17.1 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.17.1 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.17.1 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.16.1 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.16.1 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.16.1 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.15.6 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.15.4 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.15.3 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m6fv-jmcg-4jfg | send | 0.14.1 |  | send vulnerable to template injection that can lea |
+| ⚪ LOW |  | GHSA-m5qc-5hw7-8vg7 | image-size | 1.1.1 |  | image-size Denial of Service via Infinite Loop dur |
+| ⚪ LOW |  | GHSA-m4v8-wqvr-p9f7 | undici | 5.22.1 |  | Undici's Proxy-Authorization header not cleared on |
+| ⚪ LOW |  | GHSA-jr5f-v2jv-69x6 | axios | 1.7.7 |  | axios Requests Vulnerable To Possible SSRF and Cre |
+| ⚪ LOW |  | GHSA-jr5f-v2jv-69x6 | axios | 1.7.4 |  | axios Requests Vulnerable To Possible SSRF and Cre |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 4.2.0 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jp4x-w63m-7wgm | hoek | 2.16.3 |  | Prototype Pollution in hoek |
+| ⚪ LOW |  | GHSA-jgrx-mgxx-jf9v | tmpl | 1.0.4 |  | tmpl vulnerable to Inefficient Regular Expression  |
+| ⚪ LOW |  | GHSA-jgrx-mgxx-jf9v | tmpl | 1.0.4 |  | tmpl vulnerable to Inefficient Regular Expression  |
+| ⚪ LOW |  | GHSA-jgrx-mgxx-jf9v | tmpl | 1.0.4 |  | tmpl vulnerable to Inefficient Regular Expression  |
+| ⚪ LOW |  | GHSA-jgrx-mgxx-jf9v | tmpl | 1.0.4 |  | tmpl vulnerable to Inefficient Regular Expression  |
+| ⚪ LOW |  | GHSA-jgrx-mgxx-jf9v | tmpl | 1.0.4 |  | tmpl vulnerable to Inefficient Regular Expression  |
+| ⚪ LOW |  | GHSA-jf85-cpcp-j695 | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-jf85-cpcp-j695 | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-jf85-cpcp-j695 | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-jf85-cpcp-j695 | lodash | 4.17.11 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-jf85-cpcp-j695 | lodash | 4.17.11 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-jf85-cpcp-j695 | lodash | 3.10.1 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-jf5r-8hm2-f872 | url-parse | 1.5.1 |  | url-parse incorrectly parses hostname / protocol d |
+| ⚪ LOW |  | GHSA-jf5r-8hm2-f872 | url-parse | 1.5.1 |  | url-parse incorrectly parses hostname / protocol d |
+| ⚪ LOW |  | GHSA-jf5r-8hm2-f872 | url-parse | 1.2.0 |  | url-parse incorrectly parses hostname / protocol d |
+| ⚪ LOW |  | GHSA-jf5r-8hm2-f872 | url-parse | 1.1.9 |  | url-parse incorrectly parses hostname / protocol d |
+| ⚪ LOW |  | GHSA-jf5r-8hm2-f872 | url-parse | 1.1.7 |  | url-parse incorrectly parses hostname / protocol d |
+| ⚪ LOW |  | GHSA-jf5r-8hm2-f872 | url-parse | 1.0.5 |  | url-parse incorrectly parses hostname / protocol d |
+| ⚪ LOW |  | GHSA-jf5r-8hm2-f872 | url-parse | 1.0.5 |  | url-parse incorrectly parses hostname / protocol d |
+| ⚪ LOW |  | GHSA-jf5r-8hm2-f872 | url-parse | 1.0.5 |  | url-parse incorrectly parses hostname / protocol d |
+| ⚪ LOW |  | GHSA-jc84-3g44-wf2q | ecstatic | 2.2.2 |  | Denial of Service in ecstatic |
+| ⚪ LOW |  | GHSA-j8xg-fqg3-53r7 | word-wrap | 1.2.3 |  | word-wrap vulnerable to Regular Expression Denial  |
+| ⚪ LOW |  | GHSA-j8xg-fqg3-53r7 | word-wrap | 1.2.3 |  | word-wrap vulnerable to Regular Expression Denial  |
+| ⚪ LOW |  | GHSA-j8xg-fqg3-53r7 | word-wrap | 1.2.3 |  | word-wrap vulnerable to Regular Expression Denial  |
+| ⚪ LOW |  | GHSA-j8xg-fqg3-53r7 | word-wrap | 1.2.3 |  | word-wrap vulnerable to Regular Expression Denial  |
+| ⚪ LOW |  | GHSA-j44m-qm6p-hp7m | tar | 2.2.1 |  | Arbitrary File Overwrite in tar |
+| ⚪ LOW |  | GHSA-j44m-qm6p-hp7m | tar | 2.2.1 |  | Arbitrary File Overwrite in tar |
+| ⚪ LOW |  | GHSA-j44m-qm6p-hp7m | tar | 2.2.1 |  | Arbitrary File Overwrite in tar |
+| ⚪ LOW |  | GHSA-j44m-qm6p-hp7m | tar | 2.2.1 |  | Arbitrary File Overwrite in tar |
+| ⚪ LOW |  | GHSA-j44m-qm6p-hp7m | tar | 2.2.1 |  | Arbitrary File Overwrite in tar |
+| ⚪ LOW |  | GHSA-j44m-qm6p-hp7m | tar | 2.2.1 |  | Arbitrary File Overwrite in tar |
+| ⚪ LOW |  | GHSA-j44m-qm6p-hp7m | tar | 2.2.1 |  | Arbitrary File Overwrite in tar |
+| ⚪ LOW |  | GHSA-j44m-qm6p-hp7m | tar | 2.2.1 |  | Arbitrary File Overwrite in tar |
+| ⚪ LOW |  | GHSA-j44m-qm6p-hp7m | tar | 2.2.1 |  | Arbitrary File Overwrite in tar |
+| ⚪ LOW |  | GHSA-j44m-qm6p-hp7m | tar | 2.2.1 |  | Arbitrary File Overwrite in tar |
+| ⚪ LOW |  | GHSA-hxcm-v35h-mg2x | querystringify | 1.0.0 |  | Prototype Pollution in querystringify |
+| ⚪ LOW |  | GHSA-hxcm-v35h-mg2x | querystringify | 1.0.0 |  | Prototype Pollution in querystringify |
+| ⚪ LOW |  | GHSA-hxcm-v35h-mg2x | querystringify | 0.0.4 |  | Prototype Pollution in querystringify |
+| ⚪ LOW |  | GHSA-hxcm-v35h-mg2x | querystringify | 0.0.4 |  | Prototype Pollution in querystringify |
+| ⚪ LOW |  | GHSA-hxcm-v35h-mg2x | querystringify | 0.0.4 |  | Prototype Pollution in querystringify |
+| ⚪ LOW |  | GHSA-hwj9-h5mp-3pm3 | postcss | 7.0.32 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.7.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.7.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.7.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.7.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.5.2 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.5.1 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.5.1 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.5.1 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.5.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.4.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.4.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.4.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.4.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.4.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.4.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.4.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.3.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 6.2.0 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hrpp-h998-j3pp | qs | 2.3.3 |  | qs vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.5.0 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.4.2 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.4.2 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.4.2 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.4.2 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.4.2 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.4.2 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.4.2 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.4.2 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.4.2 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.4.1 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hr2v-3952-633q | deep-extend | 0.4.1 |  | Prototype Pollution in deep-extend |
+| ⚪ LOW |  | GHSA-hj48-42vr-x3v9 | path-parse | 1.0.6 |  | Regular Expression Denial of Service in path-parse |
+| ⚪ LOW |  | GHSA-hj48-42vr-x3v9 | path-parse | 1.0.6 |  | Regular Expression Denial of Service in path-parse |
+| ⚪ LOW |  | GHSA-hj48-42vr-x3v9 | path-parse | 1.0.6 |  | Regular Expression Denial of Service in path-parse |
+| ⚪ LOW |  | GHSA-hj48-42vr-x3v9 | path-parse | 1.0.6 |  | Regular Expression Denial of Service in path-parse |
+| ⚪ LOW |  | GHSA-hj48-42vr-x3v9 | path-parse | 1.0.6 |  | Regular Expression Denial of Service in path-parse |
+| ⚪ LOW |  | GHSA-hj48-42vr-x3v9 | path-parse | 1.0.5 |  | Regular Expression Denial of Service in path-parse |
+| ⚪ LOW |  | GHSA-hj48-42vr-x3v9 | path-parse | 1.0.5 |  | Regular Expression Denial of Service in path-parse |
+| ⚪ LOW |  | GHSA-hj48-42vr-x3v9 | path-parse | 1.0.5 |  | Regular Expression Denial of Service in path-parse |
+| ⚪ LOW |  | GHSA-hj48-42vr-x3v9 | path-parse | 1.0.5 |  | Regular Expression Denial of Service in path-parse |
+| ⚪ LOW |  | GHSA-hj48-42vr-x3v9 | path-parse | 1.0.5 |  | Regular Expression Denial of Service in path-parse |
+| ⚪ LOW |  | GHSA-hhq3-ff78-jv3g | loader-utils | 3.2.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-hhq3-ff78-jv3g | loader-utils | 2.0.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-hhq3-ff78-jv3g | loader-utils | 1.4.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-hhq3-ff78-jv3g | loader-utils | 1.4.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-hhq3-ff78-jv3g | loader-utils | 1.4.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-hhq3-ff78-jv3g | loader-utils | 1.4.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-hhq3-ff78-jv3g | loader-utils | 1.4.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-hhq3-ff78-jv3g | loader-utils | 1.2.3 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-hhq3-ff78-jv3g | loader-utils | 1.1.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-hhq3-ff78-jv3g | loader-utils | 1.1.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-hh27-ffr2-f2jc | url-parse | 1.5.1 |  | Open redirect in url-parse |
+| ⚪ LOW |  | GHSA-hh27-ffr2-f2jc | url-parse | 1.5.1 |  | Open redirect in url-parse |
+| ⚪ LOW |  | GHSA-hh27-ffr2-f2jc | url-parse | 1.2.0 |  | Open redirect in url-parse |
+| ⚪ LOW |  | GHSA-hh27-ffr2-f2jc | url-parse | 1.1.9 |  | Open redirect in url-parse |
+| ⚪ LOW |  | GHSA-hh27-ffr2-f2jc | url-parse | 1.1.7 |  | Open redirect in url-parse |
+| ⚪ LOW |  | GHSA-hh27-ffr2-f2jc | url-parse | 1.0.5 |  | Open redirect in url-parse |
+| ⚪ LOW |  | GHSA-hh27-ffr2-f2jc | url-parse | 1.0.5 |  | Open redirect in url-parse |
+| ⚪ LOW |  | GHSA-hh27-ffr2-f2jc | url-parse | 1.0.5 |  | Open redirect in url-parse |
+| ⚪ LOW |  | GHSA-hgjh-723h-mx2j | url-parse | 1.5.1 |  | Authorization Bypass Through User-Controlled Key i |
+| ⚪ LOW |  | GHSA-hgjh-723h-mx2j | url-parse | 1.5.1 |  | Authorization Bypass Through User-Controlled Key i |
+| ⚪ LOW |  | GHSA-hgjh-723h-mx2j | url-parse | 1.2.0 |  | Authorization Bypass Through User-Controlled Key i |
+| ⚪ LOW |  | GHSA-hgjh-723h-mx2j | url-parse | 1.1.9 |  | Authorization Bypass Through User-Controlled Key i |
+| ⚪ LOW |  | GHSA-hgjh-723h-mx2j | url-parse | 1.1.7 |  | Authorization Bypass Through User-Controlled Key i |
+| ⚪ LOW |  | GHSA-hgjh-723h-mx2j | url-parse | 1.0.5 |  | Authorization Bypass Through User-Controlled Key i |
+| ⚪ LOW |  | GHSA-hgjh-723h-mx2j | url-parse | 1.0.5 |  | Authorization Bypass Through User-Controlled Key i |
+| ⚪ LOW |  | GHSA-hgjh-723h-mx2j | url-parse | 1.0.5 |  | Authorization Bypass Through User-Controlled Key i |
+| ⚪ LOW |  | GHSA-hc9w-4p87-j549 | cached-path-relative | 1.0.1 |  | Prototype Pollution in cached-path-relative |
+| ⚪ LOW |  | GHSA-hc9w-4p87-j549 | cached-path-relative | 1.0.1 |  | Prototype Pollution in cached-path-relative |
+| ⚪ LOW |  | GHSA-h7cp-r72f-jxh6 | pbkdf2 | 3.1.2 |  | pbkdf2 returns predictable uninitialized/zero-fill |
+| ⚪ LOW |  | GHSA-h7cp-r72f-jxh6 | pbkdf2 | 3.1.2 |  | pbkdf2 returns predictable uninitialized/zero-fill |
+| ⚪ LOW |  | GHSA-h7cp-r72f-jxh6 | pbkdf2 | 3.1.2 |  | pbkdf2 returns predictable uninitialized/zero-fill |
+| ⚪ LOW |  | GHSA-h7cp-r72f-jxh6 | pbkdf2 | 3.1.2 |  | pbkdf2 returns predictable uninitialized/zero-fill |
+| ⚪ LOW |  | GHSA-h7cp-r72f-jxh6 | pbkdf2 | 3.1.1 |  | pbkdf2 returns predictable uninitialized/zero-fill |
+| ⚪ LOW |  | GHSA-h7cp-r72f-jxh6 | pbkdf2 | 3.0.14 |  | pbkdf2 returns predictable uninitialized/zero-fill |
+| ⚪ LOW |  | GHSA-h7cp-r72f-jxh6 | pbkdf2 | 3.0.14 |  | pbkdf2 returns predictable uninitialized/zero-fill |
+| ⚪ LOW |  | GHSA-h7cp-r72f-jxh6 | pbkdf2 | 3.0.14 |  | pbkdf2 returns predictable uninitialized/zero-fill |
+| ⚪ LOW |  | GHSA-h7cp-r72f-jxh6 | pbkdf2 | 3.0.14 |  | pbkdf2 returns predictable uninitialized/zero-fill |
+| ⚪ LOW |  | GHSA-h7cp-r72f-jxh6 | pbkdf2 | 3.0.14 |  | pbkdf2 returns predictable uninitialized/zero-fill |
+| ⚪ LOW |  | GHSA-h7cp-r72f-jxh6 | pbkdf2 | 3.0.13 |  | pbkdf2 returns predictable uninitialized/zero-fill |
+| ⚪ LOW |  | GHSA-h6ch-v84p-w6p9 | diff | 3.4.0 |  | Regular Expression Denial of Service (ReDoS) |
+| ⚪ LOW |  | GHSA-h6ch-v84p-w6p9 | diff | 3.3.0 |  | Regular Expression Denial of Service (ReDoS) |
+| ⚪ LOW |  | GHSA-h6ch-v84p-w6p9 | diff | 3.2.0 |  | Regular Expression Denial of Service (ReDoS) |
+| ⚪ LOW |  | GHSA-h5c3-5r3r-rr8q | @octokit/plugin-pagi | 2.21.3 |  | @octokit/plugin-paginate-rest has a Regular Expres |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 4.2.0 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 4.1.1 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 4.1.1 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 4.1.1 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 4.1.0 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 3.2.6 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 2.6.8 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 2.6.8 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 2.6.8 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 2.6.7 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 2.6.3 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 2.6.0 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 2.2.0 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 2.2.0 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 2.2.0 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-gxpj-cx7g-858c | debug | 2.2.0 |  | Regular Expression Denial of Service in debug |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 3.0.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 3.0.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 3.0.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 3.0.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 3.0.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 3.0.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 2.3.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 2.3.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 2.3.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 2.3.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 2.3.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 2.3.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 2.3.2 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-grv7-fg5c-xmjg | braces | 1.8.5 |  | Uncontrolled resource consumption in braces |
+| ⚪ LOW |  | GHSA-gqgv-6jq5-jjj9 | qs | 6.3.0 |  | Prototype Pollution Protection Bypass in qs |
+| ⚪ LOW |  | GHSA-gqgv-6jq5-jjj9 | qs | 6.2.0 |  | Prototype Pollution Protection Bypass in qs |
+| ⚪ LOW |  | GHSA-gqgv-6jq5-jjj9 | qs | 2.3.3 |  | Prototype Pollution Protection Bypass in qs |
+| ⚪ LOW |  | GHSA-gp2j-mg4w-2rh5 | chrome-launcher | 0.10.5 |  | chrome-launcher subject to OS Command Injection |
+| ⚪ LOW |  | GHSA-gmv4-r438-p67f | urijs | 1.19.6 |  | Leading white space bypasses protocol validation |
+| ⚪ LOW |  | GHSA-gmv4-r438-p67f | urijs | 1.19.0 |  | Leading white space bypasses protocol validation |
+| ⚪ LOW |  | GHSA-gmv4-r438-p67f | urijs | 1.18.12 |  | Leading white space bypasses protocol validation |
+| ⚪ LOW |  | GHSA-gf8q-jrpm-jvxq | node-forge | 0.6.33 |  | URL parsing in node-forge could lead to undesired  |
+| ⚪ LOW |  | GHSA-gf8q-jrpm-jvxq | node-forge | 0.6.33 |  | URL parsing in node-forge could lead to undesired  |
+| ⚪ LOW |  | GHSA-gf8q-jrpm-jvxq | node-forge | 0.10.0 |  | URL parsing in node-forge could lead to undesired  |
+| ⚪ LOW |  | GHSA-gf8q-jrpm-jvxq | node-forge | 0.10.0 |  | URL parsing in node-forge could lead to undesired  |
+| ⚪ LOW |  | GHSA-gcx4-mw62-g8wm | rollup | 0.36.4 |  | DOM Clobbering Gadget found in rollup bundled scri |
+| ⚪ LOW |  | GHSA-gcx4-mw62-g8wm | rollup | 0.36.4 |  | DOM Clobbering Gadget found in rollup bundled scri |
+| ⚪ LOW |  | GHSA-gcv8-gh4r-25x6 | urijs | 1.19.6 |  | Authorization Bypass Through User-Controlled Key i |
+| ⚪ LOW |  | GHSA-gcv8-gh4r-25x6 | urijs | 1.19.0 |  | Authorization Bypass Through User-Controlled Key i |
+| ⚪ LOW |  | GHSA-gcv8-gh4r-25x6 | urijs | 1.18.12 |  | Authorization Bypass Through User-Controlled Key i |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g95f-p29q-9xw4 | braces | 1.8.5 |  | Regular Expression Denial of Service in braces |
+| ⚪ LOW |  | GHSA-g7q5-pjjr-gqvp | tough-cookie | 2.3.2 |  | Regular Expression Denial of Service in tough-cook |
+| ⚪ LOW |  | GHSA-g7q5-pjjr-gqvp | tough-cookie | 2.3.2 |  | Regular Expression Denial of Service in tough-cook |
+| ⚪ LOW |  | GHSA-g7q5-pjjr-gqvp | tough-cookie | 2.3.2 |  | Regular Expression Denial of Service in tough-cook |
+| ⚪ LOW |  | GHSA-g7q5-pjjr-gqvp | tough-cookie | 2.3.2 |  | Regular Expression Denial of Service in tough-cook |
+| ⚪ LOW |  | GHSA-g78m-2chm-r7qv | websocket-extensions | 0.1.3 |  | Regular Expression Denial of Service in websocket- |
+| ⚪ LOW |  | GHSA-g78m-2chm-r7qv | websocket-extensions | 0.1.3 |  | Regular Expression Denial of Service in websocket- |
+| ⚪ LOW |  | GHSA-g78m-2chm-r7qv | websocket-extensions | 0.1.1 |  | Regular Expression Denial of Service in websocket- |
+| ⚪ LOW |  | GHSA-g78m-2chm-r7qv | websocket-extensions | 0.1.1 |  | Regular Expression Denial of Service in websocket- |
+| ⚪ LOW |  | GHSA-g694-m8vq-gv9h | urijs | 1.19.6 |  | URL Confusion When Scheme Not Supplied in medializ |
+| ⚪ LOW |  | GHSA-g694-m8vq-gv9h | urijs | 1.19.0 |  | URL Confusion When Scheme Not Supplied in medializ |
+| ⚪ LOW |  | GHSA-g694-m8vq-gv9h | urijs | 1.18.12 |  | URL Confusion When Scheme Not Supplied in medializ |
+| ⚪ LOW |  | GHSA-g4rg-993r-mgx7 | shell-quote | 1.7.1 |  | Improper Neutralization of Special Elements used i |
+| ⚪ LOW |  | GHSA-fwr7-v2mv-hh25 | async | 2.6.3 |  | Prototype Pollution in async |
+| ⚪ LOW |  | GHSA-fwr7-v2mv-hh25 | async | 2.6.3 |  | Prototype Pollution in async |
+| ⚪ LOW |  | GHSA-fwr7-v2mv-hh25 | async | 2.6.0 |  | Prototype Pollution in async |
+| ⚪ LOW |  | GHSA-fwr7-v2mv-hh25 | async | 2.5.0 |  | Prototype Pollution in async |
+| ⚪ LOW |  | GHSA-fwr7-v2mv-hh25 | async | 2.5.0 |  | Prototype Pollution in async |
+| ⚪ LOW |  | GHSA-fwr7-v2mv-hh25 | async | 2.1.4 |  | Prototype Pollution in async |
+| ⚪ LOW |  | GHSA-fvqr-27wr-82fm | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-fvqr-27wr-82fm | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-fvqr-27wr-82fm | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-fvqr-27wr-82fm | lodash | 3.10.1 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 4.0.0 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 4.0.0 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 4.0.0 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 3.0.2 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 3.0.2 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 3.0.1 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 3.0.1 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.3.3 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.3.3 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.3.3 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.3.1 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.4 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.4 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.4 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.4 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.4 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.4 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.4 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.4 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.4 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.4 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.2 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-fjxv-7rqg-78g4 | form-data | 2.1.2 |  | form-data uses unsafe random function in form-data |
+| ⚪ LOW |  | GHSA-ff7x-qrg7-qggm | dot-prop | 4.2.0 |  | dot-prop Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-ff7x-qrg7-qggm | dot-prop | 3.0.0 |  | dot-prop Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-ff7x-qrg7-qggm | dot-prop | 3.0.0 |  | dot-prop Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-ff6r-5jwm-8292 | no-case | 2.3.1 |  | Regular Expression Denial of Service in no-case |
+| ⚪ LOW |  | GHSA-ff6r-5jwm-8292 | no-case | 2.3.1 |  | Regular Expression Denial of Service in no-case |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.5.4 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.5.4 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.5.4 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.5.4 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.5.4 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.5.4 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.5.4 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.5.4 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.5.4 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.5.4 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.4.0 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.4.0 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.4.0 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.4.0 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.4.0 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-fc9h-whq2-v747 | elliptic | 6.4.0 |  | Valid ECDSA signatures erroneously rejected in Ell |
+| ⚪ LOW |  | GHSA-f9cm-qmx5-m98h | merge | 1.2.0 |  | Prototype Pollution in merge |
+| ⚪ LOW |  | GHSA-f9cm-qmx5-m98h | merge | 1.2.0 |  | Prototype Pollution in merge |
+| ⚪ LOW |  | GHSA-f9cm-qmx5-m98h | merge | 1.2.0 |  | Prototype Pollution in merge |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.4 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.3 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.3 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.3 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.3 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.3 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.3 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f8q6-p94x-37v3 | minimatch | 3.0.3 |  | minimatch ReDoS vulnerability |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.5.4 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.5.4 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.5.4 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.5.4 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.5.4 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.5.4 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.5.4 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.5.4 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.5.4 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.5.4 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.4.0 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.4.0 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.4.0 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.4.0 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.4.0 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f7q4-pwc6-w24p | elliptic | 6.4.0 |  | Elliptic's EDDSA missing signature length check |
+| ⚪ LOW |  | GHSA-f5x3-32g6-xq36 | tar | 2.2.2 |  | Denial of service while parsing a tar file due to  |
+| ⚪ LOW |  | GHSA-f5x3-32g6-xq36 | tar | 2.2.1 |  | Denial of service while parsing a tar file due to  |
+| ⚪ LOW |  | GHSA-f5x3-32g6-xq36 | tar | 2.2.1 |  | Denial of service while parsing a tar file due to  |
+| ⚪ LOW |  | GHSA-f5x3-32g6-xq36 | tar | 2.2.1 |  | Denial of service while parsing a tar file due to  |
+| ⚪ LOW |  | GHSA-f5x3-32g6-xq36 | tar | 2.2.1 |  | Denial of service while parsing a tar file due to  |
+| ⚪ LOW |  | GHSA-f5x3-32g6-xq36 | tar | 2.2.1 |  | Denial of service while parsing a tar file due to  |
+| ⚪ LOW |  | GHSA-f5x3-32g6-xq36 | tar | 2.2.1 |  | Denial of service while parsing a tar file due to  |
+| ⚪ LOW |  | GHSA-f5x3-32g6-xq36 | tar | 2.2.1 |  | Denial of service while parsing a tar file due to  |
+| ⚪ LOW |  | GHSA-f5x3-32g6-xq36 | tar | 2.2.1 |  | Denial of service while parsing a tar file due to  |
+| ⚪ LOW |  | GHSA-f5x3-32g6-xq36 | tar | 2.2.1 |  | Denial of service while parsing a tar file due to  |
+| ⚪ LOW |  | GHSA-f5x3-32g6-xq36 | tar | 2.2.1 |  | Denial of service while parsing a tar file due to  |
+| ⚪ LOW |  | GHSA-f2jv-r9rf-7988 | handlebars | 4.5.3 |  | Remote code execution in handlebars when compiling |
+| ⚪ LOW |  | GHSA-f2jv-r9rf-7988 | handlebars | 4.5.3 |  | Remote code execution in handlebars when compiling |
+| ⚪ LOW |  | GHSA-f2jv-r9rf-7988 | handlebars | 4.5.3 |  | Remote code execution in handlebars when compiling |
+| ⚪ LOW |  | GHSA-cxrh-j4jr-qwg3 | undici | 5.28.4 |  | undici Denial of Service attack via bad certificat |
+| ⚪ LOW |  | GHSA-cxrh-j4jr-qwg3 | undici | 5.28.4 |  | undici Denial of Service attack via bad certificat |
+| ⚪ LOW |  | GHSA-cxrh-j4jr-qwg3 | undici | 5.22.1 |  | undici Denial of Service attack via bad certificat |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cwfw-4gq5-mrqx | braces | 1.8.5 |  | Regular Expression Denial of Service (ReDoS) in br |
+| ⚪ LOW |  | GHSA-cpq7-6gpm-g9rc | cipher-base | 1.0.4 |  | cipher-base is missing type checks, leading to has |
+| ⚪ LOW |  | GHSA-cpq7-6gpm-g9rc | cipher-base | 1.0.4 |  | cipher-base is missing type checks, leading to has |
+| ⚪ LOW |  | GHSA-cpq7-6gpm-g9rc | cipher-base | 1.0.4 |  | cipher-base is missing type checks, leading to has |
+| ⚪ LOW |  | GHSA-cpq7-6gpm-g9rc | cipher-base | 1.0.4 |  | cipher-base is missing type checks, leading to has |
+| ⚪ LOW |  | GHSA-cpq7-6gpm-g9rc | cipher-base | 1.0.4 |  | cipher-base is missing type checks, leading to has |
+| ⚪ LOW |  | GHSA-cpq7-6gpm-g9rc | cipher-base | 1.0.4 |  | cipher-base is missing type checks, leading to has |
+| ⚪ LOW |  | GHSA-cpq7-6gpm-g9rc | cipher-base | 1.0.4 |  | cipher-base is missing type checks, leading to has |
+| ⚪ LOW |  | GHSA-cpq7-6gpm-g9rc | cipher-base | 1.0.4 |  | cipher-base is missing type checks, leading to has |
+| ⚪ LOW |  | GHSA-cpq7-6gpm-g9rc | cipher-base | 1.0.4 |  | cipher-base is missing type checks, leading to has |
+| ⚪ LOW |  | GHSA-cpq7-6gpm-g9rc | cipher-base | 1.0.4 |  | cipher-base is missing type checks, leading to has |
+| ⚪ LOW |  | GHSA-cm22-4g7w-348p | serve-static | 1.14.2 |  | serve-static vulnerable to template injection that |
+| ⚪ LOW |  | GHSA-cm22-4g7w-348p | serve-static | 1.14.1 |  | serve-static vulnerable to template injection that |
+| ⚪ LOW |  | GHSA-cm22-4g7w-348p | serve-static | 1.14.1 |  | serve-static vulnerable to template injection that |
+| ⚪ LOW |  | GHSA-cm22-4g7w-348p | serve-static | 1.14.1 |  | serve-static vulnerable to template injection that |
+| ⚪ LOW |  | GHSA-cm22-4g7w-348p | serve-static | 1.14.1 |  | serve-static vulnerable to template injection that |
+| ⚪ LOW |  | GHSA-cm22-4g7w-348p | serve-static | 1.13.1 |  | serve-static vulnerable to template injection that |
+| ⚪ LOW |  | GHSA-cm22-4g7w-348p | serve-static | 1.13.1 |  | serve-static vulnerable to template injection that |
+| ⚪ LOW |  | GHSA-cm22-4g7w-348p | serve-static | 1.13.1 |  | serve-static vulnerable to template injection that |
+| ⚪ LOW |  | GHSA-cm22-4g7w-348p | serve-static | 1.12.4 |  | serve-static vulnerable to template injection that |
+| ⚪ LOW |  | GHSA-cm22-4g7w-348p | serve-static | 1.12.3 |  | serve-static vulnerable to template injection that |
+| ⚪ LOW |  | GHSA-cm22-4g7w-348p | serve-static | 1.11.1 |  | serve-static vulnerable to template injection that |
+| ⚪ LOW |  | GHSA-cfm4-qjh2-4765 | node-forge | 0.6.33 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-cfm4-qjh2-4765 | node-forge | 0.6.33 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-cfm4-qjh2-4765 | node-forge | 0.10.0 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-cfm4-qjh2-4765 | node-forge | 0.10.0 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-cf66-xwfp-gvc4 | webpack-dev-server | 2.9.4 |  | Missing Origin Validation in webpack-dev-server |
+| ⚪ LOW |  | GHSA-cf66-xwfp-gvc4 | webpack-dev-server | 2.7.1 |  | Missing Origin Validation in webpack-dev-server |
+| ⚪ LOW |  | GHSA-cf66-xwfp-gvc4 | webpack-dev-server | 2.11.3 |  | Missing Origin Validation in webpack-dev-server |
+| ⚪ LOW |  | GHSA-cf66-xwfp-gvc4 | webpack-dev-server | 2.11.3 |  | Missing Origin Validation in webpack-dev-server |
+| ⚪ LOW |  | GHSA-cf66-xwfp-gvc4 | webpack-dev-server | 1.16.2 |  | Missing Origin Validation in webpack-dev-server |
+| ⚪ LOW |  | GHSA-cf66-xwfp-gvc4 | webpack-dev-server | 1.16.2 |  | Missing Origin Validation in webpack-dev-server |
+| ⚪ LOW |  | GHSA-c9g6-9335-x697 | sockjs | 0.3.19 |  | Improper Input Validation in SocksJS-Node |
+| ⚪ LOW |  | GHSA-c9g6-9335-x697 | sockjs | 0.3.19 |  | Improper Input Validation in SocksJS-Node |
+| ⚪ LOW |  | GHSA-c9g6-9335-x697 | sockjs | 0.3.18 |  | Improper Input Validation in SocksJS-Node |
+| ⚪ LOW |  | GHSA-c9g6-9335-x697 | sockjs | 0.3.18 |  | Improper Input Validation in SocksJS-Node |
+| ⚪ LOW |  | GHSA-c9g6-9335-x697 | sockjs | 0.3.18 |  | Improper Input Validation in SocksJS-Node |
+| ⚪ LOW |  | GHSA-c7qv-q95q-8v27 | http-proxy-middlewar | 2.0.6 |  | Denial of service in http-proxy-middleware |
+| ⚪ LOW |  | GHSA-c7qv-q95q-8v27 | http-proxy-middlewar | 0.17.4 |  | Denial of service in http-proxy-middleware |
+| ⚪ LOW |  | GHSA-c7qv-q95q-8v27 | http-proxy-middlewar | 0.17.4 |  | Denial of service in http-proxy-middleware |
+| ⚪ LOW |  | GHSA-c7qv-q95q-8v27 | http-proxy-middlewar | 0.17.4 |  | Denial of service in http-proxy-middleware |
+| ⚪ LOW |  | GHSA-c7qv-q95q-8v27 | http-proxy-middlewar | 0.17.4 |  | Denial of service in http-proxy-middleware |
+| ⚪ LOW |  | GHSA-c7qv-q95q-8v27 | http-proxy-middlewar | 0.17.4 |  | Denial of service in http-proxy-middleware |
+| ⚪ LOW |  | GHSA-c7qv-q95q-8v27 | http-proxy-middlewar | 0.17.3 |  | Denial of service in http-proxy-middleware |
+| ⚪ LOW |  | GHSA-c7qv-q95q-8v27 | http-proxy-middlewar | 0.17.3 |  | Denial of service in http-proxy-middleware |
+| ⚪ LOW |  | GHSA-c76h-2ccp-4975 | undici | 5.28.4 |  | Use of Insufficiently Random Values in undici |
+| ⚪ LOW |  | GHSA-c76h-2ccp-4975 | undici | 5.28.4 |  | Use of Insufficiently Random Values in undici |
+| ⚪ LOW |  | GHSA-c76h-2ccp-4975 | undici | 5.22.1 |  | Use of Insufficiently Random Values in undici |
+| ⚪ LOW |  | GHSA-c4w7-xm78-47vh | y18n | 4.0.0 |  | Prototype Pollution in y18n |
+| ⚪ LOW |  | GHSA-c4w7-xm78-47vh | y18n | 3.2.1 |  | Prototype Pollution in y18n |
+| ⚪ LOW |  | GHSA-c4w7-xm78-47vh | y18n | 3.2.1 |  | Prototype Pollution in y18n |
+| ⚪ LOW |  | GHSA-c4w7-xm78-47vh | y18n | 3.2.1 |  | Prototype Pollution in y18n |
+| ⚪ LOW |  | GHSA-c4w7-xm78-47vh | y18n | 3.2.1 |  | Prototype Pollution in y18n |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 4.2.0 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c429-5p7v-vgjp | hoek | 2.16.3 |  | hoek subject to prototype pollution via the clone  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.3.8 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.3.8 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.3.7 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.3.6 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.3.5 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.3.2 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.1.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.0.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.0.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.0.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.0.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.0.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.0.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 7.0.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 6.3.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 6.3.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 6.3.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 6.3.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 6.3.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.7.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.7.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.7.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.7.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.7.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.7.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.7.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.7.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.7.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.7.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.4.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.4.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.4.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.4.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.4.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.4.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.4.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.4.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.4.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.4.1 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.3.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.3.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 5.3.0 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 4.3.6 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2qf-rxjj-qqgw | semver | 4.3.6 |  | semver vulnerable to Regular Expression Denial of  |
+| ⚪ LOW |  | GHSA-c2gp-86p4-5935 | puppeteer | 1.11.0 |  | Use-After-Free in puppeteer |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 1.8.0 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 1.7.0 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 1.7.0 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 0.1.7 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 0.1.7 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 0.1.7 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 0.1.7 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 0.1.7 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 0.1.7 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 0.1.7 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 0.1.7 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 0.1.7 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9wv6-86v2-598j | path-to-regexp | 0.1.7 |  | path-to-regexp outputs backtracking regular expres |
+| ⚪ LOW |  | GHSA-9vvw-cc9w-f27h | debug | 2.6.8 |  | debug Inefficient Regular Expression Complexity vu |
+| ⚪ LOW |  | GHSA-9vvw-cc9w-f27h | debug | 2.6.8 |  | debug Inefficient Regular Expression Complexity vu |
+| ⚪ LOW |  | GHSA-9vvw-cc9w-f27h | debug | 2.6.8 |  | debug Inefficient Regular Expression Complexity vu |
+| ⚪ LOW |  | GHSA-9vvw-cc9w-f27h | debug | 2.6.7 |  | debug Inefficient Regular Expression Complexity vu |
+| ⚪ LOW |  | GHSA-9vvw-cc9w-f27h | debug | 2.6.3 |  | debug Inefficient Regular Expression Complexity vu |
+| ⚪ LOW |  | GHSA-9vvw-cc9w-f27h | debug | 2.6.0 |  | debug Inefficient Regular Expression Complexity vu |
+| ⚪ LOW |  | GHSA-9vvw-cc9w-f27h | debug | 2.2.0 |  | debug Inefficient Regular Expression Complexity vu |
+| ⚪ LOW |  | GHSA-9vvw-cc9w-f27h | debug | 2.2.0 |  | debug Inefficient Regular Expression Complexity vu |
+| ⚪ LOW |  | GHSA-9vvw-cc9w-f27h | debug | 2.2.0 |  | debug Inefficient Regular Expression Complexity vu |
+| ⚪ LOW |  | GHSA-9vvw-cc9w-f27h | debug | 2.2.0 |  | debug Inefficient Regular Expression Complexity vu |
+| ⚪ LOW |  | GHSA-9qxr-qj54-h672 | undici | 5.22.1 |  | Undici's fetch with integrity option is too lax wh |
+| ⚪ LOW |  | GHSA-9qj9-36jm-prpv | fresh | 0.5.0 |  | Regular Expression Denial of Service in fresh |
+| ⚪ LOW |  | GHSA-9qj9-36jm-prpv | fresh | 0.5.0 |  | Regular Expression Denial of Service in fresh |
+| ⚪ LOW |  | GHSA-9qj9-36jm-prpv | fresh | 0.3.0 |  | Regular Expression Denial of Service in fresh |
+| ⚪ LOW |  | GHSA-9m6j-fcg5-2442 | url-parse | 1.2.0 |  | Path traversal in url-parse |
+| ⚪ LOW |  | GHSA-9m6j-fcg5-2442 | url-parse | 1.1.9 |  | Path traversal in url-parse |
+| ⚪ LOW |  | GHSA-9m6j-fcg5-2442 | url-parse | 1.1.7 |  | Path traversal in url-parse |
+| ⚪ LOW |  | GHSA-9m6j-fcg5-2442 | url-parse | 1.0.5 |  | Path traversal in url-parse |
+| ⚪ LOW |  | GHSA-9m6j-fcg5-2442 | url-parse | 1.0.5 |  | Path traversal in url-parse |
+| ⚪ LOW |  | GHSA-9m6j-fcg5-2442 | url-parse | 1.0.5 |  | Path traversal in url-parse |
+| ⚪ LOW |  | GHSA-9jgg-88mc-972h | webpack-dev-server | 4.15.2 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-9jgg-88mc-972h | webpack-dev-server | 4.15.2 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-9jgg-88mc-972h | webpack-dev-server | 4.15.0 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-9jgg-88mc-972h | webpack-dev-server | 2.9.4 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-9jgg-88mc-972h | webpack-dev-server | 2.7.1 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-9jgg-88mc-972h | webpack-dev-server | 2.11.3 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-9jgg-88mc-972h | webpack-dev-server | 2.11.3 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-9jgg-88mc-972h | webpack-dev-server | 1.16.2 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-9jgg-88mc-972h | webpack-dev-server | 1.16.2 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-9gqv-wp59-fq42 | http-proxy-middlewar | 3.0.3 |  | http-proxy-middleware allows fixRequestBody to pro |
+| ⚪ LOW |  | GHSA-9gqv-wp59-fq42 | http-proxy-middlewar | 2.0.7 |  | http-proxy-middleware allows fixRequestBody to pro |
+| ⚪ LOW |  | GHSA-9gqv-wp59-fq42 | http-proxy-middlewar | 2.0.7 |  | http-proxy-middleware allows fixRequestBody to pro |
+| ⚪ LOW |  | GHSA-9gqv-wp59-fq42 | http-proxy-middlewar | 2.0.6 |  | http-proxy-middleware allows fixRequestBody to pro |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 2.2.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 2.2.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 2.2.0 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 2.1.3 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 2.1.3 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 2.1.3 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 2.1.0 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 1.0.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 1.0.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 1.0.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 1.0.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 1.0.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 1.0.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-9c47-m6qq-7p4h | json5 | 0.5.1 |  | Prototype Pollution in JSON5 via Parse Method |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.5.4 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.5.4 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.5.4 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.5.4 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.5.4 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.5.4 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.5.4 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.5.4 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.5.4 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.5.4 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.4.0 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.4.0 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.4.0 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.4.0 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.4.0 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-977x-g7h5-7qgw | elliptic | 6.4.0 |  | Elliptic's ECDSA missing check for whether leading |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.26.7 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.26.0 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.26.0 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.25.6 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.24.7 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.23.9 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.22.5 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.22.3 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.22.3 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.19.0 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.18.9 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.17.9 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.15.4 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.12.5 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.12.5 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.12.1 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.12.1 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.12.1 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.11.2 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/runtime | 7.10.5 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.7.0 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.26.7 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.26.0 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.26.0 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.26.0 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.25.6 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.24.5 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.24.4 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.20.13 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.19.0 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.18.9 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.17.9 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.15.4 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.14.0 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.12.5 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-968p-4wvh-cqc8 | @babel/helpers | 7.10.4 |  | Babel has inefficient RegExp complexity in generat |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.9 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.9 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.9 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.9 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.9 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.8 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.11 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.11 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.11 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.11 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.11 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.4.11 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.2.6 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.2.6 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.2.6 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.2.6 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.2.6 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.2.6 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.2.6 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-95m3-7q98-8xr5 | sha.js | 2.2.6 |  | sha.js is missing type checks leading to hash rewi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 4.0.7 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 4.0.5 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 4.0.5 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 4.0.5 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 4.0.2 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 3.1.10 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 3.1.10 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 3.1.10 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 3.1.10 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 3.1.10 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 3.1.10 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 3.1.10 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-952p-6rrq-rcjv | micromatch | 2.3.11 |  | Regular Expression Denial of Service (ReDoS) in mi |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 5.0.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 5.0.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 4.1.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 4.1.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 4.1.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 3.0.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 3.0.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 3.0.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 3.0.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 3.0.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 3.0.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-93q8-gq69-wqmw | ansi-regex | 3.0.0 |  | Inefficient Regular Expression Complexity in chalk |
+| ⚪ LOW |  | GHSA-92xj-mqp7-vmcj | node-forge | 0.6.33 |  | Prototype Pollution in node-forge |
+| ⚪ LOW |  | GHSA-92xj-mqp7-vmcj | node-forge | 0.6.33 |  | Prototype Pollution in node-forge |
+| ⚪ LOW |  | GHSA-8v38-pw62-9cw2 | url-parse | 1.5.1 |  | url-parse Incorrectly parses URLs that include an  |
+| ⚪ LOW |  | GHSA-8v38-pw62-9cw2 | url-parse | 1.5.1 |  | url-parse Incorrectly parses URLs that include an  |
+| ⚪ LOW |  | GHSA-8v38-pw62-9cw2 | url-parse | 1.2.0 |  | url-parse Incorrectly parses URLs that include an  |
+| ⚪ LOW |  | GHSA-8v38-pw62-9cw2 | url-parse | 1.1.9 |  | url-parse Incorrectly parses URLs that include an  |
+| ⚪ LOW |  | GHSA-8v38-pw62-9cw2 | url-parse | 1.1.7 |  | url-parse Incorrectly parses URLs that include an  |
+| ⚪ LOW |  | GHSA-8v38-pw62-9cw2 | url-parse | 1.0.5 |  | url-parse Incorrectly parses URLs that include an  |
+| ⚪ LOW |  | GHSA-8v38-pw62-9cw2 | url-parse | 1.0.5 |  | url-parse Incorrectly parses URLs that include an  |
+| ⚪ LOW |  | GHSA-8v38-pw62-9cw2 | url-parse | 1.0.5 |  | url-parse Incorrectly parses URLs that include an  |
+| ⚪ LOW |  | GHSA-8r6j-v8pm-fqw3 | fsevents | 1.1.3 |  | Code injection in fsevents |
+| ⚪ LOW |  | GHSA-8r6j-v8pm-fqw3 | fsevents | 1.1.2 |  | Code injection in fsevents |
+| ⚪ LOW |  | GHSA-8r6j-v8pm-fqw3 | fsevents | 1.1.2 |  | Code injection in fsevents |
+| ⚪ LOW |  | GHSA-8r6j-v8pm-fqw3 | fsevents | 1.1.2 |  | Code injection in fsevents |
+| ⚪ LOW |  | GHSA-8r6j-v8pm-fqw3 | fsevents | 1.1.2 |  | Code injection in fsevents |
+| ⚪ LOW |  | GHSA-8r6j-v8pm-fqw3 | fsevents | 1.1.2 |  | Code injection in fsevents |
+| ⚪ LOW |  | GHSA-8r6j-v8pm-fqw3 | fsevents | 1.1.2 |  | Code injection in fsevents |
+| ⚪ LOW |  | GHSA-8r6j-v8pm-fqw3 | fsevents | 1.1.2 |  | Code injection in fsevents |
+| ⚪ LOW |  | GHSA-8r6j-v8pm-fqw3 | fsevents | 1.1.1 |  | Code injection in fsevents |
+| ⚪ LOW |  | GHSA-8r6j-v8pm-fqw3 | fsevents | 1.0.17 |  | Code injection in fsevents |
+| ⚪ LOW |  | GHSA-8r6j-v8pm-fqw3 | fsevents | 1.0.17 |  | Code injection in fsevents |
+| ⚪ LOW |  | GHSA-8j8c-7jfh-h6hx | js-yaml | 3.9.1 |  | Code Injection in js-yaml |
+| ⚪ LOW |  | GHSA-8j8c-7jfh-h6hx | js-yaml | 3.7.0 |  | Code Injection in js-yaml |
+| ⚪ LOW |  | GHSA-8j8c-7jfh-h6hx | js-yaml | 3.7.0 |  | Code Injection in js-yaml |
+| ⚪ LOW |  | GHSA-8j8c-7jfh-h6hx | js-yaml | 3.7.0 |  | Code Injection in js-yaml |
+| ⚪ LOW |  | GHSA-8j8c-7jfh-h6hx | js-yaml | 3.7.0 |  | Code Injection in js-yaml |
+| ⚪ LOW |  | GHSA-8j8c-7jfh-h6hx | js-yaml | 3.7.0 |  | Code Injection in js-yaml |
+| ⚪ LOW |  | GHSA-8j8c-7jfh-h6hx | js-yaml | 3.7.0 |  | Code Injection in js-yaml |
+| ⚪ LOW |  | GHSA-8j8c-7jfh-h6hx | js-yaml | 3.6.1 |  | Code Injection in js-yaml |
+| ⚪ LOW |  | GHSA-8j8c-7jfh-h6hx | js-yaml | 3.10.0 |  | Code Injection in js-yaml |
+| ⚪ LOW |  | GHSA-8h2f-7jc4-7m3m | urijs | 1.19.6 |  | Open Redirect in urijs |
+| ⚪ LOW |  | GHSA-8h2f-7jc4-7m3m | urijs | 1.19.0 |  | Open Redirect in urijs |
+| ⚪ LOW |  | GHSA-8h2f-7jc4-7m3m | urijs | 1.18.12 |  | Open Redirect in urijs |
+| ⚪ LOW |  | GHSA-8g77-54rh-46hx | parse-git-config | 2.0.3 |  | Prototype Pollution Vulnerability in parse-git-con |
+| ⚪ LOW |  | GHSA-8fr3-hfg3-gpgp | node-forge | 0.6.33 |  | Open Redirect in node-forge |
+| ⚪ LOW |  | GHSA-8fr3-hfg3-gpgp | node-forge | 0.6.33 |  | Open Redirect in node-forge |
+| ⚪ LOW |  | GHSA-8fr3-hfg3-gpgp | node-forge | 0.10.0 |  | Open Redirect in node-forge |
+| ⚪ LOW |  | GHSA-8fr3-hfg3-gpgp | node-forge | 0.10.0 |  | Open Redirect in node-forge |
+| ⚪ LOW |  | GHSA-8cj5-5rvv-wf4v | tar-fs | 3.0.8 |  | tar-fs can extract outside the specified dir with  |
+| ⚪ LOW |  | GHSA-8cj5-5rvv-wf4v | tar-fs | 2.1.2 |  | tar-fs can extract outside the specified dir with  |
+| ⚪ LOW |  | GHSA-8cj5-5rvv-wf4v | tar-fs | 1.16.0 |  | tar-fs can extract outside the specified dir with  |
+| ⚪ LOW |  | GHSA-89gv-h8wf-cg8r | urijs | 1.19.6 |  | URIjs Vulnerable to Hostname spoofing via backslas |
+| ⚪ LOW |  | GHSA-89gv-h8wf-cg8r | urijs | 1.19.0 |  | URIjs Vulnerable to Hostname spoofing via backslas |
+| ⚪ LOW |  | GHSA-89gv-h8wf-cg8r | urijs | 1.18.12 |  | URIjs Vulnerable to Hostname spoofing via backslas |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-896r-f27r-55mw | json-schema | 0.2.3 |  | json-schema is vulnerable to Prototype Pollution |
+| ⚪ LOW |  | GHSA-832h-xg76-4gv6 | brace-expansion | 1.1.6 |  | ReDoS in brace-expansion |
+| ⚪ LOW |  | GHSA-832h-xg76-4gv6 | brace-expansion | 1.1.6 |  | ReDoS in brace-expansion |
+| ⚪ LOW |  | GHSA-7x97-j373-85x5 | electron | 23.1.2 |  | Electron vulnerable to out-of-package code executi |
+| ⚪ LOW |  | GHSA-7wpw-2hjm-89gp | merge | 1.2.1 |  | Prototype Pollution in merge |
+| ⚪ LOW |  | GHSA-7wpw-2hjm-89gp | merge | 1.2.1 |  | Prototype Pollution in merge |
+| ⚪ LOW |  | GHSA-7wpw-2hjm-89gp | merge | 1.2.1 |  | Prototype Pollution in merge |
+| ⚪ LOW |  | GHSA-7wpw-2hjm-89gp | merge | 1.2.0 |  | Prototype Pollution in merge |
+| ⚪ LOW |  | GHSA-7wpw-2hjm-89gp | merge | 1.2.0 |  | Prototype Pollution in merge |
+| ⚪ LOW |  | GHSA-7wpw-2hjm-89gp | merge | 1.2.0 |  | Prototype Pollution in merge |
+| ⚪ LOW |  | GHSA-7r28-3m3f-r2pr | is-svg | 2.1.0 |  | Regular Expression Denial of Service (ReDoS) |
+| ⚪ LOW |  | GHSA-7r28-3m3f-r2pr | is-svg | 2.1.0 |  | Regular Expression Denial of Service (ReDoS) |
+| ⚪ LOW |  | GHSA-7r28-3m3f-r2pr | is-svg | 2.1.0 |  | Regular Expression Denial of Service (ReDoS) |
+| ⚪ LOW |  | GHSA-7r28-3m3f-r2pr | is-svg | 2.1.0 |  | Regular Expression Denial of Service (ReDoS) |
+| ⚪ LOW |  | GHSA-7r28-3m3f-r2pr | is-svg | 2.1.0 |  | Regular Expression Denial of Service (ReDoS) |
+| ⚪ LOW |  | GHSA-7r28-3m3f-r2pr | is-svg | 2.1.0 |  | Regular Expression Denial of Service (ReDoS) |
+| ⚪ LOW |  | GHSA-7px7-7xjx-hxm8 | marked | 0.3.6 |  | Marked vulnerable to XSS from data URIs |
+| ⚪ LOW |  | GHSA-7p7h-4mm5-852v | trim-newlines | 1.0.0 |  | Uncontrolled Resource Consumption in trim-newlines |
+| ⚪ LOW |  | GHSA-7p7h-4mm5-852v | trim-newlines | 1.0.0 |  | Uncontrolled Resource Consumption in trim-newlines |
+| ⚪ LOW |  | GHSA-7p7h-4mm5-852v | trim-newlines | 1.0.0 |  | Uncontrolled Resource Consumption in trim-newlines |
+| ⚪ LOW |  | GHSA-7p7h-4mm5-852v | trim-newlines | 1.0.0 |  | Uncontrolled Resource Consumption in trim-newlines |
+| ⚪ LOW |  | GHSA-7p7h-4mm5-852v | trim-newlines | 1.0.0 |  | Uncontrolled Resource Consumption in trim-newlines |
+| ⚪ LOW |  | GHSA-7mvr-c777-76hp | playwright | 1.51.1 |  | Playwright downloads and installs browsers without |
+| ⚪ LOW |  | GHSA-7mvr-c777-76hp | playwright | 1.51.1 |  | Playwright downloads and installs browsers without |
+| ⚪ LOW |  | GHSA-7m48-wc93-9g85 | electron | 23.1.2 |  | ASAR Integrity bypass via filetype confusion in el |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 8.4.16 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 7.0.39 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 7.0.39 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 7.0.39 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 7.0.32 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 6.0.9 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 6.0.23 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 6.0.23 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 6.0.23 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 6.0.23 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 6.0.14 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 5.2.18 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 5.2.18 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 5.2.18 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 5.2.18 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 5.2.17 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-7fh5-64p2-3v2j | postcss | 5.2.15 |  | PostCSS line return parsing error |
+| ⚪ LOW |  | GHSA-78xj-cgh5-2h22 | ip | 1.1.5 |  | NPM IP package incorrectly identifies some private |
+| ⚪ LOW |  | GHSA-78xj-cgh5-2h22 | ip | 1.1.5 |  | NPM IP package incorrectly identifies some private |
+| ⚪ LOW |  | GHSA-78xj-cgh5-2h22 | ip | 1.1.5 |  | NPM IP package incorrectly identifies some private |
+| ⚪ LOW |  | GHSA-78cj-fxph-m83p | ua-parser-js | 0.7.22 |  | Regular Expression Denial of Service (ReDoS) in ua |
+| ⚪ LOW |  | GHSA-78cj-fxph-m83p | ua-parser-js | 0.7.22 |  | Regular Expression Denial of Service (ReDoS) in ua |
+| ⚪ LOW |  | GHSA-78cj-fxph-m83p | ua-parser-js | 0.7.20 |  | Regular Expression Denial of Service (ReDoS) in ua |
+| ⚪ LOW |  | GHSA-78cj-fxph-m83p | ua-parser-js | 0.7.17 |  | Regular Expression Denial of Service (ReDoS) in ua |
+| ⚪ LOW |  | GHSA-78cj-fxph-m83p | ua-parser-js | 0.7.14 |  | Regular Expression Denial of Service (ReDoS) in ua |
+| ⚪ LOW |  | GHSA-776f-qx25-q3cc | xml2js | 0.4.19 |  | xml2js is vulnerable to prototype pollution |
+| ⚪ LOW |  | GHSA-76p7-773f-r4q5 | serialize-javascript | 6.0.1 |  | Cross-site Scripting (XSS) in serialize-javascript |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 2.0.0 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 1.4.0 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 1.4.0 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 1.4.0 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 1.4.0 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 1.4.0 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 1.2.3 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 1.1.0 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 1.1.0 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 0.2.17 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 0.2.17 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 0.2.17 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 0.2.17 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 0.2.17 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 0.2.17 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 0.2.17 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 0.2.17 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 0.2.17 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 0.2.17 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76p3-8jx3-jpfq | loader-utils | 0.2.16 |  | Prototype pollution in webpack loader-utils |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.2 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.2 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.2 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.2 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.2 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.2 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.2 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.2 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.2 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.2 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.2 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.1 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.1 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.1 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-76c9-3jph-rj3q | on-headers | 1.0.1 |  | on-headers is vulnerable to http response header m |
+| ⚪ LOW |  | GHSA-765h-qjxv-5f44 | handlebars | 4.5.3 |  | Prototype Pollution in handlebars |
+| ⚪ LOW |  | GHSA-765h-qjxv-5f44 | handlebars | 4.5.3 |  | Prototype Pollution in handlebars |
+| ⚪ LOW |  | GHSA-765h-qjxv-5f44 | handlebars | 4.5.3 |  | Prototype Pollution in handlebars |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.5.0 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.5.0 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.5.0 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.4 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.3 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.3 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.3 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.3 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.3 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.3 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.3 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.2 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.2 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.2 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-72xf-g2v4-qvf3 | tough-cookie | 2.3.2 |  | tough-cookie Prototype Pollution vulnerability |
+| ⚪ LOW |  | GHSA-6x33-pw7p-hmpq | http-proxy | 1.16.2 |  | Denial of Service in http-proxy |
+| ⚪ LOW |  | GHSA-6x33-pw7p-hmpq | http-proxy | 1.16.2 |  | Denial of Service in http-proxy |
+| ⚪ LOW |  | GHSA-6x33-pw7p-hmpq | http-proxy | 1.16.2 |  | Denial of Service in http-proxy |
+| ⚪ LOW |  | GHSA-6x33-pw7p-hmpq | http-proxy | 1.16.2 |  | Denial of Service in http-proxy |
+| ⚪ LOW |  | GHSA-6r2x-8pq8-9489 | electron | 23.1.2 |  | Electron vulnerable to Heap Buffer Overflow in Nat |
+| ⚪ LOW |  | GHSA-6h5x-7c5m-7cr7 | eventsource | 1.1.0 |  | Exposure of Sensitive Information in eventsource |
+| ⚪ LOW |  | GHSA-6h5x-7c5m-7cr7 | eventsource | 0.1.6 |  | Exposure of Sensitive Information in eventsource |
+| ⚪ LOW |  | GHSA-6h5x-7c5m-7cr7 | eventsource | 0.1.6 |  | Exposure of Sensitive Information in eventsource |
+| ⚪ LOW |  | GHSA-6h5x-7c5m-7cr7 | eventsource | 0.1.6 |  | Exposure of Sensitive Information in eventsource |
+| ⚪ LOW |  | GHSA-6h5x-7c5m-7cr7 | eventsource | 0.1.6 |  | Exposure of Sensitive Information in eventsource |
+| ⚪ LOW |  | GHSA-6h5x-7c5m-7cr7 | eventsource | 0.1.6 |  | Exposure of Sensitive Information in eventsource |
+| ⚪ LOW |  | GHSA-6h5x-7c5m-7cr7 | eventsource | 0.1.6 |  | Exposure of Sensitive Information in eventsource |
+| ⚪ LOW |  | GHSA-6g33-f262-xjp4 | randomatic | 1.1.7 |  | Cryptographically Weak PRNG in randomatic |
+| ⚪ LOW |  | GHSA-6g33-f262-xjp4 | randomatic | 1.1.7 |  | Cryptographically Weak PRNG in randomatic |
+| ⚪ LOW |  | GHSA-6g33-f262-xjp4 | randomatic | 1.1.7 |  | Cryptographically Weak PRNG in randomatic |
+| ⚪ LOW |  | GHSA-6g33-f262-xjp4 | randomatic | 1.1.7 |  | Cryptographically Weak PRNG in randomatic |
+| ⚪ LOW |  | GHSA-6g33-f262-xjp4 | randomatic | 1.1.7 |  | Cryptographically Weak PRNG in randomatic |
+| ⚪ LOW |  | GHSA-6g33-f262-xjp4 | randomatic | 1.1.7 |  | Cryptographically Weak PRNG in randomatic |
+| ⚪ LOW |  | GHSA-6g33-f262-xjp4 | randomatic | 1.1.7 |  | Cryptographically Weak PRNG in randomatic |
+| ⚪ LOW |  | GHSA-6g33-f262-xjp4 | randomatic | 1.1.7 |  | Cryptographically Weak PRNG in randomatic |
+| ⚪ LOW |  | GHSA-6g33-f262-xjp4 | randomatic | 1.1.6 |  | Cryptographically Weak PRNG in randomatic |
+| ⚪ LOW |  | GHSA-6g33-f262-xjp4 | randomatic | 1.1.6 |  | Cryptographically Weak PRNG in randomatic |
+| ⚪ LOW |  | GHSA-6c8f-qphg-qjgp | kind-of | 6.0.2 |  | Validation Bypass in kind-of |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | babel-traverse | 6.26.0 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | babel-traverse | 6.26.0 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | babel-traverse | 6.26.0 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | babel-traverse | 6.26.0 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | babel-traverse | 6.26.0 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | babel-traverse | 6.26.0 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | babel-traverse | 6.26.0 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | babel-traverse | 6.23.1 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | @babel/traverse | 7.8.3 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | @babel/traverse | 7.7.4 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | @babel/traverse | 7.7.2 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | @babel/traverse | 7.22.5 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | @babel/traverse | 7.20.13 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | @babel/traverse | 7.18.11 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | @babel/traverse | 7.17.9 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | @babel/traverse | 7.12.9 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | @babel/traverse | 7.11.5 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | @babel/traverse | 7.11.0 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-67hx-6x53-jw92 | @babel/traverse | 7.10.5 |  | Babel vulnerable to arbitrary code execution when  |
+| ⚪ LOW |  | GHSA-662x-fhqg-9p8v | ua-parser-js | 0.7.20 |  | Regular Expression Denial of Service in ua-parser- |
+| ⚪ LOW |  | GHSA-662x-fhqg-9p8v | ua-parser-js | 0.7.17 |  | Regular Expression Denial of Service in ua-parser- |
+| ⚪ LOW |  | GHSA-662x-fhqg-9p8v | ua-parser-js | 0.7.14 |  | Regular Expression Denial of Service in ua-parser- |
+| ⚪ LOW |  | GHSA-662x-fhqg-9p8v | ua-parser-js | 0.7.12 |  | Regular Expression Denial of Service in ua-parser- |
+| ⚪ LOW |  | GHSA-64g7-mvw6-v9qj | shelljs | 0.7.8 |  | Improper Privilege Management in shelljs |
+| ⚪ LOW |  | GHSA-64g7-mvw6-v9qj | shelljs | 0.7.6 |  | Improper Privilege Management in shelljs |
+| ⚪ LOW |  | GHSA-6394-6h9h-cfjg | nwmatcher | 1.4.3 |  | Regular Expression Denial of Service |
+| ⚪ LOW |  | GHSA-6394-6h9h-cfjg | nwmatcher | 1.4.1 |  | Regular Expression Denial of Service |
+| ⚪ LOW |  | GHSA-6394-6h9h-cfjg | nwmatcher | 1.3.9 |  | Regular Expression Denial of Service |
+| ⚪ LOW |  | GHSA-5v2h-r2cx-5xgj | marked | 0.7.0 |  | Inefficient Regular Expression Complexity in marke |
+| ⚪ LOW |  | GHSA-5v2h-r2cx-5xgj | marked | 0.3.6 |  | Inefficient Regular Expression Complexity in marke |
+| ⚪ LOW |  | GHSA-5rrq-pxf6-6jx5 | node-forge | 0.6.33 |  | Prototype Pollution in node-forge debug API. |
+| ⚪ LOW |  | GHSA-5rrq-pxf6-6jx5 | node-forge | 0.6.33 |  | Prototype Pollution in node-forge debug API. |
+| ⚪ LOW |  | GHSA-5rrq-pxf6-6jx5 | node-forge | 0.10.0 |  | Prototype Pollution in node-forge debug API. |
+| ⚪ LOW |  | GHSA-5rrq-pxf6-6jx5 | node-forge | 0.10.0 |  | Prototype Pollution in node-forge debug API. |
+| ⚪ LOW |  | GHSA-5q6m-3h65-w53x | react-dev-utils | 5.0.3 |  | react-dev-utils OS Command Injection in function ` |
+| ⚪ LOW |  | GHSA-5q6m-3h65-w53x | react-dev-utils | 5.0.3 |  | react-dev-utils OS Command Injection in function ` |
+| ⚪ LOW |  | GHSA-5q6m-3h65-w53x | react-dev-utils | 4.2.1 |  | react-dev-utils OS Command Injection in function ` |
+| ⚪ LOW |  | GHSA-5q6m-3h65-w53x | react-dev-utils | 3.1.1 |  | react-dev-utils OS Command Injection in function ` |
+| ⚪ LOW |  | GHSA-5q6m-3h65-w53x | react-dev-utils | 0.5.2 |  | react-dev-utils OS Command Injection in function ` |
+| ⚪ LOW |  | GHSA-5q6m-3h65-w53x | react-dev-utils | 0.5.2 |  | react-dev-utils OS Command Injection in function ` |
+| ⚪ LOW |  | GHSA-5j98-mcp5-4vw2 | glob | 11.0.1 |  | glob CLI: Command injection via -c/--cmd executes  |
+| ⚪ LOW |  | GHSA-5j98-mcp5-4vw2 | glob | 10.4.5 |  | glob CLI: Command injection via -c/--cmd executes  |
+| ⚪ LOW |  | GHSA-5j98-mcp5-4vw2 | glob | 10.4.5 |  | glob CLI: Command injection via -c/--cmd executes  |
+| ⚪ LOW |  | GHSA-5j98-mcp5-4vw2 | glob | 10.4.5 |  | glob CLI: Command injection via -c/--cmd executes  |
+| ⚪ LOW |  | GHSA-5j98-mcp5-4vw2 | glob | 10.4.5 |  | glob CLI: Command injection via -c/--cmd executes  |
+| ⚪ LOW |  | GHSA-5j98-mcp5-4vw2 | glob | 10.4.5 |  | glob CLI: Command injection via -c/--cmd executes  |
+| ⚪ LOW |  | GHSA-5j98-mcp5-4vw2 | glob | 10.4.5 |  | glob CLI: Command injection via -c/--cmd executes  |
+| ⚪ LOW |  | GHSA-5j98-mcp5-4vw2 | glob | 10.4.2 |  | glob CLI: Command injection via -c/--cmd executes  |
+| ⚪ LOW |  | GHSA-5j98-mcp5-4vw2 | glob | 10.3.10 |  | glob CLI: Command injection via -c/--cmd executes  |
+| ⚪ LOW |  | GHSA-5j98-mcp5-4vw2 | glob | 10.2.7 |  | glob CLI: Command injection via -c/--cmd executes  |
+| ⚪ LOW |  | GHSA-5fw9-fq32-wv5p | node-notifier | 5.4.5 |  | OS Command Injection in node-notifier |
+| ⚪ LOW |  | GHSA-5fw9-fq32-wv5p | node-notifier | 5.4.5 |  | OS Command Injection in node-notifier |
+| ⚪ LOW |  | GHSA-5fw9-fq32-wv5p | node-notifier | 5.1.2 |  | OS Command Injection in node-notifier |
+| ⚪ LOW |  | GHSA-5fw9-fq32-wv5p | node-notifier | 5.1.2 |  | OS Command Injection in node-notifier |
+| ⚪ LOW |  | GHSA-5fw9-fq32-wv5p | node-notifier | 4.6.1 |  | OS Command Injection in node-notifier |
+| ⚪ LOW |  | GHSA-5fw9-fq32-wv5p | node-notifier | 4.6.1 |  | OS Command Injection in node-notifier |
+| ⚪ LOW |  | GHSA-5955-9wpr-37jh | tar | 2.2.2 |  | Arbitrary File Creation/Overwrite on Windows via i |
+| ⚪ LOW |  | GHSA-5955-9wpr-37jh | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite on Windows via i |
+| ⚪ LOW |  | GHSA-5955-9wpr-37jh | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite on Windows via i |
+| ⚪ LOW |  | GHSA-5955-9wpr-37jh | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite on Windows via i |
+| ⚪ LOW |  | GHSA-5955-9wpr-37jh | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite on Windows via i |
+| ⚪ LOW |  | GHSA-5955-9wpr-37jh | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite on Windows via i |
+| ⚪ LOW |  | GHSA-5955-9wpr-37jh | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite on Windows via i |
+| ⚪ LOW |  | GHSA-5955-9wpr-37jh | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite on Windows via i |
+| ⚪ LOW |  | GHSA-5955-9wpr-37jh | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite on Windows via i |
+| ⚪ LOW |  | GHSA-5955-9wpr-37jh | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite on Windows via i |
+| ⚪ LOW |  | GHSA-5955-9wpr-37jh | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite on Windows via i |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 7.0.32 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 6.0.9 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 6.0.23 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 6.0.23 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 6.0.23 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 6.0.23 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 6.0.14 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 5.2.18 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 5.2.18 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 5.2.18 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 5.2.18 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 5.2.17 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-566m-qj78-rww5 | postcss | 5.2.15 |  | Regular Expression Denial of Service in postcss |
+| ⚪ LOW |  | GHSA-52f5-9888-hmc6 | tmp | 0.2.3 |  | tmp allows arbitrary temporary file / directory wr |
+| ⚪ LOW |  | GHSA-52f5-9888-hmc6 | tmp | 0.2.3 |  | tmp allows arbitrary temporary file / directory wr |
+| ⚪ LOW |  | GHSA-52f5-9888-hmc6 | tmp | 0.1.0 |  | tmp allows arbitrary temporary file / directory wr |
+| ⚪ LOW |  | GHSA-52f5-9888-hmc6 | tmp | 0.0.33 |  | tmp allows arbitrary temporary file / directory wr |
+| ⚪ LOW |  | GHSA-52f5-9888-hmc6 | tmp | 0.0.33 |  | tmp allows arbitrary temporary file / directory wr |
+| ⚪ LOW |  | GHSA-52f5-9888-hmc6 | tmp | 0.0.33 |  | tmp allows arbitrary temporary file / directory wr |
+| ⚪ LOW |  | GHSA-52f5-9888-hmc6 | tmp | 0.0.33 |  | tmp allows arbitrary temporary file / directory wr |
+| ⚪ LOW |  | GHSA-52f5-9888-hmc6 | tmp | 0.0.33 |  | tmp allows arbitrary temporary file / directory wr |
+| ⚪ LOW |  | GHSA-52f5-9888-hmc6 | tmp | 0.0.33 |  | tmp allows arbitrary temporary file / directory wr |
+| ⚪ LOW |  | GHSA-52f5-9888-hmc6 | tmp | 0.0.31 |  | tmp allows arbitrary temporary file / directory wr |
+| ⚪ LOW |  | GHSA-4xcv-9jjx-gfj3 | mem | 1.1.0 |  | Denial of Service in mem |
+| ⚪ LOW |  | GHSA-4xcv-9jjx-gfj3 | mem | 1.1.0 |  | Denial of Service in mem |
+| ⚪ LOW |  | GHSA-4xcv-9jjx-gfj3 | mem | 1.1.0 |  | Denial of Service in mem |
+| ⚪ LOW |  | GHSA-4xcv-9jjx-gfj3 | mem | 1.1.0 |  | Denial of Service in mem |
+| ⚪ LOW |  | GHSA-4xc9-xhrj-v574 | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-4xc9-xhrj-v574 | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-4xc9-xhrj-v574 | lodash | 4.17.4 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-4xc9-xhrj-v574 | lodash | 3.10.1 |  | Prototype Pollution in lodash |
+| ⚪ LOW |  | GHSA-4x5v-gmq8-25ch | semver-regex | 2.0.0 |  | Regular expression denial of service in semver-reg |
+| ⚪ LOW |  | GHSA-4www-5p9h-95mh | http-proxy-middlewar | 3.0.3 |  | http-proxy-middleware can call writeBody twice bec |
+| ⚪ LOW |  | GHSA-4www-5p9h-95mh | http-proxy-middlewar | 2.0.7 |  | http-proxy-middleware can call writeBody twice bec |
+| ⚪ LOW |  | GHSA-4www-5p9h-95mh | http-proxy-middlewar | 2.0.7 |  | http-proxy-middleware can call writeBody twice bec |
+| ⚪ LOW |  | GHSA-4www-5p9h-95mh | http-proxy-middlewar | 2.0.6 |  | http-proxy-middleware can call writeBody twice bec |
+| ⚪ LOW |  | GHSA-4wf5-vphf-c2xc | terser | 4.8.0 |  | Terser insecure use of regular expressions leads t |
+| ⚪ LOW |  | GHSA-4wf5-vphf-c2xc | terser | 4.8.0 |  | Terser insecure use of regular expressions leads t |
+| ⚪ LOW |  | GHSA-4vvj-4cpr-p986 | webpack | 5.93.0 |  | Webpack's AutoPublicPathRuntimeModule has a DOM Cl |
+| ⚪ LOW |  | GHSA-4vvj-4cpr-p986 | webpack | 5.82.1 |  | Webpack's AutoPublicPathRuntimeModule has a DOM Cl |
+| ⚪ LOW |  | GHSA-4v9v-hfq4-rm2v | webpack-dev-server | 4.15.2 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-4v9v-hfq4-rm2v | webpack-dev-server | 4.15.2 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-4v9v-hfq4-rm2v | webpack-dev-server | 4.15.0 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-4v9v-hfq4-rm2v | webpack-dev-server | 2.9.4 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-4v9v-hfq4-rm2v | webpack-dev-server | 2.7.1 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-4v9v-hfq4-rm2v | webpack-dev-server | 2.11.3 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-4v9v-hfq4-rm2v | webpack-dev-server | 2.11.3 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-4v9v-hfq4-rm2v | webpack-dev-server | 1.16.2 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-4v9v-hfq4-rm2v | webpack-dev-server | 1.16.2 |  | webpack-dev-server users' source code may be stole |
+| ⚪ LOW |  | GHSA-4rq4-32rv-6wp6 | shelljs | 0.7.8 |  | Improper Privilege Management in shelljs |
+| ⚪ LOW |  | GHSA-4rq4-32rv-6wp6 | shelljs | 0.7.6 |  | Improper Privilege Management in shelljs |
+| ⚪ LOW |  | GHSA-4hpf-3wq7-5rpr | is-my-json-valid | 2.15.0 |  | Regular expression deinal of service (ReDoS) in is |
+| ⚪ LOW |  | GHSA-4hjh-wcwx-xvwj | axios | 1.7.7 |  | Axios is vulnerable to DoS attack through lack of  |
+| ⚪ LOW |  | GHSA-4hjh-wcwx-xvwj | axios | 1.7.4 |  | Axios is vulnerable to DoS attack through lack of  |
+| ⚪ LOW |  | GHSA-4gmj-3p3h-gm8h | es5-ext | 0.10.53 |  | es5-ext vulnerable to Regular Expression Denial of |
+| ⚪ LOW |  | GHSA-4gmj-3p3h-gm8h | es5-ext | 0.10.53 |  | es5-ext vulnerable to Regular Expression Denial of |
+| ⚪ LOW |  | GHSA-4gmj-3p3h-gm8h | es5-ext | 0.10.35 |  | es5-ext vulnerable to Regular Expression Denial of |
+| ⚪ LOW |  | GHSA-4gmj-3p3h-gm8h | es5-ext | 0.10.35 |  | es5-ext vulnerable to Regular Expression Denial of |
+| ⚪ LOW |  | GHSA-4gmj-3p3h-gm8h | es5-ext | 0.10.35 |  | es5-ext vulnerable to Regular Expression Denial of |
+| ⚪ LOW |  | GHSA-4gmj-3p3h-gm8h | es5-ext | 0.10.29 |  | es5-ext vulnerable to Regular Expression Denial of |
+| ⚪ LOW |  | GHSA-4gmj-3p3h-gm8h | es5-ext | 0.10.12 |  | es5-ext vulnerable to Regular Expression Denial of |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.5.4 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.5.4 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.5.4 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.5.4 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.5.4 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.5.4 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.5.4 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.5.4 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.5.4 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.5.4 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.4.0 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.4.0 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.4.0 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.4.0 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.4.0 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-49q7-c7j4-3p7m | elliptic | 6.4.0 |  | Elliptic allows BER-encoded signatures |
+| ⚪ LOW |  | GHSA-46c4-8wrp-j99v | url-parse | 1.2.0 |  | Improper Validation and Sanitization in url-parse |
+| ⚪ LOW |  | GHSA-46c4-8wrp-j99v | url-parse | 1.1.9 |  | Improper Validation and Sanitization in url-parse |
+| ⚪ LOW |  | GHSA-46c4-8wrp-j99v | url-parse | 1.1.7 |  | Improper Validation and Sanitization in url-parse |
+| ⚪ LOW |  | GHSA-46c4-8wrp-j99v | url-parse | 1.0.5 |  | Improper Validation and Sanitization in url-parse |
+| ⚪ LOW |  | GHSA-46c4-8wrp-j99v | url-parse | 1.0.5 |  | Improper Validation and Sanitization in url-parse |
+| ⚪ LOW |  | GHSA-46c4-8wrp-j99v | url-parse | 1.0.5 |  | Improper Validation and Sanitization in url-parse |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 6.0.2 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44pw-h2cw-w3vq | hawk | 3.1.3 |  | Uncontrolled Resource Consumption in Hawk |
+| ⚪ LOW |  | GHSA-44c6-4v22-4mhx | semver-regex | 2.0.0 |  | semver-regex Regular Expression Denial of Service  |
+| ⚪ LOW |  | GHSA-43f8-2h32-f4cj | hosted-git-info | 2.5.0 |  | Regular Expression Denial of Service in hosted-git |
+| ⚪ LOW |  | GHSA-43f8-2h32-f4cj | hosted-git-info | 2.5.0 |  | Regular Expression Denial of Service in hosted-git |
+| ⚪ LOW |  | GHSA-43f8-2h32-f4cj | hosted-git-info | 2.1.5 |  | Regular Expression Denial of Service in hosted-git |
+| ⚪ LOW |  | GHSA-43f8-2h32-f4cj | hosted-git-info | 2.1.5 |  | Regular Expression Denial of Service in hosted-git |
+| ⚪ LOW |  | GHSA-43f8-2h32-f4cj | hosted-git-info | 2.1.5 |  | Regular Expression Denial of Service in hosted-git |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.5.4 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.5.4 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.5.4 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.5.4 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.5.4 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.5.4 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.5.4 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.5.4 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.5.4 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.5.4 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.4.0 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.4.0 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.4.0 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.4.0 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.4.0 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-434g-2637-qmqr | elliptic | 6.4.0 |  | Elliptic's verify function omits uniqueness valida |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 7.0.3 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 7.0.3 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 7.0.3 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 7.0.3 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 7.0.3 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 7.0.3 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 7.0.3 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 7.0.3 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 7.0.1 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 6.0.5 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 5.1.0 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 5.1.0 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 5.1.0 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 5.1.0 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 5.1.0 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 5.1.0 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 4.0.2 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 4.0.2 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 4.0.2 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 4.0.2 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3xgq-45jj-v275 | cross-spawn | 4.0.2 |  | Regular Expression Denial of Service (ReDoS) in cr |
+| ⚪ LOW |  | GHSA-3wcq-x3mq-6r9p | dns-packet | 1.3.1 |  | Potential memory exposure in dns-packet |
+| ⚪ LOW |  | GHSA-3wcq-x3mq-6r9p | dns-packet | 1.2.2 |  | Potential memory exposure in dns-packet |
+| ⚪ LOW |  | GHSA-3wcq-x3mq-6r9p | dns-packet | 1.2.2 |  | Potential memory exposure in dns-packet |
+| ⚪ LOW |  | GHSA-3vjf-82ff-p4r3 | urijs | 1.19.6 |  | Incorrect protocol extraction via \r, \n and \t ch |
+| ⚪ LOW |  | GHSA-3vjf-82ff-p4r3 | urijs | 1.19.0 |  | Incorrect protocol extraction via \r, \n and \t ch |
+| ⚪ LOW |  | GHSA-3vjf-82ff-p4r3 | urijs | 1.18.12 |  | Incorrect protocol extraction via \r, \n and \t ch |
+| ⚪ LOW |  | GHSA-3rfm-jhwj-7488 | loader-utils | 3.2.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-3rfm-jhwj-7488 | loader-utils | 2.0.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-3rfm-jhwj-7488 | loader-utils | 1.4.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-3rfm-jhwj-7488 | loader-utils | 1.4.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-3rfm-jhwj-7488 | loader-utils | 1.4.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-3rfm-jhwj-7488 | loader-utils | 1.4.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-3rfm-jhwj-7488 | loader-utils | 1.4.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-3rfm-jhwj-7488 | loader-utils | 1.2.3 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-3rfm-jhwj-7488 | loader-utils | 1.1.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-3rfm-jhwj-7488 | loader-utils | 1.1.0 |  | loader-utils is vulnerable to Regular Expression D |
+| ⚪ LOW |  | GHSA-3jfq-g458-7qm9 | tar | 2.2.2 |  | Arbitrary File Creation/Overwrite due to insuffici |
+| ⚪ LOW |  | GHSA-3jfq-g458-7qm9 | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite due to insuffici |
+| ⚪ LOW |  | GHSA-3jfq-g458-7qm9 | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite due to insuffici |
+| ⚪ LOW |  | GHSA-3jfq-g458-7qm9 | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite due to insuffici |
+| ⚪ LOW |  | GHSA-3jfq-g458-7qm9 | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite due to insuffici |
+| ⚪ LOW |  | GHSA-3jfq-g458-7qm9 | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite due to insuffici |
+| ⚪ LOW |  | GHSA-3jfq-g458-7qm9 | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite due to insuffici |
+| ⚪ LOW |  | GHSA-3jfq-g458-7qm9 | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite due to insuffici |
+| ⚪ LOW |  | GHSA-3jfq-g458-7qm9 | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite due to insuffici |
+| ⚪ LOW |  | GHSA-3jfq-g458-7qm9 | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite due to insuffici |
+| ⚪ LOW |  | GHSA-3jfq-g458-7qm9 | tar | 2.2.1 |  | Arbitrary File Creation/Overwrite due to insuffici |
+| ⚪ LOW |  | GHSA-3h5v-q93c-6h6q | ws | 3.3.2 |  | ws affected by a DoS when handling a request with  |
+| ⚪ LOW |  | GHSA-394c-5j6w-4xmx | ua-parser-js | 0.7.22 |  | ua-parser-js Regular Expression Denial of Service  |
+| ⚪ LOW |  | GHSA-394c-5j6w-4xmx | ua-parser-js | 0.7.22 |  | ua-parser-js Regular Expression Denial of Service  |
+| ⚪ LOW |  | GHSA-394c-5j6w-4xmx | ua-parser-js | 0.7.20 |  | ua-parser-js Regular Expression Denial of Service  |
+| ⚪ LOW |  | GHSA-394c-5j6w-4xmx | ua-parser-js | 0.7.17 |  | ua-parser-js Regular Expression Denial of Service  |
+| ⚪ LOW |  | GHSA-394c-5j6w-4xmx | ua-parser-js | 0.7.14 |  | ua-parser-js Regular Expression Denial of Service  |
+| ⚪ LOW |  | GHSA-394c-5j6w-4xmx | ua-parser-js | 0.7.12 |  | ua-parser-js Regular Expression Denial of Service  |
+| ⚪ LOW |  | GHSA-3787-6prv-h9w3 | undici | 5.22.1 |  | Undici proxy-authorization header not cleared on c |
+| ⚪ LOW |  | GHSA-36jr-mh4h-2g58 | d3-color | 1.4.1 |  | d3-color vulnerable to ReDoS |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash | 4.17.4 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash | 4.17.4 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash | 4.17.4 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash | 4.17.20 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash | 4.17.20 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash | 4.17.15 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash | 4.17.11 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash | 4.17.11 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash | 3.10.1 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash.template | 4.5.0 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash.template | 4.5.0 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash.template | 4.4.0 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-35jh-r3h4-6jhm | lodash.template | 4.4.0 |  | Command Injection in lodash |
+| ⚪ LOW |  | GHSA-3329-pjwv-fjpg | urijs | 1.19.0 |  | Hostname spoofing via backslashes in URL |
+| ⚪ LOW |  | GHSA-3329-pjwv-fjpg | urijs | 1.18.12 |  | Hostname spoofing via backslashes in URL |
+| ⚪ LOW |  | GHSA-2r2c-g63r-vccr | node-forge | 0.6.33 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-2r2c-g63r-vccr | node-forge | 0.6.33 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-2r2c-g63r-vccr | node-forge | 0.10.0 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-2r2c-g63r-vccr | node-forge | 0.10.0 |  | Improper Verification of Cryptographic Signature i |
+| ⚪ LOW |  | GHSA-2pr6-76vf-7546 | js-yaml | 3.9.1 |  | Denial of Service in js-yaml |
+| ⚪ LOW |  | GHSA-2pr6-76vf-7546 | js-yaml | 3.7.0 |  | Denial of Service in js-yaml |
+| ⚪ LOW |  | GHSA-2pr6-76vf-7546 | js-yaml | 3.7.0 |  | Denial of Service in js-yaml |
+| ⚪ LOW |  | GHSA-2pr6-76vf-7546 | js-yaml | 3.7.0 |  | Denial of Service in js-yaml |
+| ⚪ LOW |  | GHSA-2pr6-76vf-7546 | js-yaml | 3.7.0 |  | Denial of Service in js-yaml |
+| ⚪ LOW |  | GHSA-2pr6-76vf-7546 | js-yaml | 3.7.0 |  | Denial of Service in js-yaml |
+| ⚪ LOW |  | GHSA-2pr6-76vf-7546 | js-yaml | 3.7.0 |  | Denial of Service in js-yaml |
+| ⚪ LOW |  | GHSA-2pr6-76vf-7546 | js-yaml | 3.6.1 |  | Denial of Service in js-yaml |
+| ⚪ LOW |  | GHSA-2pr6-76vf-7546 | js-yaml | 3.10.0 |  | Denial of Service in js-yaml |
+| ⚪ LOW |  | GHSA-2p57-rm9w-gvfp | ip | 1.1.9 |  | ip SSRF improper categorization in isPublic |
+| ⚪ LOW |  | GHSA-2p57-rm9w-gvfp | ip | 1.1.5 |  | ip SSRF improper categorization in isPublic |
+| ⚪ LOW |  | GHSA-2p57-rm9w-gvfp | ip | 1.1.5 |  | ip SSRF improper categorization in isPublic |
+| ⚪ LOW |  | GHSA-2p57-rm9w-gvfp | ip | 1.1.5 |  | ip SSRF improper categorization in isPublic |
+| ⚪ LOW |  | GHSA-2m39-62fm-q8r3 | sshpk | 1.13.1 |  | Regular Expression Denial of Service in sshpk |
+| ⚪ LOW |  | GHSA-2m39-62fm-q8r3 | sshpk | 1.13.1 |  | Regular Expression Denial of Service in sshpk |
+| ⚪ LOW |  | GHSA-2m39-62fm-q8r3 | sshpk | 1.13.1 |  | Regular Expression Denial of Service in sshpk |
+| ⚪ LOW |  | GHSA-2m39-62fm-q8r3 | sshpk | 1.13.1 |  | Regular Expression Denial of Service in sshpk |
+| ⚪ LOW |  | GHSA-2m39-62fm-q8r3 | sshpk | 1.13.1 |  | Regular Expression Denial of Service in sshpk |
+| ⚪ LOW |  | GHSA-2m39-62fm-q8r3 | sshpk | 1.13.1 |  | Regular Expression Denial of Service in sshpk |
+| ⚪ LOW |  | GHSA-2m39-62fm-q8r3 | sshpk | 1.13.1 |  | Regular Expression Denial of Service in sshpk |
+| ⚪ LOW |  | GHSA-2m39-62fm-q8r3 | sshpk | 1.13.1 |  | Regular Expression Denial of Service in sshpk |
+| ⚪ LOW |  | GHSA-2m39-62fm-q8r3 | sshpk | 1.13.1 |  | Regular Expression Denial of Service in sshpk |
+| ⚪ LOW |  | GHSA-2m39-62fm-q8r3 | sshpk | 1.11.0 |  | Regular Expression Denial of Service in sshpk |
+| ⚪ LOW |  | GHSA-2m39-62fm-q8r3 | sshpk | 1.10.1 |  | Regular Expression Denial of Service in sshpk |
+| ⚪ LOW |  | GHSA-29xr-v42j-r956 | thenify | 3.3.0 |  | thenify before 3.3.1 made use of unsafe calls to ` |
+| ⚪ LOW |  | GHSA-29mw-wpgm-hmr9 | lodash | 4.17.4 |  | Regular Expression Denial of Service (ReDoS) in lo |
+| ⚪ LOW |  | GHSA-29mw-wpgm-hmr9 | lodash | 4.17.4 |  | Regular Expression Denial of Service (ReDoS) in lo |
+| ⚪ LOW |  | GHSA-29mw-wpgm-hmr9 | lodash | 4.17.4 |  | Regular Expression Denial of Service (ReDoS) in lo |
+| ⚪ LOW |  | GHSA-29mw-wpgm-hmr9 | lodash | 4.17.20 |  | Regular Expression Denial of Service (ReDoS) in lo |
+| ⚪ LOW |  | GHSA-29mw-wpgm-hmr9 | lodash | 4.17.20 |  | Regular Expression Denial of Service (ReDoS) in lo |
+| ⚪ LOW |  | GHSA-29mw-wpgm-hmr9 | lodash | 4.17.15 |  | Regular Expression Denial of Service (ReDoS) in lo |
+| ⚪ LOW |  | GHSA-29mw-wpgm-hmr9 | lodash | 4.17.11 |  | Regular Expression Denial of Service (ReDoS) in lo |
+| ⚪ LOW |  | GHSA-29mw-wpgm-hmr9 | lodash | 4.17.11 |  | Regular Expression Denial of Service (ReDoS) in lo |
+| ⚪ LOW |  | GHSA-29gp-92wp-94q8 | react-dev-utils | 4.2.1 |  | react-dev-utils on Windows vulnerable to Remote Co |
+| ⚪ LOW |  | GHSA-29gp-92wp-94q8 | react-dev-utils | 3.1.1 |  | react-dev-utils on Windows vulnerable to Remote Co |
+| ⚪ LOW |  | GHSA-28xh-wpgr-7fm8 | open | 0.0.5 |  | Command Injection in open |
+| ⚪ LOW |  | GHSA-28xh-wpgr-7fm8 | open | 0.0.5 |  | Command Injection in open |
+| ⚪ LOW |  | GHSA-282f-qqgm-c34q | jsonpointer | 4.1.0 |  | Prototype Pollution in node-jsonpointer |
+| ⚪ LOW |  | GHSA-282f-qqgm-c34q | jsonpointer | 4.0.1 |  | Prototype Pollution in node-jsonpointer |
+| ⚪ LOW |  | GHSA-257v-vj4p-3w2h | color-string | 0.3.0 |  | Regular Expression Denial of Service (ReDOS) |
+| ⚪ LOW |  | GHSA-257v-vj4p-3w2h | color-string | 0.3.0 |  | Regular Expression Denial of Service (ReDOS) |
+| ⚪ LOW |  | GHSA-257v-vj4p-3w2h | color-string | 0.3.0 |  | Regular Expression Denial of Service (ReDOS) |
+| ⚪ LOW |  | GHSA-257v-vj4p-3w2h | color-string | 0.3.0 |  | Regular Expression Denial of Service (ReDOS) |
+| ⚪ LOW |  | GHSA-257v-vj4p-3w2h | color-string | 0.3.0 |  | Regular Expression Denial of Service (ReDOS) |
+| ⚪ LOW |  | GHSA-257v-vj4p-3w2h | color-string | 0.3.0 |  | Regular Expression Denial of Service (ReDOS) |
+
+## Summary
+
+- **Total vulnerabilities:**     1666
+- **Critical:** 0
+0
+- **High:** 0
+0
+- **Medium:** 0
+0
+- **Low:** 1666
+- **In CISA KEV:** 0
+0
+
+[0;32m=========================================[0m
+[0;32m  Analysis Complete[0m
+[0;32m=========================================[0m
+
+[0;34m▶ Running package-health analysis...[0m
+

@@ -238,6 +238,7 @@ openssl x509 -in cert.pem -noout -text | grep -i "1.3.6.1.4.1.11129"
 - [ ] OCSP responder URL in AIA
 - [ ] Certificate Policy OID present
 
+
 ### For Intermediate CA Certificates
 
 - [ ] Basic Constraints: CA:TRUE, critical

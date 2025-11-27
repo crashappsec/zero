@@ -62,9 +62,9 @@ TEMP_DIR=""
 
 # Claude configuration
 ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-}"
-USE_CLAUDE=true
-if [[ -z "$ANTHROPIC_API_KEY" ]]; then
-    USE_CLAUDE=false
+USE_CLAUDE=false
+if [[ -n "$ANTHROPIC_API_KEY" ]]; then
+    USE_CLAUDE=true
 fi
 
 # Cleanup function
