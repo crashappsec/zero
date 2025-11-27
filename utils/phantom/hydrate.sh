@@ -223,7 +223,6 @@ get_phase_display() {
     local phase="$1"
     case "$phase" in
         "Cloning") echo "Cloning repository" ;;
-        "Detecting") echo "Detecting project type" ;;
         "technology") echo "Technology scan" ;;
         "dependencies") echo "Dependencies" ;;
         "vulnerabilities") echo "Vulnerability scan" ;;
@@ -241,7 +240,6 @@ get_phase_estimate() {
     local phase="$1"
     case "$phase" in
         "Cloning") echo "~30s" ;;
-        "Detecting") echo "~2s" ;;
         "technology") echo "~5s" ;;
         "dependencies") echo "~3s" ;;
         "vulnerabilities") echo "~30s" ;;
@@ -264,22 +262,8 @@ get_phase_result() {
 
     case "$phase" in
         "Cloning")
-            if [[ -d "$repo_path" ]]; then
-                local size=$(du -sh "$repo_path" 2>/dev/null | cut -f1)
-                local files=$(find "$repo_path" -type f 2>/dev/null | wc -l | tr -d ' ')
-                printf "\033[2m%s, %s files\033[0m" "$size" "$files"
-            fi
-            ;;
-        "Detecting")
-            if [[ -f "$analysis_path/technology.json" ]]; then
-                local lang=$(jq -r '.primary_language // "Unknown"' "$analysis_path/technology.json" 2>/dev/null)
-                local framework=$(jq -r '.frameworks[0] // ""' "$analysis_path/technology.json" 2>/dev/null)
-                if [[ -n "$framework" ]]; then
-                    printf "\033[2m%s, %s\033[0m" "$lang" "$framework"
-                else
-                    printf "\033[2m%s\033[0m" "$lang"
-                fi
-            fi
+            # Just show "done" - size is in header, language shown separately
+            printf "\033[2mdone\033[0m"
             ;;
         "technology")
             if [[ -f "$analysis_path/technology.json" ]]; then
@@ -518,14 +502,11 @@ hydrate_org() {
                 local current_phase=""
 
                 # Determine phase by checking what exists:
-                # 1. If repo doesn't exist yet -> Cloning
-                # 2. If repo exists but no analysis dir -> Detecting
-                # 3. If analysis dir exists -> check which analyzer files exist
+                # 1. If repo doesn't exist yet or Languages not printed -> Cloning
+                # 2. If analysis started -> check which analyzer files exist
 
-                if [[ ! -d "$GIBSON_PROJECTS_DIR/$project_id/repo" ]]; then
+                if [[ ! -d "$GIBSON_PROJECTS_DIR/$project_id/repo" ]] || ! echo "$clean_log" | grep -q "Languages:"; then
                     current_phase="Cloning"
-                elif ! echo "$clean_log" | grep -q "Languages:"; then
-                    current_phase="Detecting"
                 else
                     # Check which output files exist to determine current analyzer
                     local analyzers="technology dependencies vulnerabilities package-health licenses security-findings ownership dora"
