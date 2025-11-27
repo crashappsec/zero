@@ -408,9 +408,9 @@ show_menu() {
     local first_run=true
 
     while true; do
-        # Use animated banner on first display, static after
+        # Use animated banner on first display (random effect), static after
         if [[ "$first_run" == "true" ]]; then
-            print_phantom_banner_animated burn
+            print_phantom_banner_animated  # Random effect each time
             first_run=false
         else
             print_phantom_banner
