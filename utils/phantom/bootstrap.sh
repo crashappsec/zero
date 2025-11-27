@@ -868,7 +868,17 @@ run_all_analyzers() {
     local analyzer_count=$(echo "$analyzers" | wc -w | tr -d ' ')
     local current=0
 
-    echo -e "\n${BOLD}Running $analyzer_count analyzers...${NC}"
+    # Show mode in header
+    local mode_display=""
+    case "$mode" in
+        quick)    mode_display=" ${DIM}(quick mode)${NC}" ;;
+        standard) mode_display=" ${DIM}(standard mode)${NC}" ;;
+        advanced) mode_display=" ${DIM}(advanced mode)${NC}" ;;
+        deep)     mode_display=" ${DIM}(deep mode)${NC}" ;;
+        security) mode_display=" ${DIM}(security mode)${NC}" ;;
+    esac
+
+    echo -e "\n${BOLD}Running $analyzer_count analyzers${mode_display}${NC}"
     echo
 
     for analyzer in $analyzers; do
