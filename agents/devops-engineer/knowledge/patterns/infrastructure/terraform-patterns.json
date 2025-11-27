@@ -1,0 +1,150 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Terraform Patterns",
+  "description": "Detection patterns for Terraform infrastructure code quality",
+  "version": "1.0.0",
+  "patterns": {
+    "good_practices": {
+      "remote_state": {
+        "pattern": "backend\\s+\"(s3|gcs|azurerm|remote)\"",
+        "description": "Using remote state storage",
+        "importance": "Enables team collaboration and state locking"
+      },
+      "state_locking": {
+        "patterns": ["dynamodb_table", "lock_table"],
+        "description": "State locking configured",
+        "importance": "Prevents concurrent modifications"
+      },
+      "modules": {
+        "pattern": "module\\s+\"\\w+\"\\s*\\{",
+        "description": "Using modules for reusability"
+      },
+      "versioned_modules": {
+        "pattern": "source\\s*=.*\\?ref=v",
+        "description": "Module versions pinned"
+      },
+      "provider_versioning": {
+        "pattern": "required_providers\\s*\\{[^}]*version\\s*=",
+        "description": "Provider versions constrained"
+      },
+      "resource_naming": {
+        "pattern": "resource\\s+\"\\w+\"\\s+\"[a-z][a-z0-9_-]+\"",
+        "description": "Consistent resource naming"
+      },
+      "tagging": {
+        "pattern": "tags\\s*=.*\\{",
+        "description": "Resources tagged for organization"
+      }
+    },
+    "anti_patterns": {
+      "local_state": {
+        "pattern": "^(?!.*backend)",
+        "context": "main.tf without backend block",
+        "severity": "high",
+        "description": "Using local state file",
+        "recommendation": "Configure remote backend (S3, GCS, etc.)"
+      },
+      "hardcoded_values": {
+        "patterns": [
+          "ami-[0-9a-f]{8,17}",
+          "subnet-[0-9a-f]{8,17}",
+          "sg-[0-9a-f]{8,17}",
+          "\\d{12}.*:.*:"
+        ],
+        "severity": "high",
+        "description": "Hardcoded AWS IDs or account numbers",
+        "recommendation": "Use data sources or variables"
+      },
+      "no_version_constraint": {
+        "pattern": "required_version\\s*=\\s*\">=",
+        "severity": "medium",
+        "description": "No upper bound on Terraform version",
+        "recommendation": "Use pessimistic constraint: ~> 1.5.0"
+      },
+      "unpinned_provider": {
+        "pattern": "version\\s*=\\s*\">=|version\\s*=\\s*\"~>\\s*\\d+\"",
+        "severity": "medium",
+        "description": "Provider version too loose",
+        "recommendation": "Pin to minor version: ~> 5.0"
+      },
+      "secrets_in_code": {
+        "patterns": [
+          "password\\s*=\\s*\"[^\"]+\"",
+          "secret\\s*=\\s*\"[^\"]+\"",
+          "api_key\\s*=\\s*\"[^\"]+\""
+        ],
+        "severity": "critical",
+        "description": "Secrets hardcoded in Terraform",
+        "recommendation": "Use secrets manager or environment variables"
+      },
+      "no_description": {
+        "pattern": "variable\\s+\"\\w+\"\\s*\\{\\s*type",
+        "context": "variable without description",
+        "severity": "low",
+        "description": "Variables without descriptions"
+      },
+      "wildcard_permissions": {
+        "pattern": "\"\\*\"\\s*]\\s*resources",
+        "severity": "high",
+        "description": "Wildcard IAM permissions",
+        "recommendation": "Use specific resource ARNs"
+      },
+      "public_access": {
+        "patterns": [
+          "public\\s*=\\s*true",
+          "publicly_accessible\\s*=\\s*true",
+          "0.0.0.0/0"
+        ],
+        "severity": "high",
+        "description": "Resources publicly accessible",
+        "recommendation": "Restrict to specific IPs/VPCs"
+      }
+    }
+  },
+  "structure_patterns": {
+    "recommended_layout": {
+      "description": "Standard file organization",
+      "files": {
+        "main.tf": "Primary resources",
+        "variables.tf": "Input variable declarations",
+        "outputs.tf": "Output value declarations",
+        "versions.tf": "Provider and Terraform version constraints",
+        "terraform.tfvars": "Variable values (not committed)",
+        "*.auto.tfvars": "Auto-loaded variable files"
+      }
+    },
+    "module_structure": {
+      "description": "Reusable module layout",
+      "files": {
+        "main.tf": "Module resources",
+        "variables.tf": "Module inputs",
+        "outputs.tf": "Module outputs",
+        "README.md": "Documentation"
+      }
+    }
+  },
+  "naming_conventions": {
+    "resources": "lowercase_with_underscores",
+    "variables": "lowercase_with_underscores",
+    "outputs": "lowercase_with_underscores",
+    "modules": "kebab-case",
+    "files": "lowercase with .tf extension"
+  },
+  "security_checklist": {
+    "encryption": [
+      "S3 buckets have encryption enabled",
+      "RDS instances use encryption at rest",
+      "EBS volumes encrypted"
+    ],
+    "access": [
+      "Security groups minimal",
+      "IAM policies least privilege",
+      "No public S3 buckets"
+    ],
+    "logging": [
+      "CloudTrail enabled",
+      "VPC flow logs enabled",
+      "S3 access logging"
+    ]
+  }
+}

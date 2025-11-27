@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "React Render Performance Patterns",
+  "description": "Detection patterns for render optimization",
+  "version": "1.0.0",
+  "patterns": {
+    "optimization_techniques": {
+      "react_memo": {
+        "pattern": "React\\.memo\\(|memo\\(",
+        "description": "Prevents re-renders when props unchanged",
+        "when_to_use": [
+          "Pure functional components",
+          "Components receiving same props frequently",
+          "Components with expensive render logic"
+        ],
+        "when_to_avoid": [
+          "Components that always receive new props",
+          "Very simple components (overhead not worth it)"
+        ]
+      },
+      "usememo": {
+        "pattern": "useMemo\\(",
+        "description": "Memoizes computed values",
+        "when_to_use": [
+          "Expensive calculations",
+          "Creating objects passed as props",
+          "Derived state from props"
+        ]
+      },
+      "usecallback": {
+        "pattern": "useCallback\\(",
+        "description": "Memoizes callback functions",
+        "when_to_use": [
+          "Callbacks passed to memoized children",
+          "Callbacks in dependency arrays",
+          "Event handlers passed to many children"
+        ]
+      },
+      "virtualization": {
+        "pattern": "react-window|react-virtualized|@tanstack/react-virtual",
+        "description": "Virtualizes long lists",
+        "when_to_use": "Lists with > 50-100 items"
+      }
+    },
+    "anti_patterns": {
+      "inline_object_props": {
+        "pattern": "<\\w+\\s+[^>]*\\w+=\\{\\{",
+        "severity": "medium",
+        "description": "Inline objects create new references each render",
+        "example_bad": "<Component style={{ color: 'red' }} />",
+        "example_good": "const style = useMemo(() => ({ color: 'red' }), [])"
+      },
+      "inline_array_props": {
+        "pattern": "<\\w+\\s+[^>]*\\w+=\\{\\[",
+        "severity": "medium",
+        "description": "Inline arrays create new references each render",
+        "recommendation": "Extract to constant or useMemo"
+      },
+      "anonymous_components": {
+        "pattern": "map\\([^)]*\\)\\s*=>\\s*<",
+        "severity": "low",
+        "description": "Components in map callbacks should be named",
+        "recommendation": "Extract to named component for better debugging"
+      },
+      "context_provider_in_render": {
+        "pattern": "<\\w+Provider\\s+value=\\{\\{",
+        "severity": "high",
+        "description": "Creating context value in render causes all consumers to re-render",
+        "recommendation": "Memoize context value with useMemo"
+      },
+      "spreading_all_props": {
+        "pattern": "\\{\\.\\.\\.(props|rest)\\}",
+        "severity": "low",
+        "description": "Spreading all props makes it hard to track what's passed",
+        "recommendation": "Be explicit about which props to forward"
+      },
+      "unnecessary_fragments": {
+        "pattern": "<>\\s*<(\\w+)[^>]*>.*</\\1>\\s*</>",
+        "severity": "low",
+        "description": "Fragment wrapping single element is unnecessary"
+      }
+    },
+    "profiling_patterns": {
+      "react_profiler": {
+        "pattern": "<Profiler\\s+id=",
+        "description": "React Profiler for measuring render performance"
+      },
+      "why_did_you_render": {
+        "pattern": "whyDidYouRender|wdyr",
+        "description": "Library for tracking unnecessary re-renders"
+      }
+    }
+  },
+  "render_triggers": {
+    "always_cause_render": [
+      "setState with different value",
+      "Parent component re-renders (unless memoized)",
+      "Context value changes",
+      "forceUpdate called"
+    ],
+    "do_not_cause_render": [
+      "Ref changes (useRef)",
+      "setState with same value (shallow equal)",
+      "Memoized child with same props"
+    ]
+  },
+  "performance_metrics": {
+    "first_contentful_paint": {
+      "good": "< 1.8s",
+      "needs_improvement": "1.8-3s",
+      "poor": "> 3s"
+    },
+    "largest_contentful_paint": {
+      "good": "< 2.5s",
+      "needs_improvement": "2.5-4s",
+      "poor": "> 4s"
+    },
+    "time_to_interactive": {
+      "good": "< 3.8s",
+      "needs_improvement": "3.8-7.3s",
+      "poor": "> 7.3s"
+    },
+    "cumulative_layout_shift": {
+      "good": "< 0.1",
+      "needs_improvement": "0.1-0.25",
+      "poor": "> 0.25"
+    }
+  }
+}

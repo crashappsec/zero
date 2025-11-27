@@ -1,0 +1,146 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Frontend Testing Patterns",
+  "description": "Detection patterns for frontend testing quality",
+  "version": "1.0.0",
+  "patterns": {
+    "good_practices": {
+      "testing_library_queries": {
+        "preferred_order": [
+          "getByRole",
+          "getByLabelText",
+          "getByPlaceholderText",
+          "getByText",
+          "getByDisplayValue",
+          "getByAltText",
+          "getByTitle",
+          "getByTestId"
+        ],
+        "description": "Query priority based on accessibility and user perspective"
+      },
+      "async_handling": {
+        "pattern": "await\\s+(screen\\.find|waitFor|findBy)",
+        "description": "Proper async handling in tests"
+      },
+      "user_event": {
+        "pattern": "userEvent\\.(click|type|keyboard|hover)",
+        "description": "Using userEvent over fireEvent for realistic interactions"
+      },
+      "act_wrapping": {
+        "pattern": "await\\s+act\\(",
+        "description": "Proper act() wrapping for state updates"
+      },
+      "custom_render": {
+        "pattern": "renderWithProviders|customRender|renderWithRouter",
+        "description": "Custom render utilities for consistent test setup"
+      }
+    },
+    "anti_patterns": {
+      "testing_implementation": {
+        "pattern": "wrapper\\.instance\\(\\)|wrapper\\.state\\(\\)|setProps\\(",
+        "severity": "high",
+        "description": "Testing implementation details instead of behavior",
+        "recommendation": "Test what users see and do, not internal state"
+      },
+      "get_by_test_id_overuse": {
+        "pattern": "(getByTestId|data-testid).*\\n.*(getByTestId|data-testid)",
+        "severity": "medium",
+        "description": "Over-reliance on test IDs",
+        "recommendation": "Prefer accessible queries (getByRole, getByLabelText)"
+      },
+      "fire_event_click": {
+        "pattern": "fireEvent\\.click",
+        "severity": "low",
+        "description": "fireEvent doesn't simulate real user interactions",
+        "recommendation": "Use userEvent.click for more realistic testing"
+      },
+      "snapshot_everything": {
+        "pattern": "toMatchSnapshot\\(\\).*toMatchSnapshot\\(\\)",
+        "severity": "medium",
+        "description": "Excessive snapshot testing",
+        "recommendation": "Use snapshots sparingly; prefer explicit assertions"
+      },
+      "no_assertions": {
+        "pattern": "it\\([^)]+\\)\\s*=>\\s*\\{[^}]*render\\([^}]*\\}",
+        "severity": "high",
+        "description": "Test with no assertions",
+        "recommendation": "Every test should have explicit expect() calls"
+      },
+      "wait_for_timeout": {
+        "pattern": "waitFor\\([^,]+,\\s*\\{\\s*timeout:",
+        "severity": "medium",
+        "description": "Custom timeout may indicate flaky test",
+        "recommendation": "Fix underlying timing issue instead of increasing timeout"
+      },
+      "multiple_expects_one_test": {
+        "pattern": "expect\\([^)]+\\)[^}]*expect\\([^)]+\\)[^}]*expect\\([^)]+\\)[^}]*expect\\([^)]+\\)[^}]*expect",
+        "severity": "low",
+        "description": "Too many assertions in one test",
+        "recommendation": "Split into focused tests or use describe blocks"
+      }
+    },
+    "coverage_patterns": {
+      "happy_path_only": {
+        "indicators": ["No error handling tests", "No edge case tests"],
+        "severity": "medium",
+        "recommendation": "Add tests for error states and edge cases"
+      },
+      "missing_integration": {
+        "indicators": ["Only unit tests", "No component interaction tests"],
+        "severity": "medium",
+        "recommendation": "Add integration tests for user flows"
+      }
+    }
+  },
+  "test_file_organization": {
+    "patterns": {
+      "colocated": {
+        "pattern": "Component.tsx + Component.test.tsx",
+        "description": "Tests next to source files"
+      },
+      "test_folder": {
+        "pattern": "__tests__/Component.test.tsx",
+        "description": "Tests in __tests__ directories"
+      },
+      "root_tests": {
+        "pattern": "tests/components/Component.test.tsx",
+        "description": "Tests in project root tests folder"
+      }
+    }
+  },
+  "testing_pyramid": {
+    "unit": {
+      "percentage": "70%",
+      "focus": "Individual functions and components",
+      "speed": "Fast (< 100ms each)"
+    },
+    "integration": {
+      "percentage": "20%",
+      "focus": "Component interactions and user flows",
+      "speed": "Medium (< 1s each)"
+    },
+    "e2e": {
+      "percentage": "10%",
+      "focus": "Critical user journeys",
+      "speed": "Slow (> 1s each)"
+    }
+  },
+  "frameworks": {
+    "jest": {
+      "config_files": ["jest.config.js", "jest.config.ts"],
+      "patterns": ["describe(", "it(", "test(", "expect("]
+    },
+    "vitest": {
+      "config_files": ["vitest.config.ts", "vite.config.ts"],
+      "patterns": ["describe(", "it(", "test(", "expect("]
+    },
+    "cypress": {
+      "config_files": ["cypress.config.ts", "cypress.json"],
+      "patterns": ["cy.", "describe(", "it("]
+    },
+    "playwright": {
+      "config_files": ["playwright.config.ts"],
+      "patterns": ["test(", "expect(", "page."]
+    }
+  }
+}

@@ -1,0 +1,168 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Kubernetes Patterns",
+  "description": "Detection patterns for Kubernetes configuration quality",
+  "version": "1.0.0",
+  "patterns": {
+    "good_practices": {
+      "resource_limits": {
+        "pattern": "resources:\\s*\\n\\s*limits:",
+        "description": "CPU and memory limits defined",
+        "importance": "Prevents resource starvation"
+      },
+      "resource_requests": {
+        "pattern": "resources:\\s*\\n\\s*requests:",
+        "description": "CPU and memory requests defined",
+        "importance": "Enables proper scheduling"
+      },
+      "health_probes": {
+        "liveness": {
+          "pattern": "livenessProbe:",
+          "description": "Liveness probe configured"
+        },
+        "readiness": {
+          "pattern": "readinessProbe:",
+          "description": "Readiness probe configured"
+        },
+        "startup": {
+          "pattern": "startupProbe:",
+          "description": "Startup probe for slow-starting containers"
+        }
+      },
+      "pod_disruption_budget": {
+        "pattern": "kind:\\s*PodDisruptionBudget",
+        "description": "PDB for high availability"
+      },
+      "network_policy": {
+        "pattern": "kind:\\s*NetworkPolicy",
+        "description": "Network isolation configured"
+      },
+      "horizontal_pod_autoscaler": {
+        "pattern": "kind:\\s*HorizontalPodAutoscaler",
+        "description": "Auto-scaling configured"
+      },
+      "security_context": {
+        "pattern": "securityContext:",
+        "description": "Security context defined"
+      },
+      "labels": {
+        "pattern": "labels:\\s*\\n(\\s+app\\.kubernetes\\.io/)",
+        "description": "Standard labels applied"
+      }
+    },
+    "anti_patterns": {
+      "no_resource_limits": {
+        "pattern": "containers:\\s*\\n\\s+-(?!.*limits:)",
+        "severity": "high",
+        "description": "Container without resource limits",
+        "recommendation": "Add CPU and memory limits"
+      },
+      "latest_tag": {
+        "pattern": "image:.*:latest|image:[^:]+\\s*$",
+        "severity": "high",
+        "description": "Using 'latest' tag or no tag",
+        "recommendation": "Use specific image version/digest"
+      },
+      "privileged_container": {
+        "pattern": "privileged:\\s*true",
+        "severity": "critical",
+        "description": "Container running as privileged",
+        "recommendation": "Remove privileged flag unless absolutely necessary"
+      },
+      "run_as_root": {
+        "pattern": "runAsUser:\\s*0|runAsNonRoot:\\s*false",
+        "severity": "high",
+        "description": "Container running as root",
+        "recommendation": "Use non-root user"
+      },
+      "host_network": {
+        "pattern": "hostNetwork:\\s*true",
+        "severity": "high",
+        "description": "Using host network namespace",
+        "recommendation": "Remove unless required for specific use case"
+      },
+      "host_pid": {
+        "pattern": "hostPID:\\s*true",
+        "severity": "high",
+        "description": "Using host PID namespace",
+        "recommendation": "Remove unless required"
+      },
+      "no_probes": {
+        "pattern": "containers:\\s*\\n\\s+-(?!.*(livenessProbe|readinessProbe))",
+        "severity": "medium",
+        "description": "No health probes configured",
+        "recommendation": "Add liveness and readiness probes"
+      },
+      "single_replica": {
+        "pattern": "replicas:\\s*1",
+        "context": "production deployment",
+        "severity": "medium",
+        "description": "Single replica in production",
+        "recommendation": "Use multiple replicas for HA"
+      },
+      "empty_dir_without_limit": {
+        "pattern": "emptyDir:\\s*\\{\\s*\\}",
+        "severity": "medium",
+        "description": "emptyDir without size limit",
+        "recommendation": "Add sizeLimit to prevent disk exhaustion"
+      },
+      "secrets_in_env": {
+        "pattern": "value:\\s*\"[A-Za-z0-9+/=]{20,}\"",
+        "severity": "critical",
+        "description": "Secret value in plaintext",
+        "recommendation": "Use secretKeyRef"
+      }
+    }
+  },
+  "security_standards": {
+    "pod_security_standards": {
+      "privileged": "No restrictions (not recommended)",
+      "baseline": "Prevents privilege escalation",
+      "restricted": "Best practices hardening"
+    },
+    "recommended_security_context": {
+      "container": {
+        "runAsNonRoot": true,
+        "allowPrivilegeEscalation": false,
+        "readOnlyRootFilesystem": true,
+        "capabilities": {
+          "drop": ["ALL"]
+        }
+      },
+      "pod": {
+        "runAsNonRoot": true,
+        "seccompProfile": {
+          "type": "RuntimeDefault"
+        }
+      }
+    }
+  },
+  "standard_labels": {
+    "required": [
+      "app.kubernetes.io/name",
+      "app.kubernetes.io/version",
+      "app.kubernetes.io/component"
+    ],
+    "recommended": [
+      "app.kubernetes.io/instance",
+      "app.kubernetes.io/part-of",
+      "app.kubernetes.io/managed-by"
+    ]
+  },
+  "probe_guidelines": {
+    "liveness": {
+      "purpose": "Restart container if unhealthy",
+      "initial_delay": "After app startup time",
+      "period": "10-30 seconds"
+    },
+    "readiness": {
+      "purpose": "Remove from service if not ready",
+      "initial_delay": "Shorter than liveness",
+      "period": "5-10 seconds"
+    },
+    "startup": {
+      "purpose": "Allow slow apps to start",
+      "failure_threshold": "failureThreshold * periodSeconds > startup time"
+    }
+  }
+}

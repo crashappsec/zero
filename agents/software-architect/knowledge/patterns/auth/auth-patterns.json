@@ -1,0 +1,164 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Authentication & Authorization Patterns",
+  "description": "Detection patterns for auth architecture",
+  "version": "1.0.0",
+  "patterns": {
+    "authentication": {
+      "jwt": {
+        "indicators": ["jsonwebtoken", "jose", "Authorization: Bearer"],
+        "description": "Stateless token-based authentication",
+        "strengths": [
+          "Stateless - no server-side session",
+          "Works across services",
+          "Contains claims/metadata"
+        ],
+        "weaknesses": [
+          "Can't revoke until expiry",
+          "Token size grows with claims",
+          "Must handle refresh flow"
+        ],
+        "best_practices": [
+          "Short expiry (15 min) + refresh tokens",
+          "Store refresh token securely (httpOnly cookie)",
+          "Validate signature AND claims",
+          "Don't store sensitive data in payload"
+        ]
+      },
+      "session": {
+        "indicators": ["express-session", "cookie-session", "Set-Cookie: session"],
+        "description": "Server-side session with cookie identifier",
+        "strengths": [
+          "Easy revocation",
+          "Server controls all data",
+          "Simple implementation"
+        ],
+        "weaknesses": [
+          "Requires session store",
+          "Sticky sessions or distributed store",
+          "CSRF vulnerability"
+        ],
+        "best_practices": [
+          "Use secure session store (Redis)",
+          "Set secure, httpOnly, sameSite flags",
+          "Implement CSRF protection",
+          "Rotate session ID on auth change"
+        ]
+      },
+      "oauth2": {
+        "indicators": ["passport-oauth2", "oauth2-server", "client_id", "grant_type"],
+        "description": "Delegated authorization framework",
+        "flows": {
+          "authorization_code": "Web apps with backend (most secure)",
+          "authorization_code_pkce": "SPAs and mobile apps",
+          "client_credentials": "Machine-to-machine",
+          "device_code": "Input-limited devices"
+        },
+        "anti_patterns": [
+          "Using implicit flow (deprecated)",
+          "Storing tokens in localStorage",
+          "Not validating redirect_uri"
+        ]
+      },
+      "oidc": {
+        "indicators": ["openid-client", "id_token", "/.well-known/openid-configuration"],
+        "description": "Identity layer on OAuth2",
+        "provides": [
+          "Standardized identity tokens",
+          "User info endpoint",
+          "Discovery document"
+        ]
+      },
+      "api_keys": {
+        "indicators": ["x-api-key", "apiKey", "api_key"],
+        "description": "Simple shared secret for API access",
+        "use_cases": [
+          "Service-to-service (internal)",
+          "Third-party integrations",
+          "Public APIs with rate limiting"
+        ],
+        "best_practices": [
+          "Hash keys at rest",
+          "Support key rotation",
+          "Scope permissions per key",
+          "Log key usage for audit"
+        ]
+      }
+    },
+    "authorization": {
+      "rbac": {
+        "indicators": ["roles", "hasRole", "user.role"],
+        "description": "Role-Based Access Control",
+        "structure": "User → Role → Permissions",
+        "pros": ["Simple to understand", "Easy to audit"],
+        "cons": ["Role explosion", "Coarse-grained"]
+      },
+      "abac": {
+        "indicators": ["policies", "attributes", "conditions"],
+        "description": "Attribute-Based Access Control",
+        "structure": "Policies evaluated against user/resource/context attributes",
+        "pros": ["Fine-grained", "Context-aware"],
+        "cons": ["Complex to implement", "Harder to audit"]
+      },
+      "rebac": {
+        "indicators": ["relations", "tuples", "Zanzibar"],
+        "description": "Relationship-Based Access Control",
+        "structure": "User has relationship to resource",
+        "examples": ["Google Zanzibar", "SpiceDB", "Ory Keto"],
+        "pros": ["Natural for hierarchies", "Scalable"],
+        "cons": ["Requires relationship modeling"]
+      }
+    },
+    "anti_patterns": {
+      "auth_in_business_logic": {
+        "severity": "high",
+        "description": "Auth checks scattered throughout code",
+        "recommendation": "Centralize in middleware/decorator"
+      },
+      "insecure_token_storage": {
+        "severity": "critical",
+        "patterns": ["localStorage.setItem('token'", "sessionStorage"],
+        "description": "Tokens in XSS-vulnerable storage",
+        "recommendation": "Use httpOnly cookies for sensitive tokens"
+      },
+      "password_in_logs": {
+        "severity": "critical",
+        "patterns": ["console.log.*password", "logger.*req.body"],
+        "description": "Logging sensitive auth data"
+      },
+      "symmetric_jwt_secret": {
+        "severity": "medium",
+        "patterns": ["HS256", "shared secret"],
+        "description": "Using symmetric signing in distributed system",
+        "recommendation": "Use RS256/ES256 with public key verification"
+      },
+      "missing_brute_force_protection": {
+        "severity": "high",
+        "description": "No rate limiting on login",
+        "recommendation": "Implement account lockout or rate limiting"
+      }
+    }
+  },
+  "zero_trust": {
+    "principles": [
+      "Never trust, always verify",
+      "Least privilege access",
+      "Assume breach",
+      "Verify explicitly"
+    ],
+    "implementation": {
+      "network": "No implicit trust based on network location",
+      "identity": "Strong identity verification for all access",
+      "device": "Device health assessment",
+      "least_privilege": "Just-in-time, just-enough access"
+    }
+  },
+  "security_headers": {
+    "required": {
+      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+      "X-Content-Type-Options": "nosniff",
+      "X-Frame-Options": "DENY",
+      "Content-Security-Policy": "default-src 'self'"
+    }
+  }
+}

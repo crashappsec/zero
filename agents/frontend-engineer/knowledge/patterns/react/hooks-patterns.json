@@ -1,0 +1,124 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "React Hooks Patterns",
+  "description": "Detection patterns for React hooks usage analysis",
+  "version": "1.0.0",
+  "patterns": {
+    "hook_usage": {
+      "useState": {
+        "pattern": "const\\s+\\[(\\w+),\\s*set(\\w+)\\]\\s*=\\s*useState",
+        "description": "Local component state"
+      },
+      "useEffect": {
+        "pattern": "useEffect\\(\\s*\\(\\)\\s*=>",
+        "description": "Side effects and lifecycle"
+      },
+      "useContext": {
+        "pattern": "useContext\\((\\w+)\\)",
+        "description": "Context consumption"
+      },
+      "useReducer": {
+        "pattern": "const\\s+\\[(\\w+),\\s*(dispatch|\\w+)\\]\\s*=\\s*useReducer",
+        "description": "Complex state logic"
+      },
+      "useCallback": {
+        "pattern": "useCallback\\(\\s*\\(",
+        "description": "Memoized callbacks"
+      },
+      "useMemo": {
+        "pattern": "useMemo\\(\\s*\\(\\)\\s*=>",
+        "description": "Memoized values"
+      },
+      "useRef": {
+        "pattern": "useRef(<[^>]+>)?\\(",
+        "description": "Mutable refs and DOM access"
+      },
+      "useLayoutEffect": {
+        "pattern": "useLayoutEffect\\(",
+        "description": "Synchronous DOM mutations"
+      },
+      "useImperativeHandle": {
+        "pattern": "useImperativeHandle\\(",
+        "description": "Custom ref instance values"
+      },
+      "useTransition": {
+        "pattern": "useTransition\\(",
+        "description": "Concurrent rendering transitions"
+      },
+      "useDeferredValue": {
+        "pattern": "useDeferredValue\\(",
+        "description": "Deferred value updates"
+      }
+    },
+    "anti_patterns": {
+      "hooks_in_conditions": {
+        "pattern": "if\\s*\\([^)]+\\)\\s*\\{[^}]*use(State|Effect|Context|Reducer|Callback|Memo|Ref)",
+        "severity": "critical",
+        "description": "Hooks called conditionally violate Rules of Hooks",
+        "recommendation": "Move hook outside condition, use conditional logic inside"
+      },
+      "hooks_in_loops": {
+        "pattern": "(for|while|do)\\s*\\([^)]*\\)[^{]*\\{[^}]*use(State|Effect|Context)",
+        "severity": "critical",
+        "description": "Hooks called in loops violate Rules of Hooks",
+        "recommendation": "Move to component level or create separate component"
+      },
+      "stale_closure": {
+        "pattern": "useEffect\\([^,]+,\\s*\\[\\]\\)[^}]*\\b(props|state)\\.",
+        "severity": "high",
+        "description": "Potential stale closure - accessing props/state with empty deps",
+        "recommendation": "Add dependencies or use ref for latest value"
+      },
+      "useeffect_fetch_no_cleanup": {
+        "pattern": "useEffect\\([^}]*fetch\\([^}]*\\}\\s*,",
+        "severity": "medium",
+        "description": "Async fetch in useEffect without cleanup",
+        "recommendation": "Add AbortController or isMounted flag"
+      },
+      "excessive_usestate": {
+        "pattern": "(useState[^;]*;\\s*){5,}",
+        "severity": "medium",
+        "description": "Many useState calls may indicate need for useReducer",
+        "recommendation": "Consider useReducer for complex related state"
+      },
+      "usememo_primitive": {
+        "pattern": "useMemo\\([^,]+,\\s*\\[[^\\]]*\\]\\)\\s*//.*string|number",
+        "severity": "low",
+        "description": "useMemo for primitives is unnecessary",
+        "recommendation": "useMemo only benefits object/array identity"
+      }
+    },
+    "custom_hook_patterns": {
+      "data_fetching": {
+        "names": ["useFetch", "useQuery", "useData", "useApi"],
+        "should_include": ["loading state", "error state", "data state", "refetch capability"],
+        "optional": ["caching", "retry logic", "abort on unmount"]
+      },
+      "form_handling": {
+        "names": ["useForm", "useFormField", "useInput"],
+        "should_include": ["value state", "onChange handler", "validation"],
+        "optional": ["touched state", "submit handler", "reset"]
+      },
+      "local_storage": {
+        "names": ["useLocalStorage", "useStorage", "usePersist"],
+        "should_include": ["get/set value", "serialization", "initial value"],
+        "optional": ["sync across tabs", "expiry"]
+      },
+      "debounce_throttle": {
+        "names": ["useDebounce", "useThrottle", "useDebouncedValue"],
+        "should_include": ["delayed value", "configurable delay"],
+        "optional": ["immediate option", "cancel capability"]
+      }
+    }
+  },
+  "rules_of_hooks": {
+    "description": "React's Rules of Hooks must be followed",
+    "rules": [
+      "Only call hooks at the top level",
+      "Only call hooks from React functions",
+      "Custom hooks must start with 'use'",
+      "Hook order must be consistent across renders"
+    ],
+    "eslint_rule": "react-hooks/rules-of-hooks"
+  }
+}
