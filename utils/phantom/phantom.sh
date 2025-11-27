@@ -369,38 +369,70 @@ run_clean() {
 #############################################################################
 
 show_menu() {
-    print_phantom_banner
-    echo -e "${BOLD}What would you like to do?${NC}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo
-    echo -e "  ${CYAN}1${NC}  Setup       Install tools and configure API keys"
-    echo -e "  ${CYAN}2${NC}  Check       Verify everything is ready"
-    echo -e "  ${CYAN}3${NC}  Hydrate     Analyze a repository"
-    echo -e "  ${CYAN}4${NC}  Status      Show hydrated projects"
-    echo -e "  ${CYAN}5${NC}  Clean       Remove all analysis data"
-    echo -e "  ${CYAN}q${NC}  Quit"
-    echo
-    read -p "Choose an option: " -n 1 -r
-    echo
-    echo
+    while true; do
+        print_phantom_banner
+        echo -e "${BOLD}What would you like to do?${NC}"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo
+        echo -e "  ${CYAN}1${NC}  Setup       Install tools and configure API keys"
+        echo -e "  ${CYAN}2${NC}  Check       Verify everything is ready"
+        echo -e "  ${CYAN}3${NC}  Hydrate     Analyze a repository"
+        echo -e "  ${CYAN}4${NC}  Status      Show hydrated projects"
+        echo -e "  ${CYAN}5${NC}  Clean       Remove all analysis data"
+        echo
+        echo -e "  ${CYAN}q${NC}  Quit"
+        echo
+        read -p "Choose an option: " -n 1 -r
+        echo
+        echo
 
-    case $REPLY in
-        1) run_setup ;;
-        2) run_check ;;
-        3)
-            echo -e "Enter repository (e.g., ${CYAN}expressjs/express${NC})"
-            echo -e "Or organization with ${CYAN}--org orgname${NC}"
-            echo
-            read -p "Target: " target
-            if [[ -n "$target" ]]; then
-                exec "$SCRIPT_DIR/hydrate.sh" $target
-            fi
-            ;;
-        4) run_status ;;
-        5) run_clean ;;
-        q|Q) exit 0 ;;
-        *) echo "Invalid option" ;;
-    esac
+        case $REPLY in
+            1)
+                run_setup
+                echo
+                read -p "Press Enter to continue..."
+                ;;
+            2)
+                run_check || true
+                echo
+                read -p "Press Enter to continue..."
+                ;;
+            3)
+                echo -e "Enter repository (e.g., ${CYAN}expressjs/express${NC})"
+                echo -e "Or organization with ${CYAN}--org orgname${NC}"
+                echo
+                read -p "Target: " target
+                if [[ -n "$target" ]]; then
+                    # Run hydrate and return to menu when done
+                    if [[ "$target" == --org* ]]; then
+                        "$SCRIPT_DIR/hydrate.sh" $target || true
+                    else
+                        "$SCRIPT_DIR/bootstrap.sh" $target || true
+                    fi
+                    echo
+                    read -p "Press Enter to continue..."
+                fi
+                ;;
+            4)
+                run_status
+                echo
+                read -p "Press Enter to continue..."
+                ;;
+            5)
+                run_clean
+                echo
+                read -p "Press Enter to continue..."
+                ;;
+            q|Q)
+                echo "Goodbye!"
+                exit 0
+                ;;
+            *)
+                echo "Invalid option"
+                sleep 1
+                ;;
+        esac
+    done
 }
 
 #############################################################################
