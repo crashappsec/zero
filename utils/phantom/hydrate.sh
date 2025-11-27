@@ -284,13 +284,15 @@ get_phase_result() {
             ;;
         "vulnerabilities")
             if [[ -f "$analysis_path/vulnerabilities.json" ]]; then
+                local total=$(jq -r '.summary.total // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
                 local c=$(jq -r '.summary.critical // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
                 local h=$(jq -r '.summary.high // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
-                local m=$(jq -r '.summary.medium // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
-                if [[ "$c" == "0" ]] && [[ "$h" == "0" ]]; then
+                if [[ "$total" == "0" ]]; then
                     printf "\033[0;32mclean\033[0m"
+                elif [[ "$c" != "0" ]] || [[ "$h" != "0" ]]; then
+                    printf "\033[0;31m%s found\033[0m (%s critical, %s high)" "$total" "$c" "$h"
                 else
-                    printf "\033[0;31m%s critical\033[0m, \033[1;33m%s high\033[0m, \033[2m%s medium\033[0m" "$c" "$h" "$m"
+                    printf "\033[1;33m%s found\033[0m (low/medium)" "$total"
                 fi
             fi
             ;;
@@ -474,12 +476,15 @@ hydrate_org() {
 
             # Package vulnerabilities
             if [[ -f "$analysis_path/vulnerabilities.json" ]]; then
+                local total=$(jq -r '.summary.total // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
                 local c=$(jq -r '.summary.critical // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
                 local h=$(jq -r '.summary.high // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
-                if [[ "$c" == "0" ]] && [[ "$h" == "0" ]]; then
+                if [[ "$total" == "0" ]]; then
                     results+="  ${GREEN}✓${NC} Package vulnerabilities: ${GREEN}clean${NC}\n"
+                elif [[ "$c" != "0" ]] || [[ "$h" != "0" ]]; then
+                    results+="  ${YELLOW}!${NC} Package vulnerabilities: ${RED}$total found${NC} ($c critical, $h high)\n"
                 else
-                    results+="  ${GREEN}✓${NC} Package vulnerabilities: ${RED}$c critical${NC}, ${YELLOW}$h high${NC}\n"
+                    results+="  ${YELLOW}!${NC} Package vulnerabilities: ${YELLOW}$total found${NC} (low/medium)\n"
                 fi
             fi
 
