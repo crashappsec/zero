@@ -44,10 +44,18 @@ has_tte() {
     python3 -c "import terminaltexteffects" 2>/dev/null
 }
 
-# Print animated banner using terminal text effects (burn effect)
+# Available effects for random selection
+PHANTOM_EFFECTS=(burn decrypt matrix slide)
+
+# Print animated banner using terminal text effects
 # Falls back to static banner if tte not available
 print_phantom_banner_animated() {
-    local effect="${1:-burn}"
+    local effect="${1:-random}"
+
+    # Pick random effect if not specified or "random"
+    if [[ "$effect" == "random" ]]; then
+        effect="${PHANTOM_EFFECTS[$RANDOM % ${#PHANTOM_EFFECTS[@]}]}"
+    fi
 
     # Check if tte is available and terminal is interactive
     if has_tte && [[ -t 1 ]]; then
