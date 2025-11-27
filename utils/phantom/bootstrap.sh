@@ -1087,13 +1087,11 @@ main() {
         echo -e "  Commit: ${CYAN}$commit${NC}"
     fi
 
-    # Detect project type
-    echo -n "Detecting project type..."
+    # Detect project type (silent - no separate output line)
     local detection=$(detect_project_type "$repo_path")
     local languages=$(echo "$detection" | sed -n '1p')
     local frameworks=$(echo "$detection" | sed -n '2p')
     local package_managers=$(echo "$detection" | sed -n '3p')
-    echo -e " ${GREEN}✓${NC}"
 
     local langs_display=$(echo "$languages" | jq -r 'join(", ")' 2>/dev/null)
     local fwks_display=$(echo "$frameworks" | jq -r 'join(", ")' 2>/dev/null)
