@@ -2,76 +2,111 @@
 
 ## Overview
 
-The knowledge system provides structured, reusable information that specialist agents can reference during analysis. Knowledge is organized by domain, with both human-readable documentation and machine-readable pattern databases.
+The knowledge system provides structured, reusable information that specialist agents and personas can reference during analysis. This document explains the architecture and how the different components work together.
+
+## Core Principle: Single Source of Truth
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│                    KNOWLEDGE BASE (Single Source of Truth)               │
+│                     specialist-agents/knowledge/                         │
+│                                                                         │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐ ┌─────────────┐       │
+│  │  Security   │ │Supply Chain │ │   DevOps    │ │ Engineering │       │
+│  │ Patterns    │ │  Patterns   │ │  Patterns   │ │  Patterns   │       │
+│  └─────────────┘ └─────────────┘ └─────────────┘ └─────────────┘       │
+│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐                       │
+│  │ Compliance  │ │Dependencies │ │   Shared    │                       │
+│  │ Frameworks  │ │  Guidance   │ │ Definitions │                       │
+│  └─────────────┘ └─────────────┘ └─────────────┘                       │
+└─────────────────────────────────────────────────────────────────────────┘
+                              │
+            ┌─────────────────┼─────────────────┐
+            ▼                 ▼                 ▼
+┌───────────────────┐ ┌───────────────┐ ┌───────────────────┐
+│     PERSONAS      │ │    AGENTS     │ │      SKILLS       │
+│ (Output styling)  │ │(Analysis logic)│ │(Reusable prompts) │
+│                   │ │               │ │                   │
+│ rag/supply-chain/ │ │ specialist-   │ │ skills/           │
+│ personas/         │ │ agents/       │ │                   │
+└───────────────────┘ └───────────────┘ └───────────────────┘
+```
+
+**Key Rules:**
+1. All factual content (patterns, frameworks, definitions) lives in the knowledge base
+2. Personas, agents, and skills REFERENCE knowledge - they don't duplicate it
+3. Updates to knowledge automatically apply everywhere it's used
 
 ## Directory Structure
 
 ```
-knowledge/
-├── security/
+specialist-agents/knowledge/
+├── security/                    # Security-specific knowledge
 │   ├── vulnerabilities/
-│   │   ├── cwe-database.json        # CWE patterns and remediation
-│   │   ├── owasp-top-10.json        # OWASP Top 10 reference
-│   │   └── cvss-guide.md            # CVSS scoring guidance
+│   │   ├── cwe-database.json   # CWE patterns and remediation
+│   │   └── owasp-top-10.json   # OWASP Top 10 reference
 │   ├── threats/
-│   │   ├── mitre-attack.json        # ATT&CK techniques
-│   │   ├── stride-methodology.md    # STRIDE threat modeling
-│   │   └── attack-patterns.json     # Common attack patterns
+│   │   └── mitre-attack.json   # ATT&CK techniques
 │   ├── secrets/
-│   │   ├── secret-patterns.json     # Regex patterns for secrets
-│   │   └── rotation-guides.md       # Secret rotation procedures
-│   └── containers/
-│       ├── cis-docker.json          # CIS Docker Benchmark
-│       ├── base-images.json         # Recommended base images
-│       └── k8s-security.json        # K8s security patterns
+│   │   └── secret-patterns.json # Regex patterns for secrets
+│   ├── vulnerability-scoring.md # CVSS/EPSS guidance
+│   ├── cisa-kev-prioritization.md
+│   ├── cve-remediation-workflows.md
+│   ├── remediation-techniques.md
+│   └── security-metrics.md
 │
-├── supply-chain/
-│   ├── licenses/
-│   │   ├── spdx-licenses.json       # License database
-│   │   ├── compatibility-matrix.json # License compatibility
-│   │   └── obligations.json         # License obligations
+├── supply-chain/                # Supply chain knowledge
 │   ├── ecosystems/
-│   │   ├── npm-patterns.json        # npm-specific patterns
-│   │   ├── pypi-patterns.json       # PyPI-specific patterns
-│   │   └── registry-apis.md         # Registry API reference
-│   └── health/
-│       ├── abandonment-signals.json # Abandonment indicators
-│       └── typosquat-patterns.json  # Typosquatting detection
+│   │   ├── npm-patterns.json   # npm-specific patterns
+│   │   ├── pypi-patterns.json  # PyPI-specific patterns
+│   │   └── registry-apis.md    # Registry API reference
+│   ├── health/
+│   │   ├── abandonment-signals.json
+│   │   └── typosquat-patterns.json
+│   └── licenses/
+│       └── spdx-licenses.json
 │
-├── engineering/
+├── compliance/                  # Audit and compliance
+│   ├── audit-standards.md
+│   ├── compliance-frameworks.md
+│   ├── control-testing.md
+│   ├── evidence-collection.md
+│   └── finding-templates.md
+│
+├── dependencies/                # Dependency management
+│   ├── abandoned-package-detection.md
+│   ├── deps-dev-api.md
+│   ├── package-management-best-practices.md
+│   ├── typosquatting-detection.md
+│   └── upgrade-path-patterns.md
+│
+├── devops/                      # DevOps and infrastructure
+│   ├── cicd/
+│   │   ├── github-actions.json
+│   │   ├── pipeline-patterns.json
+│   │   └── secrets-in-ci.json
+│   └── infrastructure/
+│       ├── terraform-patterns.json
+│       ├── aws-misconfigs.json
+│       └── cis-benchmarks.json
+│
+├── engineering/                 # Code quality and performance
 │   ├── code-quality/
-│   │   ├── code-smells.json         # Code smell catalog
-│   │   ├── refactoring-patterns.json # Refactoring catalog
-│   │   └── complexity-thresholds.json # Complexity limits
-│   ├── testing/
-│   │   ├── coverage-guidelines.md   # Coverage best practices
-│   │   ├── test-patterns.json       # Test pattern catalog
-│   │   └── flaky-test-patterns.json # Flaky test indicators
+│   │   └── code-smells.json
 │   └── performance/
-│       ├── complexity-guide.md      # Big O reference
-│       ├── antipatterns.json        # Performance antipatterns
-│       └── optimization-patterns.json # Optimization techniques
+│       └── antipatterns.json
 │
-├── devops/
-│   ├── infrastructure/
-│   │   ├── terraform-patterns.json  # Terraform security patterns
-│   │   ├── aws-misconfigs.json      # AWS misconfiguration patterns
-│   │   └── cis-benchmarks.json      # CIS cloud benchmarks
-│   └── cicd/
-│       ├── github-actions.json      # GHA security patterns
-│       ├── pipeline-patterns.json   # General CI/CD patterns
-│       └── secrets-in-ci.json       # CI secrets patterns
-│
-└── shared/
-    ├── severity-levels.json         # Universal severity definitions
-    ├── confidence-levels.json       # Confidence level definitions
-    └── output-formatting.md         # Output format guidelines
+└── shared/                      # Cross-cutting definitions
+    ├── severity-levels.json    # Universal severity definitions
+    ├── confidence-levels.json  # Confidence scoring
+    └── output-formatting.md    # Output format guidelines
 ```
 
 ## Knowledge Types
 
 ### 1. Pattern Databases (JSON)
-Machine-readable patterns for detection and classification.
+
+Machine-readable patterns for detection and classification. These are designed to be loaded and queried programmatically.
 
 ```json
 {
@@ -95,7 +130,8 @@ Machine-readable patterns for detection and classification.
 ```
 
 ### 2. Reference Documentation (Markdown)
-Human-readable guidance and methodology.
+
+Human-readable guidance and methodology. These provide context and detailed explanations.
 
 ```markdown
 # STRIDE Threat Modeling
@@ -108,62 +144,72 @@ STRIDE is a threat modeling methodology...
 ...
 ```
 
-### 3. Compatibility/Mapping Tables (JSON)
-Relationship data between entities.
+### 3. Definitions (JSON)
+
+Standardized definitions used across all analysis types.
 
 ```json
 {
-  "license_compatibility": {
-    "MIT": {
-      "compatible_with": ["Apache-2.0", "BSD-3-Clause", "ISC"],
-      "incompatible_with": []
-    },
-    "GPL-3.0": {
-      "compatible_with": ["GPL-2.0", "LGPL-3.0"],
-      "incompatible_with": ["Apache-2.0"]
+  "severity_levels": {
+    "critical": {
+      "level": 5,
+      "label": "Critical",
+      "cvss_range": "9.0-10.0",
+      "sla": {"remediate": "24 hours"}
     }
   }
 }
 ```
 
-## Usage Patterns
+## How Personas Use Knowledge
 
-### Agent Definition Reference
+Personas are stored in `rag/supply-chain/personas/` and define:
+- **Output style** (tone, detail level, format)
+- **Knowledge references** (which files from the knowledge base to use)
+- **Templates** (how to structure output)
+- **Prioritization rules** (persona-specific ordering)
+
+Example persona structure:
 ```markdown
-## Knowledge Base
+# Security Engineer Persona
 
-This agent uses the following knowledge sources:
-- `security/vulnerabilities/cwe-database.json` - CWE patterns
-- `security/vulnerabilities/owasp-top-10.json` - OWASP reference
-- `security/vulnerabilities/cvss-guide.md` - Scoring guidance
+## Knowledge Sources
+- `security/vulnerabilities/cwe-database.json`
+- `security/vulnerability-scoring.md`
+- `shared/severity-levels.json`
 
-Key patterns are loaded at runtime for detection.
+## Output Template
+[Structured format for this persona]
+
+## Prioritization
+1. Critical + KEV → Immediate
+2. Critical + High EPSS → 24 hours
+...
 ```
 
-### Pattern Matching
+**Personas NEVER duplicate knowledge content.** They only reference it.
+
+## How Agents Use Knowledge
+
+Specialist agents load relevant knowledge files at analysis time:
+
 ```python
-# Pseudocode for how agents use patterns
-patterns = load_knowledge("security/secrets/secret-patterns.json")
-for pattern in patterns:
-    matches = grep(codebase, pattern.regex)
-    for match in matches:
-        report_finding(pattern, match)
+# Pseudocode
+knowledge = load_knowledge([
+    "security/vulnerabilities/cwe-database.json",
+    "shared/severity-levels.json"
+])
+
+for finding in scan_results:
+    cwe_info = knowledge.lookup_cwe(finding.cwe_id)
+    severity = knowledge.get_severity(finding.cvss)
+    report_finding(finding, cwe_info, severity)
 ```
 
-### Dynamic Enrichment
-```markdown
-## Analysis Framework
+## Versioning and Updates
 
-1. Load CWE database from knowledge/security/vulnerabilities/cwe-database.json
-2. For each finding, enrich with CWE details
-3. Fetch current CVE data via WebFetch (dynamic)
-4. Combine static patterns + dynamic data for complete analysis
-```
-
-## Knowledge Update Process
-
-### Versioning
 Each knowledge file includes metadata with version and update date:
+
 ```json
 {
   "metadata": {
@@ -176,21 +222,15 @@ Each knowledge file includes metadata with version and update date:
 ```
 
 ### Update Frequency
+
 | Knowledge Type | Update Frequency | Trigger |
 |----------------|------------------|---------|
 | CWE Database | Quarterly | MITRE releases |
 | OWASP Top 10 | On release | OWASP updates |
 | Secret Patterns | Monthly | New patterns discovered |
 | License Data | Annually | SPDX updates |
-| Code Smells | Rarely | Framework changes |
 | CIS Benchmarks | Quarterly | Benchmark releases |
-
-### Contribution Process
-1. Create PR with updated knowledge file
-2. Bump version in metadata
-3. Document changes in knowledge CHANGELOG
-4. Review for accuracy
-5. Merge and tag release
+| Ecosystem Patterns | As needed | Registry changes |
 
 ## Quality Standards
 
@@ -205,3 +245,19 @@ Each knowledge file includes metadata with version and update date:
 - Examples for complex concepts
 - References to authoritative sources
 - Regular review for accuracy
+
+## Adding New Knowledge
+
+1. Determine the appropriate category directory
+2. Create file following the type conventions (JSON for patterns, MD for docs)
+3. Include complete metadata
+4. Reference from relevant personas/agents
+5. Submit PR for review
+
+**Do not create knowledge that duplicates existing files.** If you need different presentation, create a persona that references the existing knowledge.
+
+## Related Documentation
+
+- [Personas README](../../rag/supply-chain/personas/README.md) - How personas use knowledge
+- [Output Formatting](shared/output-formatting.md) - Output format guidelines
+- [Severity Levels](shared/severity-levels.json) - Standard severity definitions
