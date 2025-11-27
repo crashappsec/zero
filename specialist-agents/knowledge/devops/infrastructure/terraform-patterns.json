@@ -1,0 +1,194 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "category": "devops/infrastructure",
+    "description": "Security patterns and anti-patterns for Terraform configurations"
+  },
+  "security_patterns": {
+    "secrets_management": {
+      "anti_patterns": [
+        {
+          "id": "TF001",
+          "name": "Hardcoded secrets",
+          "severity": "critical",
+          "pattern": "password\\s*=\\s*\"[^\"]+\"",
+          "description": "Secrets hardcoded directly in Terraform files",
+          "remediation": "Use variables with sensitive=true or secret management services",
+          "example_bad": "password = \"supersecret123\"",
+          "example_good": "password = var.db_password # sensitive = true in variable definition"
+        },
+        {
+          "id": "TF002",
+          "name": "Secrets in state file",
+          "severity": "high",
+          "pattern": "Resources with sensitive attributes in local state",
+          "description": "State file contains unencrypted secrets",
+          "remediation": "Use remote state with encryption (S3 with KMS, Terraform Cloud)"
+        },
+        {
+          "id": "TF003",
+          "name": "Sensitive output not marked",
+          "severity": "medium",
+          "pattern": "output \".*password.*\" without sensitive = true",
+          "description": "Sensitive outputs visible in logs and console",
+          "remediation": "Add sensitive = true to sensitive outputs"
+        }
+      ],
+      "best_practices": [
+        "Use Vault, AWS Secrets Manager, or similar for secrets",
+        "Mark sensitive variables with sensitive = true",
+        "Use remote encrypted state backend",
+        "Never commit .tfvars files with secrets"
+      ]
+    },
+    "access_control": {
+      "anti_patterns": [
+        {
+          "id": "TF010",
+          "name": "Overly permissive IAM",
+          "severity": "high",
+          "pattern": "Action.*:\\s*\\[?[\"']\\*[\"']",
+          "description": "IAM policies with wildcard actions",
+          "remediation": "Use least privilege - specify exact actions needed"
+        },
+        {
+          "id": "TF011",
+          "name": "Wildcard resource",
+          "severity": "high",
+          "pattern": "Resource.*:\\s*\\[?[\"']\\*[\"']",
+          "description": "IAM policies with wildcard resources",
+          "remediation": "Scope to specific resources using ARN patterns"
+        },
+        {
+          "id": "TF012",
+          "name": "Public S3 bucket",
+          "severity": "critical",
+          "pattern": "acl\\s*=\\s*\"public-read",
+          "description": "S3 bucket configured for public access",
+          "remediation": "Use private ACL and presigned URLs for access"
+        }
+      ]
+    },
+    "encryption": {
+      "anti_patterns": [
+        {
+          "id": "TF020",
+          "name": "Unencrypted storage",
+          "severity": "high",
+          "pattern": "encrypted\\s*=\\s*false",
+          "description": "Storage resources without encryption",
+          "remediation": "Enable encryption at rest for all storage"
+        },
+        {
+          "id": "TF021",
+          "name": "Default encryption keys",
+          "severity": "medium",
+          "pattern": "aws_ebs_volume without kms_key_id",
+          "description": "Using AWS-managed keys instead of CMK",
+          "remediation": "Use customer-managed KMS keys for better control"
+        },
+        {
+          "id": "TF022",
+          "name": "Unencrypted database",
+          "severity": "critical",
+          "pattern": "aws_db_instance without storage_encrypted = true",
+          "description": "RDS database without encryption",
+          "remediation": "Enable storage_encrypted = true"
+        }
+      ]
+    },
+    "network_security": {
+      "anti_patterns": [
+        {
+          "id": "TF030",
+          "name": "Open security group",
+          "severity": "critical",
+          "pattern": "cidr_blocks\\s*=\\s*\\[.*0\\.0\\.0\\.0/0.*\\]",
+          "description": "Security group open to the world",
+          "remediation": "Restrict to specific IP ranges or VPC CIDRs"
+        },
+        {
+          "id": "TF031",
+          "name": "SSH from anywhere",
+          "severity": "critical",
+          "pattern": "from_port\\s*=\\s*22.*cidr.*0\\.0\\.0\\.0",
+          "description": "SSH accessible from any IP",
+          "remediation": "Restrict SSH to bastion hosts or VPN"
+        },
+        {
+          "id": "TF032",
+          "name": "Database publicly accessible",
+          "severity": "critical",
+          "pattern": "publicly_accessible\\s*=\\s*true",
+          "description": "Database accessible from public internet",
+          "remediation": "Set publicly_accessible = false, use VPC endpoints"
+        }
+      ]
+    },
+    "logging_monitoring": {
+      "anti_patterns": [
+        {
+          "id": "TF040",
+          "name": "Missing access logging",
+          "severity": "medium",
+          "pattern": "aws_s3_bucket without logging block",
+          "description": "S3 bucket without access logging",
+          "remediation": "Enable server access logging"
+        },
+        {
+          "id": "TF041",
+          "name": "Missing CloudTrail",
+          "severity": "high",
+          "pattern": "AWS infrastructure without aws_cloudtrail",
+          "description": "No CloudTrail for API activity logging",
+          "remediation": "Enable CloudTrail for all regions"
+        },
+        {
+          "id": "TF042",
+          "name": "Missing flow logs",
+          "severity": "medium",
+          "pattern": "aws_vpc without aws_flow_log",
+          "description": "VPC without network flow logging",
+          "remediation": "Enable VPC flow logs for traffic analysis"
+        }
+      ]
+    }
+  },
+  "compliance_mappings": {
+    "cis_aws": {
+      "TF001": "CIS 1.4 - Ensure no root account access key exists",
+      "TF010": "CIS 1.22 - Ensure IAM policies not attached directly",
+      "TF012": "CIS 2.1.5 - Ensure S3 bucket policy denies HTTP",
+      "TF030": "CIS 5.1 - Ensure no unrestricted inbound access",
+      "TF031": "CIS 5.2 - Ensure no security groups allow SSH from 0.0.0.0/0"
+    },
+    "soc2": {
+      "TF001": "CC6.1 - Logical access controls",
+      "TF020": "CC6.7 - Encryption",
+      "TF040": "CC7.2 - Monitoring"
+    }
+  },
+  "scanning_tools": {
+    "tfsec": {
+      "description": "Static analysis for Terraform",
+      "command": "tfsec .",
+      "url": "https://github.com/aquasecurity/tfsec"
+    },
+    "checkov": {
+      "description": "Policy-as-code for IaC",
+      "command": "checkov -d .",
+      "url": "https://github.com/bridgecrewio/checkov"
+    },
+    "terrascan": {
+      "description": "Security scanner for Terraform",
+      "command": "terrascan scan",
+      "url": "https://github.com/tenable/terrascan"
+    },
+    "snyk_iac": {
+      "description": "Snyk IaC security testing",
+      "command": "snyk iac test",
+      "url": "https://snyk.io/product/infrastructure-as-code-security/"
+    }
+  }
+}

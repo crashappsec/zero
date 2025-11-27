@@ -1,0 +1,283 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "category": "devops/infrastructure",
+    "description": "Common AWS misconfiguration patterns and remediation guidance"
+  },
+  "misconfiguration_categories": {
+    "iam": {
+      "severity": "high",
+      "findings": [
+        {
+          "id": "AWS-IAM-001",
+          "name": "Root account access keys",
+          "severity": "critical",
+          "description": "Root account has active access keys",
+          "impact": "Full account compromise if keys are leaked",
+          "remediation": "Delete root access keys, use IAM users instead",
+          "cis_benchmark": "1.4"
+        },
+        {
+          "id": "AWS-IAM-002",
+          "name": "No MFA on root",
+          "severity": "critical",
+          "description": "Root account does not have MFA enabled",
+          "impact": "Root account vulnerable to credential theft",
+          "remediation": "Enable hardware or virtual MFA on root",
+          "cis_benchmark": "1.5"
+        },
+        {
+          "id": "AWS-IAM-003",
+          "name": "Inactive IAM users",
+          "severity": "medium",
+          "description": "IAM users with no activity in 90+ days",
+          "impact": "Unused credentials increase attack surface",
+          "remediation": "Disable or delete inactive users",
+          "cis_benchmark": "1.12"
+        },
+        {
+          "id": "AWS-IAM-004",
+          "name": "Inline policies",
+          "severity": "low",
+          "description": "IAM users/roles with inline policies",
+          "impact": "Harder to audit and manage permissions",
+          "remediation": "Use managed policies for better governance",
+          "cis_benchmark": "1.16"
+        },
+        {
+          "id": "AWS-IAM-005",
+          "name": "Overly permissive policies",
+          "severity": "high",
+          "description": "Policies with * actions or resources",
+          "impact": "Excessive permissions violate least privilege",
+          "remediation": "Scope actions and resources to minimum required"
+        }
+      ]
+    },
+    "s3": {
+      "severity": "high",
+      "findings": [
+        {
+          "id": "AWS-S3-001",
+          "name": "Public bucket",
+          "severity": "critical",
+          "description": "S3 bucket allows public access",
+          "impact": "Data exposure, compliance violations",
+          "remediation": "Enable block public access settings",
+          "cis_benchmark": "2.1.1"
+        },
+        {
+          "id": "AWS-S3-002",
+          "name": "No encryption",
+          "severity": "high",
+          "description": "S3 bucket without default encryption",
+          "impact": "Data at rest not protected",
+          "remediation": "Enable SSE-S3 or SSE-KMS encryption",
+          "cis_benchmark": "2.1.2"
+        },
+        {
+          "id": "AWS-S3-003",
+          "name": "No versioning",
+          "severity": "medium",
+          "description": "S3 bucket without versioning enabled",
+          "impact": "Cannot recover from accidental deletion",
+          "remediation": "Enable versioning for important buckets"
+        },
+        {
+          "id": "AWS-S3-004",
+          "name": "No access logging",
+          "severity": "medium",
+          "description": "S3 bucket without access logging",
+          "impact": "Cannot audit access to sensitive data",
+          "remediation": "Enable server access logging",
+          "cis_benchmark": "2.1.3"
+        },
+        {
+          "id": "AWS-S3-005",
+          "name": "HTTP allowed",
+          "severity": "high",
+          "description": "S3 bucket policy allows HTTP access",
+          "impact": "Data in transit not encrypted",
+          "remediation": "Add condition to require SecureTransport",
+          "cis_benchmark": "2.1.5"
+        }
+      ]
+    },
+    "ec2": {
+      "severity": "medium",
+      "findings": [
+        {
+          "id": "AWS-EC2-001",
+          "name": "Unrestricted SSH",
+          "severity": "critical",
+          "description": "Security group allows SSH from 0.0.0.0/0",
+          "impact": "Server exposed to brute force attacks",
+          "remediation": "Restrict to bastion/VPN IP ranges",
+          "cis_benchmark": "5.2"
+        },
+        {
+          "id": "AWS-EC2-002",
+          "name": "Unrestricted RDP",
+          "severity": "critical",
+          "description": "Security group allows RDP from 0.0.0.0/0",
+          "impact": "Windows server exposed to attacks",
+          "remediation": "Restrict to bastion/VPN IP ranges",
+          "cis_benchmark": "5.3"
+        },
+        {
+          "id": "AWS-EC2-003",
+          "name": "Default security group in use",
+          "severity": "medium",
+          "description": "Resources using default VPC security group",
+          "impact": "Default rules may be too permissive",
+          "remediation": "Create custom security groups",
+          "cis_benchmark": "5.4"
+        },
+        {
+          "id": "AWS-EC2-004",
+          "name": "Unencrypted EBS",
+          "severity": "high",
+          "description": "EBS volumes without encryption",
+          "impact": "Data at rest not protected",
+          "remediation": "Enable EBS encryption by default"
+        },
+        {
+          "id": "AWS-EC2-005",
+          "name": "Public IP on instance",
+          "severity": "medium",
+          "description": "EC2 instance with public IP in private subnet",
+          "impact": "Increases attack surface",
+          "remediation": "Use NAT gateway for outbound traffic"
+        }
+      ]
+    },
+    "rds": {
+      "severity": "high",
+      "findings": [
+        {
+          "id": "AWS-RDS-001",
+          "name": "Publicly accessible",
+          "severity": "critical",
+          "description": "RDS instance is publicly accessible",
+          "impact": "Database exposed to internet",
+          "remediation": "Set publicly_accessible to false"
+        },
+        {
+          "id": "AWS-RDS-002",
+          "name": "No encryption",
+          "severity": "high",
+          "description": "RDS storage not encrypted",
+          "impact": "Data at rest not protected",
+          "remediation": "Enable storage encryption"
+        },
+        {
+          "id": "AWS-RDS-003",
+          "name": "No deletion protection",
+          "severity": "medium",
+          "description": "RDS instance lacks deletion protection",
+          "impact": "Accidental deletion possible",
+          "remediation": "Enable deletion protection"
+        },
+        {
+          "id": "AWS-RDS-004",
+          "name": "No automated backups",
+          "severity": "medium",
+          "description": "Automated backups not configured",
+          "impact": "Cannot recover from data loss",
+          "remediation": "Enable automated backups"
+        }
+      ]
+    },
+    "cloudtrail": {
+      "severity": "high",
+      "findings": [
+        {
+          "id": "AWS-CT-001",
+          "name": "No CloudTrail",
+          "severity": "high",
+          "description": "CloudTrail not enabled",
+          "impact": "No audit trail of API activity",
+          "remediation": "Enable CloudTrail in all regions",
+          "cis_benchmark": "3.1"
+        },
+        {
+          "id": "AWS-CT-002",
+          "name": "No log file validation",
+          "severity": "medium",
+          "description": "CloudTrail log file validation not enabled",
+          "impact": "Cannot detect log tampering",
+          "remediation": "Enable log file integrity validation",
+          "cis_benchmark": "3.2"
+        },
+        {
+          "id": "AWS-CT-003",
+          "name": "Logs not encrypted",
+          "severity": "medium",
+          "description": "CloudTrail logs not encrypted with KMS",
+          "impact": "Sensitive operations in plaintext",
+          "remediation": "Enable SSE-KMS encryption",
+          "cis_benchmark": "3.7"
+        }
+      ]
+    },
+    "lambda": {
+      "severity": "medium",
+      "findings": [
+        {
+          "id": "AWS-LAMBDA-001",
+          "name": "Overly permissive execution role",
+          "severity": "high",
+          "description": "Lambda function with admin-like IAM role",
+          "impact": "Compromised function can access all resources",
+          "remediation": "Apply least privilege to execution role"
+        },
+        {
+          "id": "AWS-LAMBDA-002",
+          "name": "Secrets in environment variables",
+          "severity": "high",
+          "description": "Sensitive data in Lambda env vars",
+          "impact": "Secrets visible in console and logs",
+          "remediation": "Use Secrets Manager or SSM Parameter Store"
+        },
+        {
+          "id": "AWS-LAMBDA-003",
+          "name": "Not in VPC",
+          "severity": "low",
+          "description": "Lambda not deployed in VPC",
+          "impact": "Cannot access VPC resources securely",
+          "remediation": "Deploy in VPC if accessing internal resources"
+        }
+      ]
+    }
+  },
+  "detection_tools": {
+    "aws_config": {
+      "description": "AWS Config rules for compliance",
+      "managed_rules": [
+        "s3-bucket-public-read-prohibited",
+        "s3-bucket-ssl-requests-only",
+        "encrypted-volumes",
+        "iam-root-access-key-check",
+        "iam-user-mfa-enabled"
+      ]
+    },
+    "security_hub": {
+      "description": "AWS Security Hub for centralized findings",
+      "standards": [
+        "AWS Foundational Security Best Practices",
+        "CIS AWS Foundations Benchmark"
+      ]
+    },
+    "prowler": {
+      "description": "Open source AWS security tool",
+      "command": "prowler aws",
+      "url": "https://github.com/prowler-cloud/prowler"
+    },
+    "scout_suite": {
+      "description": "Multi-cloud security auditing",
+      "command": "scout aws",
+      "url": "https://github.com/nccgroup/ScoutSuite"
+    }
+  }
+}
