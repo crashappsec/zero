@@ -223,14 +223,15 @@ get_phase_display() {
     local phase="$1"
     case "$phase" in
         "Cloning") echo "Cloning repository" ;;
-        "technology") echo "Technology scan" ;;
         "dependencies") echo "SBOM generation" ;;
+        "technology") echo "Technology scan" ;;
         "vulnerabilities") echo "Package vulnerabilities" ;;
         "package-health") echo "Package health" ;;
         "licenses") echo "License scan" ;;
         "security-findings") echo "Code security" ;;
         "ownership") echo "Code ownership" ;;
         "dora") echo "DORA metrics" ;;
+        "provenance") echo "Provenance check" ;;
         *) echo "$phase" ;;
     esac
 }
@@ -240,14 +241,15 @@ get_phase_estimate() {
     local phase="$1"
     case "$phase" in
         "Cloning") echo "~30s" ;;
+        "dependencies") echo "~30s" ;;  # SBOM generation with syft
         "technology") echo "~5s" ;;
-        "dependencies") echo "~3s" ;;
-        "vulnerabilities") echo "~30s" ;;
-        "package-health") echo "~10s" ;;
+        "vulnerabilities") echo "~10s" ;;
+        "package-health") echo "~5s" ;;
         "licenses") echo "~5s" ;;
-        "security-findings") echo "~45s" ;;
+        "security-findings") echo "~15s" ;;
         "ownership") echo "~15s" ;;
         "dora") echo "~20s" ;;
+        "provenance") echo "~10s" ;;
         *) echo "~10s" ;;
     esac
 }
@@ -371,6 +373,22 @@ get_phase_result() {
                 local freq=$(jq -r '.deployment_frequency // "unknown"' "$analysis_path/dora.json" 2>/dev/null)
                 local lead=$(jq -r '.lead_time // "unknown"' "$analysis_path/dora.json" 2>/dev/null)
                 printf "\033[2mdeploy: %s, lead: %s\033[0m" "$freq" "$lead"
+            fi
+            ;;
+        "provenance")
+            if [[ -f "$analysis_path/provenance.json" ]]; then
+                local signed=$(jq -r '.summary.signed_commits // 0' "$analysis_path/provenance.json" 2>/dev/null)
+                local slsa=$(jq -r '.summary.slsa_level // "none"' "$analysis_path/provenance.json" 2>/dev/null)
+                local status=$(jq -r '.status // "unknown"' "$analysis_path/provenance.json" 2>/dev/null)
+                if [[ "$status" == "analyzer_not_found" ]]; then
+                    printf "\033[2mskipped\033[0m"
+                elif [[ "$slsa" != "none" ]] && [[ "$slsa" != "null" ]]; then
+                    printf "\033[0;32mSLSA %s\033[0m" "$slsa"
+                elif [[ "$signed" -gt 0 ]]; then
+                    printf "\033[0;32m%s signed commits\033[0m" "$signed"
+                else
+                    printf "\033[2mno attestations\033[0m"
+                fi
             fi
             ;;
     esac
@@ -518,6 +536,19 @@ hydrate_org() {
             if [[ -f "$analysis_path/dora.json" ]]; then
                 local perf=$(jq -r '.performance_level // "unknown"' "$analysis_path/dora.json" 2>/dev/null)
                 results+="  ${GREEN}✓${NC} DORA metrics: $perf\n"
+            fi
+
+            # Provenance
+            if [[ -f "$analysis_path/provenance.json" ]]; then
+                local prov_status=$(jq -r '.status // "unknown"' "$analysis_path/provenance.json" 2>/dev/null)
+                if [[ "$prov_status" != "analyzer_not_found" ]]; then
+                    local slsa=$(jq -r '.summary.slsa_level // "none"' "$analysis_path/provenance.json" 2>/dev/null)
+                    if [[ "$slsa" != "none" ]] && [[ "$slsa" != "null" ]]; then
+                        results+="  ${GREEN}✓${NC} Provenance: ${GREEN}SLSA $slsa${NC}\n"
+                    else
+                        results+="  ${GREEN}✓${NC} Provenance: no attestations\n"
+                    fi
+                fi
             fi
 
             echo -e "$results"
