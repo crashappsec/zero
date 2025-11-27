@@ -70,3 +70,4 @@ sbom-output/
 # Analysis reports
 reports/
 *.sequence
+.DS_Store
