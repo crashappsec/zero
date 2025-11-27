@@ -1,0 +1,250 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "category": "devops/cicd",
+    "description": "General CI/CD pipeline security patterns and anti-patterns"
+  },
+  "security_principles": {
+    "least_privilege": {
+      "description": "Pipelines should have minimum required permissions",
+      "practices": [
+        "Use dedicated service accounts per pipeline",
+        "Scope credentials to specific resources",
+        "Use short-lived tokens when possible",
+        "Separate build and deploy credentials"
+      ]
+    },
+    "immutable_artifacts": {
+      "description": "Build artifacts should not be modified after creation",
+      "practices": [
+        "Sign artifacts with digital signatures",
+        "Store checksums in separate system",
+        "Use content-addressable storage",
+        "Implement artifact promotion (not rebuild)"
+      ]
+    },
+    "hermetic_builds": {
+      "description": "Builds should be reproducible and isolated",
+      "practices": [
+        "Pin all dependencies to exact versions",
+        "Use locked dependency files",
+        "Avoid network access during build",
+        "Document build environment completely"
+      ]
+    },
+    "provenance": {
+      "description": "Track origin and transformation of artifacts",
+      "practices": [
+        "Generate SLSA provenance attestations",
+        "Sign provenance with pipeline identity",
+        "Store provenance alongside artifacts",
+        "Verify provenance before deployment"
+      ]
+    }
+  },
+  "common_vulnerabilities": {
+    "secrets_in_logs": {
+      "severity": "high",
+      "description": "Credentials accidentally printed to build logs",
+      "detection": [
+        "Scan logs for secret patterns",
+        "Review echo/print statements",
+        "Check environment variable dumps"
+      ],
+      "prevention": [
+        "Mask secrets in CI system",
+        "Use secret scanning in logs",
+        "Avoid verbose debugging in production"
+      ]
+    },
+    "dependency_confusion": {
+      "severity": "critical",
+      "description": "Private package names registered on public registries",
+      "detection": [
+        "Audit internal package names against public registries",
+        "Monitor for new public packages matching internal names"
+      ],
+      "prevention": [
+        "Use scoped packages (@org/package)",
+        "Configure registry priority correctly",
+        "Use private registry exclusively"
+      ]
+    },
+    "untrusted_inputs": {
+      "severity": "high",
+      "description": "User-controlled data used in pipeline commands",
+      "detection": [
+        "Review PR title/body usage",
+        "Check branch name handling",
+        "Audit workflow_dispatch inputs"
+      ],
+      "prevention": [
+        "Sanitize all external inputs",
+        "Use environment variables instead of interpolation",
+        "Validate input format before use"
+      ]
+    },
+    "privileged_contexts": {
+      "severity": "medium",
+      "description": "Pipeline runs with elevated permissions",
+      "detection": [
+        "Review service account permissions",
+        "Check for sudo usage in scripts",
+        "Audit container privilege settings"
+      ],
+      "prevention": [
+        "Use rootless containers",
+        "Drop unnecessary capabilities",
+        "Run as non-root user"
+      ]
+    },
+    "cache_poisoning": {
+      "severity": "medium",
+      "description": "Malicious content injected into build cache",
+      "detection": [
+        "Review cache key construction",
+        "Monitor cache hit patterns"
+      ],
+      "prevention": [
+        "Include security-relevant data in cache keys",
+        "Validate cached content before use",
+        "Separate caches by trust level"
+      ]
+    }
+  },
+  "slsa_framework": {
+    "description": "Supply-chain Levels for Software Artifacts",
+    "levels": {
+      "level_0": {
+        "name": "No guarantees",
+        "requirements": []
+      },
+      "level_1": {
+        "name": "Documentation of build process",
+        "requirements": [
+          "Build process is defined in code",
+          "Provenance is generated"
+        ]
+      },
+      "level_2": {
+        "name": "Tamper resistant build",
+        "requirements": [
+          "Version control for source",
+          "Hosted build service",
+          "Signed provenance"
+        ]
+      },
+      "level_3": {
+        "name": "Hardened builds",
+        "requirements": [
+          "Hermetic, reproducible builds",
+          "Isolated build environment",
+          "Verified provenance",
+          "Non-falsifiable provenance"
+        ]
+      }
+    },
+    "implementation": {
+      "github_actions": "slsa-framework/slsa-github-generator",
+      "tekton": "tekton.dev/chains",
+      "gitlab": "Built-in SLSA provenance"
+    }
+  },
+  "platform_specific": {
+    "github_actions": {
+      "secret_management": "GitHub Secrets (repo/org/environment)",
+      "oidc": "Native OIDC support for cloud auth",
+      "permissions": "Fine-grained GITHUB_TOKEN permissions",
+      "environments": "Deployment environments with protection rules"
+    },
+    "gitlab_ci": {
+      "secret_management": "CI/CD Variables (masked, protected)",
+      "oidc": "ID tokens for cloud auth",
+      "permissions": "Protected branches and environments",
+      "environments": "Deployment environments with approvals"
+    },
+    "jenkins": {
+      "secret_management": "Credentials plugin (folder-scoped)",
+      "oidc": "Plugin-based OIDC support",
+      "permissions": "Role-based access control",
+      "environments": "Pipeline stages with input steps"
+    },
+    "circleci": {
+      "secret_management": "Context and project variables",
+      "oidc": "OIDC token support",
+      "permissions": "Restricted contexts",
+      "environments": "Manual approval jobs"
+    }
+  },
+  "security_gates": {
+    "pre_merge": [
+      {
+        "gate": "Static analysis",
+        "tools": ["ESLint", "Pylint", "SonarQube"],
+        "blocking": true
+      },
+      {
+        "gate": "Secret scanning",
+        "tools": ["Gitleaks", "TruffleHog", "detect-secrets"],
+        "blocking": true
+      },
+      {
+        "gate": "Dependency scanning",
+        "tools": ["npm audit", "Snyk", "Dependabot"],
+        "blocking": "on critical"
+      },
+      {
+        "gate": "License compliance",
+        "tools": ["FOSSA", "Snyk", "license-checker"],
+        "blocking": "on copyleft"
+      }
+    ],
+    "pre_deploy": [
+      {
+        "gate": "Container scanning",
+        "tools": ["Trivy", "Grype", "Snyk Container"],
+        "blocking": "on critical"
+      },
+      {
+        "gate": "IaC scanning",
+        "tools": ["tfsec", "Checkov", "Terrascan"],
+        "blocking": true
+      },
+      {
+        "gate": "DAST",
+        "tools": ["OWASP ZAP", "Burp Suite"],
+        "blocking": "on high"
+      },
+      {
+        "gate": "Manual approval",
+        "tools": ["Environment protection rules"],
+        "blocking": true
+      }
+    ]
+  },
+  "artifact_signing": {
+    "tools": {
+      "sigstore_cosign": {
+        "description": "Keyless signing with identity-based trust",
+        "use_case": "Container images",
+        "command": "cosign sign $IMAGE"
+      },
+      "in_toto": {
+        "description": "Supply chain attestation framework",
+        "use_case": "Build provenance",
+        "command": "in-toto-sign"
+      },
+      "gpg": {
+        "description": "Traditional key-based signing",
+        "use_case": "Archives, packages",
+        "command": "gpg --sign artifact.tar.gz"
+      }
+    },
+    "verification": {
+      "container_images": "cosign verify $IMAGE",
+      "npm_packages": "npm audit signatures",
+      "python_packages": "pip download --require-hashes"
+    }
+  }
+}

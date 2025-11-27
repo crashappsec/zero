@@ -1,0 +1,137 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "category": "shared",
+    "description": "Universal severity level definitions for consistent finding classification"
+  },
+  "severity_levels": {
+    "critical": {
+      "level": 5,
+      "label": "Critical",
+      "color": "#dc3545",
+      "description": "Immediate action required. Exploitable vulnerabilities with severe impact.",
+      "cvss_range": "9.0-10.0",
+      "response_time": "Immediate (within hours)",
+      "examples": [
+        "Remote code execution (RCE)",
+        "Authentication bypass",
+        "Known exploited vulnerability (CISA KEV)",
+        "Active exploitation in the wild",
+        "Complete system compromise possible"
+      ],
+      "sla": {
+        "acknowledge": "1 hour",
+        "remediate": "24 hours"
+      }
+    },
+    "high": {
+      "level": 4,
+      "label": "High",
+      "color": "#fd7e14",
+      "description": "Urgent attention needed. Significant security or operational impact.",
+      "cvss_range": "7.0-8.9",
+      "response_time": "Within 1-7 days",
+      "examples": [
+        "SQL injection",
+        "Privilege escalation",
+        "Sensitive data exposure",
+        "Broken access control",
+        "Known vulnerability with public exploit"
+      ],
+      "sla": {
+        "acknowledge": "24 hours",
+        "remediate": "7 days"
+      }
+    },
+    "medium": {
+      "level": 3,
+      "label": "Medium",
+      "color": "#ffc107",
+      "description": "Should be addressed in normal development cycle.",
+      "cvss_range": "4.0-6.9",
+      "response_time": "Within 30 days",
+      "examples": [
+        "Cross-site scripting (XSS)",
+        "Information disclosure",
+        "Denial of service",
+        "Outdated dependency with known issues",
+        "Missing security headers"
+      ],
+      "sla": {
+        "acknowledge": "3 days",
+        "remediate": "30 days"
+      }
+    },
+    "low": {
+      "level": 2,
+      "label": "Low",
+      "color": "#17a2b8",
+      "description": "Minor issue. Address when convenient or as part of maintenance.",
+      "cvss_range": "0.1-3.9",
+      "response_time": "Within 90 days",
+      "examples": [
+        "Information leakage in error messages",
+        "Missing best practices",
+        "Version disclosure",
+        "Theoretical vulnerabilities",
+        "Low-impact misconfigurations"
+      ],
+      "sla": {
+        "acknowledge": "7 days",
+        "remediate": "90 days"
+      }
+    },
+    "info": {
+      "level": 1,
+      "label": "Informational",
+      "color": "#6c757d",
+      "description": "For awareness only. No immediate action required.",
+      "cvss_range": "0.0",
+      "response_time": "No deadline",
+      "examples": [
+        "Best practice recommendations",
+        "Configuration suggestions",
+        "Documentation gaps",
+        "Style/consistency issues",
+        "Technical debt observations"
+      ],
+      "sla": {
+        "acknowledge": "Optional",
+        "remediate": "Optional"
+      }
+    }
+  },
+  "mapping": {
+    "cvss_to_severity": {
+      "9.0-10.0": "critical",
+      "7.0-8.9": "high",
+      "4.0-6.9": "medium",
+      "0.1-3.9": "low",
+      "0.0": "info"
+    },
+    "epss_modifier": {
+      "description": "EPSS (Exploit Prediction Scoring System) can upgrade severity",
+      "rules": [
+        {
+          "condition": "epss >= 0.9",
+          "action": "Consider upgrading to critical"
+        },
+        {
+          "condition": "epss >= 0.5",
+          "action": "Consider upgrading one level"
+        },
+        {
+          "condition": "in_cisa_kev",
+          "action": "Always treat as critical"
+        }
+      ]
+    }
+  },
+  "usage_guidance": {
+    "default_to_source": "Use vendor/NVD severity as baseline",
+    "context_matters": "Adjust based on application context (internet-facing, internal, etc.)",
+    "compensating_controls": "Document if severity is reduced due to compensating controls",
+    "business_impact": "Consider business impact when prioritizing remediation"
+  }
+}

@@ -1,0 +1,329 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "source": "Refactoring: Improving the Design of Existing Code (Martin Fowler)",
+    "description": "Catalog of code smells with detection patterns and refactoring recommendations"
+  },
+  "categories": {
+    "bloaters": {
+      "description": "Code that has grown so large that it's hard to work with",
+      "smells": {
+        "long_method": {
+          "name": "Long Method",
+          "description": "A method that contains too many lines of code, making it hard to understand and maintain",
+          "severity": "high",
+          "thresholds": {
+            "warning": 30,
+            "error": 50
+          },
+          "indicators": [
+            "Method exceeds 30 lines",
+            "Multiple levels of abstraction in single method",
+            "Many local variables",
+            "Hard to name succinctly"
+          ],
+          "refactoring": ["Extract Method", "Replace Temp with Query", "Introduce Parameter Object", "Preserve Whole Object"],
+          "detection_patterns": {
+            "description": "Count lines per function/method"
+          }
+        },
+        "large_class": {
+          "name": "Large Class",
+          "description": "A class that tries to do too much, has too many instance variables, or too many methods",
+          "severity": "high",
+          "thresholds": {
+            "methods_warning": 20,
+            "methods_error": 30,
+            "lines_warning": 500,
+            "lines_error": 1000,
+            "fields_warning": 10,
+            "fields_error": 15
+          },
+          "indicators": [
+            "Too many responsibilities",
+            "Too many instance variables",
+            "Duplicate code within the class",
+            "Class name is too generic"
+          ],
+          "refactoring": ["Extract Class", "Extract Subclass", "Extract Interface"]
+        },
+        "long_parameter_list": {
+          "name": "Long Parameter List",
+          "description": "A method with more than three or four parameters",
+          "severity": "medium",
+          "thresholds": {
+            "warning": 4,
+            "error": 6
+          },
+          "indicators": [
+            "Hard to understand parameter order",
+            "Many boolean flags",
+            "Parameters often passed together"
+          ],
+          "refactoring": ["Introduce Parameter Object", "Preserve Whole Object", "Replace Parameter with Method Call"],
+          "detection_patterns": {
+            "javascript": "function\\s+\\w+\\s*\\([^)]{100,}\\)",
+            "python": "def\\s+\\w+\\s*\\([^)]{100,}\\)"
+          }
+        },
+        "data_clumps": {
+          "name": "Data Clumps",
+          "description": "Groups of data that are often used together but are not organized into a class",
+          "severity": "medium",
+          "indicators": [
+            "Same fields appear in multiple classes",
+            "Same parameters appear in multiple method signatures",
+            "Related data passed separately to methods"
+          ],
+          "refactoring": ["Extract Class", "Introduce Parameter Object", "Preserve Whole Object"],
+          "examples": {
+            "before": "function process(startX, startY, endX, endY) { }",
+            "after": "function process(start: Point, end: Point) { }"
+          }
+        },
+        "primitive_obsession": {
+          "name": "Primitive Obsession",
+          "description": "Overuse of primitives instead of small objects for simple tasks",
+          "severity": "medium",
+          "indicators": [
+            "Using strings for phone numbers, zip codes, etc.",
+            "Type codes or enums instead of subclasses",
+            "Arrays instead of objects"
+          ],
+          "refactoring": ["Replace Data Value with Object", "Replace Type Code with Class", "Replace Type Code with Subclasses"],
+          "examples": {
+            "before": "const phoneNumber: string = '555-1234';",
+            "after": "const phoneNumber: PhoneNumber = new PhoneNumber('555-1234');"
+          }
+        }
+      }
+    },
+    "oo_abusers": {
+      "description": "Incomplete or incorrect application of OO principles",
+      "smells": {
+        "switch_statements": {
+          "name": "Switch Statements",
+          "description": "Complex switch statements or if-else chains that could be replaced with polymorphism",
+          "severity": "medium",
+          "indicators": [
+            "Type code checks",
+            "Same switch in multiple places",
+            "Adding types requires modifying switches"
+          ],
+          "refactoring": ["Replace Conditional with Polymorphism", "Replace Type Code with Subclasses", "Replace Type Code with State/Strategy"],
+          "detection_patterns": {
+            "javascript": "switch\\s*\\([^)]+\\)\\s*\\{[^}]{200,}\\}",
+            "python": "if.*elif.*elif.*elif"
+          }
+        },
+        "refused_bequest": {
+          "name": "Refused Bequest",
+          "description": "A subclass uses only some of the methods/properties inherited from its parents",
+          "severity": "low",
+          "indicators": [
+            "Subclass overrides methods to do nothing",
+            "Subclass doesn't use inherited methods",
+            "Inheritance hierarchy doesn't match 'is-a' relationship"
+          ],
+          "refactoring": ["Replace Inheritance with Delegation", "Push Down Method", "Push Down Field"]
+        },
+        "alternative_classes_different_interfaces": {
+          "name": "Alternative Classes with Different Interfaces",
+          "description": "Two classes perform identical functions but have different method names",
+          "severity": "medium",
+          "indicators": [
+            "Classes do similar things with different APIs",
+            "Hard to swap implementations",
+            "Duplicate logic"
+          ],
+          "refactoring": ["Rename Method", "Extract Superclass", "Extract Interface"]
+        }
+      }
+    },
+    "change_preventers": {
+      "description": "Patterns that make code hard to change",
+      "smells": {
+        "divergent_change": {
+          "name": "Divergent Change",
+          "description": "One class is commonly changed for different reasons",
+          "severity": "high",
+          "indicators": [
+            "Modifying class for unrelated features",
+            "Different developers change same class for different reasons",
+            "Class has multiple responsibilities"
+          ],
+          "refactoring": ["Extract Class", "Extract Superclass", "Extract Module"]
+        },
+        "shotgun_surgery": {
+          "name": "Shotgun Surgery",
+          "description": "Making one kind of change requires changing many different classes",
+          "severity": "high",
+          "indicators": [
+            "One logical change touches many files",
+            "Related functionality scattered across codebase",
+            "Hard to find all places that need updating"
+          ],
+          "refactoring": ["Move Method", "Move Field", "Inline Class"]
+        },
+        "parallel_inheritance_hierarchies": {
+          "name": "Parallel Inheritance Hierarchies",
+          "description": "Creating a subclass in one hierarchy requires creating one in another",
+          "severity": "medium",
+          "indicators": [
+            "Two hierarchies mirror each other",
+            "Adding class to one hierarchy requires adding to another",
+            "Prefixes/suffixes show relationship"
+          ],
+          "refactoring": ["Move Method", "Move Field"]
+        }
+      }
+    },
+    "dispensables": {
+      "description": "Code that is pointless and should be removed",
+      "smells": {
+        "comments": {
+          "name": "Comments (Excessive)",
+          "description": "Comments that explain bad code instead of improving the code itself",
+          "severity": "low",
+          "indicators": [
+            "Comments explaining what code does (should be obvious)",
+            "Commented-out code",
+            "TODO comments that never get done",
+            "Comments apologizing for code quality"
+          ],
+          "refactoring": ["Extract Method", "Rename Method/Variable", "Introduce Assertion"],
+          "note": "Good comments explain WHY, not WHAT"
+        },
+        "duplicate_code": {
+          "name": "Duplicate Code",
+          "description": "Identical or similar code exists in multiple locations",
+          "severity": "high",
+          "indicators": [
+            "Copy-pasted code",
+            "Similar algorithms in different classes",
+            "Similar conditional expressions"
+          ],
+          "refactoring": ["Extract Method", "Pull Up Method", "Form Template Method", "Substitute Algorithm"],
+          "detection_patterns": {
+            "description": "Use clone detection tools (jscpd, PMD CPD)"
+          }
+        },
+        "dead_code": {
+          "name": "Dead Code",
+          "description": "Code that is never executed",
+          "severity": "medium",
+          "indicators": [
+            "Unreachable code after return/throw",
+            "Unused variables, parameters, methods",
+            "Commented-out code",
+            "Code behind always-false conditions"
+          ],
+          "refactoring": ["Remove Dead Code"],
+          "detection_patterns": {
+            "javascript": "return\\s+[^;]+;\\s*\\n\\s*[^}]",
+            "description": "Look for statements after return/throw"
+          }
+        },
+        "speculative_generality": {
+          "name": "Speculative Generality",
+          "description": "Creating abstractions for future features that may never be needed",
+          "severity": "low",
+          "indicators": [
+            "Abstract classes/interfaces with only one implementation",
+            "Unused parameters 'for future use'",
+            "Methods that only delegate to another method",
+            "Complex class hierarchies for simple problems"
+          ],
+          "refactoring": ["Collapse Hierarchy", "Inline Class", "Remove Parameter", "Rename Method"]
+        },
+        "lazy_class": {
+          "name": "Lazy Class",
+          "description": "A class that doesn't do enough to justify its existence",
+          "severity": "low",
+          "indicators": [
+            "Class with one or two methods",
+            "Class that just holds data (may be valid)",
+            "Class created for anticipated future needs"
+          ],
+          "refactoring": ["Collapse Hierarchy", "Inline Class"]
+        }
+      }
+    },
+    "couplers": {
+      "description": "Code that is overly coupled to other parts of the system",
+      "smells": {
+        "feature_envy": {
+          "name": "Feature Envy",
+          "description": "A method that uses more features of another class than its own",
+          "severity": "high",
+          "indicators": [
+            "Method primarily uses getters/methods of another object",
+            "Method would be simpler in another class",
+            "Data and behavior are separated"
+          ],
+          "refactoring": ["Move Method", "Extract Method (then Move)"],
+          "examples": {
+            "before": "function calculateTotal(order) {\n  return order.items.reduce((sum, i) => sum + i.price * i.qty, 0) * (1 - order.discount);\n}",
+            "after": "// Move to Order class\nclass Order {\n  calculateTotal() {\n    return this.items.reduce((sum, i) => sum + i.price * i.qty, 0) * (1 - this.discount);\n  }\n}"
+          }
+        },
+        "inappropriate_intimacy": {
+          "name": "Inappropriate Intimacy",
+          "description": "Classes that spend too much time accessing each other's private parts",
+          "severity": "high",
+          "indicators": [
+            "Accessing private/protected members of another class",
+            "Bidirectional associations",
+            "Subclass knows too much about parent implementation"
+          ],
+          "refactoring": ["Move Method", "Move Field", "Change Bidirectional to Unidirectional", "Extract Class", "Hide Delegate"]
+        },
+        "message_chains": {
+          "name": "Message Chains",
+          "description": "A client asks an object for another object, then asks that object for yet another, etc.",
+          "severity": "medium",
+          "indicators": [
+            "a.getB().getC().getD()",
+            "Navigation through object graph",
+            "Violates Law of Demeter"
+          ],
+          "refactoring": ["Hide Delegate", "Extract Method", "Move Method"],
+          "detection_patterns": {
+            "javascript": "\\.[\\w]+\\([^)]*\\)\\.[\\w]+\\([^)]*\\)\\.[\\w]+",
+            "python": "\\.[\\w]+\\([^)]*\\)\\.[\\w]+\\([^)]*\\)\\.[\\w]+"
+          }
+        },
+        "middle_man": {
+          "name": "Middle Man",
+          "description": "A class that does nothing except delegate to another class",
+          "severity": "low",
+          "indicators": [
+            "Most methods just call another object's methods",
+            "Class adds no value",
+            "Over-applied delegation"
+          ],
+          "refactoring": ["Remove Middle Man", "Inline Method"]
+        }
+      }
+    }
+  },
+  "complexity_thresholds": {
+    "cyclomatic_complexity": {
+      "good": { "max": 10 },
+      "moderate": { "max": 20 },
+      "high": { "max": 50 },
+      "very_high": { "min": 50 }
+    },
+    "cognitive_complexity": {
+      "good": { "max": 15 },
+      "moderate": { "max": 25 },
+      "high": { "min": 25 }
+    },
+    "nesting_depth": {
+      "recommended_max": 3,
+      "warning": 4,
+      "error": 5
+    }
+  }
+}

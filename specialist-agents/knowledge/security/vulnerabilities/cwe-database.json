@@ -1,0 +1,440 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "source": "MITRE CWE",
+    "description": "Common Weakness Enumeration database for vulnerability classification"
+  },
+  "categories": {
+    "injection": ["CWE-78", "CWE-79", "CWE-89", "CWE-94", "CWE-917"],
+    "authentication": ["CWE-287", "CWE-306", "CWE-384", "CWE-521"],
+    "authorization": ["CWE-269", "CWE-285", "CWE-639", "CWE-862", "CWE-863"],
+    "cryptography": ["CWE-259", "CWE-327", "CWE-328", "CWE-330", "CWE-338"],
+    "data_exposure": ["CWE-200", "CWE-209", "CWE-312", "CWE-319", "CWE-532"],
+    "input_validation": ["CWE-20", "CWE-22", "CWE-73", "CWE-434"],
+    "deserialization": ["CWE-502"],
+    "xxe": ["CWE-611"],
+    "ssrf": ["CWE-918"]
+  },
+  "weaknesses": {
+    "CWE-20": {
+      "name": "Improper Input Validation",
+      "description": "The product receives input but does not validate or incorrectly validates that the input has the properties required to process the data safely.",
+      "severity": "high",
+      "owasp_2021": "A03:2021",
+      "detection_patterns": {
+        "javascript": [
+          "req\\.body\\.[\\w]+(?!.*(?:validate|sanitize|escape))",
+          "req\\.query\\.[\\w]+(?!.*(?:validate|sanitize))",
+          "req\\.params\\.[\\w]+(?!.*(?:validate|sanitize))"
+        ],
+        "python": [
+          "request\\.(?:form|args|json)\\[",
+          "request\\.get_json\\(\\)"
+        ]
+      },
+      "remediation": {
+        "description": "Validate all input against strict schemas. Use allowlists rather than blocklists.",
+        "examples": {
+          "javascript": "const { body } = require('express-validator');\napp.post('/user', body('email').isEmail(), handler);",
+          "python": "from pydantic import BaseModel\nclass UserInput(BaseModel):\n    email: EmailStr"
+        }
+      }
+    },
+    "CWE-22": {
+      "name": "Path Traversal",
+      "description": "The software uses external input to construct a pathname that should be within a restricted directory, but does not properly neutralize sequences such as '..' that can resolve to a location outside of that directory.",
+      "severity": "high",
+      "owasp_2021": "A01:2021",
+      "detection_patterns": {
+        "javascript": [
+          "path\\.join\\([^)]*req\\.",
+          "fs\\.read.*\\([^)]*req\\.",
+          "__dirname\\s*\\+\\s*req\\."
+        ],
+        "python": [
+          "open\\([^)]*request\\.",
+          "os\\.path\\.join\\([^)]*request\\."
+        ],
+        "go": [
+          "filepath\\.Join\\([^)]*r\\."
+        ]
+      },
+      "remediation": {
+        "description": "Validate and sanitize file paths. Use path canonicalization and verify the resolved path is within the expected directory.",
+        "examples": {
+          "javascript": "const safePath = path.normalize(userPath).replace(/^(\\.\\.\\/)+/, '');\nif (!safePath.startsWith(baseDir)) throw new Error('Invalid path');",
+          "python": "import os\nreal_path = os.path.realpath(os.path.join(base_dir, user_path))\nif not real_path.startswith(base_dir):\n    raise ValueError('Invalid path')"
+        }
+      }
+    },
+    "CWE-78": {
+      "name": "OS Command Injection",
+      "description": "The software constructs all or part of an OS command using externally-influenced input but does not neutralize or incorrectly neutralizes special elements that could modify the intended command.",
+      "severity": "critical",
+      "owasp_2021": "A03:2021",
+      "detection_patterns": {
+        "javascript": [
+          "exec\\([^)]*\\$\\{",
+          "exec\\([^)]*\\+",
+          "spawn\\([^)]*\\$\\{",
+          "child_process.*req\\."
+        ],
+        "python": [
+          "os\\.system\\([^)]*\\+",
+          "os\\.system\\([^)]*f['\"]",
+          "subprocess\\.(?:call|run|Popen)\\([^)]*shell\\s*=\\s*True",
+          "subprocess.*\\+.*request"
+        ],
+        "go": [
+          "exec\\.Command\\([^)]*\\+",
+          "exec\\.Command.*fmt\\.Sprintf"
+        ]
+      },
+      "remediation": {
+        "description": "Never pass user input to shell commands. Use parameterized APIs that don't invoke the shell.",
+        "examples": {
+          "javascript": "// BAD: exec(`ls ${userInput}`)\n// GOOD:\nconst { execFile } = require('child_process');\nexecFile('ls', [userInput], callback);",
+          "python": "# BAD: os.system(f'ls {user_input}')\n# GOOD:\nimport subprocess\nsubprocess.run(['ls', user_input], check=True)"
+        }
+      }
+    },
+    "CWE-79": {
+      "name": "Cross-site Scripting (XSS)",
+      "description": "The software does not neutralize or incorrectly neutralizes user-controllable input before it is placed in output that is used as a web page that is served to other users.",
+      "severity": "medium",
+      "owasp_2021": "A03:2021",
+      "detection_patterns": {
+        "javascript": [
+          "innerHTML\\s*=",
+          "outerHTML\\s*=",
+          "document\\.write\\(",
+          "dangerouslySetInnerHTML",
+          "\\.html\\([^)]*\\$",
+          "v-html\\s*="
+        ],
+        "python": [
+          "\\|\\s*safe",
+          "Markup\\(",
+          "render_template_string\\("
+        ]
+      },
+      "remediation": {
+        "description": "Encode output based on context (HTML, JavaScript, URL, CSS). Use framework auto-escaping.",
+        "examples": {
+          "javascript": "// BAD: element.innerHTML = userInput\n// GOOD:\nelement.textContent = userInput;\n// Or use DOMPurify for HTML:\nelement.innerHTML = DOMPurify.sanitize(userInput);",
+          "react": "// BAD: <div dangerouslySetInnerHTML={{__html: userInput}} />\n// GOOD:\n<div>{userInput}</div>"
+        }
+      }
+    },
+    "CWE-89": {
+      "name": "SQL Injection",
+      "description": "The software constructs all or part of an SQL command using externally-influenced input but does not neutralize special elements that could modify the intended SQL command.",
+      "severity": "critical",
+      "owasp_2021": "A03:2021",
+      "detection_patterns": {
+        "javascript": [
+          "query\\([^)]*\\$\\{",
+          "query\\([^)]*\\+",
+          "execute\\([^)]*\\$\\{",
+          "\\.raw\\([^)]*\\$\\{"
+        ],
+        "python": [
+          "execute\\([^)]*%",
+          "execute\\([^)]*f['\"]",
+          "execute\\([^)]*\\.format\\(",
+          "cursor\\.execute\\([^)]*\\+"
+        ],
+        "go": [
+          "db\\.Query\\([^)]*\\+",
+          "db\\.Exec\\([^)]*fmt\\.Sprintf"
+        ],
+        "java": [
+          "executeQuery\\([^)]*\\+",
+          "createQuery\\([^)]*\\+",
+          "Statement.*execute.*\\+"
+        ]
+      },
+      "remediation": {
+        "description": "Use parameterized queries or prepared statements. Never concatenate user input into SQL.",
+        "examples": {
+          "javascript": "// BAD: db.query(`SELECT * FROM users WHERE id = ${userId}`)\n// GOOD:\ndb.query('SELECT * FROM users WHERE id = $1', [userId]);",
+          "python": "# BAD: cursor.execute(f\"SELECT * FROM users WHERE id = {user_id}\")\n# GOOD:\ncursor.execute(\"SELECT * FROM users WHERE id = %s\", (user_id,))",
+          "java": "// BAD: stmt.executeQuery(\"SELECT * FROM users WHERE id = \" + userId)\n// GOOD:\nPreparedStatement ps = conn.prepareStatement(\"SELECT * FROM users WHERE id = ?\");\nps.setInt(1, userId);"
+        }
+      }
+    },
+    "CWE-94": {
+      "name": "Code Injection",
+      "description": "The software constructs all or part of a code segment using externally-influenced input but does not neutralize special elements that could modify the syntax or behavior of the intended code segment.",
+      "severity": "critical",
+      "owasp_2021": "A03:2021",
+      "detection_patterns": {
+        "javascript": [
+          "eval\\(",
+          "new\\s+Function\\(",
+          "setTimeout\\([^)]*\\$",
+          "setInterval\\([^)]*\\$"
+        ],
+        "python": [
+          "eval\\(",
+          "exec\\(",
+          "compile\\([^)]*request"
+        ]
+      },
+      "remediation": {
+        "description": "Never use eval() or similar dynamic code execution with user input. Use safer alternatives.",
+        "examples": {
+          "javascript": "// BAD: eval(userInput)\n// GOOD: Use JSON.parse for data\nconst data = JSON.parse(userInput);",
+          "python": "# BAD: eval(user_input)\n# GOOD: Use ast.literal_eval for safe literals\nimport ast\ndata = ast.literal_eval(user_input)"
+        }
+      }
+    },
+    "CWE-200": {
+      "name": "Information Exposure",
+      "description": "The product exposes sensitive information to an actor that is not explicitly authorized to have access to that information.",
+      "severity": "medium",
+      "owasp_2021": "A01:2021",
+      "detection_patterns": {
+        "javascript": [
+          "console\\.log\\([^)]*password",
+          "console\\.log\\([^)]*token",
+          "console\\.log\\([^)]*secret",
+          "res\\.send\\([^)]*err(?:or)?\\)"
+        ],
+        "python": [
+          "print\\([^)]*password",
+          "logging\\..*password",
+          "traceback\\.print_exc\\(\\)"
+        ]
+      },
+      "remediation": {
+        "description": "Never log sensitive data. Use structured error responses that don't expose internals.",
+        "examples": {
+          "javascript": "// BAD: res.status(500).send(error.stack)\n// GOOD:\nres.status(500).json({ error: 'Internal server error', requestId: req.id });"
+        }
+      }
+    },
+    "CWE-259": {
+      "name": "Hard-coded Password",
+      "description": "The software contains a hard-coded password, which it uses for authentication.",
+      "severity": "critical",
+      "owasp_2021": "A07:2021",
+      "detection_patterns": {
+        "generic": [
+          "password\\s*[=:]\\s*['\"][^'\"]+['\"]",
+          "passwd\\s*[=:]\\s*['\"][^'\"]+['\"]",
+          "secret\\s*[=:]\\s*['\"][^'\"]+['\"]",
+          "api_key\\s*[=:]\\s*['\"][^'\"]+['\"]"
+        ]
+      },
+      "remediation": {
+        "description": "Use environment variables or secrets management systems. Never commit credentials.",
+        "examples": {
+          "javascript": "// BAD: const password = 'secretpassword123'\n// GOOD:\nconst password = process.env.DB_PASSWORD;",
+          "python": "# BAD: password = 'secretpassword123'\n# GOOD:\nimport os\npassword = os.environ['DB_PASSWORD']"
+        }
+      }
+    },
+    "CWE-287": {
+      "name": "Improper Authentication",
+      "description": "The software does not prove or insufficiently proves that a claimed identity is correct.",
+      "severity": "critical",
+      "owasp_2021": "A07:2021",
+      "detection_patterns": {
+        "javascript": [
+          "if\\s*\\(\\s*req\\.user\\s*\\)",
+          "isAuthenticated\\s*=\\s*true",
+          "jwt\\.decode\\([^)]*\\{\\s*complete:\\s*false"
+        ],
+        "python": [
+          "if\\s+user:",
+          "@login_required\\s*\\n\\s*def\\s+\\w+.*:\\s*\\n\\s*pass"
+        ]
+      },
+      "remediation": {
+        "description": "Use established authentication frameworks. Verify tokens properly with signature validation.",
+        "examples": {
+          "javascript": "// BAD: jwt.decode(token) // No signature verification\n// GOOD:\njwt.verify(token, publicKey, { algorithms: ['RS256'] });"
+        }
+      }
+    },
+    "CWE-327": {
+      "name": "Broken Cryptography",
+      "description": "The use of a broken or risky cryptographic algorithm.",
+      "severity": "high",
+      "owasp_2021": "A02:2021",
+      "detection_patterns": {
+        "generic": [
+          "MD5",
+          "SHA1(?![\\d])",
+          "DES(?!3)",
+          "RC4",
+          "createCipher\\(",
+          "crypto\\.createHash\\(['\"]md5['\"]\\)",
+          "hashlib\\.md5\\(",
+          "hashlib\\.sha1\\("
+        ]
+      },
+      "remediation": {
+        "description": "Use modern cryptographic algorithms: SHA-256+, AES-256-GCM, Argon2/bcrypt for passwords.",
+        "examples": {
+          "javascript": "// BAD: crypto.createHash('md5')\n// GOOD:\ncrypto.createHash('sha256');",
+          "python": "# BAD: hashlib.md5(password)\n# GOOD: For passwords\nimport bcrypt\nhash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())"
+        }
+      }
+    },
+    "CWE-352": {
+      "name": "Cross-Site Request Forgery (CSRF)",
+      "description": "The web application does not sufficiently verify that a request was intentionally provided by the user who submitted it.",
+      "severity": "medium",
+      "owasp_2021": "A01:2021",
+      "detection_patterns": {
+        "javascript": [
+          "app\\.post\\([^)]*(?!csrf)",
+          "router\\.post\\([^)]*(?!csrf)"
+        ],
+        "python": [
+          "@app\\.route.*methods.*POST.*(?!csrf)",
+          "csrf_exempt"
+        ]
+      },
+      "remediation": {
+        "description": "Implement CSRF tokens for state-changing requests. Use SameSite cookie attribute.",
+        "examples": {
+          "javascript": "// Express with csurf\nconst csrf = require('csurf');\napp.use(csrf({ cookie: true }));",
+          "python": "# Flask-WTF\nfrom flask_wtf.csrf import CSRFProtect\ncsrf = CSRFProtect(app)"
+        }
+      }
+    },
+    "CWE-434": {
+      "name": "Unrestricted File Upload",
+      "description": "The software allows the attacker to upload or transfer files of dangerous types that can be automatically processed within the product's environment.",
+      "severity": "high",
+      "owasp_2021": "A04:2021",
+      "detection_patterns": {
+        "javascript": [
+          "multer\\([^)]*(?!fileFilter)",
+          "req\\.files?(?!.*(?:mimetype|extension))"
+        ],
+        "python": [
+          "request\\.files(?!.*(?:allowed|secure_filename))",
+          "save\\([^)]*request\\.files"
+        ]
+      },
+      "remediation": {
+        "description": "Validate file type by content (magic bytes), not just extension. Store outside webroot. Use random names.",
+        "examples": {
+          "javascript": "const upload = multer({\n  fileFilter: (req, file, cb) => {\n    const allowed = ['image/jpeg', 'image/png'];\n    cb(null, allowed.includes(file.mimetype));\n  },\n  limits: { fileSize: 5 * 1024 * 1024 }\n});"
+        }
+      }
+    },
+    "CWE-502": {
+      "name": "Deserialization of Untrusted Data",
+      "description": "The application deserializes untrusted data without sufficiently verifying that the resulting data will be valid.",
+      "severity": "critical",
+      "owasp_2021": "A08:2021",
+      "detection_patterns": {
+        "javascript": [
+          "JSON\\.parse\\([^)]*req\\.",
+          "serialize-javascript.*unserialize"
+        ],
+        "python": [
+          "pickle\\.loads?\\(",
+          "yaml\\.load\\([^)]*(?!Loader)",
+          "yaml\\.unsafe_load\\("
+        ],
+        "java": [
+          "ObjectInputStream",
+          "readObject\\(\\)",
+          "XMLDecoder"
+        ]
+      },
+      "remediation": {
+        "description": "Avoid deserializing untrusted data. Use safe formats like JSON. If serialization needed, use allowlists.",
+        "examples": {
+          "python": "# BAD: pickle.loads(user_data)\n# GOOD:\nimport json\ndata = json.loads(user_data)",
+          "java": "// Use JSON libraries like Jackson with type validation\nObjectMapper mapper = new ObjectMapper();\nmapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance);"
+        }
+      }
+    },
+    "CWE-611": {
+      "name": "XML External Entity (XXE)",
+      "description": "The software processes an XML document that can contain XML entities with URIs that resolve to documents outside of the intended sphere of control.",
+      "severity": "high",
+      "owasp_2021": "A05:2021",
+      "detection_patterns": {
+        "javascript": [
+          "xml2js(?!.*(?:disallow|reject))",
+          "DOMParser\\(\\)"
+        ],
+        "python": [
+          "etree\\.parse\\(",
+          "xml\\.etree.*parse\\(",
+          "lxml\\.etree(?!.*resolve_entities\\s*=\\s*False)"
+        ],
+        "java": [
+          "DocumentBuilderFactory(?!.*setFeature)",
+          "SAXParserFactory(?!.*setFeature)",
+          "XMLInputFactory(?!.*setProperty)"
+        ]
+      },
+      "remediation": {
+        "description": "Disable external entity processing in XML parsers. Use JSON when possible.",
+        "examples": {
+          "java": "DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();\ndbf.setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", true);\ndbf.setFeature(\"http://xml.org/sax/features/external-general-entities\", false);",
+          "python": "from defusedxml import ElementTree\ntree = ElementTree.parse(xml_file)"
+        }
+      }
+    },
+    "CWE-862": {
+      "name": "Missing Authorization",
+      "description": "The software does not perform an authorization check when an actor attempts to access a resource or perform an action.",
+      "severity": "critical",
+      "owasp_2021": "A01:2021",
+      "detection_patterns": {
+        "javascript": [
+          "app\\.(?:get|post|put|delete)\\([^)]*(?!(?:auth|permit|allow|check))",
+          "router\\.(?:get|post|put|delete)\\([^)]*admin(?!.*(?:isAdmin|checkAdmin))"
+        ],
+        "python": [
+          "@app\\.route.*(?!@.*(?:login_required|permission))",
+          "def\\s+delete_user.*(?!.*(?:is_admin|has_permission))"
+        ]
+      },
+      "remediation": {
+        "description": "Implement authorization checks on every endpoint. Use middleware/decorators for consistent enforcement.",
+        "examples": {
+          "javascript": "// BAD: app.delete('/users/:id', deleteUser)\n// GOOD:\napp.delete('/users/:id', requireAuth, requireRole('admin'), deleteUser);",
+          "python": "# BAD: @app.route('/admin/users', methods=['DELETE'])\n# GOOD:\n@app.route('/admin/users', methods=['DELETE'])\n@login_required\n@admin_required\ndef delete_user():"
+        }
+      }
+    },
+    "CWE-918": {
+      "name": "Server-Side Request Forgery (SSRF)",
+      "description": "The web server receives a URL or similar request from an upstream component and retrieves the contents of this URL, but it does not sufficiently ensure that the request is being sent to the expected destination.",
+      "severity": "high",
+      "owasp_2021": "A10:2021",
+      "detection_patterns": {
+        "javascript": [
+          "axios\\([^)]*req\\.",
+          "fetch\\([^)]*req\\.",
+          "request\\([^)]*req\\.",
+          "got\\([^)]*req\\."
+        ],
+        "python": [
+          "requests\\.get\\([^)]*request\\.",
+          "urllib\\.request\\.urlopen\\([^)]*request\\.",
+          "httpx\\.get\\([^)]*request\\."
+        ]
+      },
+      "remediation": {
+        "description": "Validate and sanitize URLs. Use allowlists for permitted destinations. Block internal IP ranges.",
+        "examples": {
+          "javascript": "const url = new URL(userUrl);\nconst blocked = ['localhost', '127.0.0.1', '169.254.169.254'];\nif (blocked.includes(url.hostname)) throw new Error('Blocked');\nif (url.hostname.match(/^(10\\.|172\\.(1[6-9]|2|3[01])\\.|192\\.168\\.)/)) throw new Error('Internal');",
+          "python": "from urllib.parse import urlparse\nimport ipaddress\n\nparsed = urlparse(user_url)\ntry:\n    ip = ipaddress.ip_address(parsed.hostname)\n    if ip.is_private:\n        raise ValueError('Private IP not allowed')\nexcept ValueError:\n    pass  # Not an IP, continue with DNS check"
+        }
+      }
+    }
+  }
+}

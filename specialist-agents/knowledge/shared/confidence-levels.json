@@ -1,0 +1,124 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "category": "shared",
+    "description": "Confidence level definitions for analysis findings and recommendations"
+  },
+  "confidence_levels": {
+    "confirmed": {
+      "level": 5,
+      "label": "Confirmed",
+      "percentage": "95-100%",
+      "description": "Finding has been verified through direct observation or testing",
+      "evidence_requirements": [
+        "Direct code analysis confirms issue",
+        "Proof of concept demonstrates vulnerability",
+        "Multiple independent verification methods",
+        "CVE match with exact version confirmed"
+      ],
+      "reporting_guidance": "Report as definitive finding"
+    },
+    "high": {
+      "level": 4,
+      "label": "High Confidence",
+      "percentage": "80-94%",
+      "description": "Strong evidence supports the finding with minimal uncertainty",
+      "evidence_requirements": [
+        "Pattern match with high specificity",
+        "Version range indicates likely affected",
+        "Consistent indicators across codebase",
+        "Established vulnerability pattern detected"
+      ],
+      "reporting_guidance": "Report with strong recommendation to investigate"
+    },
+    "medium": {
+      "level": 3,
+      "label": "Medium Confidence",
+      "percentage": "50-79%",
+      "description": "Reasonable evidence but some uncertainty remains",
+      "evidence_requirements": [
+        "Pattern match with moderate specificity",
+        "Version may or may not be affected",
+        "Some indicators present but incomplete",
+        "Common vulnerability pattern, context unclear"
+      ],
+      "reporting_guidance": "Report as potential issue requiring verification"
+    },
+    "low": {
+      "level": 2,
+      "label": "Low Confidence",
+      "percentage": "20-49%",
+      "description": "Limited evidence, significant uncertainty",
+      "evidence_requirements": [
+        "Weak pattern match",
+        "Theoretical vulnerability only",
+        "Incomplete information available",
+        "Circumstantial indicators"
+      ],
+      "reporting_guidance": "Report as possible issue, may be false positive"
+    },
+    "speculative": {
+      "level": 1,
+      "label": "Speculative",
+      "percentage": "0-19%",
+      "description": "Minimal evidence, primarily theoretical concern",
+      "evidence_requirements": [
+        "No direct evidence",
+        "Based on general patterns only",
+        "High false positive likelihood",
+        "Requires manual verification"
+      ],
+      "reporting_guidance": "Report only if relevant to comprehensive audit"
+    }
+  },
+  "determination_factors": {
+    "version_matching": {
+      "exact_match": "confirmed",
+      "range_match": "high",
+      "major_version_match": "medium",
+      "unknown_version": "low"
+    },
+    "pattern_detection": {
+      "specific_signature": "confirmed",
+      "strong_indicator": "high",
+      "common_pattern": "medium",
+      "weak_signal": "low"
+    },
+    "data_source_reliability": {
+      "nvd_cve": "high",
+      "osv_database": "high",
+      "github_advisory": "high",
+      "snyk_db": "high",
+      "community_report": "medium",
+      "automated_scan": "medium",
+      "heuristic_detection": "low"
+    }
+  },
+  "aggregation_rules": {
+    "multiple_sources": {
+      "description": "When multiple sources report the same finding",
+      "rule": "Use highest confidence from reliable sources"
+    },
+    "conflicting_information": {
+      "description": "When sources disagree",
+      "rule": "Note conflict, default to lower confidence, recommend manual review"
+    },
+    "version_uncertainty": {
+      "description": "When package version cannot be determined precisely",
+      "rule": "Reduce confidence by one level"
+    }
+  },
+  "reporting_symbols": {
+    "confirmed": "✓",
+    "high": "◉",
+    "medium": "◐",
+    "low": "○",
+    "speculative": "?"
+  },
+  "false_positive_handling": {
+    "track_rate": "Monitor false positive rate per detection pattern",
+    "adjust_confidence": "Reduce confidence for patterns with high FP rate",
+    "provide_context": "Always explain confidence reasoning to user"
+  }
+}

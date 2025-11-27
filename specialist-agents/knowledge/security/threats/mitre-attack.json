@@ -1,0 +1,265 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "source": "MITRE ATT&CK Enterprise",
+    "url": "https://attack.mitre.org/"
+  },
+  "tactics": {
+    "TA0001": {
+      "name": "Initial Access",
+      "description": "Techniques used to gain an initial foothold within a network",
+      "techniques": [
+        {
+          "id": "T1190",
+          "name": "Exploit Public-Facing Application",
+          "description": "Adversaries may attempt to exploit vulnerabilities in internet-facing applications",
+          "relevance": "Web application vulnerabilities (SQLi, RCE, etc.)",
+          "detection_focus": ["Input validation", "WAF logs", "Application errors"]
+        },
+        {
+          "id": "T1566",
+          "name": "Phishing",
+          "description": "Adversaries may send phishing messages to gain access to victim systems",
+          "subtechniques": ["T1566.001 Spearphishing Attachment", "T1566.002 Spearphishing Link"]
+        },
+        {
+          "id": "T1195",
+          "name": "Supply Chain Compromise",
+          "description": "Adversaries may manipulate products or delivery mechanisms to distribute malware",
+          "relevance": "Dependency security, package integrity",
+          "detection_focus": ["Dependency scanning", "Provenance verification", "SBOM analysis"]
+        },
+        {
+          "id": "T1078",
+          "name": "Valid Accounts",
+          "description": "Adversaries may obtain and abuse credentials of existing accounts",
+          "relevance": "Credential security, authentication",
+          "detection_focus": ["Failed logins", "Unusual access patterns", "Credential exposure"]
+        }
+      ]
+    },
+    "TA0002": {
+      "name": "Execution",
+      "description": "Techniques that result in adversary-controlled code running on a local or remote system",
+      "techniques": [
+        {
+          "id": "T1059",
+          "name": "Command and Scripting Interpreter",
+          "description": "Adversaries may abuse command and script interpreters to execute commands",
+          "relevance": "Command injection, code execution vulnerabilities",
+          "subtechniques": ["T1059.001 PowerShell", "T1059.003 Windows Command Shell", "T1059.004 Unix Shell"]
+        },
+        {
+          "id": "T1203",
+          "name": "Exploitation for Client Execution",
+          "description": "Adversaries may exploit software vulnerabilities in client applications"
+        },
+        {
+          "id": "T1204",
+          "name": "User Execution",
+          "description": "Adversaries may rely upon user actions to gain execution"
+        }
+      ]
+    },
+    "TA0003": {
+      "name": "Persistence",
+      "description": "Techniques used to maintain access to systems across restarts, credential changes, etc.",
+      "techniques": [
+        {
+          "id": "T1136",
+          "name": "Create Account",
+          "description": "Adversaries may create accounts to maintain access to victim systems"
+        },
+        {
+          "id": "T1098",
+          "name": "Account Manipulation",
+          "description": "Adversaries may manipulate accounts to maintain access"
+        },
+        {
+          "id": "T1505",
+          "name": "Server Software Component",
+          "description": "Adversaries may abuse legitimate server software components for persistence",
+          "subtechniques": ["T1505.003 Web Shell"]
+        }
+      ]
+    },
+    "TA0004": {
+      "name": "Privilege Escalation",
+      "description": "Techniques used to gain higher-level permissions on a system or network",
+      "techniques": [
+        {
+          "id": "T1068",
+          "name": "Exploitation for Privilege Escalation",
+          "description": "Adversaries may exploit software vulnerabilities to elevate privileges",
+          "relevance": "Authorization bypass, insecure configurations"
+        },
+        {
+          "id": "T1078",
+          "name": "Valid Accounts",
+          "description": "Using valid credentials with elevated privileges"
+        },
+        {
+          "id": "T1548",
+          "name": "Abuse Elevation Control Mechanism",
+          "description": "Adversaries may bypass mechanisms designed to control elevated privileges"
+        }
+      ]
+    },
+    "TA0005": {
+      "name": "Defense Evasion",
+      "description": "Techniques used to avoid detection throughout the compromise",
+      "techniques": [
+        {
+          "id": "T1070",
+          "name": "Indicator Removal",
+          "description": "Adversaries may delete or modify artifacts to avoid detection",
+          "subtechniques": ["T1070.001 Clear Windows Event Logs", "T1070.002 Clear Linux or Mac System Logs"]
+        },
+        {
+          "id": "T1027",
+          "name": "Obfuscated Files or Information",
+          "description": "Adversaries may attempt to make data difficult to analyze"
+        },
+        {
+          "id": "T1562",
+          "name": "Impair Defenses",
+          "description": "Adversaries may maliciously modify security tools to avoid detection"
+        }
+      ]
+    },
+    "TA0006": {
+      "name": "Credential Access",
+      "description": "Techniques used to steal credentials like account names and passwords",
+      "techniques": [
+        {
+          "id": "T1110",
+          "name": "Brute Force",
+          "description": "Adversaries may use brute force techniques to gain access to accounts",
+          "relevance": "Rate limiting, account lockout",
+          "subtechniques": ["T1110.001 Password Guessing", "T1110.003 Password Spraying", "T1110.004 Credential Stuffing"]
+        },
+        {
+          "id": "T1555",
+          "name": "Credentials from Password Stores",
+          "description": "Adversaries may search for credentials in common password storage locations"
+        },
+        {
+          "id": "T1552",
+          "name": "Unsecured Credentials",
+          "description": "Adversaries may search for credentials in insecure locations",
+          "relevance": "Hardcoded credentials, secrets in code",
+          "subtechniques": ["T1552.001 Credentials In Files", "T1552.004 Private Keys"]
+        }
+      ]
+    },
+    "TA0007": {
+      "name": "Discovery",
+      "description": "Techniques used to gain knowledge about the system and internal network",
+      "techniques": [
+        {
+          "id": "T1083",
+          "name": "File and Directory Discovery",
+          "description": "Adversaries may enumerate files and directories"
+        },
+        {
+          "id": "T1046",
+          "name": "Network Service Discovery",
+          "description": "Adversaries may attempt to get a listing of services running on remote hosts"
+        },
+        {
+          "id": "T1087",
+          "name": "Account Discovery",
+          "description": "Adversaries may attempt to get a listing of accounts"
+        }
+      ]
+    },
+    "TA0008": {
+      "name": "Lateral Movement",
+      "description": "Techniques used to move through the environment to other systems",
+      "techniques": [
+        {
+          "id": "T1021",
+          "name": "Remote Services",
+          "description": "Adversaries may use valid accounts to log into a service specifically designed for remote access"
+        },
+        {
+          "id": "T1072",
+          "name": "Software Deployment Tools",
+          "description": "Adversaries may gain access to and use third-party software to move laterally"
+        }
+      ]
+    },
+    "TA0009": {
+      "name": "Collection",
+      "description": "Techniques used to gather data of interest from the target",
+      "techniques": [
+        {
+          "id": "T1005",
+          "name": "Data from Local System",
+          "description": "Adversaries may search local system sources for data to exfiltrate"
+        },
+        {
+          "id": "T1213",
+          "name": "Data from Information Repositories",
+          "description": "Adversaries may leverage information repositories to mine valuable information",
+          "relevance": "Database access, API data exposure"
+        }
+      ]
+    },
+    "TA0010": {
+      "name": "Exfiltration",
+      "description": "Techniques used to steal data from the target network",
+      "techniques": [
+        {
+          "id": "T1041",
+          "name": "Exfiltration Over C2 Channel",
+          "description": "Adversaries may steal data by exfiltrating it over an existing command and control channel"
+        },
+        {
+          "id": "T1567",
+          "name": "Exfiltration Over Web Service",
+          "description": "Adversaries may use web services to exfiltrate data",
+          "relevance": "SSRF, data leakage via APIs"
+        }
+      ]
+    },
+    "TA0040": {
+      "name": "Impact",
+      "description": "Techniques used to disrupt availability or compromise integrity",
+      "techniques": [
+        {
+          "id": "T1485",
+          "name": "Data Destruction",
+          "description": "Adversaries may destroy data to disrupt operations"
+        },
+        {
+          "id": "T1486",
+          "name": "Data Encrypted for Impact",
+          "description": "Adversaries may encrypt data to render it inaccessible"
+        },
+        {
+          "id": "T1565",
+          "name": "Data Manipulation",
+          "description": "Adversaries may insert, delete, or alter data to manipulate outcomes"
+        },
+        {
+          "id": "T1499",
+          "name": "Endpoint Denial of Service",
+          "description": "Adversaries may perform DoS attacks against endpoint services"
+        }
+      ]
+    }
+  },
+  "application_security_mapping": {
+    "sql_injection": ["T1190", "T1213", "T1565"],
+    "command_injection": ["T1190", "T1059"],
+    "xss": ["T1190", "T1185"],
+    "authentication_bypass": ["T1078", "T1068"],
+    "ssrf": ["T1190", "T1046", "T1567"],
+    "hardcoded_credentials": ["T1552.001", "T1078"],
+    "insecure_deserialization": ["T1190", "T1059"],
+    "path_traversal": ["T1190", "T1083", "T1005"],
+    "broken_access_control": ["T1078", "T1068"]
+  }
+}

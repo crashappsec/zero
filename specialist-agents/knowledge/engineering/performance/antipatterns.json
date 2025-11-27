@@ -1,0 +1,337 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "description": "Performance antipatterns with detection patterns and optimization guidance"
+  },
+  "categories": {
+    "database": {
+      "n_plus_one": {
+        "name": "N+1 Query Problem",
+        "description": "Executing one query to get a list, then N additional queries to get related data for each item",
+        "severity": "high",
+        "impact": "Linear increase in queries with data size",
+        "detection_patterns": {
+          "javascript": [
+            "for.*await.*find",
+            "map.*async.*\\(.*\\).*=>.*await.*find",
+            "\\.forEach.*await.*query"
+          ],
+          "python": [
+            "for.*in.*query.*:\\s*\\n.*query\\.",
+            "for.*in.*objects\\.all\\(\\):\\s*\\n.*\\.get\\("
+          ]
+        },
+        "examples": {
+          "bad": {
+            "javascript": "const users = await User.findAll();\nfor (const user of users) {\n  user.posts = await Post.findByUserId(user.id); // N queries!\n}",
+            "python": "users = User.objects.all()\nfor user in users:\n    user.posts = Post.objects.filter(user=user)  # N queries!"
+          },
+          "good": {
+            "javascript": "const users = await User.findAll({\n  include: [{ model: Post }]  // 1-2 queries\n});",
+            "python": "users = User.objects.prefetch_related('posts').all()  # 2 queries"
+          }
+        },
+        "optimization": [
+          "Use eager loading (include/prefetch_related)",
+          "Use JOINs in the query",
+          "Batch queries with IN clauses",
+          "Consider denormalization for read-heavy workloads"
+        ]
+      },
+      "missing_index": {
+        "name": "Missing Database Index",
+        "description": "Queries filtering or sorting on columns without indexes",
+        "severity": "high",
+        "impact": "Full table scans instead of index lookups",
+        "indicators": [
+          "WHERE clauses on non-indexed columns",
+          "ORDER BY on non-indexed columns",
+          "JOINs on non-indexed foreign keys"
+        ],
+        "detection": "Analyze slow query logs, use EXPLAIN ANALYZE",
+        "optimization": [
+          "Add indexes on frequently queried columns",
+          "Add composite indexes for multi-column queries",
+          "Consider covering indexes for read-heavy queries"
+        ]
+      },
+      "select_star": {
+        "name": "SELECT * Query",
+        "description": "Selecting all columns when only a few are needed",
+        "severity": "medium",
+        "impact": "Increased I/O, memory usage, and network transfer",
+        "detection_patterns": {
+          "generic": [
+            "SELECT\\s+\\*\\s+FROM",
+            "\\.findAll\\(\\)(?!.*attributes)",
+            "\\.all\\(\\)(?!.*only)"
+          ]
+        },
+        "optimization": [
+          "Specify only needed columns",
+          "Use projections/select for ORM queries"
+        ]
+      },
+      "unbounded_query": {
+        "name": "Unbounded Query Result",
+        "description": "Queries without LIMIT that could return millions of rows",
+        "severity": "high",
+        "impact": "Memory exhaustion, timeout, poor UX",
+        "detection_patterns": {
+          "generic": [
+            "SELECT.*FROM(?!.*LIMIT)",
+            "\\.findAll\\((?!.*limit)",
+            "\\.all\\(\\)(?!.*\\[:)"
+          ]
+        },
+        "optimization": [
+          "Always add LIMIT clause",
+          "Implement pagination",
+          "Use cursor-based pagination for large datasets"
+        ]
+      }
+    },
+    "algorithmic": {
+      "quadratic_loop": {
+        "name": "Quadratic Loop Complexity",
+        "description": "Nested loops resulting in O(n²) or worse complexity",
+        "severity": "high",
+        "impact": "Exponential slowdown with data growth",
+        "detection_patterns": {
+          "javascript": [
+            "for.*\\{[^}]*for.*\\{",
+            "\\.forEach.*\\{[^}]*\\.find\\(",
+            "\\.filter.*\\{[^}]*\\.includes\\("
+          ],
+          "python": [
+            "for.*:\\s*\\n\\s*for.*:",
+            "for.*in.*:\\s*\\n.*if.*in\\s+\\w+:"
+          ]
+        },
+        "examples": {
+          "bad": "// O(n²)\nfor (const item of items) {\n  const match = otherItems.find(o => o.id === item.id);\n}",
+          "good": "// O(n)\nconst otherMap = new Map(otherItems.map(o => [o.id, o]));\nfor (const item of items) {\n  const match = otherMap.get(item.id);\n}"
+        },
+        "optimization": [
+          "Use Map/Set for O(1) lookups",
+          "Pre-index data before loops",
+          "Use appropriate data structures",
+          "Consider sorting + binary search for large datasets"
+        ]
+      },
+      "repeated_computation": {
+        "name": "Repeated Computation",
+        "description": "Computing the same value multiple times in a loop",
+        "severity": "medium",
+        "detection_patterns": {
+          "javascript": [
+            "for.*\\{[^}]*array\\.length[^}]*\\}",
+            "while.*array\\.length"
+          ]
+        },
+        "examples": {
+          "bad": "for (let i = 0; i < items.length; i++) { // length computed each iteration\n  // ...\n}",
+          "good": "const len = items.length;\nfor (let i = 0; i < len; i++) {\n  // ...\n}"
+        },
+        "optimization": [
+          "Cache computed values before loops",
+          "Use memoization for expensive functions",
+          "Move invariant code outside loops"
+        ]
+      },
+      "unnecessary_sort": {
+        "name": "Unnecessary Sorting",
+        "description": "Sorting data when only min/max or partial ordering is needed",
+        "severity": "medium",
+        "impact": "O(n log n) when O(n) would suffice",
+        "examples": {
+          "bad": "const max = items.sort((a, b) => b.value - a.value)[0]; // O(n log n)",
+          "good": "const max = items.reduce((m, i) => i.value > m.value ? i : m); // O(n)"
+        },
+        "optimization": [
+          "Use reduce for min/max finding",
+          "Use partial sort algorithms when only top-k needed",
+          "Consider heap data structure for top-k problems"
+        ]
+      }
+    },
+    "memory": {
+      "memory_leak": {
+        "name": "Memory Leak",
+        "description": "Memory that is allocated but never released",
+        "severity": "critical",
+        "impact": "Application crashes, degraded performance over time",
+        "detection_patterns": {
+          "javascript": [
+            "addEventListener(?!.*removeEventListener)",
+            "setInterval(?!.*clearInterval)",
+            "subscribe(?!.*unsubscribe)"
+          ],
+          "python": [
+            "__del__.*pass",
+            "global\\s+\\w+\\s*=\\s*\\[\\]"
+          ]
+        },
+        "common_causes": [
+          "Event listeners not removed",
+          "Timers not cleared",
+          "Closures holding references",
+          "Growing caches without eviction",
+          "Circular references (in older engines)"
+        ],
+        "optimization": [
+          "Always clean up event listeners on unmount",
+          "Clear timers and intervals",
+          "Use WeakMap/WeakSet for caches",
+          "Implement cache eviction (LRU, TTL)"
+        ]
+      },
+      "unbounded_cache": {
+        "name": "Unbounded Cache Growth",
+        "description": "Cache that grows indefinitely without eviction",
+        "severity": "high",
+        "detection_patterns": {
+          "javascript": [
+            "const\\s+cache\\s*=\\s*\\{\\}",
+            "const\\s+cache\\s*=\\s*new\\s+Map\\(\\)"
+          ]
+        },
+        "examples": {
+          "bad": "const cache = {};\nfunction process(key, data) {\n  cache[key] = data; // Never evicted!\n}",
+          "good": "const cache = new LRUCache({ max: 1000 });\nfunction process(key, data) {\n  cache.set(key, data); // Auto-evicts oldest\n}"
+        },
+        "optimization": [
+          "Use LRU cache with size limit",
+          "Implement TTL for cached items",
+          "Use WeakMap when appropriate"
+        ]
+      },
+      "large_object_copy": {
+        "name": "Unnecessary Large Object Copy",
+        "description": "Creating copies of large objects when not needed",
+        "severity": "medium",
+        "detection_patterns": {
+          "javascript": [
+            "JSON\\.parse\\(JSON\\.stringify\\(",
+            "\\{\\s*\\.\\.\\.\\w+\\s*\\}.*for",
+            "\\[\\.\\.\\.\\w+\\].*map"
+          ]
+        },
+        "examples": {
+          "bad": "const copy = JSON.parse(JSON.stringify(largeObject)); // Deep clone always",
+          "good": "// Only clone if mutation needed, or use immutable structures\nconst updated = { ...obj, changedField: newValue };"
+        },
+        "optimization": [
+          "Avoid deep cloning when shallow works",
+          "Use structural sharing (immer, immutable.js)",
+          "Pass by reference when mutation not needed"
+        ]
+      }
+    },
+    "async": {
+      "sequential_async": {
+        "name": "Sequential Async Operations",
+        "description": "Running independent async operations one after another instead of in parallel",
+        "severity": "high",
+        "impact": "Total time = sum of all operations instead of max",
+        "detection_patterns": {
+          "javascript": [
+            "await\\s+\\w+;\\s*\\n\\s*await\\s+\\w+;\\s*\\n\\s*await",
+            "const\\s+\\w+\\s*=\\s*await.*;\\s*\\n\\s*const\\s+\\w+\\s*=\\s*await"
+          ],
+          "python": [
+            "await\\s+\\w+\\s*\\n\\s*await\\s+\\w+"
+          ]
+        },
+        "examples": {
+          "bad": "// Sequential: 300ms total\nconst user = await getUser(id);       // 100ms\nconst posts = await getPosts(id);      // 100ms\nconst comments = await getComments(id); // 100ms",
+          "good": "// Parallel: 100ms total\nconst [user, posts, comments] = await Promise.all([\n  getUser(id),\n  getPosts(id),\n  getComments(id)\n]);"
+        },
+        "optimization": [
+          "Use Promise.all for independent operations",
+          "Use Promise.allSettled when failures are acceptable",
+          "Consider batching for many parallel operations"
+        ]
+      },
+      "blocking_event_loop": {
+        "name": "Blocking Event Loop",
+        "description": "Synchronous operations that block the event loop in async environments",
+        "severity": "critical",
+        "detection_patterns": {
+          "javascript": [
+            "fs\\.readFileSync",
+            "fs\\.writeFileSync",
+            "execSync",
+            "while\\s*\\(.*\\)\\s*\\{[^}]{100,}\\}"
+          ]
+        },
+        "examples": {
+          "bad": "// Blocks entire server\nconst data = fs.readFileSync('large-file.json');",
+          "good": "// Non-blocking\nconst data = await fs.promises.readFile('large-file.json');"
+        },
+        "optimization": [
+          "Use async versions of I/O operations",
+          "Offload CPU-intensive work to worker threads",
+          "Break up long loops with setImmediate"
+        ]
+      },
+      "unhandled_rejection": {
+        "name": "Unhandled Promise Rejection",
+        "description": "Promises without proper error handling",
+        "severity": "medium",
+        "detection_patterns": {
+          "javascript": [
+            "new\\s+Promise(?!.*catch)",
+            "async\\s+function(?!.*try.*catch)",
+            "\\.then\\([^)]+\\)(?!\\.catch)"
+          ]
+        },
+        "optimization": [
+          "Always add .catch() or use try/catch with await",
+          "Use global unhandledRejection handler as safety net",
+          "Consider using a promise utility library"
+        ]
+      }
+    },
+    "frontend": {
+      "unnecessary_render": {
+        "name": "Unnecessary Re-renders",
+        "description": "Components re-rendering when their output wouldn't change",
+        "severity": "high",
+        "detection_patterns": {
+          "react": [
+            "\\{\\s*\\{.*\\}\\s*\\}(?!.*useMemo)",
+            "\\[.*\\](?!.*useCallback).*onClick",
+            "useState.*\\{.*\\}"
+          ]
+        },
+        "examples": {
+          "bad": "function Parent() {\n  const [count, setCount] = useState(0);\n  return <Child config={{ theme: 'dark' }} />; // New object every render\n}",
+          "good": "function Parent() {\n  const [count, setCount] = useState(0);\n  const config = useMemo(() => ({ theme: 'dark' }), []);\n  return <Child config={config} />;\n}"
+        },
+        "optimization": [
+          "Use React.memo for pure components",
+          "Use useMemo for expensive computations",
+          "Use useCallback for callback props",
+          "Avoid creating objects/arrays in render"
+        ]
+      },
+      "large_bundle": {
+        "name": "Large JavaScript Bundle",
+        "description": "Shipping more JavaScript than necessary to the client",
+        "severity": "high",
+        "thresholds": {
+          "warning_kb": 200,
+          "error_kb": 500
+        },
+        "optimization": [
+          "Code splitting with dynamic imports",
+          "Tree shaking unused code",
+          "Lazy load routes and heavy components",
+          "Analyze bundle with webpack-bundle-analyzer"
+        ]
+      }
+    }
+  }
+}

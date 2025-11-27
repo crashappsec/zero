@@ -1,0 +1,194 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "category": "devops/infrastructure",
+    "description": "CIS Benchmark reference for cloud infrastructure security"
+  },
+  "benchmarks": {
+    "aws_foundations": {
+      "name": "CIS Amazon Web Services Foundations Benchmark",
+      "version": "2.0.0",
+      "sections": {
+        "1": {
+          "title": "Identity and Access Management",
+          "controls": [
+            {"id": "1.1", "title": "Maintain current contact details", "level": 1},
+            {"id": "1.2", "title": "Ensure security contact information is registered", "level": 1},
+            {"id": "1.3", "title": "Ensure security questions are registered", "level": 1},
+            {"id": "1.4", "title": "Ensure no root account access key exists", "level": 1},
+            {"id": "1.5", "title": "Ensure MFA is enabled for the root account", "level": 1},
+            {"id": "1.6", "title": "Ensure hardware MFA for root account", "level": 2},
+            {"id": "1.7", "title": "Eliminate use of the root user", "level": 1},
+            {"id": "1.8", "title": "Ensure IAM password policy requires 14+ characters", "level": 1},
+            {"id": "1.9", "title": "Ensure IAM password policy prevents reuse", "level": 1},
+            {"id": "1.10", "title": "Ensure MFA is enabled for all IAM users with console password", "level": 1},
+            {"id": "1.11", "title": "Do not setup access keys during initial user setup", "level": 1},
+            {"id": "1.12", "title": "Ensure credentials unused for 45+ days are disabled", "level": 1},
+            {"id": "1.13", "title": "Ensure only one active access key per user", "level": 1},
+            {"id": "1.14", "title": "Ensure access keys are rotated every 90 days", "level": 1},
+            {"id": "1.15", "title": "Ensure IAM Users receive permissions through groups", "level": 1},
+            {"id": "1.16", "title": "Ensure IAM policies not attached to users", "level": 1},
+            {"id": "1.17", "title": "Ensure a support role has been created", "level": 1},
+            {"id": "1.18", "title": "Ensure IAM instance roles are used for AWS access", "level": 2},
+            {"id": "1.19", "title": "Ensure all expired SSL/TLS certificates are removed", "level": 1},
+            {"id": "1.20", "title": "Ensure IAM Access Analyzer is enabled", "level": 1},
+            {"id": "1.21", "title": "Ensure IAM users are centrally managed via Identity Center", "level": 1}
+          ]
+        },
+        "2": {
+          "title": "Storage",
+          "controls": [
+            {"id": "2.1.1", "title": "Ensure S3 Bucket Policy is set to deny HTTP requests", "level": 1},
+            {"id": "2.1.2", "title": "Ensure MFA Delete is enabled on S3 buckets", "level": 2},
+            {"id": "2.1.3", "title": "Ensure all data in S3 buckets is encrypted", "level": 1},
+            {"id": "2.1.4", "title": "Ensure S3 buckets have Block Public Access enabled", "level": 1},
+            {"id": "2.2.1", "title": "Ensure EBS volume encryption is enabled", "level": 1},
+            {"id": "2.3.1", "title": "Ensure RDS instances have encryption enabled", "level": 1}
+          ]
+        },
+        "3": {
+          "title": "Logging",
+          "controls": [
+            {"id": "3.1", "title": "Ensure CloudTrail is enabled in all regions", "level": 1},
+            {"id": "3.2", "title": "Ensure CloudTrail log file validation is enabled", "level": 1},
+            {"id": "3.3", "title": "Ensure S3 bucket access logging is enabled on CloudTrail bucket", "level": 1},
+            {"id": "3.4", "title": "Ensure CloudTrail trails are integrated with CloudWatch Logs", "level": 1},
+            {"id": "3.5", "title": "Ensure AWS Config is enabled in all regions", "level": 1},
+            {"id": "3.6", "title": "Ensure S3 bucket access logging is enabled", "level": 1},
+            {"id": "3.7", "title": "Ensure CloudTrail logs are encrypted with KMS CMK", "level": 2},
+            {"id": "3.8", "title": "Ensure rotation for customer-created KMS CMKs is enabled", "level": 2},
+            {"id": "3.9", "title": "Ensure VPC flow logging is enabled", "level": 2}
+          ]
+        },
+        "4": {
+          "title": "Monitoring",
+          "controls": [
+            {"id": "4.1", "title": "Ensure unauthorized API calls are monitored", "level": 1},
+            {"id": "4.2", "title": "Ensure console sign-in without MFA is monitored", "level": 1},
+            {"id": "4.3", "title": "Ensure root account usage is monitored", "level": 1},
+            {"id": "4.4", "title": "Ensure IAM policy changes are monitored", "level": 1},
+            {"id": "4.5", "title": "Ensure CloudTrail configuration changes are monitored", "level": 1},
+            {"id": "4.6", "title": "Ensure console authentication failures are monitored", "level": 2},
+            {"id": "4.7", "title": "Ensure KMS CMK deletion is monitored", "level": 2},
+            {"id": "4.8", "title": "Ensure S3 bucket policy changes are monitored", "level": 1},
+            {"id": "4.9", "title": "Ensure AWS Config configuration changes are monitored", "level": 2},
+            {"id": "4.10", "title": "Ensure security group changes are monitored", "level": 2},
+            {"id": "4.11", "title": "Ensure NACL changes are monitored", "level": 2},
+            {"id": "4.12", "title": "Ensure network gateway changes are monitored", "level": 2},
+            {"id": "4.13", "title": "Ensure route table changes are monitored", "level": 2},
+            {"id": "4.14", "title": "Ensure VPC changes are monitored", "level": 2},
+            {"id": "4.15", "title": "Ensure AWS Organizations changes are monitored", "level": 1}
+          ]
+        },
+        "5": {
+          "title": "Networking",
+          "controls": [
+            {"id": "5.1", "title": "Ensure no network ACLs allow ingress from 0.0.0.0/0 to remote admin ports", "level": 1},
+            {"id": "5.2", "title": "Ensure no security groups allow ingress from 0.0.0.0/0 to port 22", "level": 1},
+            {"id": "5.3", "title": "Ensure no security groups allow ingress from 0.0.0.0/0 to port 3389", "level": 1},
+            {"id": "5.4", "title": "Ensure default security group restricts all traffic", "level": 2},
+            {"id": "5.5", "title": "Ensure routing tables for VPC peering are least access", "level": 2}
+          ]
+        }
+      }
+    },
+    "docker": {
+      "name": "CIS Docker Benchmark",
+      "version": "1.6.0",
+      "sections": {
+        "1": {
+          "title": "Host Configuration",
+          "controls": [
+            {"id": "1.1.1", "title": "Ensure container host has been hardened", "level": 1},
+            {"id": "1.1.2", "title": "Ensure Docker version is up to date", "level": 1}
+          ]
+        },
+        "2": {
+          "title": "Docker Daemon Configuration",
+          "controls": [
+            {"id": "2.1", "title": "Run the Docker daemon as non-root user", "level": 2},
+            {"id": "2.2", "title": "Ensure network traffic is restricted between containers", "level": 1},
+            {"id": "2.3", "title": "Ensure Docker daemon is configured with logging level", "level": 1},
+            {"id": "2.4", "title": "Ensure Docker is allowed to make changes to iptables", "level": 1},
+            {"id": "2.5", "title": "Ensure insecure registries are not used", "level": 1},
+            {"id": "2.6", "title": "Ensure aufs storage driver is not used", "level": 1},
+            {"id": "2.7", "title": "Ensure TLS authentication for Docker daemon is configured", "level": 1}
+          ]
+        },
+        "4": {
+          "title": "Container Images and Build Files",
+          "controls": [
+            {"id": "4.1", "title": "Ensure that a user for the container has been created", "level": 1},
+            {"id": "4.2", "title": "Ensure containers use only trusted base images", "level": 1},
+            {"id": "4.3", "title": "Ensure unnecessary packages are not installed", "level": 1},
+            {"id": "4.4", "title": "Ensure images are scanned for vulnerabilities", "level": 1},
+            {"id": "4.5", "title": "Ensure Content Trust for Docker is enabled", "level": 2},
+            {"id": "4.6", "title": "Ensure HEALTHCHECK instructions have been added", "level": 1}
+          ]
+        },
+        "5": {
+          "title": "Container Runtime Configuration",
+          "controls": [
+            {"id": "5.1", "title": "Ensure AppArmor profile is enabled", "level": 1},
+            {"id": "5.2", "title": "Ensure SELinux security options are set", "level": 2},
+            {"id": "5.3", "title": "Ensure Linux kernel capabilities are restricted", "level": 1},
+            {"id": "5.4", "title": "Ensure privileged containers are not used", "level": 1},
+            {"id": "5.5", "title": "Ensure sensitive host directories are not mounted", "level": 1},
+            {"id": "5.6", "title": "Ensure SSH is not run within containers", "level": 1},
+            {"id": "5.7", "title": "Ensure privileged ports are not mapped within containers", "level": 1}
+          ]
+        }
+      }
+    },
+    "kubernetes": {
+      "name": "CIS Kubernetes Benchmark",
+      "version": "1.8.0",
+      "sections": {
+        "1": {
+          "title": "Control Plane Components",
+          "controls": [
+            {"id": "1.1", "title": "Control Plane Node Configuration Files", "level": 1},
+            {"id": "1.2", "title": "API Server", "level": 1},
+            {"id": "1.3", "title": "Controller Manager", "level": 1},
+            {"id": "1.4", "title": "Scheduler", "level": 1}
+          ]
+        },
+        "4": {
+          "title": "Worker Node Security",
+          "controls": [
+            {"id": "4.1", "title": "Worker Node Configuration Files", "level": 1},
+            {"id": "4.2", "title": "Kubelet", "level": 1}
+          ]
+        },
+        "5": {
+          "title": "Policies",
+          "controls": [
+            {"id": "5.1", "title": "RBAC and Service Accounts", "level": 1},
+            {"id": "5.2", "title": "Pod Security Standards", "level": 1},
+            {"id": "5.3", "title": "Network Policies and CNI", "level": 1},
+            {"id": "5.4", "title": "Secrets Management", "level": 1},
+            {"id": "5.5", "title": "Extensible Admission Control", "level": 1},
+            {"id": "5.7", "title": "General Policies", "level": 1}
+          ]
+        }
+      }
+    }
+  },
+  "level_definitions": {
+    "level_1": {
+      "description": "Essential security configurations that can be implemented with little impact to usability",
+      "recommendation": "All organizations should implement Level 1 controls"
+    },
+    "level_2": {
+      "description": "Advanced security configurations that may reduce functionality",
+      "recommendation": "Organizations with higher security requirements should implement"
+    }
+  },
+  "assessment_tools": {
+    "prowler": "CIS AWS assessment",
+    "docker_bench": "CIS Docker assessment",
+    "kube_bench": "CIS Kubernetes assessment",
+    "lynis": "CIS Linux assessment"
+  }
+}

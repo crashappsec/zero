@@ -1,0 +1,305 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "source": "OWASP Top 10 2021",
+    "url": "https://owasp.org/Top10/"
+  },
+  "categories": {
+    "A01:2021": {
+      "name": "Broken Access Control",
+      "description": "Access control enforces policy such that users cannot act outside of their intended permissions. Failures typically lead to unauthorized information disclosure, modification, or destruction of data.",
+      "severity": "critical",
+      "prevalence": "94% of applications tested",
+      "cwes": ["CWE-200", "CWE-201", "CWE-352", "CWE-566", "CWE-639", "CWE-862", "CWE-863"],
+      "common_vulnerabilities": [
+        "Bypassing access control checks by modifying the URL",
+        "Allowing the primary key to be changed to another user's record",
+        "Elevation of privilege (acting as admin when logged in as user)",
+        "Metadata manipulation (JWT tampering, cookie manipulation)",
+        "CORS misconfiguration allowing unauthorized API access",
+        "Force browsing to authenticated pages as unauthenticated user"
+      ],
+      "prevention": [
+        "Deny by default, except for public resources",
+        "Implement access control mechanisms once and reuse throughout application",
+        "Model access controls should enforce record ownership",
+        "Disable web server directory listing",
+        "Log access control failures and alert admins",
+        "Rate limit API and controller access",
+        "Invalidate JWT tokens on server after logout"
+      ],
+      "detection_patterns": [
+        "Missing @Authorize/@RequireAuth decorators on endpoints",
+        "Direct object references without ownership validation",
+        "Role checks only on frontend",
+        "Permissive CORS configuration"
+      ]
+    },
+    "A02:2021": {
+      "name": "Cryptographic Failures",
+      "description": "Failures related to cryptography which often leads to sensitive data exposure. This includes data transmitted in clear text, use of weak cryptographic algorithms, and improper key management.",
+      "severity": "critical",
+      "prevalence": "Previously 'Sensitive Data Exposure'",
+      "cwes": ["CWE-259", "CWE-327", "CWE-328", "CWE-330", "CWE-331"],
+      "common_vulnerabilities": [
+        "Transmitting data in clear text (HTTP, SMTP, FTP)",
+        "Using deprecated hash functions (MD5, SHA1)",
+        "Using weak encryption algorithms (DES, RC4)",
+        "Hard-coded or predictable encryption keys",
+        "Not enforcing encryption via security headers",
+        "Improper certificate validation"
+      ],
+      "prevention": [
+        "Classify data and apply controls per classification",
+        "Don't store sensitive data unnecessarily",
+        "Encrypt all sensitive data at rest",
+        "Use strong algorithms and proper key management",
+        "Encrypt data in transit with TLS 1.2+",
+        "Disable caching for sensitive data responses",
+        "Use password-specific hashing (Argon2, bcrypt, scrypt)"
+      ],
+      "detection_patterns": [
+        "http:// URLs for sensitive operations",
+        "MD5/SHA1 usage for passwords",
+        "Hardcoded keys or secrets",
+        "Missing HSTS headers"
+      ]
+    },
+    "A03:2021": {
+      "name": "Injection",
+      "description": "Injection flaws occur when untrusted data is sent to an interpreter as part of a command or query. The attacker's hostile data can trick the interpreter into executing unintended commands or accessing data without authorization.",
+      "severity": "critical",
+      "prevalence": "94% of applications tested for injection",
+      "cwes": ["CWE-20", "CWE-74", "CWE-75", "CWE-77", "CWE-78", "CWE-79", "CWE-89", "CWE-94", "CWE-917"],
+      "common_vulnerabilities": [
+        "SQL injection via string concatenation",
+        "NoSQL injection",
+        "OS command injection",
+        "LDAP injection",
+        "XPath injection",
+        "Cross-site scripting (XSS)",
+        "Template injection"
+      ],
+      "prevention": [
+        "Use parameterized queries and prepared statements",
+        "Use positive server-side input validation",
+        "Escape special characters for specific interpreters",
+        "Use LIMIT and other SQL controls to prevent mass disclosure",
+        "Use ORM frameworks with parameterized methods",
+        "Context-aware output encoding for XSS"
+      ],
+      "detection_patterns": [
+        "String concatenation in SQL queries",
+        "User input in exec/eval calls",
+        "innerHTML/dangerouslySetInnerHTML with user data",
+        "Template rendering of user input"
+      ]
+    },
+    "A04:2021": {
+      "name": "Insecure Design",
+      "description": "Insecure design represents different weaknesses, expressed as 'missing or ineffective control design.' It's not the source of all other Top 10 risk categories. Secure design requires threat modeling, secure design patterns, and reference architecture.",
+      "severity": "high",
+      "prevalence": "New category for 2021",
+      "cwes": ["CWE-209", "CWE-256", "CWE-501", "CWE-522"],
+      "common_vulnerabilities": [
+        "Missing rate limiting allowing brute force",
+        "Password recovery via security questions",
+        "Cinema booking without payment confirmation",
+        "Trust boundaries not identified",
+        "Sensitive operations without re-authentication"
+      ],
+      "prevention": [
+        "Establish secure development lifecycle",
+        "Use threat modeling for authentication, access control, business logic",
+        "Integrate security language into user stories",
+        "Integrate plausibility checks at each tier",
+        "Write unit and integration tests for security controls",
+        "Segregate tenant separation at all tiers"
+      ],
+      "detection_patterns": [
+        "Missing threat model documentation",
+        "No rate limiting on authentication",
+        "Business logic flaws",
+        "Missing re-authentication for sensitive actions"
+      ]
+    },
+    "A05:2021": {
+      "name": "Security Misconfiguration",
+      "description": "The application might be vulnerable if it is missing appropriate security hardening or has improperly configured permissions on cloud services, unnecessary features are enabled, default accounts and passwords are unchanged.",
+      "severity": "high",
+      "prevalence": "90% of applications tested",
+      "cwes": ["CWE-16", "CWE-611"],
+      "common_vulnerabilities": [
+        "Unnecessary features enabled (ports, services, pages)",
+        "Default accounts with unchanged passwords",
+        "Error handling reveals stack traces",
+        "Upgraded systems with insecure old configs",
+        "Security settings in frameworks not set to secure values",
+        "Missing security headers",
+        "Out of date software"
+      ],
+      "prevention": [
+        "Repeatable hardening process for fast, secure deployment",
+        "Minimal platform without unnecessary features",
+        "Review and update configurations for security patches",
+        "Segmented application architecture",
+        "Send security directives to clients (Security Headers)",
+        "Automated verification of configurations"
+      ],
+      "detection_patterns": [
+        "Default credentials in config files",
+        "Debug mode enabled in production",
+        "Missing security headers (CSP, HSTS, X-Frame-Options)",
+        "Verbose error messages"
+      ]
+    },
+    "A06:2021": {
+      "name": "Vulnerable and Outdated Components",
+      "description": "You are likely vulnerable if you do not know the versions of all components you use, if the software is vulnerable, unsupported, or out of date, if you do not fix or upgrade the underlying platform in a timely fashion.",
+      "severity": "high",
+      "prevalence": "Supply chain attacks on the rise",
+      "cwes": ["CWE-1035", "CWE-1104"],
+      "common_vulnerabilities": [
+        "Not knowing versions of all components (client and server-side)",
+        "Using vulnerable, unsupported, or out of date software",
+        "Not scanning for vulnerabilities regularly",
+        "Not fixing or upgrading in a risk-based timely manner",
+        "Not testing compatibility of updated libraries",
+        "Not securing component configurations"
+      ],
+      "prevention": [
+        "Remove unused dependencies, features, components",
+        "Continuously inventory versions of components",
+        "Only obtain components from official sources over secure links",
+        "Monitor for unmaintained libraries",
+        "Monitor for vulnerabilities in components (CVE, NVD)",
+        "Ensure ongoing plan for monitoring, triaging, applying updates"
+      ],
+      "detection_patterns": [
+        "Outdated package versions in lock files",
+        "Dependencies with known CVEs",
+        "Abandoned packages (no updates in 2+ years)",
+        "Missing SBOM"
+      ]
+    },
+    "A07:2021": {
+      "name": "Identification and Authentication Failures",
+      "description": "Confirmation of the user's identity, authentication, and session management is critical to protect against authentication-related attacks.",
+      "severity": "critical",
+      "prevalence": "Previously 'Broken Authentication'",
+      "cwes": ["CWE-287", "CWE-384", "CWE-521", "CWE-613", "CWE-620"],
+      "common_vulnerabilities": [
+        "Permitting automated attacks (credential stuffing, brute force)",
+        "Permitting weak passwords",
+        "Using weak credential recovery processes",
+        "Using plain text or weakly hashed passwords",
+        "Missing or ineffective MFA",
+        "Exposing session ID in URL",
+        "Reusing session ID after successful login",
+        "Not properly invalidating sessions"
+      ],
+      "prevention": [
+        "Implement multi-factor authentication",
+        "Don't ship with default credentials",
+        "Implement weak password checks",
+        "Align password policies with NIST 800-63b",
+        "Harden against account enumeration attacks",
+        "Limit and delay failed login attempts",
+        "Use server-side, secure session manager",
+        "Invalidate sessions after logout, idle, and absolute timeouts"
+      ],
+      "detection_patterns": [
+        "Missing rate limiting on login",
+        "Session ID in URL parameters",
+        "Missing session invalidation on logout",
+        "Weak password requirements"
+      ]
+    },
+    "A08:2021": {
+      "name": "Software and Data Integrity Failures",
+      "description": "Software and data integrity failures relate to code and infrastructure that does not protect against integrity violations. This includes using software from untrusted sources, CI/CD pipelines without integrity verification, and auto-update functionality without integrity checks.",
+      "severity": "high",
+      "prevalence": "New category including Insecure Deserialization",
+      "cwes": ["CWE-345", "CWE-502", "CWE-829"],
+      "common_vulnerabilities": [
+        "Using libraries from untrusted CDNs or repositories",
+        "Insecure CI/CD pipeline allowing unauthorized code",
+        "Auto-update without integrity verification",
+        "Insecure deserialization leading to RCE",
+        "Objects serialized and unsigned"
+      ],
+      "prevention": [
+        "Use digital signatures to verify software/data from expected source",
+        "Ensure libraries from trusted repositories",
+        "Use software supply chain security tool (OWASP Dependency-Check)",
+        "Ensure CI/CD pipeline has proper segregation and access control",
+        "Ensure unsigned/unencrypted serialized data is not sent to untrusted clients",
+        "Implement integrity checks on all serialized data"
+      ],
+      "detection_patterns": [
+        "CDN links without SRI hashes",
+        "pickle/yaml.load usage",
+        "Missing code signing",
+        "Unsigned JWT tokens"
+      ]
+    },
+    "A09:2021": {
+      "name": "Security Logging and Monitoring Failures",
+      "description": "Without logging and monitoring, breaches cannot be detected. Insufficient logging, detection, monitoring, and active response occurs any time.",
+      "severity": "medium",
+      "prevalence": "Enables attackers to persist",
+      "cwes": ["CWE-117", "CWE-223", "CWE-532", "CWE-778"],
+      "common_vulnerabilities": [
+        "Auditable events not logged (logins, failed logins, high-value transactions)",
+        "Warnings and errors generate no, inadequate, or unclear log messages",
+        "Logs not monitored for suspicious activity",
+        "Logs only stored locally",
+        "Alerting thresholds and response escalation not effective",
+        "Penetration testing and DAST scans don't trigger alerts",
+        "Application cannot detect, escalate, or alert for attacks in real time"
+      ],
+      "prevention": [
+        "Log all login, access control, and server-side input validation failures",
+        "Ensure logs are in format easily consumed by log management solutions",
+        "Ensure high-value transactions have audit trail with integrity controls",
+        "Establish effective monitoring and alerting for suspicious activity",
+        "Establish or adopt incident response and recovery plan"
+      ],
+      "detection_patterns": [
+        "Missing logging for authentication events",
+        "No audit trail for sensitive operations",
+        "Logs written with user input (log injection)",
+        "Missing alerting configuration"
+      ]
+    },
+    "A10:2021": {
+      "name": "Server-Side Request Forgery (SSRF)",
+      "description": "SSRF flaws occur whenever a web application is fetching a remote resource without validating the user-supplied URL. It allows an attacker to coerce the application to send a crafted request to an unexpected destination.",
+      "severity": "high",
+      "prevalence": "New category for 2021",
+      "cwes": ["CWE-918"],
+      "common_vulnerabilities": [
+        "Fetching URL from user input without validation",
+        "Allowing access to internal services via URL manipulation",
+        "Accessing cloud metadata services (169.254.169.254)",
+        "Reading local files via file:// scheme",
+        "Scanning internal ports via URL requests"
+      ],
+      "prevention": [
+        "Segment remote resource access in separate networks",
+        "Enforce 'deny by default' firewall policies",
+        "Sanitize and validate all client-supplied input data",
+        "Do not send raw responses to clients",
+        "Disable HTTP redirections",
+        "Be aware of URL consistency to avoid DNS rebinding"
+      ],
+      "detection_patterns": [
+        "User input passed to HTTP client libraries",
+        "URL parameter used for redirect/fetch",
+        "Missing URL validation/allowlist",
+        "Internal network addresses accessible"
+      ]
+    }
+  }
+}

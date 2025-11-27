@@ -1,0 +1,210 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "category": "devops/cicd",
+    "description": "GitHub Actions security patterns and best practices"
+  },
+  "security_patterns": {
+    "workflow_injection": {
+      "severity": "critical",
+      "vulnerabilities": [
+        {
+          "id": "GHA-001",
+          "name": "Expression injection in run",
+          "pattern": "run:.*\\$\\{\\{\\s*github\\.event\\.(issue\\.title|issue\\.body|pull_request\\.title|pull_request\\.body|comment\\.body|review\\.body)",
+          "description": "User-controlled input directly in run command",
+          "impact": "Remote code execution in workflow",
+          "remediation": "Use environment variables or actions/github-script",
+          "example_vulnerable": "run: echo \"Title: ${{ github.event.issue.title }}\"",
+          "example_safe": "run: echo \"Title: $ISSUE_TITLE\"\nenv:\n  ISSUE_TITLE: ${{ github.event.issue.title }}"
+        },
+        {
+          "id": "GHA-002",
+          "name": "Script injection via workflow_dispatch",
+          "pattern": "inputs:.*\\n.*run:.*\\$\\{\\{\\s*inputs\\.",
+          "description": "User input from workflow_dispatch used unsafely",
+          "impact": "Injection of arbitrary commands",
+          "remediation": "Validate and sanitize workflow_dispatch inputs"
+        },
+        {
+          "id": "GHA-003",
+          "name": "Injection via branch/tag names",
+          "pattern": "run:.*\\$\\{\\{\\s*github\\.ref",
+          "description": "Branch or tag names used in shell commands",
+          "impact": "Malicious branch names can inject commands",
+          "remediation": "Use GITHUB_REF_NAME environment variable"
+        }
+      ]
+    },
+    "secrets_exposure": {
+      "severity": "high",
+      "vulnerabilities": [
+        {
+          "id": "GHA-010",
+          "name": "Secrets in logs",
+          "pattern": "echo.*\\$\\{\\{\\s*secrets\\.",
+          "description": "Secrets printed to workflow logs",
+          "impact": "Secrets visible in build logs",
+          "remediation": "Never echo secrets; use add-mask if needed"
+        },
+        {
+          "id": "GHA-011",
+          "name": "Secrets to untrusted action",
+          "pattern": "uses:.*\\n.*with:.*\\n.*\\$\\{\\{\\s*secrets\\.",
+          "description": "Passing secrets to third-party actions",
+          "impact": "Secrets could be exfiltrated by malicious action",
+          "remediation": "Audit third-party actions; pin to commit SHA"
+        },
+        {
+          "id": "GHA-012",
+          "name": "Secrets in artifacts",
+          "pattern": "actions/upload-artifact.*\\n.*path:.*\\.env",
+          "description": "Uploading files that may contain secrets",
+          "impact": "Secrets exposed via artifacts",
+          "remediation": "Exclude sensitive files from artifacts"
+        }
+      ]
+    },
+    "supply_chain": {
+      "severity": "high",
+      "vulnerabilities": [
+        {
+          "id": "GHA-020",
+          "name": "Unpinned action version",
+          "pattern": "uses:\\s*[^@]+@(main|master|latest|v\\d+(\\.\\d+)?$)",
+          "description": "Action reference using branch name or floating tag",
+          "impact": "Vulnerable to action tampering",
+          "remediation": "Pin actions to full commit SHA",
+          "example_vulnerable": "uses: actions/checkout@v4",
+          "example_safe": "uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11"
+        },
+        {
+          "id": "GHA-021",
+          "name": "Pull request from fork",
+          "pattern": "on:\\s*pull_request_target",
+          "description": "Workflow triggered by fork PRs with write access",
+          "impact": "Fork PRs can access secrets and write to repo",
+          "remediation": "Use pull_request event; be careful with checkout"
+        },
+        {
+          "id": "GHA-022",
+          "name": "Self-hosted runner abuse",
+          "pattern": "runs-on:.*self-hosted",
+          "description": "Self-hosted runners on public repos",
+          "impact": "Attackers can run code on your infrastructure",
+          "remediation": "Only use self-hosted runners on private repos"
+        }
+      ]
+    },
+    "permissions": {
+      "severity": "medium",
+      "vulnerabilities": [
+        {
+          "id": "GHA-030",
+          "name": "Missing permissions declaration",
+          "pattern": "^(?!.*permissions:)",
+          "description": "Workflow without explicit permissions",
+          "impact": "Inherits default permissions (may be write-all)",
+          "remediation": "Explicitly declare minimum required permissions"
+        },
+        {
+          "id": "GHA-031",
+          "name": "Write-all permissions",
+          "pattern": "permissions:\\s*write-all",
+          "description": "Workflow with all write permissions",
+          "impact": "Overly permissive, violates least privilege",
+          "remediation": "Specify only needed permissions"
+        },
+        {
+          "id": "GHA-032",
+          "name": "Contents write for read-only workflow",
+          "pattern": "permissions:[^}]*contents:\\s*write",
+          "description": "Write access to repo contents when not needed",
+          "impact": "Workflow could be exploited to modify code",
+          "remediation": "Use contents: read unless write is required"
+        }
+      ]
+    }
+  },
+  "best_practices": {
+    "permissions": {
+      "recommendation": "Always use least privilege permissions",
+      "default_safe": {
+        "contents": "read",
+        "packages": "read",
+        "pull-requests": "read"
+      },
+      "github_org_setting": "Set default workflow permissions to read-only"
+    },
+    "action_pinning": {
+      "recommendation": "Pin all actions to full commit SHA",
+      "tools": {
+        "renovate": "Configure to update action SHAs",
+        "dependabot": "Configure version updates for actions",
+        "pin-github-action": "CLI tool to convert to SHA pins"
+      }
+    },
+    "secrets": {
+      "recommendation": "Minimize secret scope",
+      "practices": [
+        "Use environment-specific secrets",
+        "Use OIDC for cloud provider auth instead of long-lived keys",
+        "Rotate secrets regularly",
+        "Use organization secrets sparingly"
+      ]
+    },
+    "third_party_actions": {
+      "recommendation": "Audit and approve third-party actions",
+      "practices": [
+        "Prefer official actions (actions/*)",
+        "Review action source code",
+        "Check action popularity and maintenance",
+        "Fork critical actions for stability"
+      ]
+    }
+  },
+  "oidc_auth": {
+    "description": "Use OIDC for keyless authentication to cloud providers",
+    "benefits": [
+      "No long-lived credentials to manage",
+      "Automatic token rotation",
+      "Fine-grained access control",
+      "Audit trail in cloud provider"
+    ],
+    "providers": {
+      "aws": {
+        "action": "aws-actions/configure-aws-credentials@v4",
+        "setup": "Configure IAM OIDC provider and role"
+      },
+      "azure": {
+        "action": "azure/login@v1",
+        "setup": "Configure federated credentials in Azure AD"
+      },
+      "gcp": {
+        "action": "google-github-actions/auth@v2",
+        "setup": "Configure Workload Identity Federation"
+      }
+    }
+  },
+  "secure_workflow_template": {
+    "example": "name: Secure CI\n\non:\n  push:\n    branches: [main]\n  pull_request:\n    branches: [main]\n\npermissions:\n  contents: read\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1\n      \n      - name: Build\n        run: npm run build\n        \n      - name: Test\n        run: npm test"
+  },
+  "scanning_tools": {
+    "actionlint": {
+      "description": "Static checker for GitHub Actions workflows",
+      "command": "actionlint",
+      "url": "https://github.com/rhysd/actionlint"
+    },
+    "zizmor": {
+      "description": "Security scanner for GitHub Actions",
+      "command": "zizmor scan .",
+      "url": "https://github.com/woodruffw/zizmor"
+    },
+    "gitleaks": {
+      "description": "Secret detection in workflow files",
+      "command": "gitleaks detect",
+      "url": "https://github.com/gitleaks/gitleaks"
+    }
+  }
+}
