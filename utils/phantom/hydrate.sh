@@ -225,10 +225,10 @@ get_phase_display() {
         "Cloning") echo "Cloning repository" ;;
         "technology") echo "Technology scan" ;;
         "dependencies") echo "Dependencies" ;;
-        "vulnerabilities") echo "Vulnerability scan" ;;
+        "vulnerabilities") echo "Package vulnerabilities" ;;
         "package-health") echo "Package health" ;;
         "licenses") echo "License scan" ;;
-        "security-findings") echo "Security analysis" ;;
+        "security-findings") echo "Code security" ;;
         "ownership") echo "Code ownership" ;;
         "dora") echo "DORA metrics" ;;
         *) echo "$phase" ;;
@@ -455,25 +455,62 @@ hydrate_org() {
         if gibson_is_hydrated "$project_id" && [[ ! " ${extra_args[*]} " =~ " --force " ]]; then
             # Show cached results for already hydrated repos
             local analysis_path="$GIBSON_PROJECTS_DIR/$project_id/analysis"
-            local cached_deps="?"
-            local cached_vulns="?"
 
+            echo -e "${DIM}[$current/$repo_count]${NC} ${CYAN}●${NC} $repo ${DIM}(cached - use --force to re-analyze)${NC}"
+
+            # Show all available analyzer results
+            local results=""
+
+            # Dependencies
             if [[ -f "$analysis_path/dependencies.json" ]]; then
-                cached_deps=$(jq -r '.total_dependencies // 0' "$analysis_path/dependencies.json" 2>/dev/null)
+                local deps=$(jq -r '.total_dependencies // 0' "$analysis_path/dependencies.json" 2>/dev/null)
+                results+="  ${GREEN}✓${NC} Dependencies: $deps packages\n"
             fi
 
+            # Package vulnerabilities
             if [[ -f "$analysis_path/vulnerabilities.json" ]]; then
                 local c=$(jq -r '.summary.critical // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
                 local h=$(jq -r '.summary.high // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
                 if [[ "$c" == "0" ]] && [[ "$h" == "0" ]]; then
-                    cached_vulns="${GREEN}clean${NC}"
+                    results+="  ${GREEN}✓${NC} Package vulnerabilities: ${GREEN}clean${NC}\n"
                 else
-                    cached_vulns="${RED}$c critical${NC}, ${YELLOW}$h high${NC}"
+                    results+="  ${GREEN}✓${NC} Package vulnerabilities: ${RED}$c critical${NC}, ${YELLOW}$h high${NC}\n"
                 fi
             fi
 
-            echo -e "${DIM}[$current/$repo_count]${NC} ${YELLOW}⊘${NC} $repo ${DIM}(cached)${NC}"
-            echo -e "  ${DIM}→ deps: $cached_deps │ vulns: $cached_vulns${NC}"
+            # Code security
+            if [[ -f "$analysis_path/security-findings.json" ]]; then
+                local issues=$(jq -r '.findings | length // 0' "$analysis_path/security-findings.json" 2>/dev/null)
+                if [[ "$issues" == "0" ]]; then
+                    results+="  ${GREEN}✓${NC} Code security: ${GREEN}clean${NC}\n"
+                else
+                    results+="  ${GREEN}✓${NC} Code security: ${YELLOW}$issues issues${NC}\n"
+                fi
+            fi
+
+            # Licenses
+            if [[ -f "$analysis_path/licenses.json" ]]; then
+                local status=$(jq -r '.status // "unknown"' "$analysis_path/licenses.json" 2>/dev/null)
+                if [[ "$status" == "pass" ]]; then
+                    results+="  ${GREEN}✓${NC} Licenses: ${GREEN}pass${NC}\n"
+                else
+                    results+="  ${GREEN}✓${NC} Licenses: ${YELLOW}$status${NC}\n"
+                fi
+            fi
+
+            # Technology
+            if [[ -f "$analysis_path/technology.json" ]]; then
+                local tech_count=$(jq -r '.technologies | length // 0' "$analysis_path/technology.json" 2>/dev/null)
+                results+="  ${GREEN}✓${NC} Technology: $tech_count detected\n"
+            fi
+
+            # DORA
+            if [[ -f "$analysis_path/dora.json" ]]; then
+                local perf=$(jq -r '.performance_level // "unknown"' "$analysis_path/dora.json" 2>/dev/null)
+                results+="  ${GREEN}✓${NC} DORA metrics: $perf\n"
+            fi
+
+            echo -e "$results"
             ((skipped++))
             continue
         fi
@@ -594,7 +631,7 @@ hydrate_org() {
 
     # Final Summary
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${BOLD}ORGANIZATION HYDRATION COMPLETE${NC}"
+    echo -e "${BOLD}ORGANIZATION HYDRATION COMPLETE${NC} ${DIM}(static analysis - no AI)${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
     echo -e "  ${GREEN}✓ Hydrated:${NC}  $success"

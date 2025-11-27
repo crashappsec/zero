@@ -896,7 +896,7 @@ print_final_summary() {
 
     echo
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${BOLD}HYDRATION COMPLETE${NC}"
+    echo -e "${BOLD}HYDRATION COMPLETE${NC} ${DIM}(static analysis - no AI)${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
     local manifest="$output_path/manifest.json"
@@ -913,14 +913,14 @@ print_final_summary() {
 
         echo
 
-        # Vulnerabilities
+        # Package Vulnerabilities (CVEs in dependencies)
         if [[ -f "$output_path/vulnerabilities.json" ]]; then
             local c=$(jq -r '.summary.critical // 0' "$output_path/vulnerabilities.json" 2>/dev/null)
             local h=$(jq -r '.summary.high // 0' "$output_path/vulnerabilities.json" 2>/dev/null)
             local m=$(jq -r '.summary.medium // 0' "$output_path/vulnerabilities.json" 2>/dev/null)
             local l=$(jq -r '.summary.low // 0' "$output_path/vulnerabilities.json" 2>/dev/null)
             local total=$((c + h + m + l))
-            printf "  %-18s " "Vulnerabilities:"
+            printf "  %-18s " "Pkg Vulnerabilities:"
             if [[ $c -gt 0 ]] || [[ $h -gt 0 ]]; then
                 echo -e "${RED}$c critical${NC}, ${YELLOW}$h high${NC}, $m medium, $l low"
             elif [[ $total -gt 0 ]]; then
