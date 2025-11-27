@@ -4,9 +4,9 @@ Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Contributing to Gibson Powers
+# Contributing to Phantom
 
-Thank you for your interest in contributing to the Gibson Powers repository! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to Phantom! This document provides guidelines and instructions for contributing.
 
 ## Table of Contents
 
@@ -33,7 +33,7 @@ Before creating bug reports, please check existing issues to avoid duplicates. W
 - **Steps to reproduce** the issue
 - **Expected behavior** vs actual behavior
 - **Screenshots** if applicable
-- **Environment details** (OS, Gibson Powers version, etc.)
+- **Environment details** (OS, Phantom version, etc.)
 
 ### Suggesting Enhancements
 
@@ -59,8 +59,8 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/yourusername/gibson-powers.git
-   cd gibson-powers
+   git clone https://github.com/yourusername/phantom.git
+   cd phantom
    ```
 3. Create a feature branch:
    ```bash
@@ -78,20 +78,20 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 🧪 **Use the Test Organization for safe testing:**
 
-The [Gibson Powers Test Organization](https://github.com/Gibson-Powers-Test-Org) provides sample repositories for testing your changes without affecting real projects.
+The [phantom-tests](https://github.com/phantom-tests) organization provides sample repositories for testing your changes without affecting real projects.
 
 ```bash
 # Test your code ownership changes
 ./utils/code-ownership/ownership-analyser.sh \
-  https://github.com/Gibson-Powers-Test-Org/sample-repo
+  https://github.com/phantom-tests/express
 
 # Test DORA metrics changes
 ./utils/dora-metrics/dora-analyser.sh \
-  --repo https://github.com/Gibson-Powers-Test-Org/sample-repo
+  --repo https://github.com/phantom-tests/express
 
 # Test supply chain changes
 ./utils/supply-chain/vulnerability-analyser.sh \
-  https://github.com/Gibson-Powers-Test-Org/sample-repo
+  https://github.com/phantom-tests/express
 ```
 
 This ensures:
@@ -349,4 +349,4 @@ If you have questions about contributing, please:
 3. Open a new discussion
 4. Reach out to maintainers
 
-Thank you for contributing to Gibson Powers!
+Thank you for contributing to Phantom!

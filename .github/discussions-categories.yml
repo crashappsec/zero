@@ -1,8 +1,8 @@
-# GitHub Discussions Categories for Gibson Powers
+# GitHub Discussions Categories for Phantom
 
 categories:
   - name: 💬 General
-    description: General discussions about Gibson Powers
+    description: General discussions about Phantom
     emoji: 💬
     
   - name: 💡 Ideas
@@ -15,7 +15,7 @@ categories:
     is_answerable: true
     
   - name: 🎓 Show and Tell
-    description: Share what you've built with Gibson Powers
+    description: Share what you've built with Phantom
     emoji: 🎓
     
   - name: 📢 Announcements

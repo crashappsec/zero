@@ -157,7 +157,7 @@ Common definitions in `agents/shared/` ensure consistency:
 ## Directory Structure
 
 ```
-gibson-powers/
+phantom/
 ├── agents/                 # Self-contained AI agents
 │   ├── supply-chain/
 │   ├── code-security/

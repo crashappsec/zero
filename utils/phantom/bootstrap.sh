@@ -47,7 +47,7 @@ fi
 TARGET=""
 BRANCH=""
 DEPTH=""
-MODE="full"  # full, quick, security-only
+MODE="standard"  # quick, standard, thorough, deep, security
 FORCE=false
 
 #############################################################################
@@ -65,25 +65,30 @@ TARGETS:
     GitHub shorthand: owner/repo
     Local path:       /path/to/project or ./project
 
+ANALYSIS MODES:
+    --quick             Fast scan (~30s) - SBOM, tech, vulns, licenses only
+    --standard          Standard scan (~2min) - most analyzers (default)
+    --advanced          Full scan (~5min) - all static analyzers
+    --deep              Deep scan (~10min) - Claude-assisted analysis
+    --security          Security focus - vulns, code security, provenance
+
 OPTIONS:
     --branch <name>     Clone specific branch (default: default branch)
     --depth <n>         Shallow clone depth (default: full for DORA metrics)
-    --quick             Fast analyzers only (skip code-security, dora)
-    --security-only     Security analyzers only
     --force             Re-hydrate even if project exists
     -h, --help          Show this help
 
 EXAMPLES:
-    $0 expressjs/express
-    $0 https://github.com/lodash/lodash --branch main
-    $0 owner/repo --quick
-    $0 ./local-project
+    $0 expressjs/express                    # Standard analysis
+    $0 owner/repo --quick                   # Fast scan
+    $0 owner/repo --advanced                # Include package-health, provenance
+    $0 owner/repo --deep                    # Claude-enhanced analysis
+    $0 ./local-project --security           # Security-focused scan
 
 FLOW:
-    1. Run preflight check (verifies tools/keys)
-    2. Clone repository to ~/.phantom/projects/<id>/repo/
-    3. Run analyzers and store JSON in ~/.phantom/projects/<id>/analysis/
-    4. Set as active project for agent queries
+    1. Clone repository to ~/.phantom/projects/<id>/repo/
+    2. Run analyzers and store JSON in ~/.phantom/projects/<id>/analysis/
+    3. Set as active project for agent queries
 
 EOF
     exit 0
@@ -111,7 +116,20 @@ parse_args() {
                 MODE="quick"
                 shift
                 ;;
-            --security-only)
+            --standard)
+                MODE="standard"
+                shift
+                ;;
+            --advanced|--thorough)
+                MODE="advanced"
+                shift
+                ;;
+            --deep)
+                MODE="deep"
+                export USE_CLAUDE=true
+                shift
+                ;;
+            --security|--security-only)
                 MODE="security"
                 shift
                 ;;
@@ -324,21 +342,40 @@ detect_project_type() {
 
 # Get list of analyzers to run based on mode
 # Note: dependencies (SBOM) must run first as other analyzers use sbom.cdx.json
+#
+# Modes:
+#   quick    - Fast static analysis (~30s) - SBOM, tech, vulns, licenses
+#   standard - Standard analysis (~2min) - adds code security, ownership, dora
+#   advanced - Full analysis (~5min) - adds package-health, provenance
+#   deep     - Claude-assisted (~10min) - uses AI for deeper insights
 get_analyzers_for_mode() {
     local mode="$1"
 
     case "$mode" in
         quick)
-            # Fast scan: SBOM → tech → vulns → licenses
+            # Fast scan (~30s): Core analyzers only
             echo "dependencies technology vulnerabilities licenses"
             ;;
+        standard|full)
+            # Standard scan (~2min): Most useful analyzers, skip slow ones
+            echo "dependencies technology vulnerabilities licenses security-findings ownership dora"
+            ;;
+        advanced)
+            # Advanced scan (~5min): All static analyzers including slow ones
+            echo "dependencies technology vulnerabilities package-health licenses security-findings ownership dora provenance"
+            ;;
+        deep)
+            # Deep scan with Claude (~10min): All analyzers + Claude enhancement
+            # Note: Individual analyzers check USE_CLAUDE env var
+            echo "dependencies technology vulnerabilities package-health licenses security-findings ownership dora provenance"
+            ;;
         security)
-            # Security focus: SBOM → vulns → health → code → provenance
+            # Security focus: Vulnerability and code security
             echo "dependencies vulnerabilities package-health security-findings provenance"
             ;;
-        full|*)
-            # Full scan: SBOM first, then all analyzers
-            echo "dependencies technology vulnerabilities package-health licenses security-findings ownership dora provenance"
+        *)
+            # Default to standard
+            echo "dependencies technology vulnerabilities licenses security-findings ownership dora"
             ;;
     esac
 }
@@ -450,8 +487,13 @@ run_technology_analyzer() {
     local repo_path="$1"
     local output_path="$2"
 
-    # Use new data-only analyzer
-    local tech_script="$UTILS_ROOT/technology-identification/technology-identification-data.sh"
+    # Use Claude-enabled analyzer in deep mode, otherwise data-only
+    local tech_script=""
+    if [[ "${USE_CLAUDE:-}" == "true" ]]; then
+        tech_script="$UTILS_ROOT/technology-identification/technology-identification-analyser.sh"
+    else
+        tech_script="$UTILS_ROOT/technology-identification/technology-identification-data.sh"
+    fi
 
     if [[ -x "$tech_script" ]]; then
         # Pass existing SBOM if available (generated by dependencies analyzer)
@@ -459,7 +501,9 @@ run_technology_analyzer() {
         if [[ -f "$output_path/sbom.cdx.json" ]]; then
             sbom_arg="--sbom $output_path/sbom.cdx.json"
         fi
-        "$tech_script" --local-path "$repo_path" $sbom_arg -o "$output_path/technology.json" 2>/dev/null
+        local claude_arg=""
+        [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
+        "$tech_script" --local-path "$repo_path" $sbom_arg $claude_arg -o "$output_path/technology.json" 2>/dev/null
     else
         # Fallback: create basic technology.json from detection
         local detection=$(detect_project_type "$repo_path")
@@ -557,11 +601,18 @@ run_vulnerability_analyzer() {
     local repo_path="$1"
     local output_path="$2"
 
-    # Use new data-only analyzer
-    local vuln_script="$UTILS_ROOT/supply-chain/vulnerability-analysis/vulnerability-analyser-data.sh"
+    # Use Claude-enabled analyzer in deep mode, otherwise data-only
+    local vuln_script=""
+    if [[ "${USE_CLAUDE:-}" == "true" ]]; then
+        vuln_script="$UTILS_ROOT/supply-chain/vulnerability-analysis/vulnerability-analyser.sh"
+    else
+        vuln_script="$UTILS_ROOT/supply-chain/vulnerability-analysis/vulnerability-analyser-data.sh"
+    fi
 
     if [[ -x "$vuln_script" ]]; then
-        "$vuln_script" --local-path "$repo_path" -o "$output_path/vulnerabilities.json" 2>/dev/null
+        local claude_arg=""
+        [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
+        "$vuln_script" --local-path "$repo_path" $claude_arg -o "$output_path/vulnerabilities.json" 2>/dev/null
     else
         cat > "$output_path/vulnerabilities.json" << EOF
 {
@@ -606,11 +657,18 @@ run_license_analyzer() {
     local repo_path="$1"
     local output_path="$2"
 
-    # Use new data-only analyzer
-    local legal_script="$UTILS_ROOT/legal-review/legal-analyser-data.sh"
+    # Use Claude-enabled analyzer in deep mode, otherwise data-only
+    local legal_script=""
+    if [[ "${USE_CLAUDE:-}" == "true" ]]; then
+        legal_script="$UTILS_ROOT/legal-review/legal-analyser.sh"
+    else
+        legal_script="$UTILS_ROOT/legal-review/legal-analyser-data.sh"
+    fi
 
     if [[ -x "$legal_script" ]]; then
-        "$legal_script" --local-path "$repo_path" -o "$output_path/licenses.json" 2>/dev/null
+        local claude_arg=""
+        [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
+        "$legal_script" --local-path "$repo_path" $claude_arg -o "$output_path/licenses.json" 2>/dev/null
     else
         cat > "$output_path/licenses.json" << EOF
 {
@@ -632,11 +690,18 @@ run_code_security_analyzer() {
     local repo_path="$1"
     local output_path="$2"
 
-    # Use new data-only analyzer
-    local security_script="$UTILS_ROOT/code-security/code-security-data.sh"
+    # Use Claude-enabled analyzer in deep mode, otherwise data-only
+    local security_script=""
+    if [[ "${USE_CLAUDE:-}" == "true" ]]; then
+        security_script="$UTILS_ROOT/code-security/code-security-analyser.sh"
+    else
+        security_script="$UTILS_ROOT/code-security/code-security-data.sh"
+    fi
 
     if [[ -x "$security_script" ]]; then
-        "$security_script" --local-path "$repo_path" -o "$output_path/security-findings.json" 2>/dev/null
+        local claude_arg=""
+        [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
+        "$security_script" --local-path "$repo_path" $claude_arg -o "$output_path/security-findings.json" 2>/dev/null
     else
         cat > "$output_path/security-findings.json" << EOF
 {
@@ -658,11 +723,18 @@ run_ownership_analyzer() {
     local repo_path="$1"
     local output_path="$2"
 
-    # Use new data-only analyzer
-    local ownership_script="$UTILS_ROOT/code-ownership/ownership-analyser-data.sh"
+    # Use Claude-enabled analyzer in deep mode, otherwise data-only
+    local ownership_script=""
+    if [[ "${USE_CLAUDE:-}" == "true" ]]; then
+        ownership_script="$UTILS_ROOT/code-ownership/ownership-analyser.sh"
+    else
+        ownership_script="$UTILS_ROOT/code-ownership/ownership-analyser-data.sh"
+    fi
 
     if [[ -x "$ownership_script" ]]; then
-        "$ownership_script" --local-path "$repo_path" -o "$output_path/ownership.json" 2>/dev/null
+        local claude_arg=""
+        [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
+        "$ownership_script" --local-path "$repo_path" $claude_arg -o "$output_path/ownership.json" 2>/dev/null
     else
         cat > "$output_path/ownership.json" << EOF
 {
@@ -683,8 +755,13 @@ run_dora_analyzer() {
     local repo_path="$1"
     local output_path="$2"
 
-    # Use new data-only analyzer
-    local dora_script="$UTILS_ROOT/dora-metrics/dora-analyser-data.sh"
+    # Use Claude-enabled analyzer in deep mode, otherwise data-only
+    local dora_script=""
+    if [[ "${USE_CLAUDE:-}" == "true" ]]; then
+        dora_script="$UTILS_ROOT/dora-metrics/dora-analyser.sh"
+    else
+        dora_script="$UTILS_ROOT/dora-metrics/dora-analyser-data.sh"
+    fi
 
     # Skip if not a git repo
     if [[ ! -d "$repo_path/.git" ]]; then
@@ -701,7 +778,9 @@ EOF
     fi
 
     if [[ -x "$dora_script" ]]; then
-        "$dora_script" --local-path "$repo_path" -o "$output_path/dora.json" 2>/dev/null
+        local claude_arg=""
+        [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
+        "$dora_script" --local-path "$repo_path" $claude_arg -o "$output_path/dora.json" 2>/dev/null
     else
         cat > "$output_path/dora.json" << EOF
 {
@@ -958,7 +1037,11 @@ print_final_summary() {
 
     echo
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${BOLD}HYDRATION COMPLETE${NC} ${DIM}(static analysis - no AI)${NC}"
+    if [[ "${USE_CLAUDE:-}" == "true" ]]; then
+        echo -e "${BOLD}HYDRATION COMPLETE${NC} ${CYAN}(Claude-assisted deep analysis)${NC}"
+    else
+        echo -e "${BOLD}HYDRATION COMPLETE${NC} ${DIM}(static analysis - no AI)${NC}"
+    fi
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
     local manifest="$output_path/manifest.json"
