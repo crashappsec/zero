@@ -18,7 +18,9 @@
 #   ./hydrate.sh --org my-company --limit 10
 #############################################################################
 
-set -e
+# Note: We don't use set -e here because we want to continue processing
+# remaining repos even if one fails
+# set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
