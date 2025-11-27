@@ -64,8 +64,11 @@ OPTIONS:
     --org <name>        Hydrate all repos in a GitHub organization
     --limit <n>         Max repos to hydrate in org mode (default: all)
     --branch <name>     Clone specific branch (default: default branch)
-    --quick             Fast analyzers only (skip code-security, dora)
-    --security-only     Security analyzers only
+    --quick             Fast static analysis (~30s)
+    --standard          Most analyzers (~2min) [default]
+    --advanced          All static analyzers + health/provenance (~5min)
+    --deep              Claude-assisted analysis (~10min)
+    --security          Security-focused analysis (~3min)
     --force             Re-hydrate even if project exists
     --clean             Remove ALL hydrated data before starting (fresh start)
     -h, --help          Show this help
@@ -412,6 +415,44 @@ clean_all_data() {
     echo
 }
 
+# Check if a mode flag is already specified
+has_mode_flag() {
+    local args=("$@")
+    for arg in "${args[@]}"; do
+        case "$arg" in
+            --quick|--standard|--advanced|--deep|--security)
+                return 0
+                ;;
+        esac
+    done
+    return 1
+}
+
+# Prompt user to select analysis mode interactively
+select_analysis_mode() {
+    echo
+    echo -e "${BOLD}Select analysis depth:${NC}"
+    echo
+    echo -e "  ${CYAN}1${NC}  Quick      ~30s   Fast static analysis (deps, tech, vulns, licenses)"
+    echo -e "  ${CYAN}2${NC}  Standard   ~2min  Most analyzers ${DIM}(default)${NC}"
+    echo -e "  ${CYAN}3${NC}  Advanced   ~5min  All static analyzers + package health, provenance"
+    echo -e "  ${CYAN}4${NC}  Deep       ~10min Claude-assisted analysis ${DIM}(requires API key)${NC}"
+    echo -e "  ${CYAN}5${NC}  Security   ~3min  Security-focused (vulns, package-health, provenance)"
+    echo
+    read -p "Choose mode [2]: " -n 1 -r mode_choice
+    echo
+    echo
+
+    case "${mode_choice:-2}" in
+        1) echo "--quick" ;;
+        2|"") echo "--standard" ;;
+        3) echo "--advanced" ;;
+        4) echo "--deep" ;;
+        5) echo "--security" ;;
+        *) echo "--standard" ;;
+    esac
+}
+
 # Hydrate all repos in an organization
 hydrate_org() {
     local org="$1"
@@ -426,6 +467,12 @@ hydrate_org() {
     echo -e "${BOLD}Organization Mode${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
+
+    # If no mode specified and running interactively, prompt for mode
+    if ! has_mode_flag "${extra_args[@]}" && [[ -t 0 ]]; then
+        local selected_mode=$(select_analysis_mode)
+        extra_args+=("$selected_mode")
+    fi
 
     # Fetch repos with stats
     echo -e "${BLUE}Fetching repository information for ${CYAN}$org${BLUE}...${NC}"
@@ -740,7 +787,7 @@ parse_args() {
                 CLEAN_MODE=true
                 shift
                 ;;
-            --branch|--depth|--quick|--security-only|--force)
+            --branch|--depth|--quick|--standard|--advanced|--deep|--security|--force)
                 PASS_THROUGH_ARGS+=("$1")
                 if [[ "$1" == "--branch" ]] || [[ "$1" == "--depth" ]]; then
                     PASS_THROUGH_ARGS+=("$2")

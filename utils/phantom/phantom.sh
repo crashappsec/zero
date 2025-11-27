@@ -449,33 +449,33 @@ show_menu() {
                 echo
                 read -p "Target: " target
                 if [[ -n "$target" ]]; then
+                    # Show hydration mode submenu (for both single repo and org mode)
+                    echo
+                    echo -e "${BOLD}Select analysis depth:${NC}"
+                    echo
+                    echo -e "  ${CYAN}1${NC}  Quick      ~30s   Fast static analysis (deps, tech, vulns, licenses)"
+                    echo -e "  ${CYAN}2${NC}  Standard   ~2min  Most analyzers ${DIM}(default)${NC}"
+                    echo -e "  ${CYAN}3${NC}  Advanced   ~5min  All static analyzers + package health, provenance"
+                    echo -e "  ${CYAN}4${NC}  Deep       ~10min Claude-assisted analysis ${DIM}(requires API key)${NC}"
+                    echo -e "  ${CYAN}5${NC}  Security   ~3min  Security-focused (vulns, package-health, provenance)"
+                    echo
+                    read -p "Choose mode [2]: " -n 1 -r mode_choice
+                    echo
+
+                    local mode_flag=""
+                    case "${mode_choice:-2}" in
+                        1) mode_flag="--quick" ;;
+                        2|"") mode_flag="--standard" ;;
+                        3) mode_flag="--advanced" ;;
+                        4) mode_flag="--deep" ;;
+                        5) mode_flag="--security" ;;
+                        *) mode_flag="--standard" ;;
+                    esac
+
                     # Check if org mode
                     if [[ "$target" == --org* ]]; then
-                        "$SCRIPT_DIR/hydrate.sh" $target || true
+                        "$SCRIPT_DIR/hydrate.sh" $target $mode_flag || true
                     else
-                        # Show hydration mode submenu
-                        echo
-                        echo -e "${BOLD}Select analysis depth:${NC}"
-                        echo
-                        echo -e "  ${CYAN}1${NC}  Quick      ~30s   Fast static analysis (deps, tech, vulns, licenses)"
-                        echo -e "  ${CYAN}2${NC}  Standard   ~2min  Most analyzers ${DIM}(default)${NC}"
-                        echo -e "  ${CYAN}3${NC}  Advanced   ~5min  All static analyzers + package health, provenance"
-                        echo -e "  ${CYAN}4${NC}  Deep       ~10min Claude-assisted analysis ${DIM}(requires API key)${NC}"
-                        echo -e "  ${CYAN}5${NC}  Security   ~3min  Security-focused (vulns, package-health, provenance)"
-                        echo
-                        read -p "Choose mode [2]: " -n 1 -r mode_choice
-                        echo
-
-                        local mode_flag=""
-                        case "${mode_choice:-2}" in
-                            1) mode_flag="--quick" ;;
-                            2|"") mode_flag="--standard" ;;
-                            3) mode_flag="--advanced" ;;
-                            4) mode_flag="--deep" ;;
-                            5) mode_flag="--security" ;;
-                            *) mode_flag="--standard" ;;
-                        esac
-
                         "$SCRIPT_DIR/bootstrap.sh" $target $mode_flag || true
                     fi
                     echo
