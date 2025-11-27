@@ -224,7 +224,7 @@ get_phase_display() {
     case "$phase" in
         "Cloning") echo "Cloning repository" ;;
         "technology") echo "Technology scan" ;;
-        "dependencies") echo "Dependencies" ;;
+        "dependencies") echo "SBOM generation" ;;
         "vulnerabilities") echo "Package vulnerabilities" ;;
         "package-health") echo "Package health" ;;
         "licenses") echo "License scan" ;;
@@ -262,8 +262,12 @@ get_phase_result() {
 
     case "$phase" in
         "Cloning")
-            # Just show "done" - size is in header, language shown separately
-            printf "\033[2mdone\033[0m"
+            # Show repo stats after cloning
+            if [[ -d "$repo_path" ]]; then
+                local size=$(du -sh "$repo_path" 2>/dev/null | cut -f1)
+                local files=$(find "$repo_path" -type f ! -path '*/.git/*' 2>/dev/null | wc -l | tr -d ' ')
+                printf "\033[2m%s, %s files\033[0m" "$size" "$files"
+            fi
             ;;
         "technology")
             if [[ -f "$analysis_path/technology.json" ]]; then
@@ -274,8 +278,8 @@ get_phase_result() {
         "dependencies")
             if [[ -f "$analysis_path/dependencies.json" ]]; then
                 local total=$(jq -r '.total_dependencies // 0' "$analysis_path/dependencies.json" 2>/dev/null)
-                local direct=$(jq -r '.direct_dependencies // 0' "$analysis_path/dependencies.json" 2>/dev/null)
-                printf "\033[2m%s total (%s direct)\033[0m" "$total" "$direct"
+                local format=$(jq -r '.sbom_format // "unknown"' "$analysis_path/dependencies.json" 2>/dev/null)
+                printf "\033[2m%s packages (%s)\033[0m" "$total" "$format"
             fi
             ;;
         "vulnerabilities")
@@ -461,10 +465,11 @@ hydrate_org() {
             # Show all available analyzer results
             local results=""
 
-            # Dependencies
+            # SBOM / Dependencies
             if [[ -f "$analysis_path/dependencies.json" ]]; then
                 local deps=$(jq -r '.total_dependencies // 0' "$analysis_path/dependencies.json" 2>/dev/null)
-                results+="  ${GREEN}✓${NC} Dependencies: $deps packages\n"
+                local format=$(jq -r '.sbom_format // "unknown"' "$analysis_path/dependencies.json" 2>/dev/null)
+                results+="  ${GREEN}✓${NC} SBOM ($format): $deps packages\n"
             fi
 
             # Package vulnerabilities
