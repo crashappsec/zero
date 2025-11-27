@@ -481,34 +481,45 @@ run_dependency_extractor() {
 
     local direct_count=0
     local total_count=0
+    local sbom_format="none"
+    local sbom_file=""
 
+    # Use syft for SBOM generation if available
+    if command -v syft &> /dev/null; then
+        sbom_file="$output_path/sbom.cdx.json"
+        sbom_format="CycloneDX"
+
+        # Generate SBOM with syft (CycloneDX format)
+        if syft scan "$repo_path" -o cyclonedx-json="$sbom_file" 2>/dev/null; then
+            # Count components from SBOM
+            total_count=$(jq '.components | length // 0' "$sbom_file" 2>/dev/null)
+            [[ -z "$total_count" ]] && total_count=0
+        fi
+    fi
+
+    # Also count direct dependencies from manifest files
     # Extract from package.json
     if [[ -f "$repo_path/package.json" ]]; then
         local pkg_deps=$(jq -r '.dependencies // {} | keys | length' "$repo_path/package.json" 2>/dev/null)
         [[ -n "$pkg_deps" ]] && direct_count=$pkg_deps
-
-        # Count from lock file if present
-        if [[ -f "$repo_path/package-lock.json" ]]; then
-            local lock_count=$(jq '.packages | length' "$repo_path/package-lock.json" 2>/dev/null)
-            [[ -n "$lock_count" ]] && total_count=$lock_count
-        elif [[ -f "$repo_path/yarn.lock" ]]; then
-            local yarn_count=$(grep -c '^"' "$repo_path/yarn.lock" 2>/dev/null)
-            [[ -n "$yarn_count" ]] && total_count=$yarn_count
-        else
-            total_count=$direct_count
-        fi
     fi
 
     # Extract from requirements.txt
     if [[ -f "$repo_path/requirements.txt" ]]; then
         local py_count=$(grep -c '^[^#]' "$repo_path/requirements.txt" 2>/dev/null)
-        [[ -n "$py_count" ]] && direct_count=$((direct_count + py_count)) && total_count=$((total_count + py_count))
+        [[ -n "$py_count" ]] && direct_count=$((direct_count + py_count))
     fi
 
     # Extract from go.mod
     if [[ -f "$repo_path/go.mod" ]]; then
-        local go_count=$(grep -c '^	' "$repo_path/go.mod" 2>/dev/null)
-        [[ -n "$go_count" ]] && direct_count=$((direct_count + go_count)) && total_count=$((total_count + go_count))
+        local go_count=$(grep -c 'require' "$repo_path/go.mod" 2>/dev/null)
+        [[ -n "$go_count" ]] && direct_count=$((direct_count + go_count))
+    fi
+
+    # If no syft, use direct count as total
+    if [[ "$total_count" -eq 0 ]]; then
+        total_count=$direct_count
+        sbom_format="manifest-only"
     fi
 
     # Ensure we have valid numbers
@@ -517,12 +528,15 @@ run_dependency_extractor() {
 
     cat > "$output_path/dependencies.json" << EOF
 {
-  "analyzer": "dependency-extractor",
+  "analyzer": "sbom-generator",
   "version": "1.0.0",
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "sbom_format": "$sbom_format",
+  "sbom_file": "$(basename "$sbom_file" 2>/dev/null)",
   "direct_dependencies": $direct_count,
   "total_dependencies": $total_count,
   "summary": {
+    "format": "$sbom_format",
     "direct": $direct_count,
     "total": $total_count
   }
@@ -764,9 +778,9 @@ run_all_analyzers() {
                         fi
                         ;;
                     dependencies)
-                        local direct=$(jq -r '.direct_dependencies // 0' "$output_file" 2>/dev/null)
                         local total=$(jq -r '.total_dependencies // 0' "$output_file" 2>/dev/null)
-                        echo "$direct direct, $total total"
+                        local format=$(jq -r '.sbom_format // "unknown"' "$output_file" 2>/dev/null)
+                        echo "$total packages ($format)"
                         ;;
                     technology)
                         local tech_count=$(jq -r '.summary.total // (.technologies | length) // 0' "$output_file" 2>/dev/null)
@@ -945,11 +959,11 @@ print_final_summary() {
             fi
         fi
 
-        # Dependencies
+        # SBOM / Dependencies
         if [[ -f "$output_path/dependencies.json" ]]; then
-            local direct=$(jq -r '.direct_dependencies // 0' "$output_path/dependencies.json" 2>/dev/null)
             local total=$(jq -r '.total_dependencies // 0' "$output_path/dependencies.json" 2>/dev/null)
-            printf "  %-18s %s\n" "Dependencies:" "$direct direct, $total total"
+            local format=$(jq -r '.sbom_format // "unknown"' "$output_path/dependencies.json" 2>/dev/null)
+            printf "  %-18s %s packages (%s)\n" "SBOM:" "$total" "$format"
         fi
 
         # Licenses
