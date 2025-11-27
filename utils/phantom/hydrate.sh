@@ -223,6 +223,32 @@ get_glow() {
     esac
 }
 
+# Get list of analyzers to run based on mode
+# Must match bootstrap.sh's get_analyzers_for_mode()
+get_analyzers_for_mode() {
+    local mode="$1"
+    case "$mode" in
+        quick)
+            echo "dependencies technology vulnerabilities licenses"
+            ;;
+        standard|full)
+            echo "dependencies technology vulnerabilities licenses security-findings ownership dora"
+            ;;
+        advanced)
+            echo "dependencies technology vulnerabilities package-health licenses security-findings ownership dora provenance"
+            ;;
+        deep)
+            echo "dependencies technology vulnerabilities package-health licenses security-findings ownership dora provenance"
+            ;;
+        security)
+            echo "dependencies vulnerabilities package-health security-findings provenance"
+            ;;
+        *)
+            echo "dependencies technology vulnerabilities licenses security-findings ownership dora"
+            ;;
+    esac
+}
+
 # Get display name for a phase
 get_phase_display() {
     local phase="$1"
@@ -430,6 +456,21 @@ has_mode_flag() {
     return 1
 }
 
+# Extract mode from args array
+get_mode_from_args() {
+    local args=("$@")
+    for arg in "${args[@]}"; do
+        case "$arg" in
+            --quick) echo "quick"; return ;;
+            --standard) echo "standard"; return ;;
+            --advanced) echo "advanced"; return ;;
+            --deep) echo "deep"; return ;;
+            --security) echo "security"; return ;;
+        esac
+    done
+    echo "standard"  # Default
+}
+
 # Prompt user to select analysis mode interactively
 select_analysis_mode() {
     echo
@@ -494,12 +535,29 @@ hydrate_org() {
     local languages=$(echo "$all_languages" | jq -r '.[0:5] | map("\(.lang): \(.count)") | join(", ")')
     [[ $lang_count -gt 5 ]] && languages="$languages (+$((lang_count - 5)) more)"
 
+    # Determine current mode for progress display and summary
+    local current_mode=$(get_mode_from_args "${extra_args[@]}")
+    local mode_analyzers=$(get_analyzers_for_mode "$current_mode")
+    local analyzer_count=$(echo "$mode_analyzers" | wc -w | tr -d ' ')
+
+    # Get mode display name
+    local mode_display=""
+    case "$current_mode" in
+        quick)    mode_display="Quick" ;;
+        standard) mode_display="Standard" ;;
+        advanced) mode_display="Advanced" ;;
+        deep)     mode_display="Deep" ;;
+        security) mode_display="Security" ;;
+        *)        mode_display="Standard" ;;
+    esac
+
     # Show org summary
     echo
     echo -e "${BOLD}Organization Summary${NC}"
     echo -e "  Repositories:  ${CYAN}$repo_count${NC}"
     echo -e "  Total Size:    ${CYAN}$total_size${NC}"
     echo -e "  Languages:     ${CYAN}$languages${NC}"
+    echo -e "  Analysis Mode: ${CYAN}$mode_display${NC} ${DIM}($analyzer_count analyzers)${NC}"
     [[ $limit -gt 0 ]] && echo -e "  Limit:         ${CYAN}$limit repos${NC}"
     echo
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -636,9 +694,9 @@ hydrate_org() {
                     current_phase="Cloning"
                 else
                     # Check which output files exist to determine current analyzer
-                    local analyzers="technology dependencies vulnerabilities package-health licenses security-findings ownership dora"
+                    # Use mode-specific analyzer list instead of hardcoded list
                     current_phase=""
-                    for analyzer in $analyzers; do
+                    for analyzer in $mode_analyzers; do
                         local output_file="$analysis_path/${analyzer}.json"
                         if [[ ! -f "$output_file" ]]; then
                             # This analyzer hasn't completed yet - might be running
