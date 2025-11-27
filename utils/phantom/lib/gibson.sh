@@ -45,7 +45,7 @@ has_tte() {
 }
 
 # Available effects for random selection
-PHANTOM_EFFECTS=(burn decrypt matrix slide)
+PHANTOM_EFFECTS=(burn decrypt slide)
 
 # Print animated banner using terminal text effects
 # Falls back to static banner if tte not available
@@ -74,12 +74,6 @@ print_phantom_banner_animated() {
                     --ciphertext-colors 00ff00 00cc00 009900 \
                     --final-gradient-stops 9933ff cc66ff \
                     --final-gradient-steps 8 2>/dev/null
-                ;;
-            matrix)
-                echo "$PHANTOM_BANNER" | python3 -m terminaltexteffects matrix \
-                    --highlight-color 00ff00 \
-                    --rain-color-gradient 00ff00 006600 \
-                    --final-gradient-stops 9933ff cc66ff 2>/dev/null
                 ;;
             slide)
                 echo "$PHANTOM_BANNER" | python3 -m terminaltexteffects slide \
