@@ -93,6 +93,24 @@ setup_install_tools() {
         fi
     done
 
+    echo -e "\n${BOLD}Checking optional tools...${NC}"
+
+    # Python3 check
+    if command -v python3 &> /dev/null; then
+        local py_ver=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+')
+        echo -e "  ${GREEN}✓${NC} python3 ($py_ver)"
+    else
+        echo -e "  ${YELLOW}○${NC} python3 (optional, for visual effects)"
+    fi
+
+    # Terminal text effects (for animated banner)
+    if python3 -c "import terminaltexteffects" 2>/dev/null; then
+        echo -e "  ${GREEN}✓${NC} terminaltexteffects (visual effects)"
+    else
+        echo -e "  ${YELLOW}○${NC} terminaltexteffects (optional visual effects)"
+        echo -e "     Install: ${CYAN}pip3 install terminaltexteffects${NC}"
+    fi
+
     if [[ ${#tools_to_install[@]} -gt 0 ]] && command -v brew &> /dev/null; then
         echo
         echo "Missing tools: ${tools_to_install[*]}"
@@ -197,6 +215,24 @@ run_check() {
             ((warnings++))
         fi
     done
+    echo
+
+    # Optional Tools
+    echo -e "${BOLD}Optional Tools${NC}"
+    printf "  %-16s " "python3"
+    if command -v python3 &> /dev/null; then
+        local py_ver=$(python3 --version 2>&1 | grep -oE '[0-9]+\.[0-9]+')
+        echo -e "${GREEN}✓${NC} $py_ver"
+    else
+        echo -e "${DIM}○${NC} not installed"
+    fi
+
+    printf "  %-16s " "tte (effects)"
+    if python3 -c "import terminaltexteffects" 2>/dev/null; then
+        echo -e "${GREEN}✓${NC} installed"
+    else
+        echo -e "${DIM}○${NC} not installed ${DIM}(pip3 install terminaltexteffects)${NC}"
+    fi
     echo
 
     # API Keys
@@ -369,8 +405,16 @@ run_clean() {
 #############################################################################
 
 show_menu() {
+    local first_run=true
+
     while true; do
-        print_phantom_banner
+        # Use animated banner on first display, static after
+        if [[ "$first_run" == "true" ]]; then
+            print_phantom_banner_animated burn
+            first_run=false
+        else
+            print_phantom_banner
+        fi
         echo -e "${BOLD}What would you like to do?${NC}"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo

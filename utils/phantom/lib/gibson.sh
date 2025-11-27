@@ -30,6 +30,70 @@ NC='\033[0m'
 # PHANTOM Banner
 #############################################################################
 
+# Raw banner text (no colors, for piping to effects)
+PHANTOM_BANNER='  ██████╗ ██╗  ██╗ █████╗ ███╗   ██╗████████╗ ██████╗ ███╗   ███╗
+  ██╔══██╗██║  ██║██╔══██╗████╗  ██║╚══██╔══╝██╔═══██╗████╗ ████║
+  ██████╔╝███████║███████║██╔██╗ ██║   ██║   ██║   ██║██╔████╔██║
+  ██╔═══╝ ██╔══██║██╔══██║██║╚██╗██║   ██║   ██║   ██║██║╚██╔╝██║
+  ██║     ██║  ██║██║  ██║██║ ╚████║   ██║   ╚██████╔╝██║ ╚═╝ ██║
+  ╚═╝     ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝   ╚═╝    ╚═════╝ ╚═╝     ╚═╝
+  crashoverride.com'
+
+# Check if terminal text effects is available
+has_tte() {
+    python3 -c "import terminaltexteffects" 2>/dev/null
+}
+
+# Print animated banner using terminal text effects (burn effect)
+# Falls back to static banner if tte not available
+print_phantom_banner_animated() {
+    local effect="${1:-burn}"
+
+    # Check if tte is available and terminal is interactive
+    if has_tte && [[ -t 1 ]]; then
+        case "$effect" in
+            burn)
+                echo "$PHANTOM_BANNER" | python3 -m terminaltexteffects burn \
+                    --starting-color 444444 \
+                    --burn-colors ff6600 ff3300 cc0000 660000 \
+                    --final-gradient-stops 9933ff cc66ff \
+                    --final-gradient-steps 8 \
+                    --final-gradient-direction vertical 2>/dev/null
+                ;;
+            decrypt)
+                echo "$PHANTOM_BANNER" | python3 -m terminaltexteffects decrypt \
+                    --typing-speed 2 \
+                    --ciphertext-colors 00ff00 00cc00 009900 \
+                    --final-gradient-stops 9933ff cc66ff \
+                    --final-gradient-steps 8 2>/dev/null
+                ;;
+            matrix)
+                echo "$PHANTOM_BANNER" | python3 -m terminaltexteffects matrix \
+                    --highlight-color 00ff00 \
+                    --rain-color-gradient 00ff00 006600 \
+                    --final-gradient-stops 9933ff cc66ff 2>/dev/null
+                ;;
+            slide)
+                echo "$PHANTOM_BANNER" | python3 -m terminaltexteffects slide \
+                    --movement-speed 0.5 \
+                    --grouping row \
+                    --final-gradient-stops 9933ff cc66ff \
+                    --final-gradient-direction vertical 2>/dev/null
+                ;;
+            *)
+                # Unknown effect, use static
+                print_phantom_banner
+                return
+                ;;
+        esac
+        echo
+    else
+        # Fallback to static banner
+        print_phantom_banner
+    fi
+}
+
+# Print static banner (original behavior)
 print_phantom_banner() {
     echo -e "${MAGENTA}"
     cat << 'BANNER'
