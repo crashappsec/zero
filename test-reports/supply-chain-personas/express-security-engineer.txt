@@ -1,0 +1,1970 @@
+
+[0;36m=========================================[0m
+[0;36m  Supply Chain Scanner[0m
+[0;36m=========================================[0m
+
+[0;34mChecking Claude AI configuration...[0m
+[0;32m✓ ANTHROPIC_API_KEY is set (108 chars)[0m
+[0;32m  Claude AI enhanced analysis is available[0m
+
+Analysis modules: vulnerability provenance package-health abandoned typosquat unused debt-score
+Targets: 1
+
+
+[0;36m=========================================[0m
+[0;36mAnalyzing: expressjs/express[0m
+[0;32mClaude AI: ENABLED (will run after all scans)[0m
+[1;33m⚠ Provenance analysis: queries npm registry per-package (may be slow)[0m
+[0;36m💡 Tip: use --parallel for faster package-health analysis (batch API)[0m
+[0;36m=========================================[0m
+
+[0;34mCloning repository for shared analysis...[0m
+[0;32m✓ Repository cloned: 245 files, 1.6M[0m
+[0;34mGenerating SBOM for shared analysis...[0m
+Detected package manager: npm
+Warning: No lock file found for npm
+Recommendation: Generate lock file for accurate dependency resolution
+Generating SBOM with: syft scan --source-name tmp.WHoD42vwgl --source-version 77bcd52 --exclude **/test/** --exclude **/tests/** --exclude **/node_modules -o cyclonedx-json=/var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.Ed1rlUMHqK dir:/var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.WHoD42vwgl
+SBOM generated: /var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.Ed1rlUMHqK
+[0;32m✓ SBOM generated: 21 components (CycloneDX format)[0m
+[0;36m  Package breakdown:[0m
+[0;36m    - library/pkg: 17[0m
+[0;36m    - file/unknown: 4[0m
+
+[0;34m▶ Running vulnerability analysis...[0m
+
+
+=========================================
+  Vulnerability Analyser (osv-scanner)
+=========================================
+
+[0;34mFetching CISA KEV catalog...[0m
+[0;32m✓ KEV catalog downloaded[0m
+[0;32mTarget type: Local directory (provided)[0m
+[0;34mScanning repository: /var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.WHoD42vwgl[0m
+
+
+[0;34mAnalyzing and prioritizing vulnerabilities...[0m
+
+[0;32mNo vulnerabilities found[0m
+
+[0;32m=========================================[0m
+[0;32m  Analysis Complete[0m
+[0;32m=========================================[0m
+
+[0;34m▶ Running provenance analysis...[0m
+
+
+=========================================
+  Provenance Analyser (SLSA)
+=========================================
+
+[0;32mTarget: Local directory (provided)[0m
+
+[0;34mAnalyzing repository for provenance...[0m
+
+[0;32mUsing shared SBOM file[0m
+[0;34mAnalyzing SBOM for provenance...[0m
+
+Package Analysis:
+===============================================
+
+Package: actions/checkout@v5.0.0
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: actions/checkout@v5.0.0
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: actions/checkout@v5.0.0
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: actions/checkout@v5.0.0
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: actions/download-artifact@v6.0.0
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: actions/download-artifact@v6.0.0
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: actions/setup-node@v6.0.0
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: actions/setup-node@v6.0.0
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: actions/upload-artifact@v5.0.0
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: actions/upload-artifact@v5.0.0
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: actions/upload-artifact@v5.0.0
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: coverallsapp/github-action@v2.3.6
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: coverallsapp/github-action@v2.3.6
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: github/codeql-action/analyze@v3.29.5
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: github/codeql-action/init@v3.29.5
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: github/codeql-action/upload-sarif@v3.29.5
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: ossf/scorecard-action@v2.4.3
+  Provenance:    UNSUPPORTED
+  SLSA Level:    0
+  Details:       Ecosystem not yet supported
+
+Package: /private/var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.WHoD42vwgl/.github/workflows/ci.yml@unknown
+  Provenance:    UNKNOWN (no purl)
+  SLSA Level:    0
+
+Package: /private/var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.WHoD42vwgl/.github/workflows/codeql.yml@unknown
+  Provenance:    UNKNOWN (no purl)
+  SLSA Level:    0
+
+Package: /private/var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.WHoD42vwgl/.github/workflows/legacy.yml@unknown
+  Provenance:    UNKNOWN (no purl)
+  SLSA Level:    0
+
+Package: /private/var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.WHoD42vwgl/.github/workflows/scorecard.yml@unknown
+  Provenance:    UNKNOWN (no purl)
+  SLSA Level:    0
+
+===============================================
+Summary:
+  Total packages:        21
+  With provenance:       0 (0%)
+  Verified:              0 (0%)
+
+SLSA Level Distribution:
+  Level 0 (No guarantees):         21
+  Level 1 (Documentation):         0
+  Level 2 (Signed provenance):     0
+  Level 3 (Hardened builds):       0
+  Level 4 (Highest assurance):     0
+
+
+[0;32m=========================================[0m
+[0;32m  Analysis Complete[0m
+[0;32m=========================================[0m
+
+[0;34m▶ Running package-health analysis...[0m
+
+
+=========================================
+  Package Health Analysis
+=========================================
+
+[0;36m⚡ Batch API mode available with --parallel flag[0m
+[0;36m   Processes packages 6-10x faster using deps.dev batch API[0m
+[0;36m   Recommended for repositories with many dependencies[0m
+
+[0;34mAnalyzing package 1 of 21: actions/checkout@v5.0.0[0m
+[0;34mAnalyzing package 2 of 21: actions/checkout@v5.0.0[0m
+[0;34mAnalyzing package 3 of 21: actions/checkout@v5.0.0[0m
+[0;34mAnalyzing package 4 of 21: actions/checkout@v5.0.0[0m
+[0;34mAnalyzing package 5 of 21: actions/download-artifact@v6.0.0[0m
+[0;34mAnalyzing package 6 of 21: actions/download-artifact@v6.0.0[0m
+[0;34mAnalyzing package 7 of 21: actions/setup-node@v6.0.0[0m
+[0;34mAnalyzing package 8 of 21: actions/setup-node@v6.0.0[0m
+[0;34mAnalyzing package 9 of 21: actions/upload-artifact@v5.0.0[0m
+[0;34mAnalyzing package 10 of 21: actions/upload-artifact@v5.0.0[0m
+[0;34mAnalyzing package 11 of 21: actions/upload-artifact@v5.0.0[0m
+[0;34mAnalyzing package 12 of 21: coverallsapp/github-action@v2.3.6[0m
+[0;34mAnalyzing package 13 of 21: coverallsapp/github-action@v2.3.6[0m
+[0;34mAnalyzing package 14 of 21: github/codeql-action/analyze@v3.29.5[0m
+[0;34mAnalyzing package 15 of 21: github/codeql-action/init@v3.29.5[0m
+[0;34mAnalyzing package 16 of 21: github/codeql-action/upload-sarif@v3.29.5[0m
+[0;34mAnalyzing package 17 of 21: ossf/scorecard-action@v2.4.3[0m
+# Package Health Analysis Report
+
+**Generated:** 2025-11-26T12:20:26Z
+**Repositories Scanned:** 1
+
+## Summary
+
+- **Total Packages:** 0
+- **Deprecated Packages:** 0
+- **Low Health Packages:** 0
+- **Version Inconsistencies:** 0
+
+## Packages by Health Grade
+
+| Grade      | Count |
+|------------|-------|
+| Critical   | 0 |
+| Poor       | 0 |
+| Fair       | 0 |
+| Good       | 0 |
+| Excellent  | 0 |
+
+## Deprecated Packages
+
+[0;34m▶ Running abandoned analysis...[0m
+
+# Abandoned Package Detection
+
+{
+  "summary": {
+    "total_packages": 28,
+    "healthy": 12,
+    "stale": 4,
+    "abandoned": 12,
+    "deprecated": 0,
+    "archived": 0,
+    "risk_breakdown": {
+      "critical": 12,
+      "high": 4,
+      "medium": 6,
+      "low": 6
+    }
+  },
+  "packages": [
+    {
+      "package": "accepts",
+      "ecosystem": "npm",
+      "status": "stale",
+      "risk_level": "high",
+      "risk_factors": [
+        "last_update_452_days_ago"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 1 year",
+        "Monitor for security issues and plan migration"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2024-08-31T15:50:05Z"
+    },
+    {
+      "package": "body-parser",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "low",
+      "risk_factors": [],
+      "recommendations": [],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2025-11-24T18:22:06Z"
+    },
+    {
+      "package": "content-disposition",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "low",
+      "risk_factors": [],
+      "recommendations": [],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2025-11-18T14:59:36Z"
+    },
+    {
+      "package": "content-type",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_1032_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2023-01-29T19:25:59Z"
+    },
+    {
+      "package": "cookie",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "low",
+      "risk_factors": [],
+      "recommendations": [],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2025-11-25T22:52:36Z"
+    },
+    {
+      "package": "cookie-signature",
+      "ecosystem": "npm",
+      "status": "stale",
+      "risk_level": "high",
+      "risk_factors": [
+        "last_update_393_days_ago"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 1 year",
+        "Monitor for security issues and plan migration"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2024-10-29T19:39:47Z"
+    },
+    {
+      "package": "debug",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "low",
+      "risk_factors": [],
+      "recommendations": [],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2025-09-13T17:25:19Z"
+    },
+    {
+      "package": "depd",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_2588_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2018-10-26T17:52:55Z"
+    },
+    {
+      "package": "encodeurl",
+      "ecosystem": "npm",
+      "status": "stale",
+      "risk_level": "high",
+      "risk_factors": [
+        "last_update_607_days_ago"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 1 year",
+        "Monitor for security issues and plan migration"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2024-03-29T00:03:42Z"
+    },
+    {
+      "package": "escape-html",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_3739_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2015-09-01T04:47:22Z"
+    },
+    {
+      "package": "etag",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_2996_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2017-09-13T02:43:44Z"
+    },
+    {
+      "package": "finalhandler",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "medium",
+      "risk_factors": [
+        "last_update_266_days_ago"
+      ],
+      "recommendations": [
+        "Consider monitoring package health more closely"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2025-03-05T14:49:40Z"
+    },
+    {
+      "package": "fresh",
+      "ecosystem": "npm",
+      "status": "stale",
+      "risk_level": "high",
+      "risk_factors": [
+        "last_update_448_days_ago"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 1 year",
+        "Monitor for security issues and plan migration"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2024-09-04T23:24:48Z"
+    },
+    {
+      "package": "http-errors",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "medium",
+      "risk_factors": [
+        "unknown_last_update"
+      ],
+      "recommendations": [],
+      "metrics": {
+        "error": "package_not_found"
+      },
+      "last_update": ""
+    },
+    {
+      "package": "merge-descriptors",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_741_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2023-11-16T18:49:20Z"
+    },
+    {
+      "package": "mime-types",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "low",
+      "risk_factors": [],
+      "recommendations": [],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2025-11-20T11:12:29Z"
+    },
+    {
+      "package": "on-finished",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_1373_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2022-02-22T16:10:48Z"
+    },
+    {
+      "package": "once",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_3368_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2016-09-06T21:11:09Z"
+    },
+    {
+      "package": "parseurl",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_2416_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2019-04-16T04:16:26Z"
+    },
+    {
+      "package": "proxy-addr",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_1639_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2021-06-01T00:57:28Z"
+    },
+    {
+      "package": "qs",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_1415_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2022-01-11T05:59:51Z"
+    },
+    {
+      "package": "range-parser",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_2391_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2019-05-11T00:27:37Z"
+    },
+    {
+      "package": "router",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "medium",
+      "risk_factors": [
+        "last_update_244_days_ago"
+      ],
+      "recommendations": [
+        "Consider monitoring package health more closely"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2025-03-27T00:38:18Z"
+    },
+    {
+      "package": "send",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "medium",
+      "risk_factors": [
+        "last_update_244_days_ago"
+      ],
+      "recommendations": [
+        "Consider monitoring package health more closely"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2025-03-27T01:39:13Z"
+    },
+    {
+      "package": "serve-static",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "medium",
+      "risk_factors": [
+        "last_update_243_days_ago"
+      ],
+      "recommendations": [
+        "Consider monitoring package health more closely"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2025-03-28T00:38:59Z"
+    },
+    {
+      "package": "statuses",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "low",
+      "risk_factors": [],
+      "recommendations": [],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2025-06-06T19:56:01Z"
+    },
+    {
+      "package": "type-is",
+      "ecosystem": "npm",
+      "status": "healthy",
+      "risk_level": "medium",
+      "risk_factors": [
+        "last_update_244_days_ago"
+      ],
+      "recommendations": [
+        "Consider monitoring package health more closely"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2025-03-27T01:20:01Z"
+    },
+    {
+      "package": "vary",
+      "ecosystem": "npm",
+      "status": "abandoned",
+      "risk_level": "critical",
+      "risk_factors": [
+        "no_updates_2985_days"
+      ],
+      "recommendations": [
+        "Package has not been updated in over 2 years",
+        "Consider migrating to an actively maintained alternative"
+      ],
+      "metrics": {
+        "openssf_score": null,
+        "scorecard_date": "null",
+        "maintained_score": null,
+        "code_review_score": null,
+        "branch_protection_score": null,
+        "dependent_count": 0
+      },
+      "last_update": "2017-09-24T01:47:11Z"
+    }
+  ]
+}
+
+[0;34m▶ Running typosquat analysis...[0m
+
+# Typosquatting Risk Detection
+
+{
+  "summary": {
+    "total_packages": 28,
+    "suspicious_packages": 1,
+    "safe_packages": 27,
+    "risk_breakdown": {
+      "critical": 1,
+      "high": 0,
+      "medium": 0,
+      "none": 27
+    }
+  },
+  "high_risk_packages": [
+    {
+      "package": "qs",
+      "ecosystem": "npm",
+      "suspicious": true,
+      "risk_level": "critical",
+      "risk_factors": [
+        "very_similar_to_popular_package",
+        "low_popularity_0_dependents"
+      ],
+      "similar_packages": [
+        {
+          "similar_to": "ws",
+          "distance": 1
+        },
+        {
+          "similar_to": "ky",
+          "distance": 2
+        },
+        {
+          "similar_to": "pg",
+          "distance": 2
+        },
+        {
+          "similar_to": "ejs",
+          "distance": 2
+        },
+        {
+          "similar_to": "nx",
+          "distance": 2
+        }
+      ],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "5409",
+      "dependent_count": 0,
+      "recommendations": [
+        "Package name is very similar to a popular package - verify source before use",
+        "Low adoption combined with suspicious name increases risk"
+      ]
+    }
+  ],
+  "all_packages": [
+    {
+      "package": "accepts",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4351",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "body-parser",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "reason": "is_popular_package",
+      "risk_level": "none"
+    },
+    {
+      "package": "content-disposition",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4086",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "content-type",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4432",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "cookie",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4929",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "cookie-signature",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4789",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "debug",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "reason": "is_popular_package",
+      "risk_level": "none"
+    },
+    {
+      "package": "depd",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4182",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "encodeurl",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "3457",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "escape-html",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4845",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "etag",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4210",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "finalhandler",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4191",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "fresh",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4916",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "http-errors",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "unknown",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "merge-descriptors",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4410",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "mime-types",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4225",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "on-finished",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4120",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "once",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4852",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "parseurl",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4281",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "proxy-addr",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4223",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "qs",
+      "ecosystem": "npm",
+      "suspicious": true,
+      "risk_level": "critical",
+      "risk_factors": [
+        "very_similar_to_popular_package",
+        "low_popularity_0_dependents"
+      ],
+      "similar_packages": [
+        {
+          "similar_to": "ws",
+          "distance": 1
+        },
+        {
+          "similar_to": "ky",
+          "distance": 2
+        },
+        {
+          "similar_to": "pg",
+          "distance": 2
+        },
+        {
+          "similar_to": "ejs",
+          "distance": 2
+        },
+        {
+          "similar_to": "nx",
+          "distance": 2
+        }
+      ],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "5409",
+      "dependent_count": 0,
+      "recommendations": [
+        "Package name is very similar to a popular package - verify source before use",
+        "Low adoption combined with suspicious name increases risk"
+      ]
+    },
+    {
+      "package": "range-parser",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4915",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "router",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "5270",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "send",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4893",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "serve-static",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4283",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "statuses",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4276",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "type-is",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4351",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    },
+    {
+      "package": "vary",
+      "ecosystem": "npm",
+      "suspicious": false,
+      "risk_level": "none",
+      "risk_factors": [
+        ""
+      ],
+      "similar_packages": [],
+      "scope_issues": [],
+      "pattern_matches": [],
+      "package_age_days": "4192",
+      "dependent_count": 0,
+      "recommendations": [
+        ""
+      ]
+    }
+  ]
+}
+
+[0;34m▶ Running unused analysis...[0m
+
+# Unused Dependency Detection
+
+{
+  "unused_dependencies": [
+    ""
+  ],
+  "unused_devDependencies": [
+    ""
+  ],
+  "tool": "manual_analysis",
+  "note": "Manual analysis may have false positives for dynamically loaded modules"
+}
+
+[0;34m▶ Running debt-score analysis...[0m
+
+# Technical Debt Score
+
+{
+  "project_dir": "/var/folders/hg/85g2rhmd1yx_hf2knzynjplm0000gn/T/tmp.WHoD42vwgl",
+  "current_state": {
+    "total_packages": 28,
+    "average_debt_score": 38
+  },
+  "roadmap": {
+    "phase1_immediate": {
+      "description": "Critical debt - address immediately",
+      "package_count": 0,
+      "packages": []
+    },
+    "phase2_short_term": {
+      "description": "High debt - address within next sprint",
+      "package_count": 12,
+      "packages": [
+        {
+          "package": "content-type",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "depd",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "escape-html",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "etag",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "merge-descriptors",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "on-finished",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "once",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "parseurl",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "proxy-addr",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "qs",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "range-parser",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "vary",
+          "ecosystem": "npm",
+          "debt_score": 68,
+          "debt_level": "high",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "abandoned",
+              "score": 90,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Plan migration to alternative",
+            "Monitor for issues and plan future migration"
+          ]
+        }
+      ]
+    },
+    "phase3_medium_term": {
+      "description": "Medium debt - plan for future sprints",
+      "package_count": 4,
+      "packages": [
+        {
+          "package": "accepts",
+          "ecosystem": "npm",
+          "debt_score": 36,
+          "debt_level": "medium",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "stale",
+              "score": 40,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "cookie-signature",
+          "ecosystem": "npm",
+          "debt_score": 36,
+          "debt_level": "medium",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "stale",
+              "score": 40,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "encodeurl",
+          "ecosystem": "npm",
+          "debt_score": 36,
+          "debt_level": "medium",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "stale",
+              "score": 40,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Monitor for issues and plan future migration"
+          ]
+        },
+        {
+          "package": "fresh",
+          "ecosystem": "npm",
+          "debt_score": 36,
+          "debt_level": "medium",
+          "factors": [
+            {
+              "factor": "abandonment",
+              "status": "stale",
+              "score": 40,
+              "weight": 35
+            },
+            {
+              "factor": "maintenance",
+              "openssf_score": "null",
+              "score": 30,
+              "weight": 20
+            }
+          ],
+          "recommendations": [
+            "Monitor for issues and plan future migration"
+          ]
+        }
+      ]
+    }
+  },
+  "target_state": {
+    "target_debt_score": 20,
+    "packages_to_address": 16
+  }
+}
+
+[0;32m=========================================[0m
+[0;32m  🤖 Claude AI Unified Analysis[0m
+[0;32m  Analyzing ALL scan results together[0m
+[0;32m=========================================[0m
+
+[0;34mAnalyzing with Claude AI...[0m
+[0;36mLoading persona context: Security Engineer[0m
+# Supply Chain Security Analysis
+
+## Executive Summary
+- **Total Vulnerabilities:** 0 (Critical: 0, High: 0, Medium: 0, Low: 0)
+- **CISA KEV Matches:** 0 
+- **Estimated Remediation Effort:** HIGH (due to supply chain risks)
+
+**⚠️ CRITICAL FINDING: While no CVEs were detected, this project has severe supply chain health issues with 12 abandoned packages and 1 potential typosquatting risk.**
+
+## CISA KEV Findings (Priority 0 - Immediate Action)
+*No CISA KEV vulnerabilities detected*
+
+## Critical Vulnerabilities (Priority 1 - 24-72 hours)
+*No critical CVEs detected*
+
+## High Vulnerabilities (Priority 2 - 1 week)
+*No high severity CVEs detected*
+
+## Supply Chain Risk Assessment
+
+### **Provenance Issues**
+- **SLSA Level:** 0 (No provenance guarantees)
+- **Total packages analyzed:** 21
+- **With verified provenance:** 0 (0%)
+- **Risk:** All GitHub Actions and workflows lack provenance verification
+
+### **Abandoned Packages (CRITICAL RISK)**
+**12 packages abandoned (no updates >2 years):**
+- `escape-html` - 3,739 days since last update (2015)
+- `once` - 3,368 days since last update (2016)  
+- `vary` - 2,985 days since last update (2017)
+- `etag` - 2,996 days since last update (2017)
+- `depd` - 2,588 days since last update (2018)
+- `parseurl` - 2,416 days since last update (2019)
+- `range-parser` - 2,391 days since last update (2019)
+- `proxy-addr` - 1,639 days since last update (2021)
+- `qs` - 1,415 days since last update (2022)
+- `on-finished` - 1,373 days since last update (2022)
+- `content-type` - 1,032 days since last update (2023)
+- `merge-descriptors` - 741 days since last update (2023)
+
+### **Typosquatting Risk**
+- **Package:** `qs` flagged as suspicious (similar to popular packages `ws`, `ky`, `pg`)
+- **Risk Level:** Critical
+- **Concern:** Low adoption (0 dependents) with name similarity to popular packages
+
+### **Stale Packages (4)**
+- `accepts` - 452 days since update
+- `cookie-signature` - 393 days since update  
+- `encodeurl` - 607 days since update
+- `fresh` - 448 days since update
+
+## Remediation Roadmap
+
+### **Immediate (0-24 hours)**
+```bash
+# Verify package integrity
+npm audit --audit-level=moderate
+npm ls --depth=0
+
+# Check for known security advisories
+npm audit --json > security_audit.json
+```
+
+**Actions:**
+- [ ] **URGENT**: Verify `qs` package source and consider replacement
+- [ ] Document risk acceptance for abandoned packages at executive level
+- [ ] Implement enhanced monitoring for abandoned dependencies
+
+### **Short-term (1-7 days)**
+- [ ] **Priority**: Replace or fork critical abandoned packages:
+  - `escape-html` → `he` or `entities` 
+  - `qs` → `query-string` or `URLSearchParams`
+  - `once` → Native `AbortController` patterns
+  - `vary` → Custom implementation (simple utility)
+- [ ] Implement dependency pinning to prevent supply chain attacks
+- [ ] Set up automated abandoned package detection
+
+### **Long-term (1-30 days)**
+- [ ] **Architecture review**: Reduce dependency footprint
+- [ ] Implement SLSA provenance verification in CI/CD
+- [ ] Establish dependency health monitoring dashboard
+- [ ] Create incident response plan for abandoned package vulnerabilities
+
+### **Compensating Controls (Immediate)**
+- Implement Subresource Integrity (SRI) for all external dependencies
+- Enable npm audit in CI/CD pipeline with failure on high/critical
+- Implement dependency diff reviews for all updates
+- Monitor security advisories for all 28 packages
+
+## Risk Metrics Summary
+
+| Metric | Current | Target | Status |
+|--------|---------|---------|---------|
+| Abandoned Packages | 12 | 0 | 🔴 Critical |
+| Stale Packages | 4 | <2 | 🟡 Needs Work |
+| SLSA Level 1+ | 0% | 80% | 🔴 Critical |
+| Average Package Age | >4 years | <2 years | 🔴 Critical |
+
+## JSON Export
+```json
+{
+  "scan_date": "2025-11-26",
+  "summary": {
+    "total_cves": 0,
+    "critical": 0,
+    "high": 0,
+    "kev_matches": 0,
+    "abandoned_packages": 12,
+    "typosquat_risk": 1,
+    "debt_score": 38
+  },
+  "findings": {
+    "abandoned_critical": [
+      {"package": "escape-html", "days_stale": 3739},
+      {"package": "once", "days_stale": 3368},
+      {"package": "vary", "days_stale": 2985}
+    ],
+    "typosquat_risk": [
+      {"package": "qs", "similar_to": ["ws", "ky", "pg"]}
+    ]
+  },
+  "recommendations": {
+    "immediate": "Verify qs package source, document risk acceptance",
+    "priority": "Replace abandoned packages with maintained alternatives"
+  }
+}
+```
+
+## Security Advisory
+**This Express.js project has significant supply chain risks despite having no known CVEs. The 12 abandoned packages represent a severe attack surface as they will not receive security patches. The `qs` package requires immediate verification due to typosquatting concerns. Consider this a supply chain security incident requiring immediate attention.**
+
+[0;32m=========================================[0m
+[0;32m  Analysis Summary[0m
+[0;32m=========================================[0m
+
+[0;36mRepository:[0m expressjs/express
+  Files: 245
+  Size: 1.6M
+
+[0;36mSBOM Generation:[0m
+  Packages detected: 21
+
+[0;36mVulnerability Analysis:[0m
+  [0;32m✓ No vulnerabilities found[0m
+
+[0;32m=========================================[0m
+
+[1;33mCleaning up shared repository...[0m
+
+[0;32m=========================================[0m
+[0;32m  Analysis Complete[0m
+[0;32m=========================================[0m
+
