@@ -258,6 +258,7 @@ Each knowledge file includes metadata with version and update date:
 
 ## Related Documentation
 
-- [Personas README](../../rag/supply-chain/personas/README.md) - How personas use knowledge
-- [Output Formatting](shared/output-formatting.md) - Output format guidelines
-- [Severity Levels](shared/severity-levels.json) - Standard severity definitions
+- [Personas Architecture](personas.md) - How personas use knowledge
+- [System Architecture Overview](overview.md) - How all components fit together
+- [Output Formatting](../../specialist-agents/knowledge/shared/output-formatting.md) - Output format guidelines
+- [Severity Levels](../../specialist-agents/knowledge/shared/severity-levels.json) - Standard severity definitions
