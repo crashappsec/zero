@@ -38,6 +38,7 @@ RAG_ROOT="$REPO_ROOT/rag/technology-identification"
 # Default options
 OUTPUT_FILE=""
 LOCAL_PATH=""
+SBOM_FILE=""
 TEMP_DIR=""
 CLEANUP=true
 TARGET=""
@@ -56,6 +57,7 @@ TARGET:
 
 OPTIONS:
     --local-path PATH       Use pre-cloned repository (skips cloning)
+    --sbom FILE             Use existing SBOM file (skips syft generation)
     --confidence N          Minimum confidence threshold (0-100, default: 50)
     -o, --output FILE       Write JSON to file (default: stdout)
     -k, --keep-clone        Keep cloned repository
@@ -327,10 +329,19 @@ aggregate_findings() {
 # Main analysis
 analyze_target() {
     local repo_path="$1"
+    local provided_sbom="$2"
     local sbom_file=""
+    local should_cleanup_sbom=false
 
-    # Generate SBOM
-    sbom_file=$(generate_sbom "$repo_path")
+    # Use provided SBOM or generate new one
+    if [[ -n "$provided_sbom" ]] && [[ -f "$provided_sbom" ]]; then
+        echo -e "${BLUE}Using provided SBOM...${NC}" >&2
+        sbom_file="$provided_sbom"
+    else
+        # Generate SBOM
+        sbom_file=$(generate_sbom "$repo_path")
+        should_cleanup_sbom=true
+    fi
 
     echo -e "${BLUE}Running technology detection...${NC}" >&2
 
@@ -341,7 +352,8 @@ analyze_target() {
 
     if [[ -n "$sbom_file" ]] && [[ -f "$sbom_file" ]]; then
         layer1=$(scan_sbom_packages "$sbom_file")
-        rm -f "$sbom_file"
+        # Only cleanup if we generated the SBOM ourselves
+        [[ "$should_cleanup_sbom" == "true" ]] && rm -f "$sbom_file"
     fi
 
     layer2=$(scan_config_files "$repo_path")
@@ -409,6 +421,10 @@ while [[ $# -gt 0 ]]; do
         -h|--help) usage ;;
         --local-path)
             LOCAL_PATH="$2"
+            shift 2
+            ;;
+        --sbom)
+            SBOM_FILE="$2"
             shift 2
             ;;
         --confidence)
@@ -481,8 +497,8 @@ fi
 
 echo -e "${BLUE}Scanning: $repo_name${NC}" >&2
 
-# Run analysis
-findings=$(analyze_target "$scan_path")
+# Run analysis (pass SBOM_FILE if provided)
+findings=$(analyze_target "$scan_path" "$SBOM_FILE")
 final_json=$(generate_output "$findings" "${TARGET:-$scan_path}")
 
 # Output
