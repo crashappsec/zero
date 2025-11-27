@@ -1,0 +1,201 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "System Architecture Patterns",
+  "description": "Detection patterns for system architecture styles and trade-offs",
+  "version": "1.0.0",
+  "patterns": {
+    "monolith": {
+      "indicators": [
+        "Single deployable unit",
+        "Shared database",
+        "In-process communication",
+        "Single codebase"
+      ],
+      "file_patterns": ["single package.json at root", "shared /src directory"],
+      "strengths": [
+        "Simple deployment",
+        "Easy local development",
+        "No network latency between components",
+        "Transactional consistency"
+      ],
+      "weaknesses": [
+        "Scaling limitations",
+        "Team coupling",
+        "Technology lock-in",
+        "Deployment risk"
+      ],
+      "when_to_use": [
+        "Early-stage startups",
+        "Small teams (< 10 developers)",
+        "Simple domain",
+        "Uncertain requirements"
+      ]
+    },
+    "microservices": {
+      "indicators": [
+        "Multiple deployment units",
+        "Service-per-database",
+        "Network communication (HTTP, gRPC, messaging)",
+        "Multiple repositories or monorepo with services"
+      ],
+      "file_patterns": ["services/*/package.json", "docker-compose.yml with multiple services"],
+      "strengths": [
+        "Independent scaling",
+        "Team autonomy",
+        "Technology flexibility",
+        "Fault isolation"
+      ],
+      "weaknesses": [
+        "Distributed system complexity",
+        "Network latency",
+        "Data consistency challenges",
+        "Operational overhead"
+      ],
+      "when_to_use": [
+        "Large teams (> 20 developers)",
+        "High scale requirements",
+        "Different scaling needs per component",
+        "Complex domain with clear boundaries"
+      ]
+    },
+    "serverless": {
+      "indicators": [
+        "Function-as-a-Service (Lambda, Cloud Functions)",
+        "Event-driven triggers",
+        "No server management",
+        "Pay-per-execution"
+      ],
+      "file_patterns": ["serverless.yml", "*.tf with aws_lambda", "functions/"],
+      "strengths": [
+        "No infrastructure management",
+        "Auto-scaling",
+        "Cost efficiency for variable load",
+        "Fast deployment"
+      ],
+      "weaknesses": [
+        "Cold start latency",
+        "Execution time limits",
+        "Vendor lock-in",
+        "Local development complexity"
+      ],
+      "when_to_use": [
+        "Event-driven workloads",
+        "Variable/unpredictable traffic",
+        "Small, focused functions",
+        "Cost-sensitive applications"
+      ]
+    },
+    "event_driven": {
+      "indicators": [
+        "Message queues/brokers (Kafka, RabbitMQ, SQS)",
+        "Event sourcing",
+        "Pub/sub patterns",
+        "Async processing"
+      ],
+      "file_patterns": ["*kafka*", "*queue*", "*event*", "handlers/"],
+      "strengths": [
+        "Loose coupling",
+        "Resilience",
+        "Scalability",
+        "Auditability"
+      ],
+      "weaknesses": [
+        "Eventual consistency",
+        "Debugging complexity",
+        "Event schema evolution",
+        "Ordering challenges"
+      ],
+      "when_to_use": [
+        "Async workflows",
+        "Integration between systems",
+        "Audit requirements",
+        "High throughput processing"
+      ]
+    },
+    "modular_monolith": {
+      "indicators": [
+        "Single deployment",
+        "Clear module boundaries",
+        "Module-specific databases/schemas",
+        "Internal APIs between modules"
+      ],
+      "file_patterns": ["modules/*/", "bounded-contexts/*/"],
+      "strengths": [
+        "Monolith simplicity + service boundaries",
+        "Easier refactoring to microservices",
+        "Team ownership clarity",
+        "Transaction safety"
+      ],
+      "weaknesses": [
+        "Requires discipline to maintain boundaries",
+        "Still single point of failure",
+        "Still scales as unit"
+      ],
+      "when_to_use": [
+        "Growing team needing boundaries",
+        "Preparing for microservices",
+        "Complex domain in monolith"
+      ]
+    }
+  },
+  "anti_patterns": {
+    "distributed_monolith": {
+      "indicators": [
+        "Microservices with shared database",
+        "Synchronous chains across services",
+        "Tight coupling between services",
+        "Coordinated deployments required"
+      ],
+      "severity": "high",
+      "description": "Complexity of microservices without benefits",
+      "recommendation": "Either properly decouple or consolidate back to monolith"
+    },
+    "big_ball_of_mud": {
+      "indicators": [
+        "No clear boundaries",
+        "Everything depends on everything",
+        "High coupling metrics",
+        "Fear of any change"
+      ],
+      "severity": "high",
+      "description": "Unstructured system with no discernible architecture",
+      "recommendation": "Establish boundaries, strangle with new modules"
+    },
+    "golden_hammer": {
+      "indicators": [
+        "Same architecture for all problems",
+        "Technology choices without evaluation",
+        "Forcing patterns where they don't fit"
+      ],
+      "severity": "medium",
+      "description": "Using familiar solution regardless of fit",
+      "recommendation": "Evaluate trade-offs for each decision"
+    },
+    "resume_driven_development": {
+      "indicators": [
+        "Cutting-edge tech without business need",
+        "Complexity exceeds requirements",
+        "Over-engineering simple problems"
+      ],
+      "severity": "medium",
+      "description": "Technology choices for CV, not business value"
+    }
+  },
+  "decision_factors": {
+    "team_size": {
+      "small": "< 10 developers → prefer monolith",
+      "medium": "10-30 → modular monolith or few services",
+      "large": "> 30 → microservices with clear ownership"
+    },
+    "scale_requirements": {
+      "low": "< 100 RPS → monolith fine",
+      "medium": "100-1000 RPS → optimize before distributing",
+      "high": "> 1000 RPS → consider service extraction"
+    },
+    "domain_complexity": {
+      "simple": "CRUD apps → monolith",
+      "moderate": "Some workflows → modular monolith",
+      "complex": "Multiple bounded contexts → microservices"
+    }
+  }
+}

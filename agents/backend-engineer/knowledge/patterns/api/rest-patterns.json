@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "REST API Design Patterns",
+  "description": "Detection patterns for REST API design quality",
+  "version": "1.0.0",
+  "patterns": {
+    "good_practices": {
+      "resource_naming": {
+        "pattern": "^/(api/)?(v\\d+/)?[a-z][a-z0-9-]*(/[a-z][a-z0-9-]*|/:\\w+)*$",
+        "description": "RESTful resource naming with lowercase, hyphens",
+        "examples": ["/api/v1/users", "/users/:id/orders", "/order-items"]
+      },
+      "http_method_usage": {
+        "GET": "Retrieve resource(s), safe and idempotent",
+        "POST": "Create new resource",
+        "PUT": "Replace entire resource, idempotent",
+        "PATCH": "Partial update, may not be idempotent",
+        "DELETE": "Remove resource, idempotent"
+      },
+      "pagination": {
+        "patterns": [
+          "limit=\\d+&offset=\\d+",
+          "page=\\d+&per_page=\\d+",
+          "cursor=[a-zA-Z0-9]+"
+        ],
+        "description": "Pagination for collection endpoints"
+      },
+      "filtering": {
+        "pattern": "filter\\[\\w+\\]|\\w+=(eq|ne|gt|lt|gte|lte|like|in):",
+        "description": "Query parameter filtering"
+      },
+      "versioning": {
+        "url_path": "/api/v1/",
+        "header": "Accept: application/vnd.api+json;version=1",
+        "query": "?version=1"
+      }
+    },
+    "anti_patterns": {
+      "verb_in_url": {
+        "pattern": "/(get|create|update|delete|fetch|save|remove)\\w*",
+        "severity": "medium",
+        "description": "Verbs in URLs - use HTTP methods instead",
+        "example_bad": "/api/getUsers, /api/createOrder",
+        "example_good": "GET /api/users, POST /api/orders"
+      },
+      "singular_collection": {
+        "pattern": "/[a-z]+/\\d+$",
+        "context": "collection endpoint using singular name",
+        "severity": "low",
+        "description": "Collections should use plural names",
+        "example_bad": "/user/123",
+        "example_good": "/users/123"
+      },
+      "nested_too_deep": {
+        "pattern": "(/[a-z-]+/:\\w+){4,}",
+        "severity": "medium",
+        "description": "URLs nested more than 3 levels deep",
+        "example_bad": "/users/:id/orders/:oid/items/:iid/reviews/:rid",
+        "recommendation": "Flatten or use query parameters"
+      },
+      "post_for_read": {
+        "pattern": "POST.*/(search|query|find|get)",
+        "severity": "medium",
+        "description": "Using POST for read operations",
+        "recommendation": "Use GET with query params unless payload too large"
+      },
+      "no_content_type": {
+        "pattern": "res\\.send\\(|res\\.json\\(",
+        "context": "without Content-Type header",
+        "severity": "low",
+        "description": "Response without explicit Content-Type"
+      },
+      "inconsistent_response": {
+        "severity": "high",
+        "description": "Different response structures for same resource type",
+        "recommendation": "Use consistent envelope: {data, meta, errors}"
+      }
+    }
+  },
+  "status_codes": {
+    "success": {
+      "200": "OK - successful GET, PUT, PATCH, or DELETE",
+      "201": "Created - successful POST creating resource",
+      "202": "Accepted - async operation accepted",
+      "204": "No Content - successful DELETE with no body"
+    },
+    "client_error": {
+      "400": "Bad Request - malformed request",
+      "401": "Unauthorized - authentication required",
+      "403": "Forbidden - authenticated but not authorized",
+      "404": "Not Found - resource doesn't exist",
+      "409": "Conflict - resource state conflict",
+      "422": "Unprocessable Entity - validation failed",
+      "429": "Too Many Requests - rate limited"
+    },
+    "server_error": {
+      "500": "Internal Server Error - unexpected server error",
+      "502": "Bad Gateway - upstream service error",
+      "503": "Service Unavailable - temporary unavailability",
+      "504": "Gateway Timeout - upstream timeout"
+    }
+  },
+  "response_envelope": {
+    "success": {
+      "data": "Resource or array of resources",
+      "meta": {"pagination": {}, "timestamp": ""},
+      "links": {"self": "", "next": "", "prev": ""}
+    },
+    "error": {
+      "error": {
+        "code": "ERROR_CODE",
+        "message": "Human readable message",
+        "details": []
+      }
+    }
+  }
+}

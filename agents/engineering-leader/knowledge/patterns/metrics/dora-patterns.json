@@ -1,0 +1,168 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DORA Metrics Patterns",
+  "description": "Detection patterns for DORA metrics assessment",
+  "version": "1.0.0",
+  "metrics": {
+    "deployment_frequency": {
+      "description": "How often code deploys to production",
+      "measurement": "Deployments per time period",
+      "benchmarks": {
+        "elite": "Multiple deploys per day",
+        "high": "Between once per day and once per week",
+        "medium": "Between once per week and once per month",
+        "low": "Between once per month and once per six months"
+      },
+      "indicators": {
+        "good": [
+          "Automated deployments",
+          "Trunk-based development",
+          "Feature flags for releases",
+          "Small batch sizes"
+        ],
+        "poor": [
+          "Manual deployment processes",
+          "Long-lived branches",
+          "Big bang releases",
+          "Change advisory boards for every deploy"
+        ]
+      }
+    },
+    "lead_time_for_changes": {
+      "description": "Time from code commit to production",
+      "measurement": "Median time from commit to deploy",
+      "benchmarks": {
+        "elite": "Less than one hour",
+        "high": "Between one day and one week",
+        "medium": "Between one week and one month",
+        "low": "Between one month and six months"
+      },
+      "indicators": {
+        "good": [
+          "Fast CI/CD pipelines (< 10 min)",
+          "Automated testing",
+          "Small PRs (< 200 lines)",
+          "Quick code reviews (< 24 hours)"
+        ],
+        "poor": [
+          "Slow build times (> 30 min)",
+          "Manual QA gates",
+          "Large batch deployments",
+          "Long review cycles"
+        ]
+      }
+    },
+    "mean_time_to_recovery": {
+      "description": "Time to restore service after incident",
+      "measurement": "Median time from incident detection to resolution",
+      "benchmarks": {
+        "elite": "Less than one hour",
+        "high": "Less than one day",
+        "medium": "Between one day and one week",
+        "low": "More than one week"
+      },
+      "indicators": {
+        "good": [
+          "Feature flags for instant rollback",
+          "Automated rollback capabilities",
+          "Strong observability",
+          "Well-documented runbooks"
+        ],
+        "poor": [
+          "Manual rollback process",
+          "Poor monitoring coverage",
+          "No incident runbooks",
+          "Unclear escalation paths"
+        ]
+      }
+    },
+    "change_failure_rate": {
+      "description": "Percentage of deployments causing failures",
+      "measurement": "Failed deployments / total deployments",
+      "benchmarks": {
+        "elite": "0-15%",
+        "high": "16-30%",
+        "medium": "31-45%",
+        "low": "> 45%"
+      },
+      "indicators": {
+        "good": [
+          "Comprehensive test coverage",
+          "Pre-production environments",
+          "Canary deployments",
+          "Feature flags"
+        ],
+        "poor": [
+          "Low test coverage",
+          "No staging environment",
+          "Big bang deployments",
+          "Manual testing only"
+        ]
+      }
+    }
+  },
+  "performance_tiers": {
+    "elite": {
+      "description": "Industry leading performance",
+      "characteristics": [
+        "Multiple deploys per day",
+        "< 1 hour lead time",
+        "< 1 hour MTTR",
+        "0-15% failure rate"
+      ]
+    },
+    "high": {
+      "description": "Strong performance",
+      "characteristics": [
+        "Daily to weekly deploys",
+        "< 1 week lead time",
+        "< 1 day MTTR",
+        "16-30% failure rate"
+      ]
+    },
+    "medium": {
+      "description": "Average performance",
+      "characteristics": [
+        "Weekly to monthly deploys",
+        "< 1 month lead time",
+        "< 1 week MTTR",
+        "31-45% failure rate"
+      ]
+    },
+    "low": {
+      "description": "Needs improvement",
+      "characteristics": [
+        "Monthly or less frequent deploys",
+        "> 1 month lead time",
+        "> 1 week MTTR",
+        "> 45% failure rate"
+      ]
+    }
+  },
+  "measurement_sources": {
+    "deployment_frequency": [
+      "CI/CD pipeline logs",
+      "Deployment tracking tools",
+      "Git tags/releases",
+      "Kubernetes events"
+    ],
+    "lead_time": [
+      "Git commit timestamps",
+      "PR merge times",
+      "Deployment timestamps",
+      "Linear/Jira workflows"
+    ],
+    "mttr": [
+      "Incident management tools (PagerDuty, OpsGenie)",
+      "Status page history",
+      "Alert correlation",
+      "Postmortem data"
+    ],
+    "change_failure_rate": [
+      "Deployment rollbacks",
+      "Hotfix frequency",
+      "Incident correlation with deploys",
+      "Error rate spikes post-deploy"
+    ]
+  }
+}

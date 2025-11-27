@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SQL Database Patterns",
+  "description": "Detection patterns for SQL database design and query optimization",
+  "version": "1.0.0",
+  "patterns": {
+    "good_practices": {
+      "indexing": {
+        "primary_key": "Every table should have a primary key",
+        "foreign_keys": "Index foreign key columns",
+        "query_patterns": "Index columns used in WHERE, JOIN, ORDER BY",
+        "covering_indexes": "Include frequently selected columns in index"
+      },
+      "naming_conventions": {
+        "tables": "snake_case, plural (users, order_items)",
+        "columns": "snake_case (first_name, created_at)",
+        "indexes": "idx_table_column (idx_users_email)",
+        "constraints": "pk_table, fk_table_ref, uq_table_column"
+      },
+      "data_types": {
+        "uuid": "Use UUID for distributed IDs",
+        "timestamp": "Use TIMESTAMPTZ for time data",
+        "enum": "Use ENUM for fixed value sets",
+        "json": "Use JSONB (not JSON) in PostgreSQL"
+      }
+    },
+    "anti_patterns": {
+      "select_star": {
+        "pattern": "SELECT\\s+\\*",
+        "severity": "medium",
+        "description": "SELECT * fetches unnecessary columns",
+        "recommendation": "Explicitly list needed columns"
+      },
+      "n_plus_one": {
+        "pattern": "for.*\\{[^}]*SELECT",
+        "severity": "high",
+        "description": "Query in loop causes N+1 problem",
+        "recommendation": "Use JOIN or batch query"
+      },
+      "no_limit": {
+        "pattern": "SELECT.*FROM(?!.*LIMIT)",
+        "context": "without pagination",
+        "severity": "medium",
+        "description": "Query without LIMIT can return unbounded results",
+        "recommendation": "Add LIMIT clause or pagination"
+      },
+      "like_leading_wildcard": {
+        "pattern": "LIKE\\s+['\"]%",
+        "severity": "high",
+        "description": "Leading wildcard prevents index usage",
+        "recommendation": "Use full-text search or reverse index"
+      },
+      "function_on_indexed_column": {
+        "pattern": "(LOWER|UPPER|DATE|YEAR)\\(\\w+\\)\\s*(=|<|>|LIKE)",
+        "severity": "high",
+        "description": "Function on column prevents index usage",
+        "recommendation": "Use expression index or transform data"
+      },
+      "or_conditions": {
+        "pattern": "WHERE.*OR.*OR",
+        "severity": "medium",
+        "description": "Multiple OR conditions can prevent index usage",
+        "recommendation": "Consider UNION or IN clause"
+      },
+      "implicit_conversion": {
+        "pattern": "WHERE\\s+\\w+\\s*=\\s*['\"]\\d+['\"]",
+        "severity": "medium",
+        "description": "String comparison on numeric column",
+        "recommendation": "Match data types to avoid implicit conversion"
+      },
+      "missing_index_hint": {
+        "severity": "info",
+        "description": "Query plans show sequential scans on large tables",
+        "recommendation": "Add appropriate index"
+      },
+      "god_table": {
+        "severity": "high",
+        "description": "Table with 50+ columns mixing concerns",
+        "recommendation": "Normalize or split into related tables"
+      },
+      "eid_antipattern": {
+        "pattern": "entity_type.*entity_id|polymorphic",
+        "severity": "medium",
+        "description": "Polymorphic associations break referential integrity",
+        "recommendation": "Use separate tables or proper inheritance"
+      }
+    }
+  },
+  "query_optimization": {
+    "explain_analyze": {
+      "description": "Use EXPLAIN ANALYZE to understand query execution",
+      "flags": {
+        "Seq Scan": "Consider adding index",
+        "Nested Loop": "Acceptable for small datasets",
+        "Hash Join": "Good for medium datasets",
+        "Merge Join": "Good for sorted large datasets"
+      }
+    },
+    "common_issues": {
+      "high_cost": "Cost > 10000 may need optimization",
+      "many_rows": "Rows estimate >> actual may need ANALYZE",
+      "temp_files": "Using temp files indicates memory pressure"
+    }
+  },
+  "schema_patterns": {
+    "audit_columns": {
+      "recommended": ["created_at", "updated_at", "created_by", "updated_by"],
+      "optional": ["deleted_at", "version"]
+    },
+    "soft_delete": {
+      "pattern": "deleted_at TIMESTAMP",
+      "considerations": [
+        "Add to unique constraints",
+        "Filter in application queries",
+        "Consider performance on large tables"
+      ]
+    },
+    "versioning": {
+      "pattern": "version INTEGER DEFAULT 1",
+      "use": "Optimistic locking"
+    }
+  },
+  "transaction_patterns": {
+    "isolation_levels": {
+      "READ_UNCOMMITTED": "Dirty reads possible - rarely use",
+      "READ_COMMITTED": "Default in PostgreSQL - good for most cases",
+      "REPEATABLE_READ": "Snapshot isolation - use for reports",
+      "SERIALIZABLE": "Full isolation - use for critical financial ops"
+    },
+    "deadlock_prevention": [
+      "Access tables in consistent order",
+      "Keep transactions short",
+      "Use row-level locking when possible"
+    ]
+  }
+}

@@ -1,0 +1,99 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "React Component Patterns",
+  "description": "Detection patterns for React component architecture analysis",
+  "version": "1.0.0",
+  "patterns": {
+    "good_patterns": {
+      "custom_hooks": {
+        "pattern": "^(use[A-Z][a-zA-Z]+)\\s*=\\s*\\(",
+        "file_patterns": ["*.ts", "*.tsx", "*.js", "*.jsx"],
+        "description": "Custom hooks for reusable logic",
+        "examples": ["useAuth", "useFetch", "useDebounce"]
+      },
+      "compound_components": {
+        "pattern": "(\\w+)\\.([A-Z]\\w+)\\s*=",
+        "description": "Compound component pattern for flexible APIs",
+        "examples": ["Menu.Item", "Tabs.Panel", "Card.Header"]
+      },
+      "render_props": {
+        "pattern": "render\\w*\\s*:\\s*\\([^)]*\\)\\s*=>",
+        "description": "Render props for component composition"
+      },
+      "forward_ref": {
+        "pattern": "forwardRef(<[^>]+>)?\\(",
+        "description": "Proper ref forwarding for DOM access"
+      },
+      "memo_usage": {
+        "pattern": "React\\.memo\\(|memo\\(",
+        "description": "Memoization for performance optimization"
+      },
+      "error_boundaries": {
+        "pattern": "componentDidCatch|getDerivedStateFromError|ErrorBoundary",
+        "description": "Error boundary implementation"
+      }
+    },
+    "anti_patterns": {
+      "prop_drilling": {
+        "pattern": "props\\.\\w+\\.\\w+\\.\\w+",
+        "severity": "medium",
+        "description": "Deep prop drilling indicates need for context or state management",
+        "recommendation": "Consider using React Context or a state management library"
+      },
+      "inline_functions_in_jsx": {
+        "pattern": "onClick=\\{\\(\\)\\s*=>|onChange=\\{\\([^)]*\\)\\s*=>",
+        "severity": "low",
+        "description": "Inline arrow functions in JSX create new references on each render",
+        "recommendation": "Extract to useCallback or class method",
+        "exceptions": ["Simple handlers in non-performance-critical components"]
+      },
+      "index_as_key": {
+        "pattern": "key=\\{(index|i|idx)\\}",
+        "severity": "medium",
+        "description": "Using array index as key can cause issues with reordering",
+        "recommendation": "Use stable unique identifiers"
+      },
+      "useeffect_missing_deps": {
+        "pattern": "useEffect\\([^,]+,\\s*\\[\\s*\\]\\)",
+        "severity": "low",
+        "description": "Empty dependency array may hide missing dependencies",
+        "recommendation": "Review if effect truly has no dependencies"
+      },
+      "state_in_render": {
+        "pattern": "const\\s+\\[\\w+,\\s*set\\w+\\]\\s*=\\s*useState.*return\\s*\\(",
+        "severity": "high",
+        "description": "State declaration too close to render may indicate component needs splitting"
+      },
+      "direct_dom_manipulation": {
+        "pattern": "document\\.(getElementById|querySelector|getElementsBy)",
+        "severity": "high",
+        "description": "Direct DOM manipulation bypasses React's virtual DOM",
+        "recommendation": "Use refs or React state instead"
+      },
+      "nested_ternary_jsx": {
+        "pattern": "\\?.*\\?.*:",
+        "severity": "medium",
+        "description": "Nested ternaries in JSX reduce readability",
+        "recommendation": "Extract to helper function or early returns"
+      }
+    }
+  },
+  "component_classifications": {
+    "presentational": {
+      "indicators": ["No useState/useEffect", "Only props usage", "Pure rendering"],
+      "description": "Stateless components focused on UI"
+    },
+    "container": {
+      "indicators": ["useState", "useEffect", "Data fetching", "Business logic"],
+      "description": "Stateful components managing data and logic"
+    },
+    "layout": {
+      "indicators": ["children prop", "Flex/Grid CSS", "Composition focused"],
+      "description": "Components that structure other components"
+    },
+    "utility": {
+      "indicators": ["Portal", "ErrorBoundary", "Suspense wrapper"],
+      "description": "Components providing React functionality"
+    }
+  }
+}

@@ -1,0 +1,123 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Frontend Bundle Performance Patterns",
+  "description": "Detection patterns for bundle size and loading optimization",
+  "version": "1.0.0",
+  "patterns": {
+    "good_practices": {
+      "dynamic_imports": {
+        "pattern": "import\\(['\"][^'\"]+['\"]\\)",
+        "description": "Code splitting via dynamic imports",
+        "benefit": "Reduces initial bundle size"
+      },
+      "lazy_loading": {
+        "pattern": "React\\.lazy\\(|lazy\\(\\s*\\(\\)\\s*=>\\s*import",
+        "description": "Lazy loading components",
+        "benefit": "Defers loading until needed"
+      },
+      "suspense_usage": {
+        "pattern": "<Suspense\\s+fallback=",
+        "description": "Suspense for loading states",
+        "benefit": "Better loading UX with code splitting"
+      },
+      "tree_shaking_imports": {
+        "pattern": "import\\s+\\{[^}]+\\}\\s+from\\s+['\"]",
+        "description": "Named imports enable tree shaking",
+        "benefit": "Dead code elimination"
+      }
+    },
+    "anti_patterns": {
+      "barrel_imports": {
+        "pattern": "import\\s+\\{[^}]+\\}\\s+from\\s+['\"][^'\"]+/index['\"]",
+        "severity": "medium",
+        "description": "Barrel imports can defeat tree shaking",
+        "recommendation": "Import directly from module files",
+        "example_bad": "import { Button } from '@ui/index'",
+        "example_good": "import { Button } from '@ui/Button'"
+      },
+      "default_import_lodash": {
+        "pattern": "import\\s+_\\s+from\\s+['\"]lodash['\"]",
+        "severity": "high",
+        "description": "Full lodash import adds ~70KB",
+        "recommendation": "Use lodash-es or import specific functions",
+        "example_good": "import debounce from 'lodash/debounce'"
+      },
+      "moment_js": {
+        "pattern": "import\\s+moment|require\\(['\"]moment['\"]\\)",
+        "severity": "high",
+        "description": "Moment.js is 300KB+ with locales",
+        "recommendation": "Use date-fns or dayjs instead"
+      },
+      "duplicate_polyfills": {
+        "pattern": "core-js|@babel/polyfill|regenerator-runtime",
+        "severity": "medium",
+        "description": "May include unnecessary polyfills",
+        "recommendation": "Configure browserslist and useBuiltIns: 'usage'"
+      },
+      "large_images_in_bundle": {
+        "pattern": "import\\s+\\w+\\s+from\\s+['\"][^'\"]+\\.(png|jpg|jpeg|gif)['\"]",
+        "severity": "medium",
+        "description": "Large images in JS bundle",
+        "recommendation": "Use CDN or configure webpack file-loader threshold"
+      },
+      "css_in_js_overhead": {
+        "pattern": "styled\\.|css`|@emotion/|styled-components",
+        "severity": "low",
+        "description": "CSS-in-JS adds runtime overhead",
+        "recommendation": "Consider Tailwind or CSS Modules for performance-critical apps"
+      }
+    },
+    "build_config_patterns": {
+      "source_maps_production": {
+        "pattern": "devtool:\\s*['\"]source-map['\"]",
+        "context": "production config",
+        "severity": "medium",
+        "description": "Full source maps in production expose source code",
+        "recommendation": "Use 'hidden-source-map' or 'nosources-source-map'"
+      },
+      "no_minification": {
+        "pattern": "minimize:\\s*false",
+        "severity": "high",
+        "description": "Minification disabled",
+        "recommendation": "Enable minification for production builds"
+      },
+      "no_chunk_splitting": {
+        "pattern": "splitChunks:\\s*false",
+        "severity": "medium",
+        "description": "Chunk splitting disabled",
+        "recommendation": "Enable for better caching"
+      }
+    }
+  },
+  "bundle_size_thresholds": {
+    "initial_js": {
+      "good": "< 200KB",
+      "warning": "200-400KB",
+      "critical": "> 400KB"
+    },
+    "initial_css": {
+      "good": "< 50KB",
+      "warning": "50-100KB",
+      "critical": "> 100KB"
+    },
+    "largest_chunk": {
+      "good": "< 100KB",
+      "warning": "100-200KB",
+      "critical": "> 200KB"
+    },
+    "total_size": {
+      "good": "< 500KB",
+      "warning": "500KB-1MB",
+      "critical": "> 1MB"
+    }
+  },
+  "common_heavy_dependencies": {
+    "moment": {"size": "~290KB", "alternative": "date-fns (~30KB) or dayjs (~7KB)"},
+    "lodash": {"size": "~70KB", "alternative": "lodash-es with tree shaking"},
+    "jquery": {"size": "~88KB", "alternative": "Native DOM APIs"},
+    "rxjs": {"size": "~42KB", "alternative": "Import specific operators"},
+    "chart.js": {"size": "~65KB", "alternative": "recharts or lightweight-charts"},
+    "@mui/material": {"size": "~300KB+", "alternative": "Import specific components"},
+    "antd": {"size": "~400KB+", "alternative": "Import specific components + babel-plugin-import"}
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GraphQL API Design Patterns",
+  "description": "Detection patterns for GraphQL API design quality",
+  "version": "1.0.0",
+  "patterns": {
+    "good_practices": {
+      "naming_conventions": {
+        "types": "PascalCase (User, OrderItem)",
+        "fields": "camelCase (firstName, createdAt)",
+        "enums": "SCREAMING_SNAKE_CASE (ORDER_STATUS)",
+        "inputs": "PascalCase with Input suffix (CreateUserInput)"
+      },
+      "nullable_by_default": {
+        "description": "Make fields non-null (!) only when guaranteed",
+        "example": "name: String! vs middleName: String"
+      },
+      "connection_pagination": {
+        "pattern": "Connection$|Edge$|PageInfo",
+        "description": "Relay-style cursor pagination",
+        "structure": {
+          "edges": "[{cursor, node}]",
+          "pageInfo": "{hasNextPage, hasPreviousPage, startCursor, endCursor}"
+        }
+      },
+      "input_types": {
+        "pattern": "input\\s+\\w+Input",
+        "description": "Dedicated input types for mutations"
+      },
+      "mutation_payloads": {
+        "pattern": "type\\s+\\w+Payload",
+        "description": "Mutation returns payload type with result + errors"
+      }
+    },
+    "anti_patterns": {
+      "n_plus_one": {
+        "pattern": "async\\s+\\w+\\([^)]*\\)\\s*\\{[^}]*await\\s+\\w+\\.find",
+        "severity": "high",
+        "description": "N+1 query problem in resolvers",
+        "recommendation": "Use DataLoader for batching"
+      },
+      "unbounded_lists": {
+        "pattern": "\\[\\w+!?\\]!?\\s*$",
+        "context": "without pagination arguments",
+        "severity": "high",
+        "description": "Returning lists without pagination limits",
+        "recommendation": "Add first/last arguments with Connection pattern"
+      },
+      "deep_nesting": {
+        "severity": "medium",
+        "description": "Allowing arbitrarily deep query nesting",
+        "recommendation": "Implement query depth limiting"
+      },
+      "no_complexity_limit": {
+        "severity": "high",
+        "description": "No query complexity analysis",
+        "recommendation": "Implement query cost analysis"
+      },
+      "exposing_ids": {
+        "pattern": "id:\\s*ID!?\\s*#.*database",
+        "severity": "medium",
+        "description": "Exposing raw database IDs",
+        "recommendation": "Use opaque global IDs (base64 encoded)"
+      },
+      "generic_error": {
+        "pattern": "throw\\s+new\\s+Error\\(",
+        "severity": "medium",
+        "description": "Generic errors instead of GraphQL errors",
+        "recommendation": "Use GraphQLError with extensions"
+      },
+      "resolver_business_logic": {
+        "severity": "medium",
+        "description": "Business logic in resolvers instead of services",
+        "recommendation": "Keep resolvers thin, delegate to services"
+      }
+    }
+  },
+  "schema_patterns": {
+    "query_type": {
+      "description": "Entry point for reads",
+      "conventions": [
+        "Singular for single resource: user(id: ID!): User",
+        "Plural for lists: users(first: Int, after: String): UserConnection",
+        "Search: searchUsers(query: String!): UserConnection"
+      ]
+    },
+    "mutation_type": {
+      "description": "Entry point for writes",
+      "conventions": [
+        "Verb prefix: createUser, updateUser, deleteUser",
+        "Input type argument: createUser(input: CreateUserInput!)",
+        "Return payload: CreateUserPayload"
+      ]
+    },
+    "subscription_type": {
+      "description": "Entry point for real-time",
+      "conventions": [
+        "Event naming: userCreated, orderUpdated",
+        "Filter arguments: orderUpdated(orderId: ID!)"
+      ]
+    }
+  },
+  "security_patterns": {
+    "authentication": {
+      "context": "Auth token in context, not in resolver args",
+      "example": "context.user from JWT/session"
+    },
+    "authorization": {
+      "field_level": "Check permissions in resolver or directive",
+      "patterns": ["@auth", "@hasRole", "@isOwner"]
+    },
+    "rate_limiting": {
+      "approaches": ["Query complexity", "Time-based", "Per-field"]
+    },
+    "query_depth": {
+      "recommendation": "Limit to 7-10 levels max"
+    },
+    "introspection": {
+      "production": "Disable or restrict introspection in production"
+    }
+  },
+  "performance_patterns": {
+    "dataloader": {
+      "description": "Batch and cache database queries",
+      "use_for": ["Related entities", "N+1 prevention"]
+    },
+    "persisted_queries": {
+      "description": "Pre-register queries for security and performance"
+    },
+    "response_caching": {
+      "approaches": ["CDN caching", "In-memory cache", "@cacheControl directive"]
+    }
+  }
+}
