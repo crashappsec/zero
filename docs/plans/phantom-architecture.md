@@ -6,10 +6,10 @@ Phantom is the master orchestrator agent - the single entry point for all analys
 
 ## Storage Architecture
 
-All data stored in `~/.gibson/`:
+All data stored in `~/.phantom/`:
 
 ```
-~/.gibson/
+~/.phantom/
 ├── config.json                          # Global settings
 ├── index.json                           # Quick lookup of all projects
 │
@@ -41,7 +41,7 @@ All data stored in `~/.gibson/`:
 
 | Decision | Choice | Why |
 |----------|--------|-----|
-| Location | `~/.gibson/` | User-global, survives pwd changes, standard convention |
+| Location | `~/.phantom/` | User-global, survives pwd changes, standard convention |
 | Project ID | `owner-repo` slug | Human-readable, unique, filesystem-safe |
 | Code + analysis | Same parent | Easy correlation, atomic delete |
 | Git preserved | `.git/` intact | Pull updates, switch branches, view history |
@@ -49,7 +49,7 @@ All data stored in `~/.gibson/`:
 
 ### Schema Definitions
 
-**Global Config** (`~/.gibson/config.json`):
+**Global Config** (`~/.phantom/config.json`):
 ```json
 {
   "version": "1.0.0",
@@ -60,7 +60,7 @@ All data stored in `~/.gibson/`:
 }
 ```
 
-**Project Index** (`~/.gibson/index.json`):
+**Project Index** (`~/.phantom/index.json`):
 ```json
 {
   "projects": {
@@ -81,7 +81,7 @@ All data stored in `~/.gibson/`:
 }
 ```
 
-**Project Metadata** (`~/.gibson/projects/<id>/project.json`):
+**Project Metadata** (`~/.phantom/projects/<id>/project.json`):
 ```json
 {
   "id": "expressjs-express",
@@ -90,7 +90,7 @@ All data stored in `~/.gibson/`:
   "cloned_at": "2025-11-27T10:30:00Z",
   "branch": "main",
   "commit": "a1b2c3d4e5f6",
-  "path": "~/.gibson/projects/expressjs-express/repo",
+  "path": "~/.phantom/projects/expressjs-express/repo",
   "detected_type": {
     "languages": ["javascript"],
     "frameworks": ["express"],
@@ -99,7 +99,7 @@ All data stored in `~/.gibson/`:
 }
 ```
 
-**Analysis Manifest** (`~/.gibson/projects/<id>/analysis/manifest.json`):
+**Analysis Manifest** (`~/.phantom/projects/<id>/analysis/manifest.json`):
 ```json
 {
   "project_id": "expressjs-express",
@@ -184,13 +184,13 @@ Examples:
 **Flow:**
 ```
 1. Parse target → derive project ID (expressjs-express)
-2. Check if already exists in ~/.gibson/projects/
+2. Check if already exists in ~/.phantom/projects/
    - If exists: "Project already bootstrapped. Use /phantom refresh to update."
-3. Clone to ~/.gibson/projects/<id>/repo/
+3. Clone to ~/.phantom/projects/<id>/repo/
 4. Detect project type (language, framework, package manager)
 5. Run analyzers in parallel where possible
-6. Write results to ~/.gibson/projects/<id>/analysis/
-7. Update ~/.gibson/index.json
+6. Write results to ~/.phantom/projects/<id>/analysis/
+7. Update ~/.phantom/index.json
 8. Display summary
 ```
 
@@ -225,7 +225,7 @@ Show bootstrapped projects:
 
 Output:
 ┌─────────────────────────────────────────────────────────────────┐
-│ GIBSON STATUS                                                    │
+│ PHANTOM STATUS                                                   │
 ├─────────────────────────────────────────────────────────────────┤
 │ Active: expressjs-express                                        │
 ├─────────────────────────────────────────────────────────────────┤
@@ -242,7 +242,7 @@ Output:
 │   └── Agents: Scout ✓  Sentinel ✓  Quinn ✓  Harper ✓            │
 │                                                                  │
 ├─────────────────────────────────────────────────────────────────┤
-│ Storage: ~/.gibson/ (1.2 GB)                                     │
+│ Storage: ~/.phantom/ (1.2 GB)                                    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -424,13 +424,13 @@ Agents ready:
   Quinn     → /phantom ask quinn ...
   Harper    → /phantom ask harper ...
 
-Storage: ~/.gibson/projects/expressjs-express/ (45 MB)
+Storage: ~/.phantom/projects/expressjs-express/ (45 MB)
 ```
 
 ## Implementation Plan
 
 ### Phase 1: Core Infrastructure
-- [ ] Create `~/.gibson/` directory structure on first run
+- [ ] Create `~/.phantom/` directory structure on first run
 - [ ] Implement project ID generation (slug from URL)
 - [ ] Create config.json and index.json schemas
 - [ ] Write project.json and manifest.json on bootstrap

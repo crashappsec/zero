@@ -409,12 +409,14 @@ show_menu() {
 
     while true; do
         # Use animated banner on first display (random effect), static after
-        if [[ "$first_run" == "true" ]]; then
-            print_phantom_banner_animated  # Random effect each time
-            first_run=false
-        else
-            print_phantom_banner
-        fi
+        # NOTE: Terminal effects disabled for now - code preserved in lib/gibson.sh
+        # if [[ "$first_run" == "true" ]]; then
+        #     print_phantom_banner_animated  # Random effect each time
+        #     first_run=false
+        # else
+        #     print_phantom_banner
+        # fi
+        print_phantom_banner
         echo -e "${BOLD}What would you like to do?${NC}"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo
@@ -447,11 +449,34 @@ show_menu() {
                 echo
                 read -p "Target: " target
                 if [[ -n "$target" ]]; then
-                    # Run hydrate and return to menu when done
+                    # Check if org mode
                     if [[ "$target" == --org* ]]; then
                         "$SCRIPT_DIR/hydrate.sh" $target || true
                     else
-                        "$SCRIPT_DIR/bootstrap.sh" $target || true
+                        # Show hydration mode submenu
+                        echo
+                        echo -e "${BOLD}Select analysis depth:${NC}"
+                        echo
+                        echo -e "  ${CYAN}1${NC}  Quick      ~30s   Fast static analysis (deps, tech, vulns, licenses)"
+                        echo -e "  ${CYAN}2${NC}  Standard   ~2min  Most analyzers ${DIM}(default)${NC}"
+                        echo -e "  ${CYAN}3${NC}  Advanced   ~5min  All static analyzers + package health, provenance"
+                        echo -e "  ${CYAN}4${NC}  Deep       ~10min Claude-assisted analysis ${DIM}(requires API key)${NC}"
+                        echo -e "  ${CYAN}5${NC}  Security   ~3min  Security-focused (vulns, package-health, provenance)"
+                        echo
+                        read -p "Choose mode [2]: " -n 1 -r mode_choice
+                        echo
+
+                        local mode_flag=""
+                        case "${mode_choice:-2}" in
+                            1) mode_flag="--quick" ;;
+                            2|"") mode_flag="--standard" ;;
+                            3) mode_flag="--advanced" ;;
+                            4) mode_flag="--deep" ;;
+                            5) mode_flag="--security" ;;
+                            *) mode_flag="--standard" ;;
+                        esac
+
+                        "$SCRIPT_DIR/bootstrap.sh" $target $mode_flag || true
                     fi
                     echo
                     read -p "Press Enter to continue..."
@@ -502,7 +527,11 @@ COMMANDS:
 OPTIONS FOR HYDRATE:
     --org <name>        Process all repos in organization
     --limit <n>         Max repos to process (org mode)
-    --quick             Fast analyzers only
+    --quick             Fast static analysis (~30s)
+    --standard          Most analyzers (~2min) [default]
+    --advanced          All static analyzers + health/provenance (~5min)
+    --deep              Claude-assisted analysis (~10min)
+    --security          Security-focused analysis (~3min)
     --force             Re-analyze even if exists
 
 EXAMPLES:

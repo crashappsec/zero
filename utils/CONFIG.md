@@ -1,6 +1,6 @@
 # Configuration System
 
-The Gibson Powers utilities use a hierarchical configuration system that allows for global settings with module-specific overrides.
+The Phantom utilities use a hierarchical configuration system that allows for global settings with module-specific overrides.
 
 ## GitHub Authentication
 

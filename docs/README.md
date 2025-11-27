@@ -5,7 +5,7 @@ SPDX-License-Identifier: GPL-3.0
 
 # Documentation
 
-Comprehensive documentation for the Gibson Powers analysis toolkit.
+Comprehensive documentation for the Phantom analysis toolkit.
 
 ## Architecture
 

@@ -2,7 +2,7 @@ blank_issues_enabled: true
 contact_links:
   - name: 💬 GitHub Discussions
     url: https://github.com/crashappsec/gibson-powers/discussions
-    about: Ask questions, share ideas, and discuss Gibson Powers
+    about: Ask questions, share ideas, and discuss Phantom
   - name: 🔒 Security Vulnerability
     url: https://github.com/crashappsec/gibson-powers/security/advisories/new
     about: Report security vulnerabilities (private reporting)
