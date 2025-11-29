@@ -106,9 +106,69 @@
 - Look for datadog-agent in Docker configs
 - Common with APM tracing and custom metrics
 
+## Secrets Detection
+
+### API Keys
+
+#### Datadog API Key
+**Pattern**: `(?:DD_API_KEY|datadog_api_key)\s*[=:]\s*['"]?([a-f0-9]{32})['"]?`
+**Severity**: high
+**Description**: Datadog API key - used to submit metrics, events, and logs
+**Example**: `DD_API_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+**Environment Variable**: `DD_API_KEY`
+**Note**: 32-character hexadecimal string
+
+#### Datadog Application Key
+**Pattern**: `(?:DD_APP_KEY|datadog_app_key)\s*[=:]\s*['"]?([a-f0-9]{40})['"]?`
+**Severity**: high
+**Description**: Datadog application key - used for programmatic API access
+**Example**: `DD_APP_KEY=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+**Environment Variable**: `DD_APP_KEY`
+**Note**: 40-character hexadecimal string
+
+### Validation
+
+#### API Documentation
+- **API Reference**: https://docs.datadoghq.com/api/latest/
+- **Authentication**: https://docs.datadoghq.com/api/latest/authentication/
+- **API and App Keys**: https://docs.datadoghq.com/account_management/api-app-keys/
+
+#### Validation Endpoint
+**API**: Datadog Validate API Key
+**Endpoint**: `https://api.datadoghq.com/api/v1/validate`
+**Method**: GET
+**Headers**:
+- `DD-API-KEY: <your_api_key>`
+**Purpose**: Validates API key (specifically designed for validation)
+
+```bash
+# Validate Datadog API key
+curl -s "https://api.datadoghq.com/api/v1/validate" \
+  -H "DD-API-KEY: $DD_API_KEY"
+```
+
+#### Validation Code (Python)
+```python
+import requests
+
+def validate_datadog_key(api_key, site='datadoghq.com'):
+    """Validate Datadog API key"""
+    try:
+        response = requests.get(
+            f'https://api.{site}/api/v1/validate',
+            headers={'DD-API-KEY': api_key}
+        )
+        if response.status_code == 200:
+            return {'valid': True, 'response': response.json()}
+        return {'valid': False, 'status': response.status_code}
+    except Exception as e:
+        return {'valid': False, 'error': str(e)}
+```
+
 ## Detection Confidence
 
 - **Package Detection**: 95% (HIGH)
 - **Import Detection**: 90% (HIGH)
 - **Environment Variable Detection**: 85% (MEDIUM)
 - **API Endpoint Detection**: 80% (MEDIUM)
+- **Secret Pattern Detection**: 80% (MEDIUM) - Keys are hex strings, need context for confidence

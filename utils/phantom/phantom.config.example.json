@@ -1,0 +1,292 @@
+{
+  "_comment": "=============================================================================",
+  "_comment2": "PHANTOM CONFIGURATION FILE",
+  "_comment3": "=============================================================================",
+  "_comment4": "Copy this file to phantom.config.json and customize as needed.",
+  "_comment5": "All fields starting with underscore (_) are documentation and ignored.",
+  "_version": "1.0.0",
+
+  "_settings_docs": "-----------------------------------------------------------------------------",
+  "_settings_docs2": "GLOBAL SETTINGS",
+  "_settings_docs3": "-----------------------------------------------------------------------------",
+  "settings": {
+    "_default_profile_doc": "Profile to use when none is specified (quick|standard|advanced|deep|security|compliance|devops)",
+    "default_profile": "standard",
+
+    "_storage_path_doc": "Where Phantom stores cloned repos and analysis data. Use ~ for home directory.",
+    "storage_path": "~/.phantom",
+
+    "_parallel_jobs_doc": "Number of analyzers to run in parallel. Higher = faster but more CPU/memory.",
+    "parallel_jobs": 4,
+
+    "_analyzer_timeout_doc": "Maximum seconds an analyzer can run before being killed.",
+    "analyzer_timeout_seconds": 300,
+
+    "_cache_ttl_doc": "Hours to cache API responses (GitHub, npm registry, etc.)",
+    "cache_ttl_hours": 24,
+
+    "_environment_doc": "Environment variable names for API keys. Change if you use different names.",
+    "environment": {
+      "github_token_env": "GITHUB_TOKEN",
+      "anthropic_key_env": "ANTHROPIC_API_KEY"
+    }
+  },
+
+  "_analyzers_docs": "-----------------------------------------------------------------------------",
+  "_analyzers_docs2": "ANALYZERS",
+  "_analyzers_docs3": "-----------------------------------------------------------------------------",
+  "_analyzers_docs4": "Each analyzer extracts specific data from repositories.",
+  "_analyzers_docs5": "You can disable an analyzer by setting 'enabled: false'.",
+  "_analyzers_docs6": "Custom analyzers can be added with a unique key and script path.",
+  "analyzers": {
+    "_dependencies_doc": "Extracts SBOM from package manifests (package.json, requirements.txt, go.mod, etc.)",
+    "dependencies": {
+      "name": "Dependencies",
+      "description": "Extract package dependencies from manifests (package.json, requirements.txt, etc.)",
+      "script": "utils/supply-chain/supply-chain-scanner.sh",
+      "requires_claude": false,
+      "estimated_time": "1-5s",
+      "output_file": "dependencies.json",
+      "enabled": true
+    },
+
+    "_technology_doc": "Identifies languages, frameworks, and tools by pattern matching imports and configs",
+    "technology": {
+      "name": "Technology Stack",
+      "description": "Identify frameworks, languages, and tools used in the codebase",
+      "script": "utils/technology-identification/technology-identification-data.sh",
+      "requires_claude": false,
+      "estimated_time": "5-15s",
+      "output_file": "technology.json",
+      "enabled": true
+    },
+
+    "_vulnerabilities_doc": "Queries OSV database for known CVEs in dependencies",
+    "vulnerabilities": {
+      "name": "Vulnerabilities",
+      "description": "Scan dependencies for known CVEs using OSV database",
+      "script": "utils/supply-chain/vulnerability-analysis/vulnerability-analyser-data.sh",
+      "requires_claude": false,
+      "estimated_time": "3-10s",
+      "output_file": "vulnerabilities.json",
+      "enabled": true
+    },
+
+    "_licenses_doc": "Checks dependency licenses for GPL, copyleft, and compliance risks",
+    "licenses": {
+      "name": "License Compliance",
+      "description": "Analyze dependency licenses for compliance risks",
+      "script": "utils/legal-review/legal-analyser-data.sh",
+      "requires_claude": false,
+      "estimated_time": "2-5s",
+      "output_file": "licenses.json",
+      "enabled": true
+    },
+
+    "_package_health_doc": "Detects abandoned packages (no updates >2 years), typosquatting suspects",
+    "package-health": {
+      "name": "Package Health",
+      "description": "Check for abandoned, deprecated, or unhealthy dependencies",
+      "script": "utils/supply-chain/package-health-analysis/package-health-analyser.sh",
+      "requires_claude": false,
+      "estimated_time": "10-30s",
+      "output_file": "package-health.json",
+      "enabled": true
+    },
+
+    "_security_findings_doc": "Static analysis for SQL injection, XSS, command injection, etc.",
+    "security-findings": {
+      "name": "Code Security",
+      "description": "Static analysis for security vulnerabilities in source code",
+      "script": "utils/code-security/code-security-data.sh",
+      "requires_claude": false,
+      "estimated_time": "10-60s",
+      "output_file": "security-findings.json",
+      "enabled": true
+    },
+
+    "_iac_security_doc": "Scans Terraform, CloudFormation, Kubernetes YAML for misconfigurations",
+    "iac-security": {
+      "name": "IaC Security",
+      "description": "Security scanning for Terraform, CloudFormation, Kubernetes configs",
+      "script": "utils/iac-security/iac-security-data.sh",
+      "requires_claude": false,
+      "estimated_time": "5-30s",
+      "output_file": "iac-security.json",
+      "enabled": true
+    },
+
+    "_secrets_doc": "Pattern-based detection of API keys, passwords, tokens in code",
+    "secrets": {
+      "name": "Secrets Scanner",
+      "description": "Detect exposed API keys, passwords, and credentials",
+      "script": "utils/secrets-scanner/secrets-scanner-data.sh",
+      "requires_claude": false,
+      "estimated_time": "10-60s",
+      "output_file": "secrets.json",
+      "enabled": true
+    },
+
+    "_tech_debt_doc": "Finds TODOs, FIXMEs, code duplication, and complexity hotspots",
+    "tech-debt": {
+      "name": "Technical Debt",
+      "description": "Analyze code duplication, complexity, and TODO markers",
+      "script": "utils/tech-debt/tech-debt-data.sh",
+      "requires_claude": false,
+      "estimated_time": "15-60s",
+      "output_file": "tech-debt.json",
+      "enabled": true
+    },
+
+    "_documentation_doc": "Analyzes README quality, docs coverage, API documentation",
+    "documentation": {
+      "name": "Documentation",
+      "description": "Analyze README, docs coverage, and documentation quality",
+      "script": "utils/documentation/documentation-data.sh",
+      "requires_claude": false,
+      "estimated_time": "5-15s",
+      "output_file": "documentation.json",
+      "enabled": true
+    },
+
+    "_git_insights_doc": "Commit frequency, contributor activity, branch patterns",
+    "git-insights": {
+      "name": "Git Insights",
+      "description": "Analyze commit patterns, contributors, and repository activity",
+      "script": "utils/git-insights/git-insights-data.sh",
+      "requires_claude": false,
+      "estimated_time": "5-20s",
+      "output_file": "git-insights.json",
+      "enabled": true
+    },
+
+    "_test_coverage_doc": "Detects test frameworks (Jest, pytest, etc.) and estimates coverage",
+    "test-coverage": {
+      "name": "Test Coverage",
+      "description": "Detect test frameworks and estimate test coverage",
+      "script": "utils/test-coverage/test-coverage-data.sh",
+      "requires_claude": false,
+      "estimated_time": "5-15s",
+      "output_file": "test-coverage.json",
+      "enabled": true
+    },
+
+    "_auth_doc": "Identifies OAuth, JWT, session handling, and auth provider usage",
+    "auth": {
+      "name": "Auth Analysis",
+      "description": "Identify authentication patterns and security configurations",
+      "script": "utils/auth-analysis/auth-analysis-data.sh",
+      "requires_claude": false,
+      "estimated_time": "5-15s",
+      "output_file": "auth.json",
+      "enabled": true
+    },
+
+    "_ownership_doc": "Parses CODEOWNERS, git blame, identifies maintainers and bus factor",
+    "ownership": {
+      "name": "Code Ownership",
+      "description": "Analyze CODEOWNERS, contributor patterns, and maintainership",
+      "script": "utils/code-ownership/ownership-analyser-data.sh",
+      "requires_claude": false,
+      "estimated_time": "10-30s",
+      "output_file": "ownership.json",
+      "enabled": true
+    },
+
+    "_dora_doc": "DORA metrics: deployment frequency, lead time, change failure rate",
+    "dora": {
+      "name": "DORA Metrics",
+      "description": "Calculate deployment frequency, lead time, and other DevOps metrics",
+      "script": "utils/dora-metrics/dora-analyser-data.sh",
+      "requires_claude": false,
+      "estimated_time": "10-30s",
+      "output_file": "dora.json",
+      "enabled": true
+    },
+
+    "_provenance_doc": "SLSA provenance, signed commits, build attestations",
+    "provenance": {
+      "name": "Provenance",
+      "description": "Verify build provenance and supply chain attestations (SLSA)",
+      "script": "utils/supply-chain/provenance-analysis/provenance-analyser.sh",
+      "requires_claude": false,
+      "estimated_time": "30-120s",
+      "output_file": "provenance.json",
+      "enabled": true
+    }
+  },
+
+  "_profiles_docs": "-----------------------------------------------------------------------------",
+  "_profiles_docs2": "PROFILES",
+  "_profiles_docs3": "-----------------------------------------------------------------------------",
+  "_profiles_docs4": "Profiles define which analyzers run together. Use --quick, --standard, etc.",
+  "_profiles_docs5": "Create custom profiles by adding new entries with unique keys.",
+  "_profiles_docs6": "Profiles with 'requires_claude: true' need ANTHROPIC_API_KEY set.",
+  "profiles": {
+    "_quick_doc": "Fast scan for rapid feedback. Good for CI/CD pipelines.",
+    "quick": {
+      "name": "Quick",
+      "description": "Fast essential analysis for rapid feedback",
+      "estimated_time": "~30 seconds",
+      "analyzers": ["dependencies", "technology", "vulnerabilities", "licenses", "tech-debt"]
+    },
+
+    "_standard_doc": "Default profile. Good balance of speed and coverage.",
+    "standard": {
+      "name": "Standard",
+      "description": "Balanced analysis covering security and code quality",
+      "estimated_time": "~2 minutes",
+      "analyzers": ["dependencies", "technology", "vulnerabilities", "licenses", "security-findings", "secrets", "tech-debt", "ownership", "dora"]
+    },
+
+    "_advanced_doc": "Comprehensive analysis. Use for thorough security reviews.",
+    "advanced": {
+      "name": "Advanced",
+      "description": "Comprehensive static analysis with health checks",
+      "estimated_time": "~5 minutes",
+      "analyzers": ["dependencies", "technology", "vulnerabilities", "package-health", "licenses", "security-findings", "iac-security", "secrets", "tech-debt", "documentation", "git-insights", "test-coverage", "ownership", "dora", "provenance"]
+    },
+
+    "_deep_doc": "Full analysis with AI insights. Requires ANTHROPIC_API_KEY.",
+    "deep": {
+      "name": "Deep",
+      "description": "Full analysis with Claude AI-assisted insights",
+      "estimated_time": "~10 minutes",
+      "requires_claude": true,
+      "analyzers": ["dependencies", "technology", "vulnerabilities", "package-health", "licenses", "security-findings", "iac-security", "secrets", "tech-debt", "documentation", "git-insights", "test-coverage", "auth", "ownership", "dora", "provenance"]
+    },
+
+    "_security_doc": "Security-focused. Use for vulnerability assessments and audits.",
+    "security": {
+      "name": "Security",
+      "description": "Security-focused analysis for vulnerability assessment",
+      "estimated_time": "~3 minutes",
+      "analyzers": ["dependencies", "vulnerabilities", "licenses", "security-findings", "iac-security", "secrets", "auth"]
+    },
+
+    "_compliance_doc": "License and policy compliance. Good for legal reviews.",
+    "compliance": {
+      "name": "Compliance",
+      "description": "License and policy compliance checks",
+      "estimated_time": "~2 minutes",
+      "analyzers": ["dependencies", "licenses", "security-findings", "documentation", "ownership"]
+    },
+
+    "_devops_doc": "CI/CD and operational metrics. Good for DevOps reviews.",
+    "devops": {
+      "name": "DevOps",
+      "description": "CI/CD and operational metrics",
+      "estimated_time": "~3 minutes",
+      "analyzers": ["dependencies", "technology", "iac-security", "git-insights", "test-coverage", "dora", "provenance"]
+    },
+
+    "_custom_profile_template": "Copy this template to create custom profiles:",
+    "_custom_example": {
+      "name": "My Custom Profile",
+      "description": "Description shown in menu",
+      "estimated_time": "~X minutes",
+      "requires_claude": false,
+      "analyzers": ["dependencies", "vulnerabilities"]
+    }
+  }
+}

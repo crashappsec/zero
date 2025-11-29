@@ -1,0 +1,212 @@
+{
+  "metadata": {
+    "version": "1.0.0",
+    "updated": "2025-01-15",
+    "category": "supply-chain/health",
+    "description": "Signals and patterns for detecting abandoned or unmaintained packages"
+  },
+  "abandonment_indicators": {
+    "time_based": [
+      {
+        "id": "no_release_12m",
+        "name": "No release in 12 months",
+        "severity": "low",
+        "weight": 0.3,
+        "description": "Package hasn't published a new version in over a year",
+        "exceptions": ["stable packages", "standards implementations"]
+      },
+      {
+        "id": "no_release_24m",
+        "name": "No release in 24 months",
+        "severity": "medium",
+        "weight": 0.5,
+        "description": "Package hasn't published a new version in over two years",
+        "exceptions": ["feature-complete packages"]
+      },
+      {
+        "id": "no_release_36m",
+        "name": "No release in 36 months",
+        "severity": "high",
+        "weight": 0.7,
+        "description": "Package hasn't published a new version in over three years"
+      },
+      {
+        "id": "no_commit_6m",
+        "name": "No repository commits in 6 months",
+        "severity": "low",
+        "weight": 0.2,
+        "description": "Repository shows no commit activity recently"
+      },
+      {
+        "id": "no_commit_12m",
+        "name": "No repository commits in 12 months",
+        "severity": "medium",
+        "weight": 0.4,
+        "description": "Repository shows no commit activity in over a year"
+      }
+    ],
+    "maintainer_signals": [
+      {
+        "id": "single_maintainer",
+        "name": "Single maintainer",
+        "severity": "low",
+        "weight": 0.15,
+        "description": "Package has only one maintainer (bus factor = 1)"
+      },
+      {
+        "id": "inactive_maintainer",
+        "name": "Maintainer inactive on platform",
+        "severity": "medium",
+        "weight": 0.3,
+        "description": "Primary maintainer has no recent activity on the platform"
+      },
+      {
+        "id": "maintainer_transfer",
+        "name": "Recent maintainer transfer",
+        "severity": "info",
+        "weight": 0.1,
+        "description": "Package ownership changed hands recently (could be positive or negative)"
+      },
+      {
+        "id": "maintainer_account_deleted",
+        "name": "Maintainer account deleted",
+        "severity": "high",
+        "weight": 0.6,
+        "description": "Maintainer's account no longer exists"
+      }
+    ],
+    "community_signals": [
+      {
+        "id": "unanswered_issues",
+        "name": "High ratio of unanswered issues",
+        "severity": "medium",
+        "weight": 0.25,
+        "threshold": "issues_open / (issues_open + issues_closed) > 0.8",
+        "description": "Most issues go unanswered"
+      },
+      {
+        "id": "stale_prs",
+        "name": "Many stale pull requests",
+        "severity": "medium",
+        "weight": 0.3,
+        "threshold": "PRs open > 6 months without activity",
+        "description": "Pull requests go unreviewed"
+      },
+      {
+        "id": "declining_downloads",
+        "name": "Declining download trends",
+        "severity": "low",
+        "weight": 0.15,
+        "threshold": "downloads decreased 50%+ year over year",
+        "description": "Package usage is declining significantly"
+      },
+      {
+        "id": "deprecated_notice",
+        "name": "Deprecation notice in README",
+        "severity": "high",
+        "weight": 0.8,
+        "patterns": ["deprecated", "no longer maintained", "use instead", "archived"],
+        "description": "README explicitly states package is deprecated"
+      }
+    ],
+    "repository_signals": [
+      {
+        "id": "archived_repo",
+        "name": "Repository is archived",
+        "severity": "high",
+        "weight": 0.9,
+        "description": "GitHub/GitLab repository has been archived"
+      },
+      {
+        "id": "no_repo_link",
+        "name": "No repository link",
+        "severity": "medium",
+        "weight": 0.3,
+        "description": "Package has no linked source repository"
+      },
+      {
+        "id": "repo_404",
+        "name": "Repository link returns 404",
+        "severity": "high",
+        "weight": 0.7,
+        "description": "Linked repository no longer exists"
+      },
+      {
+        "id": "repo_transferred",
+        "name": "Repository was transferred",
+        "severity": "info",
+        "weight": 0.1,
+        "description": "Repository ownership changed (may be positive)"
+      }
+    ],
+    "security_signals": [
+      {
+        "id": "unpatched_vulns",
+        "name": "Known vulnerabilities unpatched",
+        "severity": "critical",
+        "weight": 0.9,
+        "threshold": "CVE open > 90 days",
+        "description": "Package has known vulnerabilities without fixes"
+      },
+      {
+        "id": "security_issues_ignored",
+        "name": "Security issues ignored",
+        "severity": "high",
+        "weight": 0.7,
+        "description": "Security reports go unaddressed"
+      }
+    ]
+  },
+  "scoring": {
+    "thresholds": {
+      "abandoned": 0.7,
+      "at_risk": 0.4,
+      "healthy": 0.0
+    },
+    "calculation": "sum of (signal.weight * signal.present) / sum of applicable weights",
+    "adjustments": {
+      "corporate_backed": -0.2,
+      "foundation_maintained": -0.15,
+      "explicit_maintenance_mode": -0.1
+    }
+  },
+  "exceptions": {
+    "stable_packages": {
+      "description": "Some packages are complete and need no updates",
+      "examples": ["is-odd", "is-number", "base64-js"],
+      "criteria": [
+        "No dependencies",
+        "Simple functionality",
+        "No security-relevant code",
+        "High download count indicates trust"
+      ]
+    },
+    "standards_implementations": {
+      "description": "Implementations of stable standards rarely need updates",
+      "examples": ["uuid", "base64", "sha256"],
+      "criteria": [
+        "Implements published standard",
+        "Standard is stable/frozen",
+        "No security vulnerabilities"
+      ]
+    }
+  },
+  "recommendations": {
+    "abandoned": [
+      "Find actively maintained alternative",
+      "Fork and maintain internally if critical",
+      "Assess effort to replace vs maintain fork"
+    ],
+    "at_risk": [
+      "Monitor for further decline",
+      "Identify potential alternatives",
+      "Consider contributing to keep alive",
+      "Open issue asking about maintenance status"
+    ],
+    "healthy": [
+      "Continue using normally",
+      "Consider contributing",
+      "Star/sponsor if valuable"
+    ]
+  }
+}

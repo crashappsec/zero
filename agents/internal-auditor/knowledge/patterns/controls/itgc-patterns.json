@@ -1,0 +1,218 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "IT General Control Patterns",
+  "description": "Detection patterns for IT general controls assessment",
+  "version": "1.0.0",
+  "control_categories": {
+    "access_management": {
+      "controls": {
+        "user_provisioning": {
+          "objective": "New user access is properly authorized and provisioned",
+          "test_procedures": [
+            "Sample new user requests for documented approval",
+            "Verify access matches job role/approved request",
+            "Confirm background checks completed (if required)"
+          ],
+          "evidence": [
+            "Access request tickets",
+            "Approval emails/workflows",
+            "User access reports"
+          ],
+          "common_findings": [
+            "Missing approval documentation",
+            "Access granted exceeds request",
+            "Delayed provisioning causing workarounds"
+          ]
+        },
+        "user_deprovisioning": {
+          "objective": "Terminated user access is promptly revoked",
+          "test_procedures": [
+            "Compare termination list to access revocation dates",
+            "Verify access removed within policy timeframe",
+            "Check for lingering access across systems"
+          ],
+          "evidence": [
+            "Termination notifications",
+            "Access revocation tickets",
+            "System access logs"
+          ],
+          "common_findings": [
+            "Delayed access removal",
+            "Incomplete system coverage",
+            "Service account not disabled"
+          ]
+        },
+        "access_reviews": {
+          "objective": "User access is periodically reviewed and validated",
+          "test_procedures": [
+            "Verify access review completed per policy schedule",
+            "Sample review for appropriate sign-off",
+            "Confirm inappropriate access was remediated"
+          ],
+          "evidence": [
+            "Access review reports",
+            "Manager attestations",
+            "Remediation tickets"
+          ],
+          "common_findings": [
+            "Reviews not completed on time",
+            "Rubber-stamp approvals",
+            "Identified issues not remediated"
+          ]
+        },
+        "privileged_access": {
+          "objective": "Privileged access is limited and monitored",
+          "test_procedures": [
+            "Inventory privileged accounts",
+            "Verify business justification for each",
+            "Review privileged activity logs"
+          ],
+          "evidence": [
+            "Privileged account list",
+            "Justification documentation",
+            "PAM logs"
+          ],
+          "common_findings": [
+            "Excessive privileged accounts",
+            "Shared admin credentials",
+            "Inadequate logging"
+          ]
+        }
+      }
+    },
+    "change_management": {
+      "controls": {
+        "change_authorization": {
+          "objective": "Changes are properly authorized before implementation",
+          "test_procedures": [
+            "Sample changes for documented approval",
+            "Verify appropriate approver (not developer)",
+            "Confirm approval before deployment"
+          ],
+          "evidence": [
+            "Change tickets",
+            "Approval records",
+            "CAB meeting minutes"
+          ],
+          "common_findings": [
+            "Post-hoc approvals",
+            "Self-approval of changes",
+            "Missing documentation"
+          ]
+        },
+        "change_testing": {
+          "objective": "Changes are tested before production deployment",
+          "test_procedures": [
+            "Verify test plan exists for changes",
+            "Confirm testing in non-production environment",
+            "Review test results documentation"
+          ],
+          "evidence": [
+            "Test plans",
+            "Test results",
+            "QA sign-off"
+          ],
+          "common_findings": [
+            "Insufficient testing",
+            "Testing in production",
+            "Undocumented test results"
+          ]
+        },
+        "segregation_of_duties": {
+          "objective": "Developer cannot deploy own code to production",
+          "test_procedures": [
+            "Review deployment access vs development access",
+            "Sample deployments for different deployer than developer",
+            "Verify automated controls enforce SoD"
+          ],
+          "evidence": [
+            "Access matrices",
+            "Deployment logs",
+            "Pipeline configurations"
+          ],
+          "common_findings": [
+            "Developers with production access",
+            "SoD bypass for emergencies without review",
+            "Inadequate compensating controls"
+          ]
+        },
+        "emergency_changes": {
+          "objective": "Emergency changes have appropriate controls",
+          "test_procedures": [
+            "Review emergency change policy",
+            "Sample emergency changes for post-hoc approval",
+            "Verify emergency designation is justified"
+          ],
+          "evidence": [
+            "Emergency change tickets",
+            "Retroactive approvals",
+            "Root cause documentation"
+          ],
+          "common_findings": [
+            "Excessive emergency changes",
+            "Missing retroactive approval",
+            "Emergency as standard practice"
+          ]
+        }
+      }
+    },
+    "operations": {
+      "controls": {
+        "backup_recovery": {
+          "objective": "Data is backed up and can be restored",
+          "test_procedures": [
+            "Review backup schedules and retention",
+            "Verify backup completion logs",
+            "Request evidence of restore testing"
+          ],
+          "evidence": [
+            "Backup policies",
+            "Backup logs",
+            "Restore test results"
+          ],
+          "common_findings": [
+            "Backups not tested",
+            "Inadequate retention",
+            "Missing critical systems"
+          ]
+        },
+        "incident_management": {
+          "objective": "Security incidents are detected and responded to",
+          "test_procedures": [
+            "Review incident response procedures",
+            "Sample incidents for proper handling",
+            "Verify incident closure and lessons learned"
+          ],
+          "evidence": [
+            "Incident tickets",
+            "Response timelines",
+            "Post-incident reviews"
+          ],
+          "common_findings": [
+            "Delayed detection",
+            "Incomplete root cause analysis",
+            "No lessons learned documentation"
+          ]
+        },
+        "vulnerability_management": {
+          "objective": "Vulnerabilities are identified and remediated",
+          "test_procedures": [
+            "Review vulnerability scanning coverage",
+            "Verify remediation within SLA",
+            "Check for recurring vulnerabilities"
+          ],
+          "evidence": [
+            "Scan reports",
+            "Remediation tickets",
+            "SLA compliance metrics"
+          ],
+          "common_findings": [
+            "Incomplete scanning coverage",
+            "Overdue critical vulnerabilities",
+            "Unpatched systems"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -53,14 +53,18 @@ Gibson Powers is being built as the **open-source alternative** to commercial DP
 #### **Phase 1: Foundation** (Current - Q1 2025) ✅
 Build core software analysis capabilities
 
-**Status**: ✅ In Progress
-- [x] Code ownership analysis
-- [x] SBOM generation and scanning
-- [x] Multi-layer confidence scoring
+**Status**: ✅ Complete
+- [x] Code ownership analysis - **Complete** ✅
+- [x] SBOM generation and scanning - **Complete** ✅
+- [x] Multi-layer confidence scoring - **Complete** ✅
 - [x] Technology intelligence (112 technologies) - **Complete** ✅
 - [x] Dynamic pattern loading (data-driven detection) - **Complete** ✅
-- [ ] Comprehensive testing infrastructure
-- [ ] Code Security Analyser - **In Development** 🚧
+- [x] IaC Security Scanner (Checkov integration) - **Complete** ✅
+- [x] Comprehensive testing infrastructure - **Complete** ✅
+- [x] Code Security Analyser - **Complete** ✅
+- [x] Vulnerability Analysis (OSV.dev, CISA KEV) - **Complete** ✅
+- [x] Legal/License Analysis - **Complete** ✅
+- [x] DORA Metrics Analysis - **Complete** ✅
 
 **Deliverables**:
 - v0.3.0: Technology intelligence (100+ technologies)
@@ -69,16 +73,27 @@ Build core software analysis capabilities
 
 ---
 
-#### **Phase 2: Developer Experience** (Q2 2025) 🎯
+#### **Phase 2: Developer Experience** (Q2 2025) ✅
 Match DX and Swarmia on developer experience insights
 
+**Status**: ✅ Core Features Complete
+
 **Features**:
-- Developer experience surveys (inspired by Swarmia's 32-question framework)
-- Flow metrics (cycle time, PR review time, deployment frequency)
-- Bottleneck identification
-- Working agreements monitoring
-- CI/CD performance tracking
-- Build speed analysis
+- Developer experience surveys (inspired by Swarmia's 32-question framework) - 🎯 Planned
+- Flow metrics (cycle time, PR review time, deployment frequency) - ✅ DORA Metrics Complete
+- Bottleneck identification - 🎯 Planned
+- Working agreements monitoring - 🎯 Planned
+- CI/CD performance tracking - ✅ DORA Metrics Complete
+- Build speed analysis - ✅ DORA Metrics Complete
+
+**DPI Extractors - ALL COMPLETE** ✅:
+- [x] Technical Debt Scanner - TODO/FIXME tracking, outdated deps, code duplication, RAG-based scoring ✅
+- [x] Documentation Analyzer - README quality, API docs, comment coverage ✅
+- [x] Git Insights Analyzer - Contributor patterns, churn analysis, bus factor, multi-repo org support ✅
+- [x] Test Coverage Analyzer - Test frameworks, coverage estimation, test gaps ✅
+- [x] Secrets Scanner (pattern-based) - 22+ patterns, fallback when TruffleHog unavailable ✅
+- [x] Authentication Analysis - Auth providers, JWT patterns, password hashing ✅
+- [ ] Claude-Enhanced Secrets Analyzer - AI false-positive reduction (see backlog)
 
 **Crash Override Integration**:
 - Vulnerability remediation time tracking
@@ -121,10 +136,17 @@ Exceed all competitors with predictive insights
 **Features**:
 - AI impact measurement (like DX)
 - Predictive analytics (forecast delivery timelines)
-- Technical debt scoring
-- Dependency health tracking
-- License compliance automation
-- Team health indicators
+- Technical debt scoring - ✅ Complete (RAG-based weighted scoring)
+- Dependency health tracking - ✅ Complete (package-health-analysis)
+- License compliance automation - ✅ Complete (legal-analyser)
+- Team health indicators - 🎯 Planned
+
+**Advanced DPI Extractors**:
+- [x] Code Complexity Analyzer - Cyclomatic/cognitive complexity - ✅ Partial (in tech-debt RAG, needs scanner)
+- [ ] Architecture Analyzer - Dependency graphs, circular deps, layer violations
+- [ ] API Security Analyzer - OpenAPI analysis, auth patterns, rate limiting
+- [ ] Data Privacy Analyzer - PII detection, encryption patterns, GDPR compliance
+- [ ] Build Analysis - CI/CD config parsing, caching opportunities, build duration
 
 **Crash Override Integration**:
 - Predictive vulnerability analysis
@@ -255,18 +277,18 @@ A skill for calculating and improving the bus factor (truck factor) of software 
 
 ### Supply Chain Security
 
-#### Supply Chain Scanner v2.0 - Dependency Intelligence Platform 🚧
+#### Supply Chain Scanner v2.0 - Dependency Intelligence Platform ✅
 
-**Status**: 🚧 Actively Developing (Q1 2025)
+**Status**: ✅ Core Complete (Q1 2025)
 
 Transforming the supply chain scanner from a security-focused tool into a comprehensive **dependency intelligence platform** addressing security, developer productivity, compliance, and sustainability.
 
 **See**: [Supply Chain Implementation Plan](docs/supply-chain-implementation-plan.md)
 
 **Security & Risk Management**:
-- [x] Vulnerability analysis (OSV.dev, CISA KEV)
-- [x] Provenance analysis (SLSA, npm provenance, sigstore)
-- [x] Package health analysis (deps.dev, OpenSSF Scorecard)
+- [x] Vulnerability analysis (OSV.dev, CISA KEV) - **Complete** ✅
+- [x] Provenance analysis (SLSA, npm provenance, sigstore) - **Complete** ✅
+- [x] Package health analysis (deps.dev, OpenSSF Scorecard) - **Complete** ✅
 - [ ] Version normalization for improved vulnerability matching
 - [ ] Abandoned/deprecated package detection
 - [ ] Typosquatting and malicious package detection
@@ -464,11 +486,18 @@ Integrate Gibson Powers analyzers with Chalk (chalkproject.io) to enable automat
 
 ### Code Security
 
-#### Code Security Analyser 🚧
+#### Code Security Analyser ✅
 
-**Status**: 🚧 Actively Developing (Q1 2025)
+**Status**: ✅ Complete (Q1 2025)
 
 AI-powered code security review using Claude to identify vulnerabilities, security weaknesses, and potential exploits in source code. Based on [Anthropic's claude-code-security-review](https://github.com/anthropics/claude-code-security-review) approach.
+
+**Implementation**:
+- `utils/code-security/code-security-analyser.sh` - Main analyser with Claude AI
+- `utils/code-security/code-security-data.sh` - Data collector
+- Support for local repos, GitHub repos, and organization scanning
+- SARIF, JSON, and Markdown output formats
+- RAG knowledge base integration
 
 **Key Capabilities:**
 
@@ -968,6 +997,12 @@ Detect misconfigurations and security issues in infrastructure-as-code files:
   - PII detection
   - Integration with TruffleHog/GitLeaks
   - False positive management
+  - **Claude-Enhanced Secrets Analysis** 🆕:
+    - AI-powered false positive reduction (context-aware analysis)
+    - Distinguish real secrets from test data, examples, and patterns
+    - Severity assessment based on exposure context
+    - Secret rotation recommendations
+    - Similar to code-security pattern: basic `*-data.sh` + Claude `*-analyser.sh`
 
 - **Phase 3** (Q3 2025): IaC security scanning
   - Terraform, CloudFormation, Pulumi support
@@ -1172,16 +1207,24 @@ AI-powered GitHub organization security and configuration analyzer - integrated 
 - [Scorecard](https://github.com/ossf/scorecard) - OpenSSF security health metrics
 - [GitHub Security Lab](https://securitylab.github.com/) - Security research and tools
 
-#### Technical Debt Analysis
+#### Technical Debt Analysis ✅
+
+**Status**: ✅ Complete
 
 Measure and track technical debt across codebases:
-- Code quality metrics (complexity, duplication, etc.)
-- Architecture debt identification
-- Test coverage gaps
-- Documentation debt
-- Dependency staleness
-- Refactoring prioritization
-- ROI calculations for debt reduction
+- [x] Code quality metrics (complexity, duplication, etc.) - ✅ `tech-debt-data.sh`
+- [x] Architecture debt identification - ✅ Via markers and long files
+- [x] Test coverage gaps - ✅ `test-coverage-data.sh`
+- [x] Documentation debt - ✅ `documentation-data.sh`
+- [x] Dependency staleness - ✅ `supply-chain-scanner.sh`
+- [x] Refactoring prioritization - ✅ RAG-based weighted scoring
+- [ ] ROI calculations for debt reduction - 🎯 Planned
+
+**Implementation**:
+- `utils/tech-debt/tech-debt-data.sh` - Main scanner with RAG-based weighted scoring
+- RAG indicators: code-markers, complexity-thresholds, file-size-thresholds, duplication-thresholds, test-coverage-thresholds, churn-thresholds
+- Category scores with individual weights from RAG knowledge base
+- Multi-repo organization support with aggregated scoring
 
 #### Incident Response Automation
 
@@ -1346,7 +1389,7 @@ Detect and remediate exposed secrets and sensitive data:
 
 #### Technology Audit and Stack Analysis 📊 Phase 1
 
-**Status**: ✅ RAG Database Complete (112 technologies) - Scanner integration in progress
+**Status**: ✅ Complete (112+ technologies with full scanner integration)
 
 **Approach**: Unlike traditional tools that use separate analyzers for different detection methods, Gibson Powers uses a **unified multi-layer analysis** that combines all detection approaches in a single pass for higher accuracy and confidence scoring.
 
@@ -1454,6 +1497,14 @@ Analyze technology stack, dependencies, and platform usage:
 
 Ideas being explored for potential future development:
 
+- **Database Storage Backend**: Replace or augment filesystem storage with database for improved querying and scalability. Options under evaluation (See [Implementation Plan](docs/dpi-extractors-implementation-plan.md#database-storage-options)):
+  - **SQLite** (Recommended for single-user): Zero infrastructure, full SQL, works offline
+  - **DuckDB** (Analytics): Columnar storage, great for dashboards and trends
+  - **PostgreSQL** (Enterprise): Multi-user, JSONB support, hosted options
+  - Hybrid architecture: JSON files as source of truth, database as query layer
+  - Enable cross-project queries ("find all repos with critical vulns")
+  - Historical trend tracking and analytics dashboards
+
 - **RAG Server Integration**: Connect analysers to a proper RAG server (Pinecone, Weaviate, ChromaDB, Qdrant) for semantic search over knowledge bases, with local filesystem as fallback for offline/air-gapped environments. This would enable:
   - Semantic search over certificate security, supply chain, and compliance knowledge
   - Dynamic context selection based on query relevance
@@ -1516,17 +1567,45 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-*Last Updated: 2025-11-25*
+*Last Updated: 2025-11-28*
 
 **Recent Changes**:
-- **NEW: Supply Chain Scanner v2.0 - Dependency Intelligence Platform** 🚧
-  - Transforming from security-only to comprehensive dependency intelligence
-  - Added RAG knowledge base: version normalization, typosquatting detection, abandoned packages, unused dependencies, hardened images, library recommendations
-  - Created implementation plan with 9 phases covering security, productivity, compliance, and sustainability
-  - New capabilities: AI-powered library recommendations, bundle size optimization, technical debt scoring, carbon footprint estimation
-- **Completed Technology Intelligence**: Expanded RAG database to 112 technologies with 431 pattern files
-- Added comprehensive coverage: AI/ML (APIs, Vector DBs, MLOps), Databases, Cloud Providers, Authentication, Messaging, Monitoring, Payment, Email, Analytics, CMS, Testing, CI/CD, Feature Flags
-- Marked Phase 1 technology intelligence and dynamic pattern loading as complete
-- Added **GitHub Organization Security Analyzer** feature (AI-powered evolution of github-analyzer)
-- Added **Comprehensive Security Code Analysis** feature (SAST, secrets, IaC scanning)
-- Added Developer Productivity Intelligence (DPI) strategy and positioning
+
+- **All Phase 1 & 2 DPI Extractors Complete** ✅
+  - Technical Debt Scanner with RAG-based weighted scoring
+  - Documentation Analyzer with quality metrics
+  - Git Insights Analyzer with contributor patterns and bus factor
+  - Test Coverage Analyzer with framework detection
+  - Secrets Scanner (pattern-based) with 22+ patterns
+  - Authentication Analysis with provider detection
+  - All support multi-repo organization scanning with aggregation
+
+- **Tech Debt Scanner Tests** ✅
+  - Comprehensive test suite for all RAG indicators
+  - Tests for code-markers, file-size, duplication, test-coverage, scoring
+  - Test framework based on existing technology-identification tests
+
+- **Phantom Hydration System** ✅
+  - Multi-mode hydration: quick, standard, advanced, deep, security, custom
+  - Interactive checkbox collector selection (`--choose`)
+  - Organization-level hydration with progress tracking
+  - Auto-detect uncloned repos with hydration prompts
+
+- **Code Security Analyser Complete** ✅
+  - AI-powered security review using Claude
+  - SARIF, JSON, and Markdown output formats
+  - Support for local repos, GitHub repos, and organization scanning
+
+- **IaC Security Scanner (Checkov Integration)** ✅
+  - Integrated Checkov for Infrastructure-as-Code security scanning
+  - Supports 50+ frameworks: Terraform, CloudFormation, Kubernetes, Docker, Helm, GitHub Actions, etc.
+
+- **Supply Chain Scanner v2.0 - Core Complete** ✅
+  - Vulnerability analysis (OSV.dev, CISA KEV)
+  - Provenance analysis (SLSA, npm provenance, sigstore)
+  - Package health analysis (deps.dev, OpenSSF Scorecard)
+
+- **Technology Intelligence Complete** ✅
+  - 112+ technologies with 431 pattern files
+  - Multi-layer detection with confidence scoring
+  - Full scanner integration with data extraction

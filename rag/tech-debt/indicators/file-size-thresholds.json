@@ -1,0 +1,57 @@
+{
+  "category": "file_size",
+  "description": "Thresholds for file and function size indicators",
+  "file_lines": {
+    "description": "Lines of code per file",
+    "thresholds": [
+      { "min": 0, "max": 200, "level": "excellent", "score": 0, "description": "Well-sized file" },
+      { "min": 201, "max": 500, "level": "acceptable", "score": 10, "description": "Acceptable size" },
+      { "min": 501, "max": 1000, "level": "warning", "score": 30, "description": "Consider splitting" },
+      { "min": 1001, "max": 2000, "level": "high", "score": 60, "description": "Should be split" },
+      { "min": 2001, "max": null, "level": "critical", "score": 100, "description": "God file - urgent refactor" }
+    ]
+  },
+  "function_lines": {
+    "description": "Lines of code per function/method",
+    "thresholds": [
+      { "min": 0, "max": 20, "level": "excellent", "score": 0 },
+      { "min": 21, "max": 50, "level": "acceptable", "score": 10 },
+      { "min": 51, "max": 100, "level": "warning", "score": 40 },
+      { "min": 101, "max": 200, "level": "high", "score": 70 },
+      { "min": 201, "max": null, "level": "critical", "score": 100 }
+    ]
+  },
+  "class_lines": {
+    "description": "Lines of code per class",
+    "thresholds": [
+      { "min": 0, "max": 200, "level": "excellent", "score": 0 },
+      { "min": 201, "max": 500, "level": "acceptable", "score": 15 },
+      { "min": 501, "max": 1000, "level": "warning", "score": 40 },
+      { "min": 1001, "max": null, "level": "critical", "score": 80 }
+    ]
+  },
+  "language_adjustments": {
+    "description": "Adjust thresholds based on language conventions",
+    "java": { "file_multiplier": 1.5, "reason": "Verbose language" },
+    "go": { "file_multiplier": 0.8, "reason": "Single package files" },
+    "python": { "file_multiplier": 1.0, "reason": "Standard" },
+    "javascript": { "file_multiplier": 1.0, "reason": "Standard" },
+    "typescript": { "file_multiplier": 1.1, "reason": "Type annotations" }
+  },
+  "special_files": {
+    "description": "Files to exclude or adjust scoring",
+    "exclude_patterns": [
+      "**/generated/**",
+      "**/*.generated.*",
+      "**/vendor/**",
+      "**/node_modules/**",
+      "**/*.min.js",
+      "**/*.bundle.js"
+    ],
+    "adjusted_patterns": [
+      { "pattern": "**/migrations/**", "multiplier": 0.5, "reason": "DB migrations often long" },
+      { "pattern": "**/*.test.*", "multiplier": 0.7, "reason": "Tests can be verbose" },
+      { "pattern": "**/types/**", "multiplier": 0.5, "reason": "Type definitions" }
+    ]
+  }
+}

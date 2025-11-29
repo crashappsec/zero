@@ -525,6 +525,82 @@ github_clone_repository() {
     fi
 }
 
+#############################################################################
+# Organization Scanning Functions (merged from org-scanner.sh)
+#############################################################################
+
+# Colors (may be overridden by sourcing script)
+: ${RED:='\033[0;31m'}
+: ${GREEN:='\033[0;32m'}
+: ${YELLOW:='\033[1;33m'}
+: ${BLUE:='\033[0;34m'}
+: ${CYAN:='\033[0;36m'}
+: ${NC:='\033[0m'}
+
+# Collect repos from org, separating cloned from uncloned
+# Sets: REPOS_TO_SCAN (array), REPOS_NOT_CLONED (array)
+# Args: $1 = org path
+collect_org_repos() {
+    local org_path="$1"
+    REPOS_TO_SCAN=()
+    REPOS_NOT_CLONED=()
+
+    for repo_dir in "$org_path"/*/; do
+        local repo_name=$(basename "$repo_dir")
+        if [[ -d "$repo_dir/repo" ]]; then
+            REPOS_TO_SCAN+=("$repo_name")
+        else
+            REPOS_NOT_CLONED+=("$repo_name")
+        fi
+    done
+}
+
+# Prompt user to hydrate uncloned repos
+# Args: $1 = org name, $2 = org path, $3 = repo root path (for hydrate.sh)
+# Returns: 0 if user wants to continue, 1 if cancelled
+prompt_hydrate_repos() {
+    local org="$1"
+    local org_path="$2"
+    local repo_root="$3"
+
+    if [[ ${#REPOS_NOT_CLONED[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    echo -e "${YELLOW}Found ${#REPOS_NOT_CLONED[@]} repositories without cloned code:${NC}" >&2
+    for repo in "${REPOS_NOT_CLONED[@]}"; do
+        echo -e "  - $repo" >&2
+    done
+    echo "" >&2
+
+    # Prompt user
+    read -p "Would you like to hydrate these repos for analysis? [y/N] " -n 1 -r >&2
+    echo "" >&2
+
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo -e "${BLUE}Hydrating ${#REPOS_NOT_CLONED[@]} repositories...${NC}" >&2
+
+        # Run hydration for each uncloned repo
+        for repo in "${REPOS_NOT_CLONED[@]}"; do
+            echo -e "${CYAN}Cloning $org/$repo...${NC}" >&2
+            "$repo_root/utils/phantom/hydrate.sh" --repo "$org/$repo" --quick >&2 2>&1 || true
+
+            # Check if clone succeeded
+            if [[ -d "$org_path/$repo/repo" ]]; then
+                REPOS_TO_SCAN+=("$repo")
+                echo -e "${GREEN}✓ $repo ready${NC}" >&2
+            else
+                echo -e "${RED}✗ Failed to clone $repo${NC}" >&2
+            fi
+        done
+        echo "" >&2
+    else
+        echo -e "${CYAN}Continuing with ${#REPOS_TO_SCAN[@]} already-cloned repositories...${NC}" >&2
+    fi
+
+    return 0
+}
+
 # Export functions
 export -f init_github_cache
 export -f cleanup_github_cache
@@ -546,3 +622,5 @@ export -f has_github_token
 export -f get_rate_limit
 export -f format_contributor_with_github
 export -f github_clone_repository
+export -f collect_org_repos
+export -f prompt_hydrate_repos
