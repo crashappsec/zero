@@ -1,0 +1,226 @@
+{
+  "$schema": "./phantom.config.schema.json",
+  "_version": "1.0.0",
+  "_docs": "Phantom configuration file. See phantom.config.example.json for full documentation.",
+
+  "settings": {
+    "default_profile": "standard",
+    "storage_path": "~/.phantom",
+    "parallel_jobs": 4,
+    "scanner_timeout_seconds": 300,
+    "cache_ttl_hours": 24,
+    "environment": {
+      "github_token_env": "GITHUB_TOKEN",
+      "anthropic_key_env": "ANTHROPIC_API_KEY"
+    }
+  },
+
+  "scanners": {
+    "package-sbom": {
+      "name": "Package SBOM",
+      "description": "Extract package dependencies from manifests (package.json, requirements.txt, etc.)",
+      "script": "utils/scanners/package-sbom.sh",
+      "requires_claude": false,
+      "estimated_time": "1-5s",
+      "output_file": "package-sbom.json"
+    },
+    "tech-discovery": {
+      "name": "Tech Discovery",
+      "description": "Identify frameworks, languages, and tools used in the codebase",
+      "script": "utils/scanners/tech-discovery.sh",
+      "requires_claude": false,
+      "estimated_time": "5-15s",
+      "output_file": "tech-discovery.json"
+    },
+    "package-vulns": {
+      "name": "Package Vulnerabilities",
+      "description": "Scan packages for known CVEs using OSV database",
+      "script": "utils/scanners/package-vulns.sh",
+      "requires_claude": false,
+      "estimated_time": "3-10s",
+      "output_file": "package-vulns.json"
+    },
+    "licenses": {
+      "name": "License Compliance",
+      "description": "Analyze dependency licenses for compliance risks",
+      "script": "utils/scanners/licenses.sh",
+      "requires_claude": false,
+      "estimated_time": "2-5s",
+      "output_file": "licenses.json"
+    },
+    "package-health": {
+      "name": "Package Health",
+      "description": "Check for abandoned, deprecated, or unhealthy dependencies",
+      "script": "utils/scanners/package-health.sh",
+      "requires_claude": false,
+      "estimated_time": "10-30s",
+      "output_file": "package-health.json"
+    },
+    "code-security": {
+      "name": "Code Security",
+      "description": "Static analysis for security vulnerabilities in source code",
+      "script": "utils/scanners/code-security.sh",
+      "requires_claude": false,
+      "estimated_time": "10-60s",
+      "output_file": "code-security.json"
+    },
+    "iac-security": {
+      "name": "IaC Security",
+      "description": "Security scanning for Terraform, CloudFormation, Kubernetes configs",
+      "script": "utils/scanners/iac-security.sh",
+      "requires_claude": false,
+      "estimated_time": "5-30s",
+      "output_file": "iac-security.json"
+    },
+    "code-secrets": {
+      "name": "Code Secrets",
+      "description": "Detect exposed API keys, passwords, and credentials",
+      "script": "utils/scanners/code-secrets.sh",
+      "requires_claude": false,
+      "estimated_time": "10-60s",
+      "output_file": "code-secrets.json"
+    },
+    "tech-debt": {
+      "name": "Technical Debt",
+      "description": "Analyze code duplication, complexity, and TODO markers",
+      "script": "utils/scanners/tech-debt.sh",
+      "requires_claude": false,
+      "estimated_time": "15-60s",
+      "output_file": "tech-debt.json"
+    },
+    "documentation": {
+      "name": "Documentation",
+      "description": "Analyze README, docs coverage, and documentation quality",
+      "script": "utils/scanners/documentation.sh",
+      "requires_claude": false,
+      "estimated_time": "5-15s",
+      "output_file": "documentation.json"
+    },
+    "git": {
+      "name": "Git Insights",
+      "description": "Analyze commit patterns, contributors, and repository activity",
+      "script": "utils/scanners/git.sh",
+      "requires_claude": false,
+      "estimated_time": "5-20s",
+      "output_file": "git.json"
+    },
+    "test-coverage": {
+      "name": "Test Coverage",
+      "description": "Detect test frameworks and estimate test coverage",
+      "script": "utils/scanners/test-coverage.sh",
+      "requires_claude": false,
+      "estimated_time": "5-15s",
+      "output_file": "test-coverage.json"
+    },
+    "code-ownership": {
+      "name": "Code Ownership",
+      "description": "Analyze CODEOWNERS, contributor patterns, and maintainership",
+      "script": "utils/scanners/code-ownership.sh",
+      "requires_claude": false,
+      "estimated_time": "10-30s",
+      "output_file": "code-ownership.json"
+    },
+    "dora": {
+      "name": "DORA Metrics",
+      "description": "Calculate deployment frequency, lead time, and other DevOps metrics",
+      "script": "utils/scanners/dora.sh",
+      "requires_claude": false,
+      "estimated_time": "10-30s",
+      "output_file": "dora.json"
+    },
+    "package-provenance": {
+      "name": "Package Provenance",
+      "description": "Verify build provenance and supply chain attestations (SLSA)",
+      "script": "utils/scanners/package-provenance.sh",
+      "requires_claude": false,
+      "estimated_time": "30-120s",
+      "output_file": "package-provenance.json"
+    },
+    "package-bundle-optimization": {
+      "name": "Package Bundle Optimization",
+      "description": "Analyze JavaScript bundle sizes and optimization opportunities",
+      "script": "utils/scanners/package-bundle-optimization.sh",
+      "requires_claude": false,
+      "estimated_time": "5-30s",
+      "output_file": "package-bundle-optimization.json"
+    },
+    "digital-certificates": {
+      "name": "Digital Certificates",
+      "description": "Analyze SSL/TLS certificates for security and compliance",
+      "script": "utils/scanners/digital-certificates.sh",
+      "requires_claude": false,
+      "estimated_time": "5-30s",
+      "output_file": "digital-certificates.json"
+    },
+    "chalk": {
+      "name": "Chalk Build Analysis",
+      "description": "Analyze Chalk build artifacts and provenance",
+      "script": "utils/scanners/chalk.sh",
+      "requires_claude": false,
+      "estimated_time": "10-60s",
+      "output_file": "chalk.json"
+    },
+    "containers": {
+      "name": "Container Analysis",
+      "description": "Analyze container images for security and best practices",
+      "script": "utils/scanners/containers.sh",
+      "requires_claude": false,
+      "estimated_time": "10-60s",
+      "output_file": "containers.json"
+    },
+    "package-recommendations": {
+      "name": "Package Recommendations",
+      "description": "Suggest alternative libraries based on health and security",
+      "script": "utils/scanners/package-recommendations.sh",
+      "requires_claude": false,
+      "estimated_time": "10-30s",
+      "output_file": "package-recommendations.json"
+    }
+  },
+
+  "profiles": {
+    "quick": {
+      "name": "Quick",
+      "description": "Fast essential analysis for rapid feedback",
+      "estimated_time": "~30 seconds",
+      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "licenses", "tech-debt"]
+    },
+    "standard": {
+      "name": "Standard",
+      "description": "Balanced analysis covering security and code quality",
+      "estimated_time": "~2 minutes",
+      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "licenses", "code-security", "code-secrets", "tech-debt", "code-ownership", "dora"]
+    },
+    "advanced": {
+      "name": "Advanced",
+      "description": "Comprehensive static analysis with health checks",
+      "estimated_time": "~5 minutes",
+      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance"]
+    },
+    "deep": {
+      "name": "Deep",
+      "description": "Full analysis with Claude AI-assisted insights",
+      "estimated_time": "~10 minutes",
+      "requires_claude": true,
+      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance"]
+    },
+    "security": {
+      "name": "Security",
+      "description": "Security-focused analysis for vulnerability assessment",
+      "estimated_time": "~3 minutes",
+      "scanners": ["package-sbom", "package-vulns", "licenses", "code-security", "iac-security", "code-secrets"]
+    },
+    "compliance": {
+      "name": "Compliance",
+      "description": "License and policy compliance checks",
+      "estimated_time": "~2 minutes",
+      "scanners": ["package-sbom", "licenses", "code-security", "documentation", "code-ownership"]
+    },
+    "devops": {
+      "name": "DevOps",
+      "description": "CI/CD and operational metrics",
+      "estimated_time": "~3 minutes",
+      "scanners": ["package-sbom", "tech-discovery", "iac-security", "git", "test-coverage", "dora", "package-provenance"]
+    }
+  }
+}

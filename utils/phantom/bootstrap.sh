@@ -49,6 +49,7 @@ BRANCH=""
 DEPTH=""
 MODE="standard"  # quick, standard, thorough, deep, security
 FORCE=false
+ENRICH=false     # Incremental enrichment - only run missing collectors
 
 #############################################################################
 # Usage
@@ -76,6 +77,7 @@ OPTIONS:
     --branch <name>     Clone specific branch (default: default branch)
     --depth <n>         Shallow clone depth (default: full for DORA metrics)
     --force             Re-hydrate even if project exists
+    --enrich            Only run collectors not previously run (incremental)
     -h, --help          Show this help
 
 EXAMPLES:
@@ -133,8 +135,18 @@ parse_args() {
                 MODE="security"
                 shift
                 ;;
+            --collectors)
+                MODE="custom"
+                # Convert comma-separated to space-separated
+                export CUSTOM_COLLECTORS="${2//,/ }"
+                shift 2
+                ;;
             --force)
                 FORCE=true
+                shift
+                ;;
+            --enrich)
+                ENRICH=true
                 shift
                 ;;
             -*)
@@ -188,7 +200,41 @@ clone_github_repo() {
         fi
     fi
 
-    git clone "${clone_args[@]}" "$url" "$dest" 2>&1
+    # Clone with progress display
+    clone_args+=("--progress")
+
+    # Run git clone - stderr has progress, use stdbuf to get line-buffered output
+    # Git uses \r for in-place updates, so we need to handle that
+    git clone "${clone_args[@]}" "$url" "$dest" 2>&1 | tr '\r' '\n' | while IFS= read -r line; do
+        # Parse git progress lines like "Receiving objects:  45% (1234/2742), 12.50 MiB | 5.20 MiB/s"
+        if echo "$line" | grep -qE 'Receiving objects:.*[0-9]+ [KMG]iB'; then
+            # Extract percentage, size received, and speed
+            local pct=$(echo "$line" | grep -oE '[0-9]+%' | head -1)
+            local size=$(echo "$line" | grep -oE '[0-9]+(\.[0-9]+)? [KMG]iB' | head -1)
+            local speed=$(echo "$line" | grep -oE '[0-9]+(\.[0-9]+)? [KMG]iB/s' | head -1)
+            if [[ -n "$pct" ]] && [[ -n "$size" ]]; then
+                printf "\r    Receiving: %s (%s @ %s)   " "$pct" "$size" "${speed:-...}"
+            fi
+        elif echo "$line" | grep -qE 'Receiving objects:.*%'; then
+            # Progress without size (small repos)
+            local pct=$(echo "$line" | grep -oE '[0-9]+%' | head -1)
+            if [[ -n "$pct" ]]; then
+                printf "\r    Receiving: %s              " "$pct"
+            fi
+        elif echo "$line" | grep -qE 'Resolving deltas:.*%'; then
+            local pct=$(echo "$line" | grep -oE '[0-9]+%' | head -1)
+            printf "\r    Resolving: %s              " "$pct"
+        elif echo "$line" | grep -qE 'Cloning into'; then
+            : # Skip this line
+        elif echo "$line" | grep -qE 'Counting|Compressing'; then
+            : # Skip these phases
+        elif [[ -n "$line" ]]; then
+            # Pass through other non-empty output
+            echo "$line"
+        fi
+    done
+    # Clear the progress line
+    printf "\r                                              \r"
 }
 
 copy_local_project() {
@@ -353,31 +399,72 @@ get_analyzers_for_mode() {
 
     case "$mode" in
         quick)
-            # Fast scan (~30s): Core analyzers only
-            echo "dependencies technology vulnerabilities licenses"
+            # Fast scan (~30s): Core scanners only
+            echo "package-sbom tech-discovery package-vulns licenses tech-debt"
             ;;
         standard|full)
-            # Standard scan (~2min): Most useful analyzers, skip slow ones
-            echo "dependencies technology vulnerabilities licenses security-findings ownership dora"
+            # Standard scan (~2min): Most useful scanners, no Claude-assisted scans
+            echo "package-sbom tech-discovery package-vulns licenses code-security code-secrets tech-debt code-ownership dora"
             ;;
         advanced)
-            # Advanced scan (~5min): All static analyzers including slow ones
-            echo "dependencies technology vulnerabilities package-health licenses security-findings ownership dora provenance"
+            # Advanced scan (~5min): All static scanners including slow ones
+            echo "package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership dora package-provenance"
             ;;
         deep)
-            # Deep scan with Claude (~10min): All analyzers + Claude enhancement
-            # Note: Individual analyzers check USE_CLAUDE env var
-            echo "dependencies technology vulnerabilities package-health licenses security-findings ownership dora provenance"
+            # Deep scan with Claude (~10min): All scanners + Claude enhancement
+            # Note: Individual scanners check USE_CLAUDE env var
+            echo "package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership dora package-provenance"
             ;;
         security)
             # Security focus: Vulnerability and code security
-            echo "dependencies vulnerabilities package-health security-findings provenance"
+            echo "package-sbom package-vulns licenses code-security iac-security code-secrets"
+            ;;
+        compliance)
+            # Compliance focus: Licenses and documentation
+            echo "package-sbom licenses code-security documentation code-ownership"
+            ;;
+        devops)
+            # DevOps focus: CI/CD and operational metrics
+            echo "package-sbom tech-discovery iac-security git test-coverage dora package-provenance"
+            ;;
+        custom)
+            # Custom mode - uses CUSTOM_COLLECTORS environment variable
+            echo "${CUSTOM_COLLECTORS:-package-sbom tech-discovery package-vulns licenses}"
             ;;
         *)
-            # Default to standard
-            echo "dependencies technology vulnerabilities licenses security-findings ownership dora"
+            # Default to standard (no Claude-assisted scans)
+            echo "package-sbom tech-discovery package-vulns licenses code-security code-secrets tech-debt code-ownership dora"
             ;;
     esac
+}
+
+# Get analyzers that have already been run (completed successfully)
+get_completed_analyzers() {
+    local analysis_path="$1"
+    local manifest="$analysis_path/manifest.json"
+
+    if [[ ! -f "$manifest" ]]; then
+        echo ""
+        return
+    fi
+
+    # Get analyzers with status "complete"
+    jq -r '.analyses // {} | to_entries[] | select(.value.status == "complete") | .key' "$manifest" 2>/dev/null | tr '\n' ' '
+}
+
+# Filter out already-completed analyzers from requested list
+get_missing_analyzers() {
+    local requested="$1"
+    local completed="$2"
+
+    local missing=""
+    for analyzer in $requested; do
+        if [[ ! " $completed " =~ " $analyzer " ]]; then
+            [[ -n "$missing" ]] && missing+=" "
+            missing+="$analyzer"
+        fi
+    done
+    echo "$missing"
 }
 
 # Run a single analyzer
@@ -391,49 +478,67 @@ run_analyzer() {
     local status="complete"
     local summary="null"
 
-    # Record start
+    # Record start - map scanner ID to script name for logging
     local analyzer_script=""
     case "$analyzer" in
-        technology)
-            analyzer_script="technology-identification-analyser.sh"
+        tech-discovery)
+            analyzer_script="tech-discovery.sh"
             ;;
-        dependencies)
-            analyzer_script="(internal)"
+        package-sbom)
+            analyzer_script="package-sbom.sh"
             ;;
-        vulnerabilities)
-            analyzer_script="vulnerability-analyser.sh"
+        package-vulns)
+            analyzer_script="package-vulns.sh"
             ;;
         package-health)
-            analyzer_script="package-health-analyser.sh"
+            analyzer_script="package-health.sh"
             ;;
         licenses)
-            analyzer_script="legal-analyser.sh"
+            analyzer_script="licenses.sh"
             ;;
-        security-findings)
-            analyzer_script="code-security-analyser.sh"
+        code-security)
+            analyzer_script="code-security.sh"
             ;;
-        ownership)
-            analyzer_script="ownership-analyser.sh"
+        iac-security)
+            analyzer_script="iac-security.sh"
+            ;;
+        tech-debt)
+            analyzer_script="tech-debt.sh"
+            ;;
+        documentation)
+            analyzer_script="documentation.sh"
+            ;;
+        git)
+            analyzer_script="git.sh"
+            ;;
+        test-coverage)
+            analyzer_script="test-coverage.sh"
+            ;;
+        code-secrets)
+            analyzer_script="code-secrets.sh"
+            ;;
+        code-ownership)
+            analyzer_script="code-ownership.sh"
             ;;
         dora)
-            analyzer_script="dora-analyser.sh"
+            analyzer_script="dora.sh"
             ;;
-        provenance)
-            analyzer_script="provenance-analyser.sh"
+        package-provenance)
+            analyzer_script="package-provenance.sh"
             ;;
     esac
 
     gibson_analysis_start "$project_id" "$analyzer" "$analyzer_script"
 
-    # Run the analyzer
+    # Run the scanner
     case "$analyzer" in
-        technology)
+        tech-discovery)
             run_technology_analyzer "$repo_path" "$output_path"
             ;;
-        dependencies)
+        package-sbom)
             run_dependency_extractor "$repo_path" "$output_path"
             ;;
-        vulnerabilities)
+        package-vulns)
             run_vulnerability_analyzer "$repo_path" "$output_path"
             ;;
         package-health)
@@ -442,16 +547,34 @@ run_analyzer() {
         licenses)
             run_license_analyzer "$repo_path" "$output_path"
             ;;
-        security-findings)
+        code-security)
             run_code_security_analyzer "$repo_path" "$output_path"
             ;;
-        ownership)
+        iac-security)
+            run_iac_security_analyzer "$repo_path" "$output_path"
+            ;;
+        tech-debt)
+            run_tech_debt_analyzer "$repo_path" "$output_path"
+            ;;
+        documentation)
+            run_documentation_analyzer "$repo_path" "$output_path"
+            ;;
+        git)
+            run_git_insights_analyzer "$repo_path" "$output_path"
+            ;;
+        test-coverage)
+            run_test_coverage_analyzer "$repo_path" "$output_path"
+            ;;
+        code-secrets)
+            run_secrets_scanner "$repo_path" "$output_path"
+            ;;
+        code-ownership)
             run_ownership_analyzer "$repo_path" "$output_path"
             ;;
         dora)
             run_dora_analyzer "$repo_path" "$output_path"
             ;;
-        provenance)
+        package-provenance)
             run_provenance_analyzer "$repo_path" "$output_path"
             ;;
         *)
@@ -490,9 +613,9 @@ run_technology_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local tech_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        tech_script="$UTILS_ROOT/technology-identification/technology-identification-analyser.sh"
+        tech_script="$UTILS_ROOT/scanners/tech-discovery.sh"
     else
-        tech_script="$UTILS_ROOT/technology-identification/technology-identification-data.sh"
+        tech_script="$UTILS_ROOT/scanners/tech-discovery.sh"
     fi
 
     if [[ -x "$tech_script" ]]; then
@@ -503,17 +626,17 @@ run_technology_analyzer() {
         fi
         local claude_arg=""
         [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
-        "$tech_script" --local-path "$repo_path" $sbom_arg $claude_arg -o "$output_path/technology.json" 2>/dev/null
+        "$tech_script" --local-path "$repo_path" $sbom_arg $claude_arg -o "$output_path/tech-discovery.json" 2>/dev/null
     else
-        # Fallback: create basic technology.json from detection
+        # Fallback: create basic tech-discovery.json from detection
         local detection=$(detect_project_type "$repo_path")
         local languages=$(echo "$detection" | sed -n '1p')
         local frameworks=$(echo "$detection" | sed -n '2p')
         local package_managers=$(echo "$detection" | sed -n '3p')
 
-        cat > "$output_path/technology.json" << EOF
+        cat > "$output_path/tech-discovery.json" << EOF
 {
-  "analyzer": "technology-identification",
+  "analyzer": "tech-discovery",
   "version": "1.0.0",
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "languages": $languages,
@@ -579,9 +702,9 @@ run_dependency_extractor() {
     [[ -z "$direct_count" ]] && direct_count=0
     [[ -z "$total_count" ]] && total_count=0
 
-    cat > "$output_path/dependencies.json" << EOF
+    cat > "$output_path/package-sbom.json" << EOF
 {
-  "analyzer": "sbom-generator",
+  "analyzer": "package-sbom",
   "version": "1.0.0",
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "sbom_format": "$sbom_format",
@@ -604,19 +727,19 @@ run_vulnerability_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local vuln_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        vuln_script="$UTILS_ROOT/supply-chain/vulnerability-analysis/vulnerability-analyser.sh"
+        vuln_script="$UTILS_ROOT/scanners/package-vulns.sh"
     else
-        vuln_script="$UTILS_ROOT/supply-chain/vulnerability-analysis/vulnerability-analyser-data.sh"
+        vuln_script="$UTILS_ROOT/scanners/package-vulns.sh"
     fi
 
     if [[ -x "$vuln_script" ]]; then
         local claude_arg=""
         [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
-        "$vuln_script" --local-path "$repo_path" $claude_arg -o "$output_path/vulnerabilities.json" 2>/dev/null
+        "$vuln_script" --local-path "$repo_path" $claude_arg -o "$output_path/package-vulns.json" 2>/dev/null
     else
-        cat > "$output_path/vulnerabilities.json" << EOF
+        cat > "$output_path/package-vulns.json" << EOF
 {
-  "analyzer": "vulnerability-analyser",
+  "analyzer": "package-vulns",
   "version": "1.0.0",
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "status": "analyzer_not_found",
@@ -660,9 +783,9 @@ run_license_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local legal_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        legal_script="$UTILS_ROOT/legal-review/legal-analyser.sh"
+        legal_script="$UTILS_ROOT/scanners/licenses.sh"
     else
-        legal_script="$UTILS_ROOT/legal-review/legal-analyser-data.sh"
+        legal_script="$UTILS_ROOT/scanners/licenses.sh"
     fi
 
     if [[ -x "$legal_script" ]]; then
@@ -693,17 +816,17 @@ run_code_security_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local security_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        security_script="$UTILS_ROOT/code-security/code-security-analyser.sh"
+        security_script="$UTILS_ROOT/scanners/code-security.sh"
     else
-        security_script="$UTILS_ROOT/code-security/code-security-data.sh"
+        security_script="$UTILS_ROOT/scanners/code-security.sh"
     fi
 
     if [[ -x "$security_script" ]]; then
         local claude_arg=""
         [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
-        "$security_script" --local-path "$repo_path" $claude_arg -o "$output_path/security-findings.json" 2>/dev/null
+        "$security_script" --local-path "$repo_path" $claude_arg -o "$output_path/code-security.json" 2>/dev/null
     else
-        cat > "$output_path/security-findings.json" << EOF
+        cat > "$output_path/code-security.json" << EOF
 {
   "analyzer": "code-security",
   "version": "1.0.0",
@@ -719,6 +842,160 @@ EOF
     fi
 }
 
+run_iac_security_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    local iac_script="$UTILS_ROOT/scanners/iac-security.sh"
+
+    if [[ -x "$iac_script" ]]; then
+        "$iac_script" --local-path "$repo_path" -o "$output_path/iac-security.json" 2>/dev/null
+    else
+        cat > "$output_path/iac-security.json" << EOF
+{
+  "analyzer": "iac-security",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "frameworks_detected": [],
+  "summary": {
+    "total_findings": 0,
+    "by_severity": {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
+  },
+  "findings": [],
+  "compliance_mapping": {}
+}
+EOF
+    fi
+}
+
+run_tech_debt_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    local script="$UTILS_ROOT/scanners/tech-debt.sh"
+
+    if [[ -x "$script" ]]; then
+        "$script" --local-path "$repo_path" -o "$output_path/tech-debt.json" 2>/dev/null
+    else
+        cat > "$output_path/tech-debt.json" << EOF
+{
+  "analyzer": "tech-debt",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "debt_score": 0,
+    "todo_count": 0,
+    "fixme_count": 0,
+    "hack_count": 0
+  }
+}
+EOF
+    fi
+}
+
+run_documentation_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    local script="$UTILS_ROOT/scanners/documentation.sh"
+
+    if [[ -x "$script" ]]; then
+        "$script" --local-path "$repo_path" -o "$output_path/documentation.json" 2>/dev/null
+    else
+        cat > "$output_path/documentation.json" << EOF
+{
+  "analyzer": "documentation",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "documentation_score": 0,
+    "readme_exists": false,
+    "license_exists": false
+  }
+}
+EOF
+    fi
+}
+
+run_git_insights_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    local script="$UTILS_ROOT/scanners/git.sh"
+
+    if [[ -x "$script" ]]; then
+        "$script" --local-path "$repo_path" -o "$output_path/git.json" 2>/dev/null
+    else
+        cat > "$output_path/git.json" << EOF
+{
+  "analyzer": "git",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "total_commits": 0,
+    "total_contributors": 0,
+    "bus_factor": 0
+  }
+}
+EOF
+    fi
+}
+
+run_test_coverage_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    local script="$UTILS_ROOT/scanners/test-coverage.sh"
+
+    if [[ -x "$script" ]]; then
+        "$script" --local-path "$repo_path" -o "$output_path/test-coverage.json" 2>/dev/null
+    else
+        cat > "$output_path/test-coverage.json" << EOF
+{
+  "analyzer": "test-coverage",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "test_files": 0,
+    "source_files": 0,
+    "test_to_code_ratio": 0
+  }
+}
+EOF
+    fi
+}
+
+run_secrets_scanner() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    local script="$UTILS_ROOT/scanners/code-secrets.sh"
+
+    if [[ -x "$script" ]]; then
+        "$script" --local-path "$repo_path" --output "$output_path/code-secrets.json" 2>/dev/null
+    else
+        cat > "$output_path/code-secrets.json" << EOF
+{
+  "analyzer": "code-secrets",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "risk_score": 100,
+    "risk_level": "unknown",
+    "total_findings": 0
+  }
+}
+EOF
+    fi
+}
+
+
 run_ownership_analyzer() {
     local repo_path="$1"
     local output_path="$2"
@@ -726,17 +1003,17 @@ run_ownership_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local ownership_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        ownership_script="$UTILS_ROOT/code-ownership/ownership-analyser.sh"
+        ownership_script="$UTILS_ROOT/scanners/code-ownership.sh"
     else
-        ownership_script="$UTILS_ROOT/code-ownership/ownership-analyser-data.sh"
+        ownership_script="$UTILS_ROOT/scanners/code-ownership.sh"
     fi
 
     if [[ -x "$ownership_script" ]]; then
         local claude_arg=""
         [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
-        "$ownership_script" --local-path "$repo_path" $claude_arg -o "$output_path/ownership.json" 2>/dev/null
+        "$ownership_script" --local-path "$repo_path" $claude_arg -o "$output_path/code-ownership.json" 2>/dev/null
     else
-        cat > "$output_path/ownership.json" << EOF
+        cat > "$output_path/code-ownership.json" << EOF
 {
   "analyzer": "code-ownership",
   "version": "1.0.0",
@@ -758,9 +1035,9 @@ run_dora_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local dora_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        dora_script="$UTILS_ROOT/dora-metrics/dora-analyser.sh"
+        dora_script="$UTILS_ROOT/scanners/dora.sh"
     else
-        dora_script="$UTILS_ROOT/dora-metrics/dora-analyser-data.sh"
+        dora_script="$UTILS_ROOT/scanners/dora.sh"
     fi
 
     # Skip if not a git repo
@@ -806,9 +1083,9 @@ run_provenance_analyzer() {
         signed_commits=$(git -C "$repo_path" log --oneline -100 --show-signature 2>/dev/null | grep -c "Good signature" || echo "0")
     fi
 
-    cat > "$output_path/provenance.json" << EOF
+    cat > "$output_path/package-provenance.json" << EOF
 {
-  "analyzer": "provenance-analyser",
+  "analyzer": "package-provenance",
   "version": "1.0.0",
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "status": "basic_check",
@@ -825,15 +1102,15 @@ run_provenance_analyzer_full() {
     local repo_path="$1"
     local output_path="$2"
 
-    local prov_script="$UTILS_ROOT/supply-chain/provenance-analysis/provenance-analyser.sh"
+    local prov_script="$UTILS_ROOT/scanners/package-provenance.sh"
 
     if [[ -x "$prov_script" ]]; then
         # Use local-path for pre-cloned repo, output JSON format
-        "$prov_script" "$repo_path" -f json -o "$output_path/provenance.json" 2>/dev/null || {
+        "$prov_script" "$repo_path" -f json -o "$output_path/package-provenance.json" 2>/dev/null || {
             # If it fails, create a fallback
-            cat > "$output_path/provenance.json" << EOF
+            cat > "$output_path/package-provenance.json" << EOF
 {
-  "analyzer": "provenance-analyser",
+  "analyzer": "package-provenance",
   "version": "1.0.0",
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "status": "analysis_failed",
@@ -842,9 +1119,9 @@ run_provenance_analyzer_full() {
 EOF
         }
     else
-        cat > "$output_path/provenance.json" << EOF
+        cat > "$output_path/package-provenance.json" << EOF
 {
-  "analyzer": "provenance-analyser",
+  "analyzer": "package-provenance",
   "version": "1.0.0",
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "status": "analyzer_not_found",
@@ -863,8 +1140,23 @@ run_all_analyzers() {
     local output_path="$2"
     local project_id="$3"
     local mode="$4"
+    local enrich="${5:-false}"
 
-    local analyzers=$(get_analyzers_for_mode "$mode")
+    local requested_analyzers=$(get_analyzers_for_mode "$mode")
+    local analyzers="$requested_analyzers"
+
+    # In enrich mode, only run missing analyzers
+    if [[ "$enrich" == "true" ]]; then
+        local completed=$(get_completed_analyzers "$output_path")
+        analyzers=$(get_missing_analyzers "$requested_analyzers" "$completed")
+
+        if [[ -z "$analyzers" ]]; then
+            echo -e "\n${GREEN}All requested analyzers already complete.${NC}"
+            echo -e "${DIM}Use --force to re-run all analyzers.${NC}"
+            return 0
+        fi
+    fi
+
     local analyzer_count=$(echo "$analyzers" | wc -w | tr -d ' ')
     local current=0
 
@@ -876,9 +1168,14 @@ run_all_analyzers() {
         advanced) mode_display=" ${DIM}(advanced mode)${NC}" ;;
         deep)     mode_display=" ${DIM}(deep mode)${NC}" ;;
         security) mode_display=" ${DIM}(security mode)${NC}" ;;
+        custom)   mode_display=" ${DIM}(custom selection)${NC}" ;;
     esac
 
-    echo -e "\n${BOLD}Running $analyzer_count analyzers${mode_display}${NC}"
+    if [[ "$enrich" == "true" ]]; then
+        echo -e "\n${BOLD}Running $analyzer_count missing analyzers${mode_display}${NC} ${CYAN}(enrichment)${NC}"
+    else
+        echo -e "\n${BOLD}Running $analyzer_count analyzers${mode_display}${NC}"
+    fi
     echo
 
     for analyzer in $analyzers; do
@@ -1178,10 +1475,40 @@ main() {
     # Generate project ID
     local project_id=$(gibson_project_id "$TARGET")
 
+    # Setup paths
+    local project_path=$(gibson_project_path "$project_id")
+    local repo_path=$(gibson_project_repo_path "$project_id")
+    local analysis_path=$(gibson_project_analysis_path "$project_id")
+
+    # Handle enrich mode - project must already exist
+    if [[ "$ENRICH" == "true" ]]; then
+        if ! gibson_project_exists "$project_id"; then
+            echo -e "${RED}Project '$project_id' does not exist. Cannot enrich.${NC}"
+            echo "Use standard hydration first: ./phantom.sh hydrate $TARGET"
+            exit 1
+        fi
+
+        # Print header for enrichment
+        gibson_print_header
+        echo -e "Enriching: ${CYAN}$TARGET${NC}"
+        echo -e "Project ID: ${CYAN}$project_id${NC}"
+
+        # Skip cloning, just run missing analyzers
+        run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE" "true"
+
+        # Update summary and finalize
+        generate_summary "$project_id" "$analysis_path"
+        gibson_finalize_manifest "$project_id"
+        gibson_index_update_status "$project_id" "ready"
+        gibson_set_active_project "$project_id"
+        print_final_summary "$project_id" "$analysis_path"
+        return 0
+    fi
+
     # Check if project already exists
     if gibson_project_exists "$project_id" && [[ "$FORCE" != "true" ]]; then
         echo -e "${YELLOW}Project '$project_id' already exists.${NC}"
-        echo "Use --force to re-bootstrap, or /phantom refresh to update analysis."
+        echo "Use --force to re-bootstrap, or --enrich to add missing analyzers."
         exit 1
     fi
 
@@ -1190,11 +1517,6 @@ main() {
     echo -e "Target: ${CYAN}$TARGET${NC}"
     echo -e "Project ID: ${CYAN}$project_id${NC}"
     echo
-
-    # Setup paths
-    local project_path=$(gibson_project_path "$project_id")
-    local repo_path=$(gibson_project_repo_path "$project_id")
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
 
     # Clean up if force
     if [[ "$FORCE" == "true" ]] && [[ -d "$project_path" ]]; then
@@ -1262,8 +1584,8 @@ main() {
     gibson_create_project_metadata "$project_id" "$TARGET" "$source_type" "$branch" "$commit"
     gibson_update_project_type "$project_id" "$languages" "$frameworks" "$package_managers"
 
-    # Initialize analysis manifest
-    gibson_init_analysis_manifest "$project_id" "$commit"
+    # Initialize analysis manifest (with mode)
+    gibson_init_analysis_manifest "$project_id" "$commit" "$MODE"
 
     # Run analyzers
     run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE"

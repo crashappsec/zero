@@ -83,8 +83,8 @@ setup_install_tools() {
 
     echo -e "\n${BOLD}Checking recommended tools...${NC}"
 
-    # Recommended tools
-    for tool in osv-scanner syft gh; do
+    # Recommended tools (brew installable)
+    for tool in osv-scanner syft gh cloc bc; do
         if command -v "$tool" &> /dev/null; then
             echo -e "  ${GREEN}✓${NC} $tool"
         else
@@ -92,6 +92,23 @@ setup_install_tools() {
             tools_to_install+=("$tool")
         fi
     done
+
+    # jscpd (npm package) - track separately for npm install
+    local need_jscpd=false
+    if command -v jscpd &> /dev/null; then
+        echo -e "  ${GREEN}✓${NC} jscpd"
+    else
+        echo -e "  ${YELLOW}○${NC} jscpd (recommended for duplicate detection)"
+        need_jscpd=true
+    fi
+
+    # Checkov (pip installable)
+    if command -v checkov &> /dev/null || [[ -x "$HOME/Library/Python/3.9/bin/checkov" ]] || [[ -x "$HOME/.local/bin/checkov" ]]; then
+        echo -e "  ${GREEN}✓${NC} checkov"
+    else
+        echo -e "  ${YELLOW}○${NC} checkov (recommended for IaC security)"
+        echo -e "     Install: ${CYAN}pip3 install checkov${NC} or ${CYAN}brew install checkov${NC}"
+    fi
 
     echo -e "\n${BOLD}Checking optional tools...${NC}"
 
@@ -113,7 +130,7 @@ setup_install_tools() {
 
     if [[ ${#tools_to_install[@]} -gt 0 ]] && command -v brew &> /dev/null; then
         echo
-        echo "Missing tools: ${tools_to_install[*]}"
+        echo "Missing brew tools: ${tools_to_install[*]}"
         read -p "Install via Homebrew? (y/n) " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -121,6 +138,33 @@ setup_install_tools() {
                 echo -e "${BLUE}Installing $tool...${NC}"
                 brew install "$tool" 2>/dev/null || true
             done
+        fi
+    fi
+
+    # Offer to install jscpd via npm
+    if [[ "$need_jscpd" == "true" ]]; then
+        if command -v npm &> /dev/null; then
+            echo
+            read -p "Install jscpd via npm? (y/n) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${BLUE}Installing jscpd...${NC}"
+                npm install -g jscpd 2>/dev/null || true
+            fi
+        elif command -v brew &> /dev/null; then
+            echo
+            read -p "Install Node.js (required for jscpd)? (y/n) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${BLUE}Installing node...${NC}"
+                brew install node 2>/dev/null || true
+                if command -v npm &> /dev/null; then
+                    echo -e "${BLUE}Installing jscpd...${NC}"
+                    npm install -g jscpd 2>/dev/null || true
+                fi
+            fi
+        else
+            echo -e "\n  ${DIM}To install jscpd: Install Node.js first, then run: npm i -g jscpd${NC}"
         fi
     fi
 }
@@ -205,7 +249,7 @@ run_check() {
 
     # Recommended Tools
     echo -e "${BOLD}Recommended Tools${NC}"
-    for tool in osv-scanner syft gh; do
+    for tool in osv-scanner syft gh cloc bc; do
         printf "  %-16s " "$tool"
         if command -v "$tool" &> /dev/null; then
             local version=$("$tool" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
@@ -215,6 +259,40 @@ run_check() {
             ((warnings++))
         fi
     done
+
+    # jscpd (npm package, check differently)
+    printf "  %-16s " "jscpd"
+    if command -v jscpd &> /dev/null; then
+        local version=$(jscpd --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
+        echo -e "${GREEN}✓${NC} ${version:-installed}"
+    elif command -v npx &> /dev/null && npx jscpd --version &> /dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC} via npx"
+    else
+        echo -e "${YELLOW}○${NC} missing ${DIM}(npm i -g jscpd)${NC}"
+        ((warnings++))
+    fi
+
+    # Checkov (check multiple locations)
+    printf "  %-16s " "checkov"
+    local checkov_bin=""
+    if command -v checkov &> /dev/null; then
+        checkov_bin="checkov"
+    elif [[ -x "$HOME/Library/Python/3.9/bin/checkov" ]]; then
+        checkov_bin="$HOME/Library/Python/3.9/bin/checkov"
+    elif [[ -x "$HOME/Library/Python/3.10/bin/checkov" ]]; then
+        checkov_bin="$HOME/Library/Python/3.10/bin/checkov"
+    elif [[ -x "$HOME/Library/Python/3.11/bin/checkov" ]]; then
+        checkov_bin="$HOME/Library/Python/3.11/bin/checkov"
+    elif [[ -x "$HOME/.local/bin/checkov" ]]; then
+        checkov_bin="$HOME/.local/bin/checkov"
+    fi
+    if [[ -n "$checkov_bin" ]]; then
+        local version=$("$checkov_bin" --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
+        echo -e "${GREEN}✓${NC} ${version:-installed}"
+    else
+        echo -e "${YELLOW}○${NC} missing (for IaC security)"
+        ((warnings++))
+    fi
     echo
 
     # Optional Tools
@@ -331,8 +409,26 @@ run_status() {
             # Get project info
             local size=$(du -sh "$repo_dir" 2>/dev/null | cut -f1)
             local analysis_path="$repo_dir/analysis"
+            local manifest="$analysis_path/manifest.json"
 
-            echo -e "${BOLD}$project_id${NC} ${DIM}($size)${NC}"
+            # Get mode from manifest
+            local mode="unknown"
+            if [[ -f "$manifest" ]]; then
+                mode=$(jq -r '.mode // "standard"' "$manifest" 2>/dev/null)
+            fi
+
+            # Mode display with color
+            local mode_display=""
+            case "$mode" in
+                quick)    mode_display="${DIM}quick${NC}" ;;
+                standard) mode_display="${CYAN}standard${NC}" ;;
+                advanced) mode_display="${BLUE}advanced${NC}" ;;
+                deep)     mode_display="${MAGENTA}deep${NC}" ;;
+                security) mode_display="${YELLOW}security${NC}" ;;
+                *)        mode_display="${DIM}$mode${NC}" ;;
+            esac
+
+            echo -e "${BOLD}$project_id${NC} ${DIM}($size)${NC} [${mode_display}]"
 
             # Show key metrics if available
             if [[ -f "$analysis_path/vulnerabilities.json" ]]; then
@@ -404,31 +500,183 @@ run_clean() {
 # Interactive Menu
 #############################################################################
 
+#############################################################################
+# Helper: Get hydration status for a target
+#############################################################################
+
+get_hydration_status() {
+    local target="$1"
+    local project_id=""
+
+    # Determine project_id from target
+    if [[ "$target" == --org* ]]; then
+        # Org mode - can't check individual status
+        echo ""
+        return
+    fi
+
+    # Convert target to project_id format
+    if [[ "$target" =~ ^https://github\.com/(.+)$ ]]; then
+        project_id="${BASH_REMATCH[1]%.git}"
+    elif [[ "$target" =~ ^([^/]+)/([^/]+)$ ]]; then
+        project_id="$target"
+    else
+        echo ""
+        return
+    fi
+
+    # Check if project exists
+    local project_path="$GIBSON_PROJECTS_DIR/${project_id//\//_}"
+    project_path="$GIBSON_PROJECTS_DIR/$(echo "$project_id" | tr '/' '/')"
+
+    # Parse as org/repo
+    local org=$(echo "$project_id" | cut -d'/' -f1)
+    local repo=$(echo "$project_id" | cut -d'/' -f2)
+    project_path="$GIBSON_PROJECTS_DIR/$org/$repo"
+
+    if [[ -d "$project_path/analysis" ]]; then
+        local manifest="$project_path/analysis/manifest.json"
+        if [[ -f "$manifest" ]]; then
+            local mode=$(jq -r '.mode // "standard"' "$manifest" 2>/dev/null)
+            local completed=$(jq -r '.completed_at // ""' "$manifest" 2>/dev/null)
+            if [[ -n "$completed" ]] && [[ "$completed" != "null" ]]; then
+                echo "$mode"
+                return
+            fi
+        fi
+    fi
+    echo ""
+}
+
+# Get mode display with status
+get_mode_display() {
+    local mode="$1"
+    local current_mode="$2"
+    local mode_name="$3"
+    local time_est="$4"
+    local description="$5"
+
+    if [[ "$current_mode" == "$mode" ]]; then
+        echo -e "  ${CYAN}$1${NC}  ${mode_name}   ${time_est}  ${description} ${GREEN}[hydrated]${NC}"
+    else
+        echo -e "  ${CYAN}$1${NC}  ${mode_name}   ${time_est}  ${description}"
+    fi
+}
+
+# Configuration file path (unified config)
+CONFIG_FILE="$SCRIPT_DIR/phantom.config.json"
+
+# Get profile info from phantom.config.json
+get_profile_info() {
+    local profile="$1"
+    local field="$2"
+    if [[ -f "$CONFIG_FILE" ]]; then
+        jq -r --arg p "$profile" --arg f "$field" '.profiles[$p][$f] // empty' "$CONFIG_FILE" 2>/dev/null
+    fi
+}
+
+# Get scanners for a profile
+get_profile_scanners() {
+    local profile="$1"
+    if [[ -f "$CONFIG_FILE" ]]; then
+        jq -r --arg p "$profile" '.profiles[$p].scanners // [] | join(" ")' "$CONFIG_FILE" 2>/dev/null
+    fi
+}
+
+# Check if profile requires Claude API
+profile_requires_claude() {
+    local profile="$1"
+    if [[ -f "$CONFIG_FILE" ]]; then
+        local requires=$(jq -r --arg p "$profile" '.profiles[$p].requires_claude // false' "$CONFIG_FILE" 2>/dev/null)
+        [[ "$requires" == "true" ]]
+    else
+        [[ "$profile" == "deep" ]]
+    fi
+}
+
+# Get config setting
+get_config_setting() {
+    local key="$1"
+    local default="$2"
+    if [[ -f "$CONFIG_FILE" ]]; then
+        local value=$(jq -r ".settings.$key // empty" "$CONFIG_FILE" 2>/dev/null)
+        if [[ -n "$value" ]] && [[ "$value" != "null" ]]; then
+            echo "$value"
+            return 0
+        fi
+    fi
+    echo "$default"
+}
+
 show_menu() {
     local first_run=true
 
     while true; do
-        # Use animated banner on first display (random effect), static after
-        # NOTE: Terminal effects disabled for now - code preserved in lib/gibson.sh
-        # if [[ "$first_run" == "true" ]]; then
-        #     print_phantom_banner_animated  # Random effect each time
-        #     first_run=false
-        # else
-        #     print_phantom_banner
-        # fi
         print_phantom_banner
+
+        # Get hydrated project count
+        local hydrated_count=0
+        if [[ -d "$GIBSON_PROJECTS_DIR" ]]; then
+            hydrated_count=$(find "$GIBSON_PROJECTS_DIR" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l | tr -d ' ')
+        fi
+
         echo -e "${BOLD}What would you like to do?${NC}"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo
         echo -e "  ${CYAN}1${NC}  Setup       Install tools and configure API keys"
         echo -e "  ${CYAN}2${NC}  Check       Verify everything is ready"
-        echo -e "  ${CYAN}3${NC}  Hydrate     Analyze a repository"
-        echo -e "  ${CYAN}4${NC}  Status      Show hydrated projects"
-        echo -e "  ${CYAN}5${NC}  Clean       Remove all analysis data"
+        echo
+        echo -e "  ${BOLD}Hydrate a repository:${NC}"
+
+        # Display profiles dynamically from phantom.config.json
+        local profile_keys=()
+        local menu_num=3
+
+        if [[ -f "$CONFIG_FILE" ]]; then
+            # Standard profile order
+            local ordered_profiles=("quick" "standard" "advanced" "deep" "security" "compliance" "devops")
+
+            for profile in "${ordered_profiles[@]}"; do
+                if jq -e --arg p "$profile" '.profiles[$p]' "$CONFIG_FILE" &>/dev/null; then
+                    profile_keys+=("$profile")
+
+                    local name=$(get_profile_info "$profile" "name")
+                    local time=$(get_profile_info "$profile" "estimated_time")
+                    local desc=$(get_profile_info "$profile" "description")
+
+                    local markers=""
+                    [[ "$profile" == "standard" ]] && markers=" ${DIM}(recommended)${NC}"
+                    if profile_requires_claude "$profile"; then
+                        markers="${markers} ${DIM}(requires API key)${NC}"
+                    fi
+
+                    printf "  ${CYAN}%s${NC}  %-10s %-7s %s%s\n" "$menu_num" "$name" "$time" "$desc" "$markers"
+                    ((menu_num++))
+                fi
+            done
+        else
+            # Fallback if no phantom.config.json
+            echo -e "  ${CYAN}3${NC}  Quick       ~30s   Fast scan (deps, tech, vulns, licenses)"
+            echo -e "  ${CYAN}4${NC}  Standard    ~2min  Most scanners ${DIM}(recommended)${NC}"
+            echo -e "  ${CYAN}5${NC}  Advanced    ~5min  All static scanners + health/provenance"
+            echo -e "  ${CYAN}6${NC}  Deep        ~10min Claude-assisted analysis ${DIM}(requires API key)${NC}"
+            echo -e "  ${CYAN}7${NC}  Security    ~3min  Security-focused (vulns, code security)"
+            profile_keys=("quick" "standard" "advanced" "deep" "security")
+            menu_num=8
+        fi
+
+        echo -e "  ${CYAN}c${NC}  Choose      Custom Select specific collectors (checkboxes)"
+        echo
+        if [[ $hydrated_count -gt 0 ]]; then
+            echo -e "  ${CYAN}s${NC}  Status      Show hydrated projects ${DIM}($hydrated_count projects)${NC}"
+        else
+            echo -e "  ${CYAN}s${NC}  Status      Show hydrated projects"
+        fi
+        echo -e "  ${CYAN}x${NC}  Clean       Remove all analysis data"
         echo
         echo -e "  ${CYAN}q${NC}  Quit"
         echo
-        read -p "Choose an option: " -n 1 -r
+        read -p "Choose an option: " -r
         echo
         echo
 
@@ -443,51 +691,125 @@ show_menu() {
                 echo
                 read -p "Press Enter to continue..."
                 ;;
-            3)
+            [3-9])
+                # Handle dynamic profile selection (3-9 = profiles)
+                local profile_idx=$((REPLY - 3))
+                if [[ $profile_idx -lt ${#profile_keys[@]} ]]; then
+                    local selected_profile="${profile_keys[$profile_idx]}"
+                    local mode_flag="--$selected_profile"
+                    local mode_name=$(get_profile_info "$selected_profile" "name")
+                    [[ -z "$mode_name" ]] && mode_name="$selected_profile"
+
+                    # Show scanners for this profile
+                    local scanners=$(get_profile_scanners "$selected_profile")
+                    echo -e "${BOLD}$mode_name Hydration${NC}"
+                    echo -e "${DIM}Scanners: $scanners${NC}"
+                    echo
+                    echo -e "Enter repository (e.g., ${CYAN}expressjs/express${NC})"
+                    echo -e "Or organization with ${CYAN}--org orgname${NC}"
+                    echo
+                    read -p "Target: " target
+
+                    if [[ -n "$target" ]]; then
+                        local should_run=true
+                        local force_flag=""
+
+                        # Check if already hydrated (for single repo, not org)
+                        if [[ "$target" != --org* ]]; then
+                            local current_status=$(get_hydration_status "$target")
+                            if [[ -n "$current_status" ]]; then
+                                echo
+                                echo -e "${YELLOW}This repository is already hydrated${NC} with mode: ${CYAN}$current_status${NC}"
+                                echo
+                                echo -e "  ${CYAN}1${NC}  Skip (use existing analysis)"
+                                echo -e "  ${CYAN}2${NC}  Re-hydrate with $mode_name mode"
+                                echo
+                                read -p "Choose [1]: " -n 1 -r override_choice
+                                echo
+
+                                case "${override_choice:-1}" in
+                                    2)
+                                        force_flag="--force"
+                                        echo -e "Re-hydrating with ${CYAN}$mode_name${NC} mode..."
+                                        ;;
+                                    *)
+                                        should_run=false
+                                        echo "Skipped."
+                                        ;;
+                                esac
+                            fi
+                        fi
+
+                        if [[ "$should_run" == "true" ]]; then
+                            # Check if org mode
+                            if [[ "$target" == --org* ]]; then
+                                "$SCRIPT_DIR/hydrate.sh" $target $mode_flag $force_flag || true
+                            else
+                                "$SCRIPT_DIR/bootstrap.sh" $target $mode_flag $force_flag || true
+                            fi
+                        fi
+                        echo
+                        read -p "Press Enter to continue..."
+                    fi
+                else
+                    echo "Invalid option"
+                    sleep 1
+                fi
+                ;;
+            c|C)
+                # Custom collector selection mode
+                echo -e "${BOLD}Custom Hydration${NC}"
+                echo
                 echo -e "Enter repository (e.g., ${CYAN}expressjs/express${NC})"
                 echo -e "Or organization with ${CYAN}--org orgname${NC}"
                 echo
                 read -p "Target: " target
+
                 if [[ -n "$target" ]]; then
-                    # Show hydration mode submenu (for both single repo and org mode)
-                    echo
-                    echo -e "${BOLD}Select analysis depth:${NC}"
-                    echo
-                    echo -e "  ${CYAN}1${NC}  Quick      ~30s   Fast static analysis (deps, tech, vulns, licenses)"
-                    echo -e "  ${CYAN}2${NC}  Standard   ~2min  Most analyzers ${DIM}(default)${NC}"
-                    echo -e "  ${CYAN}3${NC}  Advanced   ~5min  All static analyzers + package health, provenance"
-                    echo -e "  ${CYAN}4${NC}  Deep       ~10min Claude-assisted analysis ${DIM}(requires API key)${NC}"
-                    echo -e "  ${CYAN}5${NC}  Security   ~3min  Security-focused (vulns, package-health, provenance)"
-                    echo
-                    read -p "Choose mode [2]: " -n 1 -r mode_choice
-                    echo
+                    local force_flag=""
 
-                    local mode_flag=""
-                    case "${mode_choice:-2}" in
-                        1) mode_flag="--quick" ;;
-                        2|"") mode_flag="--standard" ;;
-                        3) mode_flag="--advanced" ;;
-                        4) mode_flag="--deep" ;;
-                        5) mode_flag="--security" ;;
-                        *) mode_flag="--standard" ;;
-                    esac
+                    # Check if already hydrated (for single repo, not org)
+                    if [[ "$target" != --org* ]]; then
+                        local current_status=$(get_hydration_status "$target")
+                        if [[ -n "$current_status" ]]; then
+                            echo
+                            echo -e "${YELLOW}This repository is already hydrated${NC} with mode: ${CYAN}$current_status${NC}"
+                            echo
+                            echo -e "  ${CYAN}1${NC}  Skip (use existing analysis)"
+                            echo -e "  ${CYAN}2${NC}  Re-hydrate with custom collectors"
+                            echo
+                            read -p "Choose [1]: " -n 1 -r override_choice
+                            echo
 
-                    # Check if org mode
+                            case "${override_choice:-1}" in
+                                2)
+                                    force_flag="--force"
+                                    ;;
+                                *)
+                                    echo "Skipped."
+                                    read -p "Press Enter to continue..."
+                                    continue
+                                    ;;
+                            esac
+                        fi
+                    fi
+
+                    # Run with --choose flag for interactive collector selection
                     if [[ "$target" == --org* ]]; then
-                        "$SCRIPT_DIR/hydrate.sh" $target $mode_flag || true
+                        "$SCRIPT_DIR/hydrate.sh" $target --choose $force_flag || true
                     else
-                        "$SCRIPT_DIR/bootstrap.sh" $target $mode_flag || true
+                        "$SCRIPT_DIR/hydrate.sh" $target --choose $force_flag || true
                     fi
                     echo
                     read -p "Press Enter to continue..."
                 fi
                 ;;
-            4)
+            s|S)
                 run_status
                 echo
                 read -p "Press Enter to continue..."
                 ;;
-            5)
+            x|X)
                 run_clean
                 echo
                 read -p "Press Enter to continue..."
@@ -528,11 +850,18 @@ OPTIONS FOR HYDRATE:
     --org <name>        Process all repos in organization
     --limit <n>         Max repos to process (org mode)
     --quick             Fast static analysis (~30s)
-    --standard          Most analyzers (~2min) [default]
-    --advanced          All static analyzers + health/provenance (~5min)
+    --standard          Most scanners (~2min) [default]
+    --advanced          All static scanners + health/provenance (~5min)
     --deep              Claude-assisted analysis (~10min)
     --security          Security-focused analysis (~3min)
+    --compliance        License and policy compliance (~2min)
+    --devops            CI/CD and operational metrics (~3min)
     --force             Re-analyze even if exists
+
+CONFIGURATION:
+    All settings are in utils/phantom/phantom.config.json
+    See phantom.config.example.json for full documentation
+    Create custom profiles by adding entries to the profiles section
 
 EXAMPLES:
     $(basename "$0")                              # Interactive mode

@@ -1,0 +1,70 @@
+{
+  "category": "code_churn",
+  "description": "Thresholds for code churn as technical debt indicator",
+  "churn_rate": {
+    "description": "Percentage of codebase changed in time period",
+    "period_days": 90,
+    "thresholds": [
+      { "min": 0, "max": 5, "level": "stable", "score": 0, "description": "Stable codebase" },
+      { "min": 5, "max": 15, "level": "normal", "score": 15, "description": "Normal development" },
+      { "min": 15, "max": 30, "level": "elevated", "score": 40, "description": "High activity" },
+      { "min": 30, "max": 50, "level": "high", "score": 70, "description": "Unstable area" },
+      { "min": 50, "max": null, "level": "critical", "score": 100, "description": "Hotspot - debt accumulation" }
+    ]
+  },
+  "hotspot_detection": {
+    "description": "Files with excessive churn indicate debt",
+    "metrics": {
+      "change_frequency": {
+        "description": "Number of commits touching file",
+        "period_days": 90,
+        "thresholds": [
+          { "changes": 5, "level": "normal" },
+          { "changes": 15, "level": "elevated" },
+          { "changes": 30, "level": "hotspot" },
+          { "changes": 50, "level": "critical_hotspot" }
+        ]
+      },
+      "lines_changed": {
+        "description": "Total lines added/removed",
+        "period_days": 90,
+        "threshold_ratio": 2.0,
+        "description_note": "If lines changed > 2x file size, likely debt"
+      },
+      "contributor_count": {
+        "description": "Number of different contributors",
+        "threshold": 5,
+        "description_note": "Many contributors + high churn = ownership issues"
+      }
+    }
+  },
+  "ownership_factor": {
+    "description": "Code ownership affects churn interpretation",
+    "strong_ownership": {
+      "contributors": 2,
+      "primary_contributor_percentage": 70,
+      "churn_interpretation": "normal_development"
+    },
+    "weak_ownership": {
+      "contributors": 5,
+      "primary_contributor_percentage": 30,
+      "churn_interpretation": "potential_debt_indicator"
+    }
+  },
+  "fix_churn": {
+    "description": "Churn related to bug fixes",
+    "patterns": ["fix:", "bugfix:", "hotfix:", "patch:"],
+    "high_fix_churn_threshold": 40,
+    "interpretation": "High fix churn indicates quality debt"
+  },
+  "refactor_churn": {
+    "description": "Churn related to refactoring",
+    "patterns": ["refactor:", "cleanup:", "tech-debt:"],
+    "interpretation": "Positive - reducing debt"
+  },
+  "temporal_coupling": {
+    "description": "Files that change together indicate hidden coupling",
+    "threshold_correlation": 0.7,
+    "debt_indicator": "architectural_debt"
+  }
+}

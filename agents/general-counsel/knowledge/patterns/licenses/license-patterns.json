@@ -1,0 +1,201 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Software License Patterns",
+  "description": "Detection patterns for software license identification and compliance",
+  "version": "1.0.0",
+  "license_categories": {
+    "permissive": {
+      "description": "Allow proprietary use with minimal restrictions",
+      "licenses": {
+        "MIT": {
+          "spdx": "MIT",
+          "obligations": ["Include license text", "Include copyright notice"],
+          "allows": ["Commercial use", "Modification", "Distribution", "Private use"],
+          "compatibility": "Compatible with most licenses including GPL"
+        },
+        "Apache-2.0": {
+          "spdx": "Apache-2.0",
+          "obligations": [
+            "Include license text",
+            "Include copyright notice",
+            "State changes made",
+            "Include NOTICE file if present"
+          ],
+          "allows": ["Commercial use", "Modification", "Distribution", "Patent use", "Private use"],
+          "restrictions": ["Trademark use"],
+          "patent_grant": true,
+          "compatibility": "Compatible with GPLv3 but not GPLv2"
+        },
+        "BSD-2-Clause": {
+          "spdx": "BSD-2-Clause",
+          "obligations": ["Include license text", "Include copyright notice"],
+          "allows": ["Commercial use", "Modification", "Distribution", "Private use"],
+          "compatibility": "Compatible with most licenses"
+        },
+        "BSD-3-Clause": {
+          "spdx": "BSD-3-Clause",
+          "obligations": ["Include license text", "Include copyright notice"],
+          "restrictions": ["Cannot use contributor names for endorsement"],
+          "allows": ["Commercial use", "Modification", "Distribution", "Private use"],
+          "compatibility": "Compatible with most licenses"
+        },
+        "ISC": {
+          "spdx": "ISC",
+          "obligations": ["Include license text", "Include copyright notice"],
+          "allows": ["Commercial use", "Modification", "Distribution", "Private use"],
+          "compatibility": "Functionally equivalent to MIT"
+        }
+      }
+    },
+    "copyleft_weak": {
+      "description": "Require sharing changes to the library itself",
+      "licenses": {
+        "LGPL-2.1": {
+          "spdx": "LGPL-2.1-only",
+          "obligations": [
+            "Include license text",
+            "Disclose source of library modifications",
+            "Allow reverse engineering for debugging"
+          ],
+          "allows": ["Commercial use", "Modification", "Distribution", "Private use"],
+          "linking": "Proprietary code can link to LGPL library",
+          "note": "Must allow user to replace LGPL library"
+        },
+        "LGPL-3.0": {
+          "spdx": "LGPL-3.0-only",
+          "obligations": [
+            "Include license text",
+            "Disclose source of library modifications",
+            "Provide installation information"
+          ],
+          "allows": ["Commercial use", "Modification", "Distribution", "Private use"],
+          "linking": "Proprietary code can link to LGPL library"
+        },
+        "MPL-2.0": {
+          "spdx": "MPL-2.0",
+          "obligations": [
+            "Disclose source of modified files",
+            "Include license text"
+          ],
+          "allows": ["Commercial use", "Modification", "Distribution", "Private use"],
+          "scope": "File-level copyleft (not project-level)",
+          "compatibility": "Compatible with GPLv2+, Apache 2.0"
+        }
+      }
+    },
+    "copyleft_strong": {
+      "description": "Require derivative works to use same license",
+      "licenses": {
+        "GPL-2.0": {
+          "spdx": "GPL-2.0-only",
+          "obligations": [
+            "Disclose source code",
+            "License derivative works under GPL-2.0",
+            "Include license text",
+            "State changes made"
+          ],
+          "allows": ["Commercial use", "Modification", "Distribution", "Private use"],
+          "triggers": ["Distribution of binaries", "Linking (disputed)"],
+          "not_compatible": ["Apache-2.0", "GPL-3.0 (one-way)"]
+        },
+        "GPL-3.0": {
+          "spdx": "GPL-3.0-only",
+          "obligations": [
+            "Disclose source code",
+            "License derivative works under GPL-3.0",
+            "Include license text",
+            "State changes made",
+            "Provide installation information"
+          ],
+          "allows": ["Commercial use", "Modification", "Distribution", "Private use"],
+          "patent_grant": true,
+          "anti_tivoization": true,
+          "triggers": ["Distribution of binaries", "Linking"]
+        },
+        "AGPL-3.0": {
+          "spdx": "AGPL-3.0-only",
+          "obligations": [
+            "Disclose source code",
+            "License derivative works under AGPL-3.0",
+            "Include license text",
+            "Network use triggers disclosure"
+          ],
+          "allows": ["Commercial use", "Modification", "Distribution", "Private use"],
+          "triggers": ["Distribution", "Network interaction (SaaS)"],
+          "note": "Most restrictive common OSS license"
+        }
+      }
+    },
+    "public_domain": {
+      "description": "No restrictions or obligations",
+      "licenses": {
+        "CC0-1.0": {
+          "spdx": "CC0-1.0",
+          "obligations": [],
+          "allows": ["Everything"],
+          "note": "Waives all copyright"
+        },
+        "Unlicense": {
+          "spdx": "Unlicense",
+          "obligations": [],
+          "allows": ["Everything"],
+          "note": "Public domain dedication"
+        }
+      }
+    }
+  },
+  "compatibility_matrix": {
+    "description": "Can code under row license be combined with code under column license?",
+    "note": "Result must be distributed under the more restrictive license",
+    "permissive_to_copyleft": true,
+    "copyleft_to_permissive": false,
+    "gpl2_to_apache2": false,
+    "apache2_to_gpl3": true
+  },
+  "detection_patterns": {
+    "MIT": {
+      "text_patterns": [
+        "Permission is hereby granted, free of charge",
+        "MIT License",
+        "SPDX-License-Identifier: MIT"
+      ]
+    },
+    "Apache-2.0": {
+      "text_patterns": [
+        "Apache License, Version 2.0",
+        "Licensed under the Apache License",
+        "SPDX-License-Identifier: Apache-2.0"
+      ]
+    },
+    "GPL-3.0": {
+      "text_patterns": [
+        "GNU General Public License",
+        "either version 3 of the License",
+        "SPDX-License-Identifier: GPL-3.0"
+      ]
+    },
+    "AGPL-3.0": {
+      "text_patterns": [
+        "GNU Affero General Public License",
+        "SPDX-License-Identifier: AGPL-3.0"
+      ]
+    }
+  },
+  "risk_indicators": {
+    "high_risk": [
+      "AGPL-3.0 in SaaS application",
+      "GPL in proprietary product without compliance plan",
+      "Unknown or custom license",
+      "No license specified"
+    ],
+    "medium_risk": [
+      "LGPL requiring dynamic linking",
+      "Multiple copyleft licenses",
+      "Contributor License Agreement required"
+    ],
+    "low_risk": [
+      "Permissive licenses (MIT, Apache, BSD)",
+      "Consistent license across dependencies"
+    ]
+  }
+}

@@ -309,7 +309,7 @@ gibson_project_exists() {
     [[ -d "$project_path" ]]
 }
 
-# Check if project is fully hydrated (has repo and analysis data)
+# Check if project is fully hydrated (has repo and completed analysis)
 # Returns 0 if hydrated, 1 if not
 gibson_is_hydrated() {
     local project_id="$1"
@@ -325,6 +325,13 @@ gibson_is_hydrated() {
 
     # Check analysis directory exists with manifest
     if [[ ! -f "$analysis_path/manifest.json" ]]; then
+        return 1
+    fi
+
+    # Check if analysis actually completed (completed_at is not null)
+    local completed_at
+    completed_at=$(jq -r '.completed_at // "null"' "$analysis_path/manifest.json" 2>/dev/null)
+    if [[ "$completed_at" == "null" ]] || [[ -z "$completed_at" ]]; then
         return 1
     fi
 
@@ -593,6 +600,7 @@ gibson_read_project_metadata() {
 gibson_init_analysis_manifest() {
     local project_id="$1"
     local commit="$2"
+    local mode="${3:-standard}"
 
     local analysis_path=$(gibson_project_analysis_path "$project_id")
     mkdir -p "$analysis_path"
@@ -603,6 +611,7 @@ gibson_init_analysis_manifest() {
 {
   "project_id": "$project_id",
   "analyzed_commit": "$commit",
+  "mode": "$mode",
   "started_at": "$timestamp",
   "completed_at": null,
   "analyses": {},

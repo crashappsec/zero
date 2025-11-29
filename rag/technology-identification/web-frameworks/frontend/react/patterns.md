@@ -2,43 +2,70 @@
 
 **Category**: web-frameworks/frontend
 **Description**: A JavaScript library for building user interfaces
-**Homepage**: https://www.npmjs.com/package/react
+**Homepage**: https://react.dev
 
-## Package Detection
+---
 
-### NPM
-*Core React packages*
+## TIER 1: Quick Detection (SBOM-based)
 
-- `react`
-- `react-dom`
+These patterns are used during quick scans that only analyze the SBOM.
 
-### YARN
-*Core React packages via Yarn*
+### Package Detection
 
-- `react`
-- `react-dom`
+#### NPM
+- `react` - Core React library
+- `react-dom` - React DOM renderer
 
-### PNPM
-*Core React packages via pnpm*
+#### YARN
+- `react` - Core React library
+- `react-dom` - React DOM renderer
 
-- `react`
-- `react-dom`
+#### PNPM
+- `react` - Core React library
+- `react-dom` - React DOM renderer
 
-### Related Packages
-- `react-router`
-- `react-router-dom`
-- `react-redux`
-- `react-query`
-- `@tanstack/react-query`
-- `react-hook-form`
-- `react-native`
-- `next`
-- `gatsby`
+### Related Packages (Not for detection - informational only)
+These packages are commonly used with React but should not trigger React detection on their own:
+- react-router
+- react-router-dom
+- react-redux
+- react-query
+- @tanstack/react-query
+- react-hook-form
+- react-native
+- next (see Next.js patterns)
+- gatsby
 
-## Import Detection
+---
 
-### Javascript
-File extensions: .js, .jsx, .mjs
+## TIER 2: Deep Detection (File-based)
+
+These patterns require scanning repository files and take longer to run.
+
+### File Extensions
+*Presence of these extensions may indicate React usage*
+
+- `.jsx` - React JavaScript files
+- `.tsx` - React TypeScript files
+
+### Configuration Files
+*Known configuration files commonly used with React*
+
+- `vite.config.js` - Vite configuration (common React bundler)
+- `vite.config.ts` - Vite TypeScript configuration
+- `next.config.js` - Next.js configuration (React framework)
+- `next.config.mjs` - Next.js ES module configuration
+- `gatsby-config.js` - Gatsby configuration (React framework)
+- `craco.config.js` - Create React App Configuration Override
+- `.babelrc` - Babel configuration
+- `.babelrc.json` - Babel configuration
+- `babel.config.js` - Babel configuration
+- `babel.config.json` - Babel configuration
+
+### Import Patterns
+
+#### JavaScript
+Extensions: `.js`, `.jsx`, `.mjs`
 
 **Pattern**: `import\s+React\s+from\s+['"]react['"]`
 - Default React import (ES6)
@@ -60,8 +87,12 @@ File extensions: .js, .jsx, .mjs
 - React DOM imports
 - Example: `import ReactDOM from 'react-dom';`
 
-### Typescript
-File extensions: .ts, .tsx
+**Pattern**: `from\s+['"]react-dom/client['"]`
+- React 18 client import
+- Example: `import { createRoot } from 'react-dom/client';`
+
+#### TypeScript
+Extensions: `.ts`, `.tsx`
 
 **Pattern**: `import\s+React\s+from\s+['"]react['"]`
 - Default React import
@@ -75,46 +106,66 @@ File extensions: .ts, .tsx
 - Named imports
 - Example: `import { useState, useEffect } from 'react';`
 
+### Code Patterns
+*React-specific code patterns*
+
+**Pattern**: `React\.createElement\(`
+- React createElement call
+- Example: `React.createElement('div', null, 'Hello')`
+
+**Pattern**: `<[A-Z][a-zA-Z]*`
+- JSX component usage (uppercase indicates component)
+- Example: `<MyComponent />`
+
+**Pattern**: `useState\s*\(`
+- React useState hook
+- Example: `const [count, setCount] = useState(0);`
+
+**Pattern**: `useEffect\s*\(`
+- React useEffect hook
+- Example: `useEffect(() => { ... }, []);`
+
+**Pattern**: `useRef\s*\(`
+- React useRef hook
+- Example: `const ref = useRef(null);`
+
+**Pattern**: `useMemo\s*\(`
+- React useMemo hook
+- Example: `const memoized = useMemo(() => ..., []);`
+
+**Pattern**: `useCallback\s*\(`
+- React useCallback hook
+- Example: `const callback = useCallback(() => ..., []);`
+
+**Pattern**: `useContext\s*\(`
+- React useContext hook
+- Example: `const value = useContext(MyContext);`
+
+**Pattern**: `createContext\s*\(`
+- React context creation
+- Example: `const MyContext = createContext(defaultValue);`
+
+**Pattern**: `React\.Component`
+- Class component
+- Example: `class MyComponent extends React.Component`
+
+**Pattern**: `React\.PureComponent`
+- Pure class component
+- Example: `class MyComponent extends React.PureComponent`
+
+---
+
 ## Environment Variables
 
-*Create React App environment variables*
-
-- Prefix: `REACT_APP_*`
-*Next.js public environment variables*
-
-- Prefix: `NEXT_PUBLIC_*`
-*Gatsby environment variables*
-
-- Prefix: `GATSBY_*`
-*Vite environment variables*
-
-- Prefix: `VITE_*`
-
-## Configuration Files
-
-- `.babelrc`
-- `.babelrc.json`
-- `.babelrc.js`
-- `babel.config.js`
-- `babel.config.json`
-- `webpack.config.js`
-- `webpack.config.ts`
-- `tsconfig.json`
-- `vite.config.js`
-- `vite.config.ts`
-- `.eslintrc`
-- `.eslintrc.json`
-- `.eslintrc.js`
-- `eslint.config.js`
+- `REACT_APP_*` - Create React App environment variables
+- `NEXT_PUBLIC_*` - Next.js public environment variables
+- `GATSBY_*` - Gatsby environment variables
+- `VITE_*` - Vite environment variables
 
 ## Detection Notes
 
-- Presence of both 'react' and 'react-dom' is strong signal
-- Related packages alone may indicate React usage
-- Check for JSX file extensions (.jsx, .tsx)
-
-## Detection Confidence
-
-- **Package Detection**: 95% (HIGH)
-- **Import Detection**: 85% (HIGH)
-- **Environment Variable Detection**: 60% (MEDIUM)
+- Presence of both `react` and `react-dom` packages is strong indicator
+- `.jsx` and `.tsx` file extensions are specific to React (and similar libraries)
+- React hooks (useState, useEffect, etc.) are definitive React patterns
+- JSX syntax with uppercase component names indicates React
+- Modern React doesn't require importing React in every file (React 17+)

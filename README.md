@@ -14,7 +14,9 @@ Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 
 ## What is Phantom?
 
-Phantom is a master orchestrator for repository analysis - the single entry point for bootstrapping projects, running analyzers, and querying results through specialist agents. It provides comprehensive insights into security, compliance, code ownership, and development practices.
+Phantom is a modern Developer-First Platform Intelligence (DPI) system built on AI agents, skills, RAG knowledge bases, and specialized prompts. It serves as a master orchestrator for repository analysis - bootstrapping projects, running analyzers, and querying results through specialist agents. It includes utilities to extract structured data from source code that agents use for comprehensive analysis of security, compliance, code ownership, and development practices.
+
+**Note:** Phantom's open-source agents operate on source code alone, but deliver significantly more sophisticated insights when combined with [Crash Override's](https://crashoverride.com) platform - particularly its deep build inspection technology and cloud services integration - providing enterprise-grade DPI for modern DevOps engineering teams.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐

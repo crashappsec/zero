@@ -6,7 +6,7 @@
 
 #############################################################################
 # Phantom Hydrate
-# Clone repository/repositories and run analyzers for agent queries
+# Clone repository/repositories and run scanners for agent queries
 #
 # Usage:
 #   ./hydrate.sh <owner/repo>           # Single repo
@@ -71,9 +71,16 @@ OPTIONS:
     --advanced          All static analyzers + health/provenance (~5min)
     --deep              Claude-assisted analysis (~10min)
     --security          Security-focused analysis (~3min)
+    --compliance        License and policy compliance (~2min)
+    --devops            CI/CD and operational metrics (~3min)
     --force             Re-hydrate even if project exists
     --clean             Remove ALL hydrated data before starting (fresh start)
     -h, --help          Show this help
+
+CONFIGURATION:
+    All settings are in utils/phantom/phantom.config.json
+    See phantom.config.example.json for full documentation
+    Create custom profiles by adding entries to the profiles section
 
 EXAMPLES:
     $0 expressjs/express                    # Single repo
@@ -223,30 +230,96 @@ get_glow() {
     esac
 }
 
-# Get list of analyzers to run based on mode
-# Must match bootstrap.sh's get_analyzers_for_mode()
-get_analyzers_for_mode() {
+# Configuration file path (unified config)
+CONFIG_FILE="$SCRIPT_DIR/phantom.config.json"
+
+# Get list of scanners to run based on profile name
+# Loads from phantom.config.json configuration file
+get_scanners_for_mode() {
     local mode="$1"
+
+    # Load from phantom.config.json if available
+    if [[ -f "$CONFIG_FILE" ]]; then
+        local scanners=$(jq -r --arg m "$mode" '.profiles[$m].scanners // empty | join(" ")' "$CONFIG_FILE" 2>/dev/null)
+        if [[ -n "$scanners" ]]; then
+            echo "$scanners"
+            return 0
+        fi
+    fi
+
+    # Fallback defaults if phantom.config.json not available or profile not found
     case "$mode" in
         quick)
-            echo "dependencies technology vulnerabilities licenses"
+            echo "package-sbom tech-discovery package-vulns licenses tech-debt"
             ;;
         standard|full)
-            echo "dependencies technology vulnerabilities licenses security-findings ownership dora"
+            echo "package-sbom tech-discovery package-vulns licenses code-security code-secrets tech-debt code-ownership dora"
             ;;
         advanced)
-            echo "dependencies technology vulnerabilities package-health licenses security-findings ownership dora provenance"
+            echo "package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership dora package-provenance"
             ;;
         deep)
-            echo "dependencies technology vulnerabilities package-health licenses security-findings ownership dora provenance"
+            echo "package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership dora package-provenance"
             ;;
         security)
-            echo "dependencies vulnerabilities package-health security-findings provenance"
+            echo "package-sbom package-vulns licenses code-security iac-security code-secrets"
+            ;;
+        compliance)
+            echo "package-sbom licenses code-security documentation code-ownership"
+            ;;
+        devops)
+            echo "package-sbom tech-discovery iac-security git test-coverage dora package-provenance"
             ;;
         *)
-            echo "dependencies technology vulnerabilities licenses security-findings ownership dora"
+            echo "package-sbom tech-discovery package-vulns licenses code-security code-secrets tech-debt code-ownership dora"
             ;;
     esac
+}
+
+# Get profile display info (name, description, estimated_time)
+get_profile_info() {
+    local profile="$1"
+    local field="$2"
+
+    if [[ -f "$CONFIG_FILE" ]]; then
+        jq -r --arg p "$profile" --arg f "$field" '.profiles[$p][$f] // empty' "$CONFIG_FILE" 2>/dev/null
+    fi
+}
+
+# List all available profiles
+list_profiles() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        jq -r '.profiles | keys[]' "$CONFIG_FILE" 2>/dev/null
+    else
+        echo "quick standard advanced deep security compliance devops"
+    fi
+}
+
+# Check if profile requires Claude API
+profile_requires_claude() {
+    local profile="$1"
+
+    if [[ -f "$CONFIG_FILE" ]]; then
+        local requires=$(jq -r --arg p "$profile" '.profiles[$p].requires_claude // false' "$CONFIG_FILE" 2>/dev/null)
+        [[ "$requires" == "true" ]]
+    else
+        [[ "$profile" == "deep" ]]
+    fi
+}
+
+# Get config setting
+get_config_setting() {
+    local key="$1"
+    local default="$2"
+
+    if [[ -f "$CONFIG_FILE" ]]; then
+        local value=$(jq -r ".settings.$key // empty" "$CONFIG_FILE" 2>/dev/null)
+        if [[ -n "$value" ]] && [[ "$value" != "null" ]]; then
+            echo "$value"
+            return 0
+        fi
+    fi
+    echo "$default"
 }
 
 # Get display name for a phase
@@ -254,15 +327,21 @@ get_phase_display() {
     local phase="$1"
     case "$phase" in
         "Cloning") echo "Cloning repository" ;;
-        "dependencies") echo "SBOM generation" ;;
-        "technology") echo "Technology scan" ;;
-        "vulnerabilities") echo "Package vulnerabilities" ;;
+        "package-sbom") echo "SBOM generation" ;;
+        "tech-discovery") echo "Tech discovery" ;;
+        "package-vulns") echo "Package vulnerabilities" ;;
         "package-health") echo "Package health" ;;
         "licenses") echo "License scan" ;;
-        "security-findings") echo "Code security" ;;
-        "ownership") echo "Code ownership" ;;
+        "code-security") echo "Code security" ;;
+        "code-ownership") echo "Code ownership" ;;
         "dora") echo "DORA metrics" ;;
-        "provenance") echo "Provenance check" ;;
+        "package-provenance") echo "Provenance check" ;;
+        "git") echo "Git insights" ;;
+        "test-coverage") echo "Test coverage" ;;
+        "iac-security") echo "IaC security" ;;
+        "code-secrets") echo "Secrets scan" ;;
+        "tech-debt") echo "Tech debt" ;;
+        "documentation") echo "Documentation" ;;
         *) echo "$phase" ;;
     esac
 }
@@ -272,15 +351,21 @@ get_phase_estimate() {
     local phase="$1"
     case "$phase" in
         "Cloning") echo "~30s" ;;
-        "dependencies") echo "~30s" ;;  # SBOM generation with syft
-        "technology") echo "~5s" ;;
-        "vulnerabilities") echo "~10s" ;;
+        "package-sbom") echo "~30s" ;;  # SBOM generation with syft
+        "tech-discovery") echo "~5s" ;;
+        "package-vulns") echo "~10s" ;;
         "package-health") echo "~5s" ;;
         "licenses") echo "~5s" ;;
-        "security-findings") echo "~15s" ;;
-        "ownership") echo "~15s" ;;
+        "code-security") echo "~15s" ;;
+        "code-ownership") echo "~15s" ;;
         "dora") echo "~20s" ;;
-        "provenance") echo "~10s" ;;
+        "package-provenance") echo "~10s" ;;
+        "git") echo "~10s" ;;
+        "test-coverage") echo "~10s" ;;
+        "iac-security") echo "~15s" ;;
+        "code-secrets") echo "~20s" ;;
+        "tech-debt") echo "~30s" ;;
+        "documentation") echo "~10s" ;;
         *) echo "~10s" ;;
     esac
 }
@@ -302,24 +387,24 @@ get_phase_result() {
                 printf "\033[2m%s, %s files\033[0m" "$size" "$files"
             fi
             ;;
-        "technology")
-            if [[ -f "$analysis_path/technology.json" ]]; then
-                local count=$(jq -r '.technologies | length // 0' "$analysis_path/technology.json" 2>/dev/null)
+        "tech-discovery")
+            if [[ -f "$analysis_path/tech-discovery.json" ]]; then
+                local count=$(jq -r '.technologies | length // 0' "$analysis_path/tech-discovery.json" 2>/dev/null)
                 printf "\033[2m%s technologies detected\033[0m" "$count"
             fi
             ;;
-        "dependencies")
-            if [[ -f "$analysis_path/dependencies.json" ]]; then
-                local total=$(jq -r '.total_dependencies // 0' "$analysis_path/dependencies.json" 2>/dev/null)
-                local format=$(jq -r '.sbom_format // "unknown"' "$analysis_path/dependencies.json" 2>/dev/null)
+        "package-sbom")
+            if [[ -f "$analysis_path/package-sbom.json" ]]; then
+                local total=$(jq -r '.total_dependencies // 0' "$analysis_path/package-sbom.json" 2>/dev/null)
+                local format=$(jq -r '.sbom_format // "unknown"' "$analysis_path/package-sbom.json" 2>/dev/null)
                 printf "\033[2m%s packages (%s)\033[0m" "$total" "$format"
             fi
             ;;
-        "vulnerabilities")
-            if [[ -f "$analysis_path/vulnerabilities.json" ]]; then
-                local total=$(jq -r '.summary.total // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
-                local c=$(jq -r '.summary.critical // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
-                local h=$(jq -r '.summary.high // 0' "$analysis_path/vulnerabilities.json" 2>/dev/null)
+        "package-vulns")
+            if [[ -f "$analysis_path/package-vulns.json" ]]; then
+                local total=$(jq -r '.summary.total // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
+                local c=$(jq -r '.summary.critical // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
+                local h=$(jq -r '.summary.high // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
                 if [[ "$total" == "0" ]]; then
                     printf "\033[0;32mclean\033[0m"
                 elif [[ "$c" != "0" ]] || [[ "$h" != "0" ]]; then
@@ -367,11 +452,11 @@ get_phase_result() {
                 fi
             fi
             ;;
-        "security-findings")
-            if [[ -f "$analysis_path/security-findings.json" ]]; then
-                local high=$(jq -r '.findings | map(select(.severity == "high")) | length // 0' "$analysis_path/security-findings.json" 2>/dev/null)
-                local medium=$(jq -r '.findings | map(select(.severity == "medium")) | length // 0' "$analysis_path/security-findings.json" 2>/dev/null)
-                local secrets=$(jq -r '.secrets | length // 0' "$analysis_path/security-findings.json" 2>/dev/null)
+        "code-security")
+            if [[ -f "$analysis_path/code-security.json" ]]; then
+                local high=$(jq -r '.findings | map(select(.severity == "high")) | length // 0' "$analysis_path/code-security.json" 2>/dev/null)
+                local medium=$(jq -r '.findings | map(select(.severity == "medium")) | length // 0' "$analysis_path/code-security.json" 2>/dev/null)
+                local secrets=$(jq -r '.secrets | length // 0' "$analysis_path/code-security.json" 2>/dev/null)
                 if [[ "$high" == "0" ]] && [[ "$secrets" == "0" ]]; then
                     printf "\033[0;32msecure\033[0m"
                 else
@@ -392,10 +477,10 @@ get_phase_result() {
                 fi
             fi
             ;;
-        "ownership")
-            if [[ -f "$analysis_path/ownership.json" ]]; then
-                local contributors=$(jq -r '.contributors | length // 0' "$analysis_path/ownership.json" 2>/dev/null)
-                local bus_factor=$(jq -r '.bus_factor // 0' "$analysis_path/ownership.json" 2>/dev/null)
+        "code-ownership")
+            if [[ -f "$analysis_path/code-ownership.json" ]]; then
+                local contributors=$(jq -r '.contributors | length // 0' "$analysis_path/code-ownership.json" 2>/dev/null)
+                local bus_factor=$(jq -r '.bus_factor // 0' "$analysis_path/code-ownership.json" 2>/dev/null)
                 printf "\033[2m%s contributors, bus factor: %s\033[0m" "$contributors" "$bus_factor"
             fi
             ;;
@@ -406,11 +491,11 @@ get_phase_result() {
                 printf "\033[2mdeploy: %s, lead: %s\033[0m" "$freq" "$lead"
             fi
             ;;
-        "provenance")
-            if [[ -f "$analysis_path/provenance.json" ]]; then
-                local signed=$(jq -r '.summary.signed_commits // 0' "$analysis_path/provenance.json" 2>/dev/null)
-                local slsa=$(jq -r '.summary.slsa_level // "none"' "$analysis_path/provenance.json" 2>/dev/null)
-                local status=$(jq -r '.status // "unknown"' "$analysis_path/provenance.json" 2>/dev/null)
+        "package-provenance")
+            if [[ -f "$analysis_path/package-provenance.json" ]]; then
+                local signed=$(jq -r '.summary.signed_commits // 0' "$analysis_path/package-provenance.json" 2>/dev/null)
+                local slsa=$(jq -r '.summary.slsa_level // "none"' "$analysis_path/package-provenance.json" 2>/dev/null)
+                local status=$(jq -r '.status // "unknown"' "$analysis_path/package-provenance.json" 2>/dev/null)
                 if [[ "$status" == "analyzer_not_found" ]]; then
                     printf "\033[2mskipped\033[0m"
                 elif [[ "$slsa" != "none" ]] && [[ "$slsa" != "null" ]]; then
@@ -448,7 +533,7 @@ has_mode_flag() {
     local args=("$@")
     for arg in "${args[@]}"; do
         case "$arg" in
-            --quick|--standard|--advanced|--deep|--security)
+            --quick|--standard|--advanced|--deep|--security|--compliance|--devops)
                 return 0
                 ;;
         esac
@@ -466,6 +551,8 @@ get_mode_from_args() {
             --advanced) echo "advanced"; return ;;
             --deep) echo "deep"; return ;;
             --security) echo "security"; return ;;
+            --compliance) echo "compliance"; return ;;
+            --devops) echo "devops"; return ;;
         esac
     done
     echo "standard"  # Default
@@ -474,26 +561,88 @@ get_mode_from_args() {
 # Prompt user to select analysis mode interactively
 select_analysis_mode() {
     echo
-    echo -e "${BOLD}Select analysis depth:${NC}"
+    echo -e "${BOLD}Select analysis profile:${NC}"
     echo
-    echo -e "  ${CYAN}1${NC}  Quick      ~30s   Fast static analysis (deps, tech, vulns, licenses)"
-    echo -e "  ${CYAN}2${NC}  Standard   ~2min  Most analyzers ${DIM}(default)${NC}"
-    echo -e "  ${CYAN}3${NC}  Advanced   ~5min  All static analyzers + package health, provenance"
-    echo -e "  ${CYAN}4${NC}  Deep       ~10min Claude-assisted analysis ${DIM}(requires API key)${NC}"
-    echo -e "  ${CYAN}5${NC}  Security   ~3min  Security-focused (vulns, package-health, provenance)"
+
+    # Build profile menu dynamically from profiles.json
+    local profiles=()
+    local idx=0
+
+    if [[ -f "$CONFIG_FILE" ]]; then
+        # Get profiles in preferred display order
+        local ordered_profiles=("quick" "standard" "advanced" "deep" "security" "compliance" "devops")
+
+        for profile in "${ordered_profiles[@]}"; do
+            # Check if profile exists in config
+            if jq -e --arg p "$profile" '.profiles[$p]' "$CONFIG_FILE" &>/dev/null; then
+                ((idx++))
+                profiles+=("$profile")
+
+                local name=$(get_profile_info "$profile" "name")
+                local time=$(get_profile_info "$profile" "estimated_time")
+                local desc=$(get_profile_info "$profile" "description")
+                local scanners=$(get_scanners_for_mode "$profile")
+                local scanner_count=$(echo "$scanners" | wc -w | tr -d ' ')
+
+                # Format display
+                local default_marker=""
+                [[ "$profile" == "standard" ]] && default_marker=" ${DIM}(default)${NC}"
+
+                local claude_marker=""
+                if profile_requires_claude "$profile"; then
+                    claude_marker=" ${DIM}(requires API key)${NC}"
+                fi
+
+                printf "  ${CYAN}%d${NC}  %-10s %-8s %s%s%s\n" "$idx" "$name" "$time" "$desc" "$default_marker" "$claude_marker"
+
+                # Show scanner list in dim text
+                printf "      ${DIM}→ %s${NC}\n" "$scanners"
+            fi
+        done
+
+        # Also check for any custom profiles not in the ordered list
+        while IFS= read -r profile; do
+            if [[ ! " ${ordered_profiles[*]} " =~ " $profile " ]]; then
+                ((idx++))
+                profiles+=("$profile")
+
+                local name=$(get_profile_info "$profile" "name")
+                local time=$(get_profile_info "$profile" "estimated_time")
+                local desc=$(get_profile_info "$profile" "description")
+                local scanners=$(get_scanners_for_mode "$profile")
+
+                local claude_marker=""
+                if profile_requires_claude "$profile"; then
+                    claude_marker=" ${DIM}(requires API key)${NC}"
+                fi
+
+                printf "  ${CYAN}%d${NC}  %-10s %-8s %s%s\n" "$idx" "$name" "$time" "$desc" "$claude_marker"
+                printf "      ${DIM}→ %s${NC}\n" "$scanners"
+            fi
+        done < <(jq -r '.profiles | keys[]' "$CONFIG_FILE" 2>/dev/null)
+    else
+        # Fallback if no phantom.config.json
+        echo -e "  ${CYAN}1${NC}  Quick      ~30s   Fast static analysis"
+        echo -e "  ${CYAN}2${NC}  Standard   ~2min  Most scanners ${DIM}(default)${NC}"
+        echo -e "  ${CYAN}3${NC}  Advanced   ~5min  All static scanners + package health"
+        echo -e "  ${CYAN}4${NC}  Deep       ~10min Claude-assisted analysis ${DIM}(requires API key)${NC}"
+        echo -e "  ${CYAN}5${NC}  Security   ~3min  Security-focused analysis"
+        profiles=("quick" "standard" "advanced" "deep" "security")
+    fi
+
     echo
-    read -p "Choose mode [2]: " -n 1 -r mode_choice
+    read -p "Choose profile [2]: " -r mode_choice
     echo
     echo
 
-    case "${mode_choice:-2}" in
-        1) echo "--quick" ;;
-        2|"") echo "--standard" ;;
-        3) echo "--advanced" ;;
-        4) echo "--deep" ;;
-        5) echo "--security" ;;
-        *) echo "--standard" ;;
-    esac
+    # Handle selection
+    if [[ -z "$mode_choice" ]]; then
+        echo "--standard"
+    elif [[ "$mode_choice" =~ ^[0-9]+$ ]] && [[ $mode_choice -ge 1 ]] && [[ $mode_choice -le ${#profiles[@]} ]]; then
+        echo "--${profiles[$((mode_choice-1))]}"
+    else
+        echo "--standard"
+    fi
 }
 
 # Hydrate all repos in an organization
@@ -537,19 +686,26 @@ hydrate_org() {
 
     # Determine current mode for progress display and summary
     local current_mode=$(get_mode_from_args "${extra_args[@]}")
-    local mode_analyzers=$(get_analyzers_for_mode "$current_mode")
-    local analyzer_count=$(echo "$mode_analyzers" | wc -w | tr -d ' ')
+    local mode_scanners=$(get_scanners_for_mode "$current_mode")
+    local scanner_count=$(echo "$mode_scanners" | wc -w | tr -d ' ')
 
-    # Get mode display name
+    # Get mode display name from phantom.config.json or use fallback
     local mode_display=""
-    case "$current_mode" in
-        quick)    mode_display="Quick" ;;
-        standard) mode_display="Standard" ;;
-        advanced) mode_display="Advanced" ;;
-        deep)     mode_display="Deep" ;;
-        security) mode_display="Security" ;;
-        *)        mode_display="Standard" ;;
-    esac
+    if [[ -f "$CONFIG_FILE" ]]; then
+        mode_display=$(get_profile_info "$current_mode" "name")
+    fi
+    if [[ -z "$mode_display" ]]; then
+        case "$current_mode" in
+            quick)      mode_display="Quick" ;;
+            standard)   mode_display="Standard" ;;
+            advanced)   mode_display="Advanced" ;;
+            deep)       mode_display="Deep" ;;
+            security)   mode_display="Security" ;;
+            compliance) mode_display="Compliance" ;;
+            devops)     mode_display="DevOps" ;;
+            *)          mode_display="Standard" ;;
+        esac
+    fi
 
     # Show org summary
     echo
@@ -557,7 +713,7 @@ hydrate_org() {
     echo -e "  Repositories:  ${CYAN}$repo_count${NC}"
     echo -e "  Total Size:    ${CYAN}$total_size${NC}"
     echo -e "  Languages:     ${CYAN}$languages${NC}"
-    echo -e "  Analysis Mode: ${CYAN}$mode_display${NC} ${DIM}($analyzer_count analyzers)${NC}"
+    echo -e "  Analysis Mode: ${CYAN}$mode_display${NC} ${DIM}($scanner_count scanners)${NC}"
     [[ $limit -gt 0 ]] && echo -e "  Limit:         ${CYAN}$limit repos${NC}"
     echo
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -693,15 +849,15 @@ hydrate_org() {
                 if [[ ! -d "$GIBSON_PROJECTS_DIR/$project_id/repo" ]] || ! echo "$clean_log" | grep -q "Languages:"; then
                     current_phase="Cloning"
                 else
-                    # Check which output files exist to determine current analyzer
-                    # Use mode-specific analyzer list instead of hardcoded list
+                    # Check which output files exist to determine current scanner
+                    # Use mode-specific scanner list instead of hardcoded list
                     current_phase=""
-                    for analyzer in $mode_analyzers; do
-                        local output_file="$analysis_path/${analyzer}.json"
+                    for scanner in $mode_scanners; do
+                        local output_file="$analysis_path/${scanner}.json"
                         if [[ ! -f "$output_file" ]]; then
-                            # This analyzer hasn't completed yet - might be running
-                            if echo "$clean_log" | grep -q "Running.*analyzers"; then
-                                current_phase="$analyzer"
+                            # This scanner hasn't completed yet - might be running
+                            if echo "$clean_log" | grep -q "Running.*scanners"; then
+                                current_phase="$scanner"
                                 break
                             fi
                         fi
@@ -847,7 +1003,7 @@ parse_args() {
                 CLEAN_MODE=true
                 shift
                 ;;
-            --branch|--depth|--quick|--standard|--advanced|--deep|--security|--force)
+            --branch|--depth|--quick|--standard|--advanced|--deep|--security|--compliance|--devops|--force)
                 PASS_THROUGH_ARGS+=("$1")
                 if [[ "$1" == "--branch" ]] || [[ "$1" == "--depth" ]]; then
                     PASS_THROUGH_ARGS+=("$2")
