@@ -1488,10 +1488,21 @@ main() {
             exit 1
         fi
 
+        # Generate scan ID for tracking
+        local scan_id=$(generate_scan_id)
+        local scan_start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+        # Get git context for history tracking
+        local git_context=""
+        if [[ -d "$repo_path/.git" ]]; then
+            git_context=$(gibson_get_git_context "$repo_path")
+        fi
+
         # Print header for enrichment
         gibson_print_header
         echo -e "Enriching: ${CYAN}$TARGET${NC}"
         echo -e "Project ID: ${CYAN}$project_id${NC}"
+        echo -e "Scan ID: ${DIM}$scan_id${NC}"
 
         # Skip cloning, just run missing analyzers
         run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE" "true"
@@ -1499,6 +1510,15 @@ main() {
         # Update summary and finalize
         generate_summary "$project_id" "$analysis_path"
         gibson_finalize_manifest "$project_id"
+
+        # Record scan in history
+        local scan_end_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        local scanners_run=$(get_analyzers_for_mode "$MODE")
+        gibson_append_scan_history "$project_id" "$scan_id" "$git_context" "$scan_start_time" "$scan_end_time" "$MODE" "$scanners_run" "complete"
+
+        # Update org-level index
+        gibson_update_org_index "$project_id"
+
         gibson_index_update_status "$project_id" "ready"
         gibson_set_active_project "$project_id"
         print_final_summary "$project_id" "$analysis_path"
@@ -1554,15 +1574,26 @@ main() {
         echo -e " ${GREEN}✓${NC}"
     fi
 
-    # Get git info
+    # Generate scan ID for tracking
+    local scan_id=$(generate_scan_id)
+    local scan_start_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    # Get git info (full context for tracking)
     local git_info=$(get_git_info "$repo_path")
     local branch=$(echo "$git_info" | sed -n '1p')
     local commit=$(echo "$git_info" | sed -n '2p')
+
+    # Get full git context JSON for history tracking
+    local git_context=""
+    if [[ -d "$repo_path/.git" ]]; then
+        git_context=$(gibson_get_git_context "$repo_path")
+    fi
 
     if [[ -n "$branch" ]]; then
         echo -e "  Branch: ${CYAN}$branch${NC}"
         echo -e "  Commit: ${CYAN}$commit${NC}"
     fi
+    echo -e "  Scan ID: ${DIM}$scan_id${NC}"
 
     # Detect project type (silent - no separate output line)
     local detection=$(detect_project_type "$repo_path")
@@ -1584,8 +1615,8 @@ main() {
     gibson_create_project_metadata "$project_id" "$TARGET" "$source_type" "$branch" "$commit"
     gibson_update_project_type "$project_id" "$languages" "$frameworks" "$package_managers"
 
-    # Initialize analysis manifest (with mode)
-    gibson_init_analysis_manifest "$project_id" "$commit" "$MODE"
+    # Initialize analysis manifest (with mode, scan_id, and git context)
+    gibson_init_analysis_manifest "$project_id" "$commit" "$MODE" "$scan_id" "$git_context"
 
     # Run analyzers
     run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE"
@@ -1595,6 +1626,14 @@ main() {
 
     # Finalize manifest
     gibson_finalize_manifest "$project_id"
+
+    # Record scan in history
+    local scan_end_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    local scanners_run=$(get_analyzers_for_mode "$MODE")
+    gibson_append_scan_history "$project_id" "$scan_id" "$git_context" "$scan_start_time" "$scan_end_time" "$MODE" "$scanners_run" "complete"
+
+    # Update org-level index for agent queries
+    gibson_update_org_index "$project_id"
 
     # Update index status
     gibson_index_update_status "$project_id" "ready"

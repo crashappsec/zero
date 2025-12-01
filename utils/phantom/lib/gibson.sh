@@ -602,31 +602,62 @@ gibson_init_analysis_manifest() {
     local project_id="$1"
     local commit="$2"
     local mode="${3:-standard}"
+    local scan_id="${4:-}"
+    local git_context="${5:-}"
 
     local analysis_path=$(gibson_project_analysis_path "$project_id")
     mkdir -p "$analysis_path"
 
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-    cat > "$analysis_path/manifest.json" << EOF
-{
-  "project_id": "$project_id",
-  "analyzed_commit": "$commit",
-  "mode": "$mode",
-  "started_at": "$timestamp",
-  "completed_at": null,
-  "analyses": {},
-  "summary": {
-    "risk_level": "unknown",
-    "total_dependencies": 0,
-    "direct_dependencies": 0,
-    "total_vulnerabilities": 0,
-    "total_security_findings": 0,
-    "license_status": "unknown",
-    "abandoned_packages": 0
-  }
-}
-EOF
+    # Generate scan_id if not provided (for backwards compatibility)
+    if [[ -z "$scan_id" ]]; then
+        scan_id=$(generate_scan_id)
+    fi
+
+    # Build git context JSON block
+    local git_json="null"
+    if [[ -n "$git_context" ]] && [[ "$git_context" != "null" ]]; then
+        git_json="$git_context"
+    fi
+
+    # Create enhanced manifest (schema v2.0.0)
+    jq -n \
+        --arg project_id "$project_id" \
+        --arg scan_id "$scan_id" \
+        --arg schema_version "2.0.0" \
+        --arg mode "$mode" \
+        --arg started_at "$timestamp" \
+        --argjson git "$git_json" \
+        '{
+            project_id: $project_id,
+            scan_id: $scan_id,
+            schema_version: $schema_version,
+            git: $git,
+            scan: {
+                started_at: $started_at,
+                completed_at: null,
+                duration_seconds: null,
+                profile: $mode,
+                scanners_requested: [],
+                scanners_completed: [],
+                scanners_failed: []
+            },
+            analyses: {},
+            summary: {
+                risk_level: "unknown",
+                total_dependencies: 0,
+                direct_dependencies: 0,
+                total_vulnerabilities: 0,
+                total_security_findings: 0,
+                license_status: "unknown",
+                abandoned_packages: 0,
+                vulnerability_count: 0,
+                critical_count: 0,
+                high_count: 0,
+                dependency_count: 0
+            }
+        }' > "$analysis_path/manifest.json"
 }
 
 # Record analysis start
@@ -708,8 +739,34 @@ gibson_finalize_manifest() {
         return 1
     fi
 
+    # Calculate duration if started_at is available
+    local started_at=$(jq -r '.scan.started_at // .started_at // empty' "$manifest" 2>/dev/null)
+    local duration_seconds="null"
+    if [[ -n "$started_at" ]]; then
+        local start_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$started_at" +%s 2>/dev/null || date -d "$started_at" +%s 2>/dev/null)
+        local end_epoch=$(date +%s)
+        if [[ -n "$start_epoch" ]]; then
+            duration_seconds=$((end_epoch - start_epoch))
+        fi
+    fi
+
+    # Get completed and failed scanners from analyses
+    local scanners_completed=$(jq -r '[.analyses // {} | to_entries[] | select(.value.status == "complete") | .key] | unique' "$manifest" 2>/dev/null)
+    local scanners_failed=$(jq -r '[.analyses // {} | to_entries[] | select(.value.status == "failed") | .key] | unique' "$manifest" 2>/dev/null)
+
     local tmp=$(mktemp)
-    jq --arg ts "$timestamp" '.completed_at = $ts' "$manifest" > "$tmp" && mv "$tmp" "$manifest"
+    jq --arg ts "$timestamp" \
+       --argjson duration "$duration_seconds" \
+       --argjson completed "$scanners_completed" \
+       --argjson failed "$scanners_failed" \
+       '
+       # Update both old and new schema fields for compatibility
+       .completed_at = $ts |
+       .scan.completed_at = $ts |
+       .scan.duration_seconds = $duration |
+       .scan.scanners_completed = $completed |
+       .scan.scanners_failed = $failed
+       ' "$manifest" > "$tmp" && mv "$tmp" "$manifest"
 }
 
 # Update manifest summary
@@ -1063,4 +1120,374 @@ gibson_get_cached_repo() {
 
     echo "$repo_path"
     return 0
+}
+
+#############################################################################
+# Scan ID Generation
+#############################################################################
+
+# Generate unique scan ID
+# Format: YYYYMMDD-HHMMSS-XXXX (timestamp + 4-char random)
+generate_scan_id() {
+    local timestamp=$(date -u +"%Y%m%d-%H%M%S")
+    local random=$(head -c 2 /dev/urandom | xxd -p 2>/dev/null || echo "$(date +%N | cut -c1-4)")
+    echo "${timestamp}-${random:0:4}"
+}
+
+# Get full git context from a repository
+# Returns JSON with commit, branch, tag, date info
+gibson_get_git_context() {
+    local repo_path="$1"
+
+    if [[ ! -d "$repo_path/.git" ]]; then
+        echo '{"error": "not a git repository"}'
+        return 1
+    fi
+
+    cd "$repo_path" || { echo '{"error": "cannot access repo"}'; return 1; }
+
+    local commit_hash=$(git rev-parse HEAD 2>/dev/null)
+    local commit_short=$(git rev-parse --short HEAD 2>/dev/null)
+    local branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+    local tag=$(git describe --tags --exact-match HEAD 2>/dev/null || echo "")
+    local commit_date=$(git log -1 --format=%cI 2>/dev/null)
+    local commit_author=$(git log -1 --format='%an <%ae>' 2>/dev/null)
+
+    # Handle detached HEAD
+    [[ "$branch" == "HEAD" ]] && branch=""
+
+    jq -n \
+        --arg hash "$commit_hash" \
+        --arg short "$commit_short" \
+        --arg branch "$branch" \
+        --arg tag "$tag" \
+        --arg date "$commit_date" \
+        --arg author "$commit_author" \
+        '{
+            commit_hash: $hash,
+            commit_short: $short,
+            branch: (if $branch != "" then $branch else null end),
+            tag: (if $tag != "" then $tag else null end),
+            commit_date: $date,
+            commit_author: $author
+        }'
+}
+
+#############################################################################
+# Scan History Management
+#############################################################################
+
+# Initialize history.json for a project
+gibson_init_history() {
+    local project_id="$1"
+    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local history_file="$analysis_path/history.json"
+
+    mkdir -p "$analysis_path"
+
+    if [[ ! -f "$history_file" ]]; then
+        cat > "$history_file" << EOF
+{
+  "schema_version": "1.0.0",
+  "project_id": "$project_id",
+  "total_scans": 0,
+  "first_scan_at": null,
+  "last_scan_at": null,
+  "scans": [],
+  "by_commit": {}
+}
+EOF
+    fi
+}
+
+# Append a scan record to history
+gibson_append_scan_history() {
+    local project_id="$1"
+    local scan_id="$2"
+    local commit_hash="$3"
+    local commit_short="$4"
+    local branch="$5"
+    local started_at="$6"
+    local completed_at="$7"
+    local duration_seconds="$8"
+    local profile="$9"
+    local scanners_run="${10}"  # JSON array
+    local status="${11}"
+    local summary="${12}"       # JSON object
+
+    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local history_file="$analysis_path/history.json"
+
+    # Initialize if doesn't exist
+    gibson_init_history "$project_id"
+
+    # Create scan record
+    local scan_record=$(jq -n \
+        --arg scan_id "$scan_id" \
+        --arg commit_hash "$commit_hash" \
+        --arg commit_short "$commit_short" \
+        --arg branch "$branch" \
+        --arg started_at "$started_at" \
+        --arg completed_at "$completed_at" \
+        --argjson duration "$duration_seconds" \
+        --arg profile "$profile" \
+        --argjson scanners "$scanners_run" \
+        --arg status "$status" \
+        --argjson summary "$summary" \
+        '{
+            scan_id: $scan_id,
+            commit_hash: $commit_hash,
+            commit_short: $commit_short,
+            branch: (if $branch != "" then $branch else null end),
+            started_at: $started_at,
+            completed_at: $completed_at,
+            duration_seconds: $duration,
+            profile: $profile,
+            scanners_run: $scanners,
+            status: $status,
+            summary: $summary
+        }')
+
+    # Update history file
+    local tmp=$(mktemp)
+    jq --argjson scan "$scan_record" \
+       --arg commit "$commit_hash" \
+       --arg scan_id "$scan_id" \
+       --arg completed_at "$completed_at" \
+       '
+       .scans = [$scan] + .scans |
+       .total_scans = (.scans | length) |
+       .last_scan_at = $completed_at |
+       .first_scan_at = (.first_scan_at // $completed_at) |
+       .by_commit[$commit] = ((.by_commit[$commit] // []) + [$scan_id])
+       ' "$history_file" > "$tmp" && mv "$tmp" "$history_file"
+}
+
+# Get scan history for a project
+gibson_get_scan_history() {
+    local project_id="$1"
+    local limit="${2:-10}"
+
+    local history_file="$(gibson_project_analysis_path "$project_id")/history.json"
+
+    if [[ -f "$history_file" ]]; then
+        jq --argjson limit "$limit" '.scans[:$limit]' "$history_file"
+    else
+        echo "[]"
+    fi
+}
+
+# Get scans for a specific commit
+gibson_get_scans_for_commit() {
+    local project_id="$1"
+    local commit="$2"
+
+    local history_file="$(gibson_project_analysis_path "$project_id")/history.json"
+
+    if [[ -f "$history_file" ]]; then
+        jq --arg commit "$commit" '.scans | map(select(.commit_hash == $commit or .commit_short == $commit))' "$history_file"
+    else
+        echo "[]"
+    fi
+}
+
+#############################################################################
+# Organization Index
+#############################################################################
+
+# Update org-level index after a scan
+gibson_update_org_index() {
+    local project_id="$1"
+
+    # Extract org from project_id (org/repo format)
+    local org=$(echo "$project_id" | cut -d'/' -f1)
+    local repo=$(echo "$project_id" | cut -d'/' -f2)
+    local org_dir="$GIBSON_PROJECTS_DIR/$org"
+    local index_file="$org_dir/_index.json"
+
+    # Create org index if doesn't exist
+    if [[ ! -f "$index_file" ]]; then
+        cat > "$index_file" << EOF
+{
+  "org": "$org",
+  "updated_at": null,
+  "project_count": 0,
+  "aggregate": {
+    "total_vulnerabilities": 0,
+    "critical": 0,
+    "high": 0,
+    "total_dependencies": 0,
+    "repos_at_risk": []
+  },
+  "projects": {}
+}
+EOF
+    fi
+
+    # Get data from manifest
+    local manifest="$(gibson_project_analysis_path "$project_id")/manifest.json"
+    if [[ ! -f "$manifest" ]]; then
+        return 1
+    fi
+
+    local scan_id=$(jq -r '.scan_id // ""' "$manifest" 2>/dev/null)
+    local completed_at=$(jq -r '.completed_at // ""' "$manifest" 2>/dev/null)
+    local commit=$(jq -r '.git.commit_short // .analyzed_commit // ""' "$manifest" 2>/dev/null)
+    local risk_level=$(jq -r '.summary.risk_level // "unknown"' "$manifest" 2>/dev/null)
+    local critical=$(jq -r '.summary.total_vulnerabilities // 0' "$manifest" 2>/dev/null)
+    local deps=$(jq -r '.summary.total_dependencies // 0' "$manifest" 2>/dev/null)
+
+    # Get vuln breakdown from package-vulns.json if available
+    local vulns_file="$(gibson_project_analysis_path "$project_id")/package-vulns.json"
+    local crit=0 high=0
+    if [[ -f "$vulns_file" ]]; then
+        crit=$(jq -r '.summary.critical // 0' "$vulns_file" 2>/dev/null)
+        high=$(jq -r '.summary.high // 0' "$vulns_file" 2>/dev/null)
+    fi
+
+    local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    # Update org index
+    local tmp=$(mktemp)
+    jq --arg repo "$repo" \
+       --arg scan_id "$scan_id" \
+       --arg scan_at "$completed_at" \
+       --arg commit "$commit" \
+       --arg risk "$risk_level" \
+       --argjson crit "$crit" \
+       --argjson high "$high" \
+       --argjson deps "$deps" \
+       --arg ts "$timestamp" \
+       '
+       .updated_at = $ts |
+       .projects[$repo] = {
+           last_scan_id: $scan_id,
+           last_scan_at: $scan_at,
+           commit: $commit,
+           risk_level: $risk,
+           vulns: { critical: $crit, high: $high },
+           deps: $deps
+       } |
+       .project_count = (.projects | length)
+       ' "$index_file" > "$tmp" && mv "$tmp" "$index_file"
+
+    # Recalculate aggregates
+    gibson_recalculate_org_aggregates "$org"
+}
+
+# Recalculate org aggregate stats
+gibson_recalculate_org_aggregates() {
+    local org="$1"
+    local index_file="$GIBSON_PROJECTS_DIR/$org/_index.json"
+
+    if [[ ! -f "$index_file" ]]; then
+        return 1
+    fi
+
+    local tmp=$(mktemp)
+    jq '
+    .aggregate.total_vulnerabilities = ([.projects[].vulns.critical, .projects[].vulns.high] | add // 0) |
+    .aggregate.critical = ([.projects[].vulns.critical] | add // 0) |
+    .aggregate.high = ([.projects[].vulns.high] | add // 0) |
+    .aggregate.total_dependencies = ([.projects[].deps] | add // 0) |
+    .aggregate.repos_at_risk = [.projects | to_entries[] | select(.value.vulns.critical > 0 or .value.vulns.high > 0) | .key]
+    ' "$index_file" > "$tmp" && mv "$tmp" "$index_file"
+}
+
+# Get org index
+gibson_get_org_index() {
+    local org="$1"
+    local index_file="$GIBSON_PROJECTS_DIR/$org/_index.json"
+
+    if [[ -f "$index_file" ]]; then
+        cat "$index_file"
+    else
+        echo '{"error": "org index not found"}'
+    fi
+}
+
+#############################################################################
+# Project/Org Clean Functions
+#############################################################################
+
+# List all projects in an organization
+gibson_list_org_projects() {
+    local org="$1"
+    local org_dir="$GIBSON_PROJECTS_DIR/$org"
+
+    if [[ ! -d "$org_dir" ]]; then
+        return
+    fi
+
+    for repo_dir in "$org_dir"/*/; do
+        [[ ! -d "$repo_dir" ]] && continue
+        [[ "$(basename "$repo_dir")" == "_index.json" ]] && continue
+        local repo=$(basename "$repo_dir")
+        [[ "$repo" != "_"* ]] && echo "$repo"
+    done
+}
+
+# Clean a single project
+gibson_clean_project() {
+    local project_id="$1"
+    local project_path=$(gibson_project_path "$project_id")
+
+    if [[ ! -d "$project_path" ]]; then
+        return 1
+    fi
+
+    # Remove project directory
+    rm -rf "$project_path"
+
+    # Remove from index
+    gibson_index_remove_project "$project_id"
+
+    # Extract org and recalculate org index
+    local org=$(echo "$project_id" | cut -d'/' -f1)
+    local org_dir="$GIBSON_PROJECTS_DIR/$org"
+
+    # Remove org directory if empty (except for _index.json)
+    local remaining=$(find "$org_dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
+    if [[ "$remaining" -eq 0 ]]; then
+        rm -rf "$org_dir"
+    else
+        # Recalculate org aggregates
+        gibson_recalculate_org_aggregates "$org"
+    fi
+
+    return 0
+}
+
+# Clean all projects in an organization
+gibson_clean_org() {
+    local org="$1"
+    local org_dir="$GIBSON_PROJECTS_DIR/$org"
+    local count=0
+
+    if [[ ! -d "$org_dir" ]]; then
+        return 1
+    fi
+
+    # Clean each project in the org
+    for repo in $(gibson_list_org_projects "$org"); do
+        gibson_clean_project "$org/$repo"
+        ((count++))
+    done
+
+    # Remove org directory
+    rm -rf "$org_dir"
+
+    echo "$count"
+}
+
+# Get list of all orgs
+gibson_list_orgs() {
+    if [[ ! -d "$GIBSON_PROJECTS_DIR" ]]; then
+        return
+    fi
+
+    for org_dir in "$GIBSON_PROJECTS_DIR"/*/; do
+        [[ ! -d "$org_dir" ]] && continue
+        basename "$org_dir"
+    done
 }
