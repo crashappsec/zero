@@ -1021,8 +1021,8 @@ hydrate_org() {
         done
 
         # Print initial scanner list (cloning + all profile scanners)
-        # Queued profile scanners are MAGENTA, skipped are DIM gray
-        echo -e "$(format_scanner_line "${MAGENTA}○${NC}" "${MAGENTA}Cloning repository...${NC}" "${MAGENTA}est: ~30s${NC}")"
+        # Queued profile scanners are WHITE, skipped are DIM gray
+        echo -e "$(format_scanner_line "${WHITE}○${NC}" "${WHITE}Cloning repository...${NC}" "${DIM}est: ~30s${NC}")"
         for scanner in "${scanners_array[@]}"; do
             local display=$(get_phase_display "$scanner")
             local estimate=$(get_phase_estimate "$scanner")
@@ -1032,7 +1032,7 @@ hydrate_org() {
                 local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
                 echo -e "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result ${DIM}(cached)${NC}")"
             else
-                echo -e "$(format_scanner_line "${MAGENTA}○${NC}" "${MAGENTA}${display}${NC}" "${MAGENTA}est: ${estimate}${NC}")"
+                echo -e "$(format_scanner_line "${WHITE}○${NC}" "${WHITE}${display}${NC}" "${DIM}est: ${estimate}${NC}")"
             fi
         done
 
@@ -1121,8 +1121,8 @@ hydrate_org() {
                     local shimmer_name=$(shimmer_text "${display}..." $tick)
                     fixed_line "$(format_scanner_line "$glow" "$shimmer_name" "${DIM}${elapsed}s (est: ${estimate})${NC}")"
                 else
-                    # Still queued - purple/magenta for profile scanners
-                    fixed_line "$(format_scanner_line "${MAGENTA}○${NC}" "${MAGENTA}${display}${NC}" "${MAGENTA}est: ${estimate}${NC}")"
+                    # Still queued - white text for profile scanners
+                    fixed_line "$(format_scanner_line "${WHITE}○${NC}" "${WHITE}${display}${NC}" "${DIM}est: ${estimate}${NC}")"
                 fi
             done
 

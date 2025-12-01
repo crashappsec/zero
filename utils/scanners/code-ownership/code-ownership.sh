@@ -130,50 +130,39 @@ analyze_ownership() {
         total_commits=$(git log --oneline | wc -l | tr -d ' ')
     fi
 
-    # Get contributor data
+    # Get contributor data efficiently using git shortlog
+    # This avoids running multiple expensive git log commands per contributor
     echo -e "${BLUE}Collecting contributor data...${NC}" >&2
     local contributors_json="[]"
 
-    local contributor_data=""
+    # Use git shortlog for efficient contributor stats (single pass through git history)
+    local shortlog_args="-sne"
     if [[ -n "$since_date" ]]; then
-        contributor_data=$(git log --since="$since_date" --format="%an|%ae" | sort | uniq -c | sort -rn | head -20)
-    else
-        contributor_data=$(git log --format="%an|%ae" | sort | uniq -c | sort -rn | head -20)
+        shortlog_args="$shortlog_args --since=$since_date"
     fi
 
-    while read count author_email; do
+    # Get top 20 contributors with commit counts
+    local contributor_data=$(git shortlog $shortlog_args 2>/dev/null | head -20)
+
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+
+        # Parse shortlog output: "   123\tAuthor Name <email@example.com>"
+        local count=$(echo "$line" | awk '{print $1}')
+        local name_email=$(echo "$line" | sed 's/^[[:space:]]*[0-9]*[[:space:]]*//')
+        local author=$(echo "$name_email" | sed 's/<.*>//' | sed 's/[[:space:]]*$//')
+        local email=$(echo "$name_email" | grep -o '<[^>]*>' | tr -d '<>')
+
         [[ -z "$count" ]] && continue
-        local author=$(echo "$author_email" | cut -d'|' -f1)
-        local email=$(echo "$author_email" | cut -d'|' -f2)
+        [[ -z "$email" ]] && continue
 
-        # Get files touched by this author
-        local files_touched=0
-        if [[ -n "$since_date" ]]; then
-            files_touched=$(git log --since="$since_date" --author="$email" --name-only --format="" 2>/dev/null | sort -u | wc -l | tr -d ' ')
-        else
-            files_touched=$(git log --author="$email" --name-only --format="" 2>/dev/null | sort -u | wc -l | tr -d ' ')
-        fi
-
-        # Get lines added/deleted
-        local stats=""
-        if [[ -n "$since_date" ]]; then
-            stats=$(git log --since="$since_date" --author="$email" --numstat --format="" 2>/dev/null | awk '{added+=$1; deleted+=$2} END {print added"|"deleted}')
-        else
-            stats=$(git log --author="$email" --numstat --format="" 2>/dev/null | awk '{added+=$1; deleted+=$2} END {print added"|"deleted}')
-        fi
-        local added=$(echo "$stats" | cut -d'|' -f1)
-        local deleted=$(echo "$stats" | cut -d'|' -f2)
-        [[ -z "$added" ]] && added=0
-        [[ -z "$deleted" ]] && deleted=0
-
+        # Skip expensive per-author git log operations for large repos
+        # Just use commit count as primary metric
         contributors_json=$(echo "$contributors_json" | jq \
             --arg name "$author" \
             --arg email "$email" \
             --argjson commits "$count" \
-            --argjson files "$files_touched" \
-            --argjson added "$added" \
-            --argjson deleted "$deleted" \
-            '. + [{"name": $name, "email": $email, "commits": $commits, "files_touched": $files, "lines_added": $added, "lines_deleted": $deleted}]')
+            '. + [{"name": $name, "email": $email, "commits": $commits}]')
     done <<< "$contributor_data"
 
     local contributor_count=$(echo "$contributors_json" | jq 'length')
@@ -336,7 +325,7 @@ analyze_ownership() {
     jq -n \
         --arg ts "$timestamp" \
         --arg tgt "$TARGET" \
-        --arg ver "1.1.0" \
+        --arg ver "1.2.0" \
         --argjson days "$days" \
         --argjson total_files "$total_files" \
         --argjson total_commits "$total_commits" \
