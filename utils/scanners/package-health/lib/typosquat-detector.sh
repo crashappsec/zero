@@ -11,19 +11,17 @@ set -eo pipefail
 
 # Get script directory for loading shared libraries
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGE_HEALTH_DIR="$(dirname "$LIB_DIR")"
-SUPPLY_CHAIN_DIR="$(dirname "$PACKAGE_HEALTH_DIR")"
+SCANNER_DIR="$(dirname "$LIB_DIR")"
+SCANNERS_ROOT="$(dirname "$SCANNER_DIR")"
 
-# Load popular packages library
-if [[ -f "$SUPPLY_CHAIN_DIR/lib/popular-packages.sh" ]]; then
-    source "$SUPPLY_CHAIN_DIR/lib/popular-packages.sh"
+# Load popular packages library (from package-sbom)
+if [[ -f "$SCANNERS_ROOT/package-sbom/lib/popular-packages.sh" ]]; then
+    source "$SCANNERS_ROOT/package-sbom/lib/popular-packages.sh"
 fi
 
-# Load deps.dev client from global lib
-if [[ -f "$SUPPLY_CHAIN_DIR/lib/deps-dev-client.sh" ]]; then
-    source "$SUPPLY_CHAIN_DIR/lib/deps-dev-client.sh"
-elif [[ -f "$LIB_DIR/deps-dev-client.sh" ]]; then
-    source "$LIB_DIR/deps-dev-client.sh"
+# Load deps.dev client from shared libs (if not already loaded)
+if ! command -v deps_dev_get_package_info &> /dev/null; then
+    source "$SCANNERS_ROOT/shared/lib/deps-dev-client.sh"
 fi
 
 #############################################################################

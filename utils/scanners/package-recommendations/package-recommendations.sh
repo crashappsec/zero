@@ -10,13 +10,12 @@
 set -eo pipefail
 
 # Get script directory
-LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIBRARY_REC_DIR="$(dirname "$LIB_DIR")"
-SUPPLY_CHAIN_DIR="$(dirname "$LIBRARY_REC_DIR")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCANNERS_ROOT="$(dirname "$SCRIPT_DIR")"
 
-# Load deps.dev client from global lib
-if [[ -f "$SUPPLY_CHAIN_DIR/lib/deps-dev-client.sh" ]]; then
-    source "$SUPPLY_CHAIN_DIR/lib/deps-dev-client.sh"
+# Load deps.dev client from shared libs (if not already loaded)
+if ! command -v deps_dev_get_package_info &> /dev/null; then
+    source "$SCANNERS_ROOT/shared/lib/deps-dev-client.sh"
 fi
 
 # Cache for live package data

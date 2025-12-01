@@ -8,7 +8,9 @@ set -euo pipefail
 
 # Get script directory
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-UTILS_ROOT="$(cd "$LIB_DIR/../.." && pwd)"
+SCANNER_DIR="$(dirname "$LIB_DIR")"
+SCANNERS_ROOT="$(dirname "$SCANNER_DIR")"
+UTILS_ROOT="$(dirname "$SCANNERS_ROOT")"
 
 # Load configuration
 if [ -f "$UTILS_ROOT/lib/config-loader.sh" ]; then
@@ -18,9 +20,9 @@ else
     CONFIG="{}"
 fi
 
-# Load deps.dev client (if not already loaded)
-if ! command -v get_package_info &> /dev/null; then
-    source "$LIB_DIR/deps-dev-client.sh"
+# Load deps.dev client from shared libs (if not already loaded)
+if ! command -v deps_dev_get_package_info &> /dev/null; then
+    source "$SCANNERS_ROOT/shared/lib/deps-dev-client.sh"
 fi
 
 # Get scoring weights from config
