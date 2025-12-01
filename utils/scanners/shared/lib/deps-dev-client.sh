@@ -3,59 +3,98 @@
 # Copyright (c) 2025 Crash Override Inc.
 # https://crashoverride.com
 # SPDX-License-Identifier: GPL-3.0
+#
+# Shared library for interacting with the deps.dev API.
+# Provides package information, vulnerability data, and OpenSSF Scorecard metrics.
+#
+# Usage: source this file from any scanner that needs deps.dev API access
+#   source "$SCANNERS_ROOT/shared/lib/deps-dev-client.sh"
 
-set -euo pipefail
+set -eo pipefail
 
 # Get script directory for loading shared libraries
-LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-UTILS_ROOT="$(cd "$LIB_DIR/../.." && pwd)"
+DEPS_DEV_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SHARED_DIR="$(dirname "$DEPS_DEV_LIB_DIR")"
+SCANNERS_ROOT="$(dirname "$SHARED_DIR")"
+UTILS_ROOT="$(dirname "$SCANNERS_ROOT")"
 
-# Load configuration
+# Load configuration if available
+DEPS_DEV_CONFIG="{}"
 if [ -f "$UTILS_ROOT/lib/config-loader.sh" ]; then
     source "$UTILS_ROOT/lib/config-loader.sh"
-    CONFIG=$(load_config "package-health-analysis")
-else
-    CONFIG="{}"
+    # Try multiple config names for backward compatibility
+    DEPS_DEV_CONFIG=$(load_config "deps-dev" 2>/dev/null || load_config "package-health-analysis" 2>/dev/null || load_config "supply-chain" 2>/dev/null || echo "{}")
 fi
 
-# Configuration
-DEPS_DEV_BASE_URL=$(echo "$CONFIG" | jq -r '.package_health.api.deps_dev_base_url // "https://api.deps.dev/v3alpha"')
-API_TIMEOUT=$(echo "$CONFIG" | jq -r '.package_health.api.timeout // 30')
-RETRY_ATTEMPTS=$(echo "$CONFIG" | jq -r '.package_health.api.retry_attempts // 3')
-RATE_LIMIT_DELAY=$(echo "$CONFIG" | jq -r '.package_health.api.rate_limit_delay // 1')
+# Configuration with defaults - support multiple config path formats
+_get_config_value() {
+    local key=$1
+    local default=$2
+    local value
+
+    # Try different config path patterns
+    value=$(echo "$DEPS_DEV_CONFIG" | jq -r ".api.${key} // .package_health.api.${key} // null" 2>/dev/null)
+
+    if [[ -z "$value" || "$value" == "null" ]]; then
+        echo "$default"
+    else
+        echo "$value"
+    fi
+}
+
+_get_cache_config_value() {
+    local key=$1
+    local default=$2
+    local value
+
+    # Try different config path patterns
+    value=$(echo "$DEPS_DEV_CONFIG" | jq -r ".cache.${key} // .package_health.cache.${key} // null" 2>/dev/null)
+
+    if [[ -z "$value" || "$value" == "null" ]]; then
+        echo "$default"
+    else
+        echo "$value"
+    fi
+}
+
+# Configuration with environment variable overrides
+DEPS_DEV_BASE_URL="${DEPS_DEV_BASE_URL:-$(_get_config_value "deps_dev_base_url" "https://api.deps.dev/v3alpha")}"
+DEPS_DEV_API_TIMEOUT="${DEPS_DEV_API_TIMEOUT:-$(_get_config_value "timeout" "30")}"
+DEPS_DEV_RETRY_ATTEMPTS="${DEPS_DEV_RETRY_ATTEMPTS:-$(_get_config_value "retry_attempts" "3")}"
+DEPS_DEV_RATE_LIMIT_DELAY="${DEPS_DEV_RATE_LIMIT_DELAY:-$(_get_config_value "rate_limit_delay" "1")}"
 
 # Cache configuration
-CACHE_ENABLED=$(echo "$CONFIG" | jq -r '.package_health.cache.enabled // true')
-CACHE_TTL_HOURS=$(echo "$CONFIG" | jq -r '.package_health.cache.ttl_hours // 24')
-CACHE_DIR=$(echo "$CONFIG" | jq -r '.package_health.cache.cache_dir // "/tmp/package-health-cache"')
+DEPS_DEV_CACHE_ENABLED="${DEPS_DEV_CACHE_ENABLED:-$(_get_cache_config_value "enabled" "true")}"
+DEPS_DEV_CACHE_TTL_HOURS="${DEPS_DEV_CACHE_TTL_HOURS:-$(_get_cache_config_value "ttl_hours" "24")}"
+DEPS_DEV_CACHE_DIR="${DEPS_DEV_CACHE_DIR:-$(_get_cache_config_value "cache_dir" "/tmp/deps-dev-cache")}"
 
 # Initialize cache directory
-init_cache() {
-    if [ "$CACHE_ENABLED" = "true" ]; then
-        mkdir -p "$CACHE_DIR"
+deps_dev_init_cache() {
+    if [ "$DEPS_DEV_CACHE_ENABLED" = "true" ]; then
+        mkdir -p "$DEPS_DEV_CACHE_DIR"
     fi
 }
 
 # Generate cache key
-cache_key() {
+_deps_dev_cache_key() {
     local endpoint=$1
     echo -n "$endpoint" | md5sum | cut -d' ' -f1
 }
 
 # Get from cache
-get_from_cache() {
+_deps_dev_get_from_cache() {
     local endpoint=$1
-    local key=$(cache_key "$endpoint")
-    local cache_file="$CACHE_DIR/$key.json"
+    local key=$(_deps_dev_cache_key "$endpoint")
+    local cache_file="$DEPS_DEV_CACHE_DIR/$key.json"
 
-    if [ "$CACHE_ENABLED" = "false" ]; then
+    if [ "$DEPS_DEV_CACHE_ENABLED" = "false" ]; then
         return 1
     fi
 
     if [ -f "$cache_file" ]; then
-        # Check if cache is still valid
+        # Check if cache is still valid (cross-platform stat)
         local cache_age=$(( $(date +%s) - $(stat -f %m "$cache_file" 2>/dev/null || stat -c %Y "$cache_file" 2>/dev/null || echo 0) ))
-        local cache_max_age=$(( CACHE_TTL_HOURS * 3600 ))
+        local cache_max_age=$(( DEPS_DEV_CACHE_TTL_HOURS * 3600 ))
 
         if [ "$cache_age" -lt "$cache_max_age" ]; then
             cat "$cache_file"
@@ -67,35 +106,35 @@ get_from_cache() {
 }
 
 # Save to cache
-save_to_cache() {
+_deps_dev_save_to_cache() {
     local endpoint=$1
     local data=$2
-    local key=$(cache_key "$endpoint")
-    local cache_file="$CACHE_DIR/$key.json"
+    local key=$(_deps_dev_cache_key "$endpoint")
+    local cache_file="$DEPS_DEV_CACHE_DIR/$key.json"
 
-    if [ "$CACHE_ENABLED" = "true" ]; then
+    if [ "$DEPS_DEV_CACHE_ENABLED" = "true" ]; then
         echo "$data" > "$cache_file"
     fi
 }
 
 # Make API request with retry logic
-api_request() {
+deps_dev_api_request() {
     local url=$1
     local attempt=1
 
     # Check cache first
     local cached_data
-    if cached_data=$(get_from_cache "$url"); then
+    if cached_data=$(_deps_dev_get_from_cache "$url"); then
         echo "$cached_data"
         return 0
     fi
 
-    while [ $attempt -le $RETRY_ATTEMPTS ]; do
+    while [ "$attempt" -le "${DEPS_DEV_RETRY_ATTEMPTS:-3}" ]; do
         local response
         local http_code
 
         # Make request
-        response=$(curl -s -w "\n%{http_code}" --max-time "$API_TIMEOUT" "$url" 2>/dev/null || echo -e "\n000")
+        response=$(curl -s -w "\n%{http_code}" --max-time "$DEPS_DEV_API_TIMEOUT" "$url" 2>/dev/null || echo -e "\n000")
         http_code=$(echo "$response" | tail -n1)
         local body=$(echo "$response" | sed '$d')
 
@@ -103,7 +142,7 @@ api_request() {
             200)
                 # Success - validate JSON before caching
                 if echo "$body" | jq empty 2>/dev/null; then
-                    save_to_cache "$url" "$body"
+                    _deps_dev_save_to_cache "$url" "$body"
                     echo "$body"
                     return 0
                 else
@@ -114,8 +153,8 @@ api_request() {
                 ;;
             429)
                 # Rate limited - wait and retry
-                if [ $attempt -lt $RETRY_ATTEMPTS ]; then
-                    sleep $((RATE_LIMIT_DELAY * attempt))
+                if [ $attempt -lt $DEPS_DEV_RETRY_ATTEMPTS ]; then
+                    sleep $((DEPS_DEV_RATE_LIMIT_DELAY * attempt))
                     ((attempt++))
                     continue
                 fi
@@ -127,7 +166,7 @@ api_request() {
                 ;;
             000)
                 # Network error - retry
-                if [ $attempt -lt $RETRY_ATTEMPTS ]; then
+                if [ $attempt -lt $DEPS_DEV_RETRY_ATTEMPTS ]; then
                     sleep 2
                     ((attempt++))
                     continue
@@ -144,8 +183,8 @@ api_request() {
 }
 
 # Get package information
-# Usage: get_package_info <system> <package>
-get_package_info() {
+# Usage: deps_dev_get_package_info <system> <package>
+deps_dev_get_package_info() {
     local system=$1
     local package=$2
 
@@ -153,12 +192,12 @@ get_package_info() {
     local encoded_package=$(printf '%s' "$package" | jq -sRr @uri)
     local url="${DEPS_DEV_BASE_URL}/systems/${system}/packages/${encoded_package}"
 
-    api_request "$url"
+    deps_dev_api_request "$url"
 }
 
 # Get package version information
-# Usage: get_package_version <system> <package> <version>
-get_package_version() {
+# Usage: deps_dev_get_package_version <system> <package> <version>
+deps_dev_get_package_version() {
     local system=$1
     local package=$2
     local version=$3
@@ -168,14 +207,14 @@ get_package_version() {
     local encoded_version=$(printf '%s' "$version" | jq -sRr @uri)
     local url="${DEPS_DEV_BASE_URL}/systems/${system}/packages/${encoded_package}/versions/${encoded_version}"
 
-    api_request "$url"
+    deps_dev_api_request "$url"
 }
 
 # Batch get package versions (up to 5000 packages)
-# Usage: get_versions_batch <json_array_of_packages>
+# Usage: deps_dev_get_versions_batch <json_array_of_packages>
 # Input format: [{"system": "npm", "name": "react", "version": "18.0.0"}, ...]
 # Output format: {"responses": [{version data}, ...]}
-get_versions_batch() {
+deps_dev_get_versions_batch() {
     local packages_json=$1
     local batch_url="${DEPS_DEV_BASE_URL}/versionbatch"
 
@@ -191,7 +230,7 @@ get_versions_batch() {
     }')
 
     # Make POST request
-    local response=$(curl -s --max-time "$API_TIMEOUT" \
+    local response=$(curl -s --max-time "$DEPS_DEV_API_TIMEOUT" \
         -H "Content-Type: application/json" \
         -d "$batch_request" \
         "$batch_url" 2>/dev/null || echo '{"error": "batch_request_failed"}')
@@ -205,9 +244,9 @@ get_versions_batch() {
 }
 
 # Batch get package info (using individual requests in parallel batches)
-# Usage: get_packages_batch <json_array_of_packages>
+# Usage: deps_dev_get_packages_batch <json_array_of_packages>
 # Input format: [{"system": "npm", "name": "react"}, ...]
-get_packages_batch() {
+deps_dev_get_packages_batch() {
     local packages_json=$1
     local results="[]"
 
@@ -216,7 +255,7 @@ get_packages_batch() {
         local system=$(echo "$pkg" | jq -r '.system')
         local name=$(echo "$pkg" | jq -r '.name')
 
-        local pkg_info=$(get_package_info "$system" "$name")
+        local pkg_info=$(deps_dev_get_package_info "$system" "$name")
         results=$(echo "$results" | jq --argjson item "$pkg_info" '. + [$item]')
     done < <(echo "$packages_json" | jq -c '.[]')
 
@@ -224,20 +263,20 @@ get_packages_batch() {
 }
 
 # Get project information (for OpenSSF Scorecard)
-# Usage: get_project_info <project_key>
-get_project_info() {
+# Usage: deps_dev_get_project_info <project_key>
+deps_dev_get_project_info() {
     local project_key=$1
 
     # URL encode project key (use printf to avoid newline)
     local encoded_key=$(printf '%s' "$project_key" | jq -sRr @uri)
     local url="${DEPS_DEV_BASE_URL}/projects/${encoded_key}"
 
-    api_request "$url"
+    deps_dev_api_request "$url"
 }
 
 # Extract OpenSSF Scorecard from package info
-# Usage: extract_openssf_score <package_json>
-extract_openssf_score() {
+# Usage: deps_dev_extract_openssf_score <package_json>
+deps_dev_extract_openssf_score() {
     local package_json=$1
 
     echo "$package_json" | jq -r '
@@ -246,8 +285,8 @@ extract_openssf_score() {
 }
 
 # Extract OpenSSF Scorecard checks
-# Usage: extract_openssf_checks <package_json>
-extract_openssf_checks() {
+# Usage: deps_dev_extract_openssf_checks <package_json>
+deps_dev_extract_openssf_checks() {
     local package_json=$1
 
     echo "$package_json" | jq -r '
@@ -256,8 +295,8 @@ extract_openssf_checks() {
 }
 
 # Check if package is deprecated
-# Usage: check_deprecation <package_json>
-check_deprecation() {
+# Usage: deps_dev_check_deprecation <package_json>
+deps_dev_check_deprecation() {
     local package_json=$1
 
     echo "$package_json" | jq -r '
@@ -266,8 +305,8 @@ check_deprecation() {
 }
 
 # Get deprecation message
-# Usage: get_deprecation_message <package_json>
-get_deprecation_message() {
+# Usage: deps_dev_get_deprecation_message <package_json>
+deps_dev_get_deprecation_message() {
     local package_json=$1
 
     echo "$package_json" | jq -r '
@@ -276,8 +315,8 @@ get_deprecation_message() {
 }
 
 # Get package licenses
-# Usage: get_licenses <version_json>
-get_licenses() {
+# Usage: deps_dev_get_licenses <version_json>
+deps_dev_get_licenses() {
     local version_json=$1
 
     echo "$version_json" | jq -r '
@@ -286,8 +325,8 @@ get_licenses() {
 }
 
 # Get package dependencies
-# Usage: get_dependencies <version_json>
-get_dependencies() {
+# Usage: deps_dev_get_dependencies <version_json>
+deps_dev_get_dependencies() {
     local version_json=$1
 
     echo "$version_json" | jq -r '
@@ -296,8 +335,8 @@ get_dependencies() {
 }
 
 # Get known vulnerabilities
-# Usage: get_vulnerabilities <version_json>
-get_vulnerabilities() {
+# Usage: deps_dev_get_vulnerabilities <version_json>
+deps_dev_get_vulnerabilities() {
     local version_json=$1
 
     echo "$version_json" | jq -r '
@@ -306,8 +345,8 @@ get_vulnerabilities() {
 }
 
 # Get package popularity metrics
-# Usage: get_popularity_metrics <package_json>
-get_popularity_metrics() {
+# Usage: deps_dev_get_popularity_metrics <package_json>
+deps_dev_get_popularity_metrics() {
     local package_json=$1
 
     echo "$package_json" | jq -r '{
@@ -317,8 +356,8 @@ get_popularity_metrics() {
 }
 
 # Get latest version
-# Usage: get_latest_version <package_json>
-get_latest_version() {
+# Usage: deps_dev_get_latest_version <package_json>
+deps_dev_get_latest_version() {
     local package_json=$1
 
     echo "$package_json" | jq -r '
@@ -327,8 +366,8 @@ get_latest_version() {
 }
 
 # Get all versions
-# Usage: get_all_versions <package_json>
-get_all_versions() {
+# Usage: deps_dev_get_all_versions <package_json>
+deps_dev_get_all_versions() {
     local package_json=$1
 
     echo "$package_json" | jq -r '
@@ -337,12 +376,12 @@ get_all_versions() {
 }
 
 # Get package metadata summary
-# Usage: get_package_summary <system> <package>
-get_package_summary() {
+# Usage: deps_dev_get_package_summary <system> <package>
+deps_dev_get_package_summary() {
     local system=$1
     local package=$2
 
-    local package_info=$(get_package_info "$system" "$package")
+    local package_info=$(deps_dev_get_package_info "$system" "$package")
 
     if [ $? -ne 0 ]; then
         echo '{"error": "failed_to_fetch_package"}'
@@ -384,10 +423,51 @@ get_package_summary() {
     fi
 }
 
-# Initialize cache on load
-init_cache
+# Backward compatibility aliases (old function names)
+# These allow existing code to work without changes
+get_package_info() { deps_dev_get_package_info "$@"; }
+get_package_version() { deps_dev_get_package_version "$@"; }
+get_versions_batch() { deps_dev_get_versions_batch "$@"; }
+get_packages_batch() { deps_dev_get_packages_batch "$@"; }
+get_project_info() { deps_dev_get_project_info "$@"; }
+extract_openssf_score() { deps_dev_extract_openssf_score "$@"; }
+extract_openssf_checks() { deps_dev_extract_openssf_checks "$@"; }
+check_deprecation() { deps_dev_check_deprecation "$@"; }
+get_deprecation_message() { deps_dev_get_deprecation_message "$@"; }
+get_licenses() { deps_dev_get_licenses "$@"; }
+get_dependencies() { deps_dev_get_dependencies "$@"; }
+get_vulnerabilities() { deps_dev_get_vulnerabilities "$@"; }
+get_popularity_metrics() { deps_dev_get_popularity_metrics "$@"; }
+get_latest_version() { deps_dev_get_latest_version "$@"; }
+get_all_versions() { deps_dev_get_all_versions "$@"; }
+get_package_summary() { deps_dev_get_package_summary "$@"; }
+api_request() { deps_dev_api_request "$@"; }
+init_cache() { deps_dev_init_cache "$@"; }
 
-# Export functions
+# Initialize cache on load
+deps_dev_init_cache
+
+# Export functions for subshell use
+export -f deps_dev_get_package_info
+export -f deps_dev_get_package_version
+export -f deps_dev_get_versions_batch
+export -f deps_dev_get_packages_batch
+export -f deps_dev_get_project_info
+export -f deps_dev_extract_openssf_score
+export -f deps_dev_extract_openssf_checks
+export -f deps_dev_check_deprecation
+export -f deps_dev_get_deprecation_message
+export -f deps_dev_get_licenses
+export -f deps_dev_get_dependencies
+export -f deps_dev_get_vulnerabilities
+export -f deps_dev_get_popularity_metrics
+export -f deps_dev_get_latest_version
+export -f deps_dev_get_all_versions
+export -f deps_dev_get_package_summary
+export -f deps_dev_api_request
+export -f deps_dev_init_cache
+
+# Export backward compatibility aliases
 export -f get_package_info
 export -f get_package_version
 export -f get_versions_batch
@@ -404,3 +484,5 @@ export -f get_popularity_metrics
 export -f get_latest_version
 export -f get_all_versions
 export -f get_package_summary
+export -f api_request
+export -f init_cache

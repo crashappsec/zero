@@ -15,7 +15,8 @@ set -e
 
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-UTILS_ROOT="$(dirname "$SCRIPT_DIR")"
+SCANNERS_ROOT="$(dirname "$SCRIPT_DIR")"
+UTILS_ROOT="$(dirname "$SCANNERS_ROOT")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 CONFIG_FILE="$SCRIPT_DIR/config.json"
 CONFIG_EXAMPLE="$SCRIPT_DIR/config.example.json"

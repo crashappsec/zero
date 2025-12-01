@@ -8,17 +8,20 @@ set -euo pipefail
 
 # Get script directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-UTILS_ROOT="$(dirname "$SCRIPT_DIR")"
+SCANNERS_ROOT="$(dirname "$SCRIPT_DIR")"
+UTILS_ROOT="$(dirname "$SCANNERS_ROOT")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 
 # Load global libraries
 source "$UTILS_ROOT/lib/sbom.sh"
 
+# Load shared libraries
+source "$SCANNERS_ROOT/shared/lib/deps-dev-client.sh"
+
 # Load local libraries
-source "$SCRIPT_DIR/package-health/lib/deps-dev-client.sh"
-source "$SCRIPT_DIR/package-health/lib/health-scoring.sh"
-source "$SCRIPT_DIR/package-health/lib/version-analysis.sh"
-source "$SCRIPT_DIR/package-health/lib/deprecation-checker.sh"
+source "$SCRIPT_DIR/lib/health-scoring.sh"
+source "$SCRIPT_DIR/lib/version-analysis.sh"
+source "$SCRIPT_DIR/lib/deprecation-checker.sh"
 
 # Default values
 REPO=""

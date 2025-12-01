@@ -22,7 +22,8 @@ NC='\033[0m' # No Color
 
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-UTILS_ROOT="$(dirname "$SCRIPT_DIR")"
+SCANNERS_ROOT="$(dirname "$SCRIPT_DIR")"
+UTILS_ROOT="$(dirname "$SCANNERS_ROOT")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 
 # Load .env file if it exists in repository root
