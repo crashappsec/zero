@@ -12,15 +12,20 @@
 
 # Find utils root directory
 UTILS_ROOT=""
+CONFIG_DIR=""
 find_utils_root() {
     local current_dir="$1"
     while [[ "$current_dir" != "/" ]]; do
-        if [[ -d "$current_dir/utils" ]] && [[ -f "$current_dir/utils/config.example.json" ]]; then
-            UTILS_ROOT="$current_dir/utils"
+        # Check if we're inside utils/phantom/config
+        if [[ -d "$current_dir/phantom/config" ]] && [[ -f "$current_dir/phantom/config/config.example.json" ]]; then
+            UTILS_ROOT="$current_dir"
+            CONFIG_DIR="$current_dir/phantom/config"
             return 0
         fi
-        if [[ "$(basename "$current_dir")" == "utils" ]] && [[ -f "$current_dir/config.example.json" ]]; then
-            UTILS_ROOT="$current_dir"
+        # Check if current dir is the config dir itself
+        if [[ "$(basename "$current_dir")" == "config" ]] && [[ -f "$current_dir/config.example.json" ]]; then
+            CONFIG_DIR="$current_dir"
+            UTILS_ROOT="$(dirname "$(dirname "$current_dir")")"
             return 0
         fi
         current_dir="$(dirname "$current_dir")"
@@ -36,9 +41,9 @@ if ! find_utils_root "$(pwd)"; then
     fi
 fi
 
-# Config paths
-GLOBAL_CONFIG="${UTILS_ROOT}/config.json"
-GLOBAL_CONFIG_EXAMPLE="${UTILS_ROOT}/config.example.json"
+# Config paths (now in phantom/config/)
+GLOBAL_CONFIG="${CONFIG_DIR}/config.json"
+GLOBAL_CONFIG_EXAMPLE="${CONFIG_DIR}/config.example.json"
 
 # Load configuration with hierarchy
 # Usage: load_config <module_name> [module_config_path]

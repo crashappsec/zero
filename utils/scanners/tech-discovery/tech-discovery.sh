@@ -31,7 +31,7 @@ REPO_ROOT="$(dirname "$UTILS_ROOT")"
 
 # Load global libraries
 source "$UTILS_ROOT/lib/sbom.sh" 2>/dev/null || true
-source "$SCRIPT_DIR/tech-discovery/lib/pattern-loader.sh" 2>/dev/null || true
+source "$SCRIPT_DIR/lib/pattern-loader.sh" 2>/dev/null || true
 
 # RAG patterns directory
 RAG_ROOT="$REPO_ROOT/rag/technology-identification"

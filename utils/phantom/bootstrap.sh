@@ -613,9 +613,9 @@ run_technology_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local tech_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        tech_script="$UTILS_ROOT/scanners/tech-discovery.sh"
+        tech_script="$UTILS_ROOT/scanners/tech-discovery/tech-discovery.sh"
     else
-        tech_script="$UTILS_ROOT/scanners/tech-discovery.sh"
+        tech_script="$UTILS_ROOT/scanners/tech-discovery/tech-discovery.sh"
     fi
 
     if [[ -x "$tech_script" ]]; then
@@ -727,9 +727,9 @@ run_vulnerability_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local vuln_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        vuln_script="$UTILS_ROOT/scanners/package-vulns.sh"
+        vuln_script="$UTILS_ROOT/scanners/package-vulns/package-vulns.sh"
     else
-        vuln_script="$UTILS_ROOT/scanners/package-vulns.sh"
+        vuln_script="$UTILS_ROOT/scanners/package-vulns/package-vulns.sh"
     fi
 
     if [[ -x "$vuln_script" ]]; then
@@ -783,9 +783,9 @@ run_license_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local legal_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        legal_script="$UTILS_ROOT/scanners/licenses.sh"
+        legal_script="$UTILS_ROOT/scanners/licenses/licenses.sh"
     else
-        legal_script="$UTILS_ROOT/scanners/licenses.sh"
+        legal_script="$UTILS_ROOT/scanners/licenses/licenses.sh"
     fi
 
     if [[ -x "$legal_script" ]]; then
@@ -816,9 +816,9 @@ run_code_security_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local security_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        security_script="$UTILS_ROOT/scanners/code-security.sh"
+        security_script="$UTILS_ROOT/scanners/code-security/code-security.sh"
     else
-        security_script="$UTILS_ROOT/scanners/code-security.sh"
+        security_script="$UTILS_ROOT/scanners/code-security/code-security.sh"
     fi
 
     if [[ -x "$security_script" ]]; then
@@ -846,7 +846,7 @@ run_iac_security_analyzer() {
     local repo_path="$1"
     local output_path="$2"
 
-    local iac_script="$UTILS_ROOT/scanners/iac-security.sh"
+    local iac_script="$UTILS_ROOT/scanners/iac-security/iac-security.sh"
 
     if [[ -x "$iac_script" ]]; then
         "$iac_script" --local-path "$repo_path" -o "$output_path/iac-security.json" 2>/dev/null
@@ -873,7 +873,7 @@ run_tech_debt_analyzer() {
     local repo_path="$1"
     local output_path="$2"
 
-    local script="$UTILS_ROOT/scanners/tech-debt.sh"
+    local script="$UTILS_ROOT/scanners/tech-debt/tech-debt.sh"
 
     if [[ -x "$script" ]]; then
         "$script" --local-path "$repo_path" -o "$output_path/tech-debt.json" 2>/dev/null
@@ -899,7 +899,7 @@ run_documentation_analyzer() {
     local repo_path="$1"
     local output_path="$2"
 
-    local script="$UTILS_ROOT/scanners/documentation.sh"
+    local script="$UTILS_ROOT/scanners/documentation/documentation.sh"
 
     if [[ -x "$script" ]]; then
         "$script" --local-path "$repo_path" -o "$output_path/documentation.json" 2>/dev/null
@@ -924,7 +924,7 @@ run_git_insights_analyzer() {
     local repo_path="$1"
     local output_path="$2"
 
-    local script="$UTILS_ROOT/scanners/git.sh"
+    local script="$UTILS_ROOT/scanners/git/git.sh"
 
     if [[ -x "$script" ]]; then
         "$script" --local-path "$repo_path" -o "$output_path/git.json" 2>/dev/null
@@ -949,7 +949,7 @@ run_test_coverage_analyzer() {
     local repo_path="$1"
     local output_path="$2"
 
-    local script="$UTILS_ROOT/scanners/test-coverage.sh"
+    local script="$UTILS_ROOT/scanners/test-coverage/test-coverage.sh"
 
     if [[ -x "$script" ]]; then
         "$script" --local-path "$repo_path" -o "$output_path/test-coverage.json" 2>/dev/null
@@ -974,7 +974,7 @@ run_secrets_scanner() {
     local repo_path="$1"
     local output_path="$2"
 
-    local script="$UTILS_ROOT/scanners/code-secrets.sh"
+    local script="$UTILS_ROOT/scanners/code-secrets/code-secrets.sh"
 
     if [[ -x "$script" ]]; then
         "$script" --local-path "$repo_path" --output "$output_path/code-secrets.json" 2>/dev/null
@@ -1003,9 +1003,9 @@ run_ownership_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local ownership_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        ownership_script="$UTILS_ROOT/scanners/code-ownership.sh"
+        ownership_script="$UTILS_ROOT/scanners/code-ownership/code-ownership.sh"
     else
-        ownership_script="$UTILS_ROOT/scanners/code-ownership.sh"
+        ownership_script="$UTILS_ROOT/scanners/code-ownership/code-ownership.sh"
     fi
 
     if [[ -x "$ownership_script" ]]; then
@@ -1035,9 +1035,9 @@ run_dora_analyzer() {
     # Use Claude-enabled analyzer in deep mode, otherwise data-only
     local dora_script=""
     if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        dora_script="$UTILS_ROOT/scanners/dora.sh"
+        dora_script="$UTILS_ROOT/scanners/dora/dora.sh"
     else
-        dora_script="$UTILS_ROOT/scanners/dora.sh"
+        dora_script="$UTILS_ROOT/scanners/dora/dora.sh"
     fi
 
     # Skip if not a git repo
@@ -1102,7 +1102,7 @@ run_provenance_analyzer_full() {
     local repo_path="$1"
     local output_path="$2"
 
-    local prov_script="$UTILS_ROOT/scanners/package-provenance.sh"
+    local prov_script="$UTILS_ROOT/scanners/package-provenance/package-provenance.sh"
 
     if [[ -x "$prov_script" ]]; then
         # Use local-path for pre-cloned repo, output JSON format

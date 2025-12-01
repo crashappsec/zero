@@ -8,11 +8,13 @@ set -euo pipefail
 
 # Get script directory
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-UTILS_ROOT="$(cd "$LIB_DIR/../.." && pwd)"
+SCANNER_DIR="$(dirname "$LIB_DIR")"
+SCANNERS_ROOT="$(dirname "$SCANNER_DIR")"
+UTILS_ROOT="$(dirname "$SCANNERS_ROOT")"
 
 # Load configuration
-if [ -f "$UTILS_ROOT/lib/config-loader.sh" ]; then
-    source "$UTILS_ROOT/lib/config-loader.sh"
+if [ -f "$UTILS_ROOT/phantom/config/config-loader.sh" ]; then
+    source "$UTILS_ROOT/phantom/config/config-loader.sh"
     CONFIG=$(load_config "package-health-analysis")
 else
     CONFIG="{}"

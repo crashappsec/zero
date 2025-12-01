@@ -161,7 +161,7 @@ This skill has access to comprehensive legal review documentation:
 - **Topics**: ScanCode, TruffleHog, woke, FOSSA, CI/CD integration, custom scripts
 
 ### Configuration
-- **Config**: `config/legal-review-config.json`
+- **Config**: `utils/scanners/licenses/config/legal-review-config.json`
 - **Contains**: License policies, secret patterns, content rules, compliance settings
 
 ## Integration with Tools
@@ -225,7 +225,7 @@ export ANTHROPIC_API_KEY='your-api-key'
 
 ## Policy Configuration
 
-Configure your organization's legal policies in `config/legal-review-config.json`:
+Configure your organization's legal policies in `utils/scanners/licenses/config/legal-review-config.json`:
 
 ### Allowed Licenses
 ```json
@@ -279,7 +279,7 @@ Escalate to legal counsel when:
 ## Support & Resources
 
 ### Internal
-- Legal review configuration: `config/legal-review-config.json`
+- Legal review configuration: `utils/scanners/licenses/config/legal-review-config.json`
 - RAG documentation: `rag/legal-review/`
 - Build prompts: `prompts/legal-review/`
 

@@ -55,7 +55,7 @@
   "customization_guide": {
     "_comment": "How to customize this configuration",
 
-    "step_1": "Copy this file to config/sbom-config.json",
+    "step_1": "Copy this file to sbom-config.json in this directory",
     "step_2": "Choose a preset or customize individual settings",
     "step_3": "Review package manager specific settings if needed",
     "step_4": "Enable/disable metadata fields based on requirements",

@@ -78,7 +78,7 @@ OPTIONS:
     -h, --help          Show this help
 
 CONFIGURATION:
-    All settings are in utils/phantom/phantom.config.json
+    All settings are in utils/phantom/config/phantom.config.json
     See phantom.config.example.json for full documentation
     Create custom profiles by adding entries to the profiles section
 
@@ -218,6 +218,45 @@ clear_line() {
     printf "\r\033[K"
 }
 
+# Hide cursor (reduces visual noise during animation)
+hide_cursor() {
+    printf "\033[?25l"
+}
+
+# Show cursor
+show_cursor() {
+    printf "\033[?25h"
+}
+
+# Fixed width line output - prevents flashing by overwriting with spaces
+# Usage: fixed_line "content" [width]
+fixed_line() {
+    local content="$1"
+    local width="${2:-100}"
+    # Strip ANSI codes to get actual visible length
+    local visible_content=$(echo -e "$content" | sed 's/\x1b\[[0-9;]*m//g')
+    local visible_len=${#visible_content}
+    local padding=$((width - visible_len))
+    if [[ $padding -lt 0 ]]; then padding=0; fi
+    printf "\r%b%${padding}s\n" "$content" ""
+}
+
+# Format a scanner line with aligned columns
+# Column 1: Status indicator (3 chars)
+# Column 2: Scanner name (25 chars)
+# Column 3: Result/Status (right-aligned)
+format_scanner_line() {
+    local indicator="$1"
+    local name="$2"
+    local result="$3"
+    local name_width=26
+
+    # Pad the name to fixed width
+    local padded_name=$(printf "%-${name_width}s" "$name")
+
+    printf "  %b %s %b" "$indicator" "$padded_name" "$result"
+}
+
 # Glow effect based on time (creates pulsing animation)
 get_glow() {
     local tick="$1"
@@ -230,8 +269,125 @@ get_glow() {
     esac
 }
 
+# Get shimmer color code for active text (green theme)
+# Returns ANSI color code based on tick for smooth color cycling
+get_shimmer_color() {
+    local tick="$1"
+    local frame=$((tick % 6))
+    case $frame in
+        0) echo "32" ;;      # green
+        1) echo "92" ;;      # bright green
+        2) echo "97" ;;      # bright white
+        3) echo "92" ;;      # bright green
+        4) echo "32" ;;      # green
+        5) echo "92" ;;      # bright green
+    esac
+}
+
+# Format text with shimmer effect (green)
+shimmer_text() {
+    local text="$1"
+    local tick="$2"
+    local color=$(get_shimmer_color "$tick")
+    printf "\033[${color}m%s\033[0m" "$text"
+}
+
+# Get green glow indicator for active tasks
+get_green_glow() {
+    local tick="$1"
+    local frame=$((tick % 4))
+    case $frame in
+        0) printf "\033[0;32m●\033[0m" ;;   # dim green dot
+        1) printf "\033[1;32m◉\033[0m" ;;   # bright green ring
+        2) printf "\033[1;97m●\033[0m" ;;   # bright white dot
+        3) printf "\033[1;32m◉\033[0m" ;;   # bright green ring
+    esac
+}
+
+# Print scanner list with status indicators
+# Status: queued (dim), active (shimmer), completed (green check), failed (red x)
+print_scanner_status() {
+    local scanner="$1"
+    local status="$2"  # queued, active, completed, failed
+    local tick="${3:-0}"
+    local result="${4:-}"
+
+    local display=$(get_phase_display "$scanner")
+    local estimate=$(get_phase_estimate "$scanner")
+
+    case "$status" in
+        queued)
+            printf "  ${DIM}○${NC} %-24s ${DIM}(est: %s)${NC}" "$display" "$estimate"
+            ;;
+        active)
+            local glow=$(get_glow $tick)
+            printf "  %s %-24s ${DIM}(est: %s)${NC}" "$glow" "$display..." "$estimate"
+            ;;
+        completed)
+            if [[ -n "$result" ]]; then
+                printf "  ${GREEN}✓${NC} %-24s %b" "$display" "$result"
+            else
+                printf "  ${GREEN}✓${NC} %-24s" "$display"
+            fi
+            ;;
+        failed)
+            printf "  ${RED}✗${NC} %-24s ${RED}failed${NC}" "$display"
+            ;;
+    esac
+}
+
+# Get output file for a scanner
+get_scanner_output_file() {
+    local scanner="$1"
+    local analysis_path="$2"
+
+    case "$scanner" in
+        package-sbom)     echo "$analysis_path/package-sbom.json" ;;
+        tech-discovery)   echo "$analysis_path/tech-discovery.json" ;;
+        package-vulns)    echo "$analysis_path/package-vulns.json" ;;
+        package-health)   echo "$analysis_path/package-health.json" ;;
+        licenses)         echo "$analysis_path/licenses.json" ;;
+        code-security)    echo "$analysis_path/code-security.json" ;;
+        code-secrets)     echo "$analysis_path/code-secrets.json" ;;
+        code-ownership)   echo "$analysis_path/code-ownership.json" ;;
+        dora)             echo "$analysis_path/dora.json" ;;
+        package-provenance) echo "$analysis_path/package-provenance.json" ;;
+        git)              echo "$analysis_path/git.json" ;;
+        test-coverage)    echo "$analysis_path/test-coverage.json" ;;
+        iac-security)     echo "$analysis_path/iac-security.json" ;;
+        tech-debt)        echo "$analysis_path/tech-debt.json" ;;
+        documentation)    echo "$analysis_path/documentation.json" ;;
+        containers)       echo "$analysis_path/containers.json" ;;
+        chalk)            echo "$analysis_path/chalk.json" ;;
+        digital-certificates) echo "$analysis_path/digital-certificates.json" ;;
+        *)                echo "$analysis_path/${scanner}.json" ;;
+    esac
+}
+
+# Move cursor up N lines
+cursor_up() {
+    local n="${1:-1}"
+    printf "\033[%dA" "$n"
+}
+
+# Move cursor down N lines
+cursor_down() {
+    local n="${1:-1}"
+    printf "\033[%dB" "$n"
+}
+
+# Save cursor position
+cursor_save() {
+    printf "\033[s"
+}
+
+# Restore cursor position
+cursor_restore() {
+    printf "\033[u"
+}
+
 # Configuration file path (unified config)
-CONFIG_FILE="$SCRIPT_DIR/phantom.config.json"
+CONFIG_FILE="$SCRIPT_DIR/config/phantom.config.json"
 
 # Get list of scanners to run based on profile name
 # Loads from phantom.config.json configuration file
@@ -342,6 +498,9 @@ get_phase_display() {
         "code-secrets") echo "Secrets scan" ;;
         "tech-debt") echo "Tech debt" ;;
         "documentation") echo "Documentation" ;;
+        "containers") echo "Container security" ;;
+        "chalk") echo "Chalk artifacts" ;;
+        "digital-certificates") echo "Certificates" ;;
         *) echo "$phase" ;;
     esac
 }
@@ -405,12 +564,19 @@ get_phase_result() {
                 local total=$(jq -r '.summary.total // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
                 local c=$(jq -r '.summary.critical // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
                 local h=$(jq -r '.summary.high // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
+                local m=$(jq -r '.summary.medium // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
+                local l=$(jq -r '.summary.low // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
                 if [[ "$total" == "0" ]]; then
                     printf "\033[0;32mclean\033[0m"
-                elif [[ "$c" != "0" ]] || [[ "$h" != "0" ]]; then
-                    printf "\033[0;31m%s found\033[0m (%s critical, %s high)" "$total" "$c" "$h"
                 else
-                    printf "\033[1;33m%s found\033[0m (low/medium)" "$total"
+                    # Show breakdown with colors: critical=red, high=orange, medium=yellow, low=dim
+                    local parts=()
+                    [[ "$c" != "0" ]] && parts+=("\033[1;31m${c}C\033[0m")
+                    [[ "$h" != "0" ]] && parts+=("\033[0;31m${h}H\033[0m")
+                    [[ "$m" != "0" ]] && parts+=("\033[1;33m${m}M\033[0m")
+                    [[ "$l" != "0" ]] && parts+=("\033[2m${l}L\033[0m")
+                    local IFS=','
+                    printf "%b" "${parts[*]}"
                 fi
             fi
             ;;
@@ -713,8 +879,7 @@ hydrate_org() {
     echo -e "  Repositories:  ${CYAN}$repo_count${NC}"
     echo -e "  Total Size:    ${CYAN}$total_size${NC}"
     echo -e "  Languages:     ${CYAN}$languages${NC}"
-    echo -e "  Analysis Mode: ${CYAN}$mode_display${NC} ${DIM}($scanner_count scanners)${NC}"
-    [[ $limit -gt 0 ]] && echo -e "  Limit:         ${CYAN}$limit repos${NC}"
+    echo -e "  Scan Profile:  ${CYAN}$mode_display${NC} ${DIM}($scanner_count scanners)${NC}"
     echo
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
@@ -830,77 +995,160 @@ hydrate_org() {
         "$SCRIPT_DIR/bootstrap.sh" "$repo" "${extra_args[@]}" > "$log_file" 2>&1 &
         local pid=$!
 
-        # Monitor progress by watching log file
-        local last_phase=""
-        local phase_start_time=$start_time
         local analysis_path="$GIBSON_PROJECTS_DIR/$project_id/analysis"
         local tick=0
 
-        while kill -0 $pid 2>/dev/null; do
-            if [[ -f "$log_file" ]]; then
-                # Check for current phase by looking at log and output files
-                local clean_log=$(sed 's/\x1b\[[0-9;]*m//g' "$log_file" 2>/dev/null)
-                local current_phase=""
+        # Convert scanner list to array for easier manipulation
+        local -a scanners_array=($mode_scanners)
+        local total_scanners=${#scanners_array[@]}
 
-                # Determine phase by checking what exists:
-                # 1. If repo doesn't exist yet or Languages not printed -> Cloning
-                # 2. If analysis started -> check which analyzer files exist
+        # Get all available scanners for display
+        local all_scanners="package-sbom tech-discovery package-vulns package-health licenses code-security code-ownership dora package-provenance git test-coverage iac-security code-secrets tech-debt documentation containers chalk digital-certificates"
 
-                if [[ ! -d "$GIBSON_PROJECTS_DIR/$project_id/repo" ]] || ! echo "$clean_log" | grep -q "Languages:"; then
-                    current_phase="Cloning"
-                else
-                    # Check which output files exist to determine current scanner
-                    # Use mode-specific scanner list instead of hardcoded list
-                    current_phase=""
-                    for scanner in $mode_scanners; do
-                        local output_file="$analysis_path/${scanner}.json"
-                        if [[ ! -f "$output_file" ]]; then
-                            # This scanner hasn't completed yet - might be running
-                            if echo "$clean_log" | grep -q "Running.*scanners"; then
-                                current_phase="$scanner"
-                                break
-                            fi
-                        fi
-                    done
+        # Build array of scanners NOT in current profile
+        local -a skipped_scanners=()
+        for scanner in $all_scanners; do
+            local in_profile=false
+            for active in "${scanners_array[@]}"; do
+                if [[ "$scanner" == "$active" ]]; then
+                    in_profile=true
+                    break
                 fi
-
-                local now=$(date +%s)
-                local phase_elapsed=$((now - phase_start_time))
-
-                if [[ -n "$current_phase" ]] && [[ "$current_phase" != "$last_phase" ]]; then
-                    # Print result of completed phase (if any)
-                    if [[ -n "$last_phase" ]]; then
-                        clear_line
-                        local display_name=$(get_phase_display "$last_phase")
-                        local result=$(get_phase_result "$last_phase" "$analysis_path" "$project_id")
-                        printf "  ${GREEN}✓${NC} %-22s %b\n" "$display_name" "$result"
-                    fi
-
-                    phase_start_time=$now
-                    phase_elapsed=0
-                    last_phase="$current_phase"
-                fi
-
-                # Update display with elapsed time, estimate, and glow effect
-                if [[ -n "$current_phase" ]]; then
-                    local estimate=$(get_phase_estimate "$current_phase")
-                    local display=$(get_phase_display "$current_phase")
-                    local glow=$(get_glow $tick)
-                    clear_line
-                    printf "  %s %-22s ${DIM}%ds${NC} ${DIM}(est: %s)${NC}" "$glow" "$display..." "$phase_elapsed" "$estimate"
-                fi
+            done
+            if [[ "$in_profile" == "false" ]]; then
+                skipped_scanners+=("$scanner")
             fi
+        done
+
+        # Print initial scanner list (cloning + all profile scanners)
+        # Queued profile scanners are MAGENTA, skipped are DIM gray
+        echo -e "$(format_scanner_line "${MAGENTA}○${NC}" "${MAGENTA}Cloning repository...${NC}" "${MAGENTA}est: ~30s${NC}")"
+        for scanner in "${scanners_array[@]}"; do
+            local display=$(get_phase_display "$scanner")
+            local estimate=$(get_phase_estimate "$scanner")
+            # Check if we have cached data from previous scan
+            local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
+            if [[ -f "$output_file" ]] && [[ "$force_mode" != "true" ]]; then
+                local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
+                echo -e "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result ${DIM}(cached)${NC}")"
+            else
+                echo -e "$(format_scanner_line "${MAGENTA}○${NC}" "${MAGENTA}${display}${NC}" "${MAGENTA}est: ${estimate}${NC}")"
+            fi
+        done
+
+        # Print separator and skipped scanners if there are any
+        if [[ ${#skipped_scanners[@]} -gt 0 ]]; then
+            echo -e "  ${DIM}─────────────────────────────────────${NC}"
+            for scanner in "${skipped_scanners[@]}"; do
+                local display=$(get_phase_display "$scanner")
+                # Check if we have cached data from previous scan
+                local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
+                if [[ -f "$output_file" ]]; then
+                    local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
+                    echo -e "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result ${DIM}(cached)${NC}")"
+                else
+                    echo -e "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}skipped in profile${NC}")"
+                fi
+            done
+        fi
+
+        # Total lines to manage: 1 (cloning) + total_scanners + separator + skipped_scanners
+        local total_lines=$((total_scanners + 1))
+        if [[ ${#skipped_scanners[@]} -gt 0 ]]; then
+            total_lines=$((total_lines + 1 + ${#skipped_scanners[@]}))  # +1 for separator line
+        fi
+
+        # Hide cursor during animation to reduce visual noise
+        hide_cursor
+
+        # Cleanup function for proper exit
+        cleanup_animation() {
+            show_cursor
+            # Kill the background process if running
+            if kill -0 $pid 2>/dev/null; then
+                kill $pid 2>/dev/null
+                wait $pid 2>/dev/null
+            fi
+            rm -f "$log_file"
+            exit 130  # Standard exit code for Ctrl+C
+        }
+
+        # Trap to ensure cursor is shown and process killed on exit (ctrl-c, etc)
+        trap 'cleanup_animation' INT TERM
+
+        # Monitor progress
+        while kill -0 $pid 2>/dev/null; do
+            local now=$(date +%s)
+            local elapsed=$((now - start_time))
+            local clean_log=$(sed 's/\x1b\[[0-9;]*m//g' "$log_file" 2>/dev/null)
+
+            # Check if cloning is done (repo exists and Languages printed)
+            local cloning_done=false
+            if [[ -d "$GIBSON_PROJECTS_DIR/$project_id/repo" ]] && echo "$clean_log" | grep -q "Languages:"; then
+                cloning_done=true
+            fi
+
+            # Move cursor to start of scanner list
+            cursor_up $total_lines
+
+            # Update cloning status - use fixed_line to prevent flashing
+            if [[ "$cloning_done" == "true" ]]; then
+                local repo_path="$GIBSON_PROJECTS_DIR/$project_id/repo"
+                local size=$(du -sh "$repo_path" 2>/dev/null | cut -f1)
+                local files=$(find "$repo_path" -type f ! -path '*/.git/*' 2>/dev/null | wc -l | tr -d ' ')
+                fixed_line "$(format_scanner_line "${GREEN}✓${NC}" "Cloning repository" "${DIM}${size}, ${files} files${NC}")"
+            else
+                local glow=$(get_green_glow $tick)
+                local shimmer_name=$(shimmer_text "Cloning repository..." $tick)
+                fixed_line "$(format_scanner_line "$glow" "$shimmer_name" "${DIM}${elapsed}s (est: ~30s)${NC}")"
+            fi
+
+            # Update each scanner's status
+            local active_found=false
+            for scanner in "${scanners_array[@]}"; do
+                local display=$(get_phase_display "$scanner")
+                local estimate=$(get_phase_estimate "$scanner")
+                local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
+
+                if [[ -f "$output_file" ]]; then
+                    # Scanner completed - show result in green
+                    local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
+                    fixed_line "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result")"
+                elif [[ "$cloning_done" == "true" ]] && [[ "$active_found" == "false" ]]; then
+                    # First incomplete scanner after cloning - mark as active with green shimmer
+                    active_found=true
+                    local glow=$(get_green_glow $tick)
+                    local shimmer_name=$(shimmer_text "${display}..." $tick)
+                    fixed_line "$(format_scanner_line "$glow" "$shimmer_name" "${DIM}${elapsed}s (est: ${estimate})${NC}")"
+                else
+                    # Still queued - purple/magenta for profile scanners
+                    fixed_line "$(format_scanner_line "${MAGENTA}○${NC}" "${MAGENTA}${display}${NC}" "${MAGENTA}est: ${estimate}${NC}")"
+                fi
+            done
+
+            # Update separator and skipped scanners if present
+            if [[ ${#skipped_scanners[@]} -gt 0 ]]; then
+                fixed_line "  ${DIM}─────────────────────────────────────${NC}"
+                for scanner in "${skipped_scanners[@]}"; do
+                    local display=$(get_phase_display "$scanner")
+                    local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
+                    if [[ -f "$output_file" ]]; then
+                        local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
+                        fixed_line "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result ${DIM}(cached)${NC}")"
+                    else
+                        # Skipped scanners stay dim gray
+                        fixed_line "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}skipped in profile${NC}")"
+                    fi
+                done
+            fi
+
             ((tick++))
             sleep 0.3
         done
 
-        # Print result of final phase
-        if [[ -n "$last_phase" ]]; then
-            clear_line
-            local display_name=$(get_phase_display "$last_phase")
-            local result=$(get_phase_result "$last_phase" "$analysis_path" "$project_id")
-            printf "  ${GREEN}✓${NC} %-22s %b\n" "$display_name" "$result"
-        fi
+        # Show cursor again after animation and clear trap
+        show_cursor
+        trap - INT TERM
 
         # Get exit status
         wait $pid
@@ -908,8 +1156,46 @@ hydrate_org() {
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))
 
-        # Clear progress line
-        clear_line
+        # Final update - move cursor back and update all lines with final status
+        cursor_up $total_lines
+
+        # Show cloning as complete
+        local repo_path="$GIBSON_PROJECTS_DIR/$project_id/repo"
+        if [[ -d "$repo_path" ]]; then
+            local size=$(du -sh "$repo_path" 2>/dev/null | cut -f1)
+            local files=$(find "$repo_path" -type f ! -path '*/.git/*' 2>/dev/null | wc -l | tr -d ' ')
+            fixed_line "$(format_scanner_line "${GREEN}✓${NC}" "Cloning repository" "${DIM}${size}, ${files} files${NC}")"
+        else
+            fixed_line "$(format_scanner_line "${RED}✗${NC}" "${RED}Cloning repository${NC}" "${RED}failed${NC}")"
+        fi
+
+        # Show all scanners with final status
+        for scanner in "${scanners_array[@]}"; do
+            local display=$(get_phase_display "$scanner")
+            local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
+
+            if [[ -f "$output_file" ]]; then
+                local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
+                fixed_line "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result")"
+            else
+                fixed_line "$(format_scanner_line "${RED}✗${NC}" "${RED}${display}${NC}" "${RED}failed${NC}")"
+            fi
+        done
+
+        # Show separator and skipped scanners with final status
+        if [[ ${#skipped_scanners[@]} -gt 0 ]]; then
+            fixed_line "  ${DIM}─────────────────────────────────────${NC}"
+            for scanner in "${skipped_scanners[@]}"; do
+                local display=$(get_phase_display "$scanner")
+                local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
+                if [[ -f "$output_file" ]]; then
+                    local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
+                    fixed_line "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result ${DIM}(cached)${NC}")"
+                else
+                    fixed_line "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}skipped in profile${NC}")"
+                fi
+            done
+        fi
 
         if [[ $exit_status -eq 0 ]]; then
             echo -e "  ${GREEN}━━━ Complete${NC} ${DIM}(${duration}s total)${NC}"

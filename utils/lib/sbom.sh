@@ -25,7 +25,7 @@ SBOM_OUTPUT_DIR="${SBOM_OUTPUT_DIR:-sbom-output}"
 
 # Load SBOM configuration if available
 load_sbom_config() {
-    local config_file="${1:-${REPO_ROOT}/config/sbom-config.json}"
+    local config_file="${1:-${REPO_ROOT}/utils/scanners/package-sbom/config/sbom-config.json}"
 
     if [[ -f "$config_file" ]]; then
         # Parse JSON config
