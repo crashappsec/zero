@@ -329,38 +329,18 @@ analyze_ownership() {
         echo -e "${YELLOW}⚠ No CODEOWNERS file found${NC}" >&2
     fi
 
-    # Calculate bus factor (rough estimate)
-    # Bus factor = minimum contributors who own 50% of code
-    local top_contributor_commits=0
-    local total_period_commits=$total_commits
-    local bus_factor=1
-
-    if [[ "$contributor_count" -gt 0 ]] && [[ "$total_period_commits" -gt 0 ]]; then
-        local cumulative=0
-        local threshold=$(( total_period_commits / 2 ))
-
-        while read contributor; do
-            local commits=$(echo "$contributor" | jq -r '.commits')
-            cumulative=$((cumulative + commits))
-            if [[ $cumulative -ge $threshold ]]; then
-                break
-            fi
-            ((bus_factor++))
-        done <<< "$(echo "$contributors_json" | jq -c '.[]')"
-    fi
-
     # Build output
+    # Note: Bus factor analysis has been moved to the separate bus-factor scanner
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
     jq -n \
         --arg ts "$timestamp" \
         --arg tgt "$TARGET" \
-        --arg ver "1.0.0" \
+        --arg ver "1.1.0" \
         --argjson days "$days" \
         --argjson total_files "$total_files" \
         --argjson total_commits "$total_commits" \
         --argjson contributor_count "$contributor_count" \
-        --argjson bus_factor "$bus_factor" \
         --argjson contributors "$contributors_json" \
         --argjson codeowners "$codeowners_json" \
         '{
@@ -372,15 +352,11 @@ analyze_ownership() {
             summary: {
                 total_files: $total_files,
                 total_commits: $total_commits,
-                active_contributors: $contributor_count,
-                estimated_bus_factor: $bus_factor
+                active_contributors: $contributor_count
             },
             contributors: $contributors,
             codeowners: $codeowners,
-            risk_assessment: {
-                bus_factor_risk: (if $bus_factor <= 1 then "critical" elif $bus_factor <= 2 then "high" elif $bus_factor <= 3 then "medium" else "low" end),
-                bus_factor_description: "Minimum contributors owning 50% of commits"
-            }
+            note: "For bus factor analysis, use the dedicated bus-factor scanner"
         }'
 }
 
