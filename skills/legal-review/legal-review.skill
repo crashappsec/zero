@@ -447,7 +447,7 @@ This skill has access to comprehensive legal review RAG documentation:
 - Tool selection guidance
 
 ### Configuration
-**File**: `config/legal-review-config.json`
+**File**: `utils/scanners/licenses/config/legal-review-config.json`
 
 **Contains**:
 - License policies (allowed, review required, denied)

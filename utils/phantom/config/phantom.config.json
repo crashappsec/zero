@@ -189,7 +189,7 @@
       "name": "Standard",
       "description": "Balanced analysis covering security and code quality",
       "estimated_time": "~2 minutes",
-      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "licenses", "code-security", "code-secrets", "tech-debt", "code-ownership", "dora"]
+      "scanners": ["package-sbom", "package-vulns", "tech-discovery", "licenses", "code-secrets", "code-ownership"]
     },
     "advanced": {
       "name": "Advanced",
@@ -205,7 +205,7 @@
       "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance"]
     },
     "security": {
-      "name": "Security",
+      "name": "Security Only",
       "description": "Security-focused analysis for vulnerability assessment",
       "estimated_time": "~3 minutes",
       "scanners": ["package-sbom", "package-vulns", "licenses", "code-security", "iac-security", "code-secrets"]
@@ -214,13 +214,13 @@
       "name": "Compliance",
       "description": "License and policy compliance checks",
       "estimated_time": "~2 minutes",
-      "scanners": ["package-sbom", "licenses", "code-security", "documentation", "code-ownership"]
+      "scanners": ["package-sbom", "licenses", "documentation", "code-ownership"]
     },
     "devops": {
       "name": "DevOps",
       "description": "CI/CD and operational metrics",
       "estimated_time": "~3 minutes",
-      "scanners": ["package-sbom", "tech-discovery", "iac-security", "git", "test-coverage", "dora", "package-provenance"]
+      "scanners": ["tech-discovery", "iac-security", "git", "test-coverage"]
     }
   }
 }

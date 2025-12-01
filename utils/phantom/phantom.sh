@@ -564,7 +564,7 @@ get_mode_display() {
 }
 
 # Configuration file path (unified config)
-CONFIG_FILE="$SCRIPT_DIR/phantom.config.json"
+CONFIG_FILE="$SCRIPT_DIR/config/phantom.config.json"
 
 # Get profile info from phantom.config.json
 get_profile_info() {
@@ -859,7 +859,7 @@ OPTIONS FOR HYDRATE:
     --force             Re-analyze even if exists
 
 CONFIGURATION:
-    All settings are in utils/phantom/phantom.config.json
+    All settings are in utils/phantom/config/phantom.config.json
     See phantom.config.example.json for full documentation
     Create custom profiles by adding entries to the profiles section
 

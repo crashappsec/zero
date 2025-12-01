@@ -37,7 +37,7 @@ export ANTHROPIC_API_KEY=your-api-key
 
 ### Configuration
 
-Create or edit `config/legal-review-config.json`:
+Create or edit `utils/scanners/licenses/config/legal-review-config.json`:
 
 ```json
 {
@@ -284,7 +284,7 @@ legal-review/
 - `utils/lib/config.sh` - Configuration management
 - `utils/lib/github.sh` - GitHub API integration
 - `utils/lib/claude-cost.sh` - Claude API cost tracking (optional)
-- `config/legal-review-config.json` - Policy configuration
+- `utils/scanners/licenses/config/legal-review-config.json` - Policy configuration
 
 ## Best Practices
 

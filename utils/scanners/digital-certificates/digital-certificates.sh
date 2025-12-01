@@ -38,15 +38,15 @@ if [[ -f "$REPO_ROOT/.env" ]]; then
 fi
 
 # Load local libraries
-source "$SCRIPT_DIR/digital-certificates/lib/format-detection.sh"
-source "$SCRIPT_DIR/digital-certificates/lib/format-parsers.sh"
-source "$SCRIPT_DIR/digital-certificates/lib/fingerprint.sh"
-source "$SCRIPT_DIR/digital-certificates/lib/chain-validation.sh"
-source "$SCRIPT_DIR/digital-certificates/lib/ocsp-verification.sh"
-source "$SCRIPT_DIR/digital-certificates/lib/starttls.sh"
-source "$SCRIPT_DIR/digital-certificates/lib/cab-compliance.sh"
-source "$SCRIPT_DIR/digital-certificates/lib/cert-compare.sh"
-source "$SCRIPT_DIR/digital-certificates/lib/claude-analysis.sh"
+source "$SCRIPT_DIR/lib/format-detection.sh"
+source "$SCRIPT_DIR/lib/format-parsers.sh"
+source "$SCRIPT_DIR/lib/fingerprint.sh"
+source "$SCRIPT_DIR/lib/chain-validation.sh"
+source "$SCRIPT_DIR/lib/ocsp-verification.sh"
+source "$SCRIPT_DIR/lib/starttls.sh"
+source "$SCRIPT_DIR/lib/cab-compliance.sh"
+source "$SCRIPT_DIR/lib/cert-compare.sh"
+source "$SCRIPT_DIR/lib/claude-analysis.sh"
 
 # Load global libraries
 if [[ -f "$UTILS_ROOT/lib/claude-cost.sh" ]]; then

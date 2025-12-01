@@ -14,7 +14,7 @@ Global configuration files for Gibson Powers analysers and tools.
 
 ```bash
 # 1. Copy example configuration
-cp config/sbom-config.example.json config/sbom-config.json
+cp utils/scanners/package-sbom/config/sbom-config.example.json utils/scanners/package-sbom/config/sbom-config.json
 
 # 2. Edit configuration
 # Customize settings based on your needs

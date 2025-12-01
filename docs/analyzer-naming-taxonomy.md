@@ -184,7 +184,8 @@ utils/
 │   ├── bootstrap.sh
 │   ├── hydrate.sh
 │   ├── preflight.sh
-│   ├── phantom.config.json
+│   ├── config/
+│   │   └── phantom.config.json
 │   └── lib/
 │       └── gibson.sh
 │
