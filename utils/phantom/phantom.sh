@@ -462,10 +462,100 @@ run_status() {
 }
 
 #############################################################################
+# Report Functions
+#############################################################################
+
+run_report() {
+    exec "$SCRIPT_DIR/report.sh" "$@"
+}
+
+#############################################################################
+# History Functions
+#############################################################################
+
+run_history() {
+    local target="$1"
+    local limit="${2:-10}"
+
+    if [[ -z "$target" ]]; then
+        echo -e "${RED}Error: No target specified${NC}" >&2
+        echo "Usage: $(basename "$0") history <org/repo>"
+        exit 1
+    fi
+
+    local project_id=$(gibson_project_id "$target")
+    local history=$(gibson_get_scan_history "$project_id" "$limit")
+
+    if [[ -z "$history" ]] || [[ "$history" == "null" ]]; then
+        echo -e "${RED}Error: No scan history found for '$project_id'${NC}" >&2
+        exit 1
+    fi
+
+    print_phantom_banner
+    echo -e "${BOLD}Scan History: $project_id${NC}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo
+
+    local total_scans=$(echo "$history" | jq -r '.total_scans // 0')
+    local first_scan=$(echo "$history" | jq -r '.first_scan_at // "unknown"')
+    local last_scan=$(echo "$history" | jq -r '.last_scan_at // "unknown"')
+
+    printf "  %-14s %s\n" "Total Scans:" "$total_scans"
+    printf "  %-14s %s\n" "First Scan:" "$(echo "$first_scan" | cut -d'T' -f1)"
+    printf "  %-14s %s\n" "Last Scan:" "$(echo "$last_scan" | cut -d'T' -f1)"
+    echo
+
+    echo -e "${BOLD}Recent Scans${NC}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    echo "$history" | jq -r '.scans // [] | .[] | "\(.scan_id)\t\(.started_at | split("T")[0])\t\(.profile)\t\(.status)\t\(.summary.vulnerability_count // 0) vulns"' 2>/dev/null | \
+    while IFS=$'\t' read -r scan_id date profile status vulns; do
+        local status_color="$GREEN"
+        [[ "$status" == "failed" ]] && status_color="$RED"
+        [[ "$status" == "partial" ]] && status_color="$YELLOW"
+
+        printf "  %-24s %-12s %-10s ${status_color}%-10s${NC} %s\n" "$scan_id" "$date" "$profile" "$status" "$vulns"
+    done
+
+    echo
+}
+
+#############################################################################
 # Clean Functions
 #############################################################################
 
 run_clean() {
+    local target=""
+    local org=""
+    local dry_run=false
+    local skip_confirm=false
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --org)
+                org="$2"
+                shift 2
+                ;;
+            --dry-run)
+                dry_run=true
+                shift
+                ;;
+            --yes|-y)
+                skip_confirm=true
+                shift
+                ;;
+            -*)
+                echo -e "${RED}Error: Unknown option $1${NC}" >&2
+                exit 1
+                ;;
+            *)
+                target="$1"
+                shift
+                ;;
+        esac
+    done
+
     print_phantom_banner
     echo -e "${BOLD}Clean${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -476,23 +566,96 @@ run_clean() {
         return 0
     fi
 
-    local count=$(find "$GIBSON_PROJECTS_DIR" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l | tr -d ' ')
-    local size=$(du -sh "$GIBSON_DIR" 2>/dev/null | cut -f1)
+    # Determine what to clean
+    if [[ -n "$target" ]]; then
+        # Clean single project
+        local project_id=$(gibson_project_id "$target")
+        local project_path=$(gibson_project_path "$project_id")
 
-    echo -e "${YELLOW}Warning:${NC} This will remove all analysis data!"
-    echo
-    echo "  Projects: $count"
-    echo "  Size: $size"
-    echo "  Location: ~/.phantom/"
-    echo
-    read -p "Are you sure? (y/n) " -n 1 -r
-    echo
+        if [[ ! -d "$project_path" ]]; then
+            echo -e "${RED}Error: Project '$project_id' not found${NC}"
+            exit 1
+        fi
 
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        local size=$(du -sh "$project_path" 2>/dev/null | cut -f1)
+        echo "  Project: $project_id"
+        echo "  Size: $size"
+        echo
+
+        if [[ "$dry_run" == "true" ]]; then
+            echo -e "${CYAN}[DRY RUN]${NC} Would remove: $project_path"
+            return 0
+        fi
+
+        if [[ "$skip_confirm" != "true" ]]; then
+            read -p "Remove this project? (y/n) " -n 1 -r
+            echo
+            [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Cancelled."; return 0; }
+        fi
+
+        gibson_clean_project "$project_id"
+        echo -e "${GREEN}✓${NC} Cleaned project: $project_id"
+
+    elif [[ -n "$org" ]]; then
+        # Clean entire org
+        local projects=$(gibson_list_org_projects "$org")
+        if [[ -z "$projects" ]]; then
+            echo -e "${RED}Error: No projects found for org '$org'${NC}"
+            exit 1
+        fi
+
+        local count=$(echo "$projects" | wc -w | tr -d ' ')
+        local size=$(du -sh "$GIBSON_PROJECTS_DIR/$org" 2>/dev/null | cut -f1)
+
+        echo "  Organization: $org"
+        echo "  Projects: $count"
+        echo "  Size: $size"
+        echo
+        echo "  Projects to remove:"
+        for repo in $projects; do
+            echo "    - $org/$repo"
+        done
+        echo
+
+        if [[ "$dry_run" == "true" ]]; then
+            echo -e "${CYAN}[DRY RUN]${NC} Would remove: $GIBSON_PROJECTS_DIR/$org/"
+            return 0
+        fi
+
+        if [[ "$skip_confirm" != "true" ]]; then
+            read -p "Remove all projects in '$org'? (y/n) " -n 1 -r
+            echo
+            [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Cancelled."; return 0; }
+        fi
+
+        gibson_clean_org "$org"
+        echo -e "${GREEN}✓${NC} Cleaned org: $org ($count projects)"
+
+    else
+        # Clean everything
+        local count=$(find "$GIBSON_PROJECTS_DIR" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l | tr -d ' ')
+        local size=$(du -sh "$GIBSON_DIR" 2>/dev/null | cut -f1)
+
+        echo -e "${YELLOW}Warning:${NC} This will remove ALL analysis data!"
+        echo
+        echo "  Projects: $count"
+        echo "  Size: $size"
+        echo "  Location: ~/.phantom/"
+        echo
+
+        if [[ "$dry_run" == "true" ]]; then
+            echo -e "${CYAN}[DRY RUN]${NC} Would remove: $GIBSON_DIR"
+            return 0
+        fi
+
+        if [[ "$skip_confirm" != "true" ]]; then
+            read -p "Are you sure? (y/n) " -n 1 -r
+            echo
+            [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Cancelled."; return 0; }
+        fi
+
         rm -rf "$GIBSON_DIR"
         echo -e "${GREEN}✓${NC} Cleaned all data"
-    else
-        echo "Cancelled."
     fi
 }
 
@@ -843,7 +1006,9 @@ COMMANDS:
     hydrate <repo>      Analyze a repository (e.g., expressjs/express)
     hydrate --org <n>   Analyze all repos in an organization
     status              Show hydrated projects
-    clean               Remove all analysis data
+    report <repo>       Generate summary report for a project
+    history <repo>      Show scan history for a project
+    clean               Remove analysis data (all, org, or project)
     help                Show this help
 
 OPTIONS FOR HYDRATE:
@@ -858,6 +1023,18 @@ OPTIONS FOR HYDRATE:
     --devops            CI/CD and operational metrics (~3min)
     --force             Re-analyze even if exists
 
+OPTIONS FOR REPORT:
+    <org/repo>          Report for a specific project
+    --org <name>        Aggregate report for an organization
+    --json              Output in JSON format
+
+OPTIONS FOR CLEAN:
+    (no args)           Clean all data (with confirmation)
+    <org/repo>          Clean a specific project
+    --org <name>        Clean all projects in an organization
+    --dry-run           Preview what would be deleted
+    --yes               Skip confirmation prompt
+
 CONFIGURATION:
     All settings are in utils/phantom/config/phantom.config.json
     See phantom.config.example.json for full documentation
@@ -869,6 +1046,11 @@ EXAMPLES:
     $(basename "$0") hydrate lodash/lodash        # Single repo
     $(basename "$0") hydrate --org expressjs      # All org repos
     $(basename "$0") status                       # List projects
+    $(basename "$0") report expressjs/express     # Project report
+    $(basename "$0") report --org expressjs       # Org report
+    $(basename "$0") history expressjs/express    # Scan history
+    $(basename "$0") clean expressjs/express      # Clean one project
+    $(basename "$0") clean --org expressjs        # Clean org
 
 STORAGE:
     Analysis data is stored in ~/.phantom/projects/
@@ -915,8 +1097,17 @@ main() {
         status|list)
             run_status
             ;;
+        report)
+            shift
+            run_report "$@"
+            ;;
+        history)
+            shift
+            run_history "$@"
+            ;;
         clean)
-            run_clean
+            shift
+            run_clean "$@"
             ;;
         -h|--help|help)
             usage
