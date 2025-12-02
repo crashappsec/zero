@@ -601,20 +601,33 @@ get_phase_result() {
             ;;
         "licenses")
             if [[ -f "$analysis_path/licenses.json" ]]; then
-                local restrictive=$(jq -r '.restrictive | length // 0' "$analysis_path/licenses.json" 2>/dev/null)
-                local unknown=$(jq -r '.unknown | length // 0' "$analysis_path/licenses.json" 2>/dev/null)
-                if [[ "$restrictive" == "0" ]] && [[ "$unknown" == "0" ]]; then
-                    printf "\033[0;32mcompliant\033[0m"
+                # Get unique licenses found and show them
+                local licenses=$(jq -r '.licenses[]?.license // empty' "$analysis_path/licenses.json" 2>/dev/null | sort -u | head -3 | tr '\n' ', ' | sed 's/,$//')
+                local license_count=$(jq -r '.licenses | length // 0' "$analysis_path/licenses.json" 2>/dev/null)
+                local violations=$(jq -r '.summary.license_violations // 0' "$analysis_path/licenses.json" 2>/dev/null)
+
+                if [[ -n "$licenses" ]]; then
+                    # Color code based on license type
+                    local display=""
+                    if [[ "$licenses" =~ (GPL|AGPL) ]]; then
+                        display="\033[1;33m$licenses\033[0m"  # Yellow for copyleft
+                    elif [[ "$licenses" =~ (MIT|Apache|BSD|ISC) ]]; then
+                        display="\033[0;32m$licenses\033[0m"  # Green for permissive
+                    else
+                        display="\033[2m$licenses\033[0m"  # Dim for other
+                    fi
+
+                    if [[ "$violations" -gt 0 ]]; then
+                        printf "%b \033[0;31m(%d violations)\033[0m" "$display" "$violations"
+                    elif [[ "$license_count" -gt 3 ]]; then
+                        printf "%b \033[2m(+%d more)\033[0m" "$display" "$((license_count - 3))"
+                    else
+                        printf "%b" "$display"
+                    fi
+                elif [[ "$violations" -gt 0 ]]; then
+                    printf "\033[0;31m%d violations\033[0m" "$violations"
                 else
-                    local first=true
-                    if [[ "$restrictive" != "0" ]]; then
-                        printf "\033[1;33m%s restrictive\033[0m" "$restrictive"
-                        first=false
-                    fi
-                    if [[ "$unknown" != "0" ]]; then
-                        [[ "$first" == "false" ]] && printf ", "
-                        printf "\033[2m%s unknown\033[0m" "$unknown"
-                    fi
+                    printf "\033[2mno licenses detected\033[0m"
                 fi
             fi
             ;;
@@ -1219,51 +1232,243 @@ hydrate_org() {
     local duration_min=$((total_duration / 60))
     local duration_sec=$((total_duration % 60))
 
-    # Final Summary
+    # Calculate total storage size
+    local total_size="0B"
+    if [[ -d "$GIBSON_PROJECTS_DIR/$ORG_NAME" ]]; then
+        total_size=$(du -sh "$GIBSON_PROJECTS_DIR/$ORG_NAME" 2>/dev/null | cut -f1)
+    fi
+
+    # Final Summary Header
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo -e "${BOLD}ORGANIZATION HYDRATION COMPLETE${NC} ${DIM}(static analysis - no AI)${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
-    echo -e "  ${GREEN}✓ Hydrated:${NC}  $success"
-    echo -e "  ${YELLOW}⊘ Skipped:${NC}   $skipped"
-    echo -e "  ${RED}✗ Failed:${NC}    $failed"
-    echo -e "  ${CYAN}⏱ Duration:${NC}  ${duration_min}m ${duration_sec}s"
+
+    # Overview
+    echo -e "${BOLD}Overview${NC}"
+    printf "  %-20s ${CYAN}%d${NC} repos scanned, ${CYAN}%s${NC} total\n" "Repositories:" "$((success + skipped))" "$total_size"
+    printf "  %-20s ${GREEN}%d${NC} hydrated, ${YELLOW}%d${NC} cached, ${RED}%d${NC} failed\n" "Status:" "$success" "$skipped" "$failed"
+    printf "  %-20s ${CYAN}%dm %ds${NC}\n" "Duration:" "$duration_min" "$duration_sec"
     echo
 
-    # Show aggregate stats if we have hydrated repos
-    if [[ $success -gt 0 ]]; then
-        echo -e "${BOLD}Aggregate Analysis${NC}"
+    # Collect comprehensive aggregate statistics
+    local total_deps=0
+    local total_vulns=0 critical_vulns=0 high_vulns=0 medium_vulns=0 low_vulns=0
+    local total_secrets=0 total_code_issues=0
+    local total_contributors=0
 
-        local total_vulns=0
-        local total_critical=0
-        local total_high=0
-        local total_deps=0
+    # Package counts by ecosystem
+    declare -A pkg_by_ecosystem
+    # Vulnerabilities by ecosystem
+    declare -A vuln_by_ecosystem_critical
+    declare -A vuln_by_ecosystem_high
+    declare -A vuln_by_ecosystem_medium
+    declare -A vuln_by_ecosystem_low
+    # License counts
+    declare -A license_counts
+    # DORA performance levels
+    declare -A dora_levels
 
-        for proj in $(gibson_list_hydrated | jq -r '.[]'); do
-            local proj_path="$GIBSON_PROJECTS_DIR/$proj/analysis"
-            if [[ -f "$proj_path/vulnerabilities.json" ]]; then
-                total_critical=$((total_critical + $(jq -r '.summary.critical // 0' "$proj_path/vulnerabilities.json" 2>/dev/null)))
-                total_high=$((total_high + $(jq -r '.summary.high // 0' "$proj_path/vulnerabilities.json" 2>/dev/null)))
-            fi
-            if [[ -f "$proj_path/dependencies.json" ]]; then
-                total_deps=$((total_deps + $(jq -r '.total_dependencies // 0' "$proj_path/dependencies.json" 2>/dev/null)))
-            fi
+    for proj in $(gibson_list_hydrated | jq -r '.[]'); do
+        local proj_path="$GIBSON_PROJECTS_DIR/$proj/analysis"
+
+        # Package counts from CycloneDX SBOM
+        if [[ -f "$proj_path/sbom.cdx.json" ]]; then
+            # Extract package types and count them
+            while IFS='|' read -r ecosystem count; do
+                [[ -z "$ecosystem" ]] && continue
+                pkg_by_ecosystem[$ecosystem]=$((${pkg_by_ecosystem[$ecosystem]:-0} + count))
+                total_deps=$((total_deps + count))
+            done < <(jq -r '[.components[]? | .properties[]? | select(.name == "syft:package:type") | .value] | group_by(.) | .[] | "\(.[0])|\(length)"' "$proj_path/sbom.cdx.json" 2>/dev/null)
+        elif [[ -f "$proj_path/package-sbom.json" ]]; then
+            # Fallback to package-sbom.json
+            local deps=$(jq -r '.total_dependencies // 0' "$proj_path/package-sbom.json" 2>/dev/null)
+            total_deps=$((total_deps + deps))
+        fi
+
+        # Vulnerabilities with ecosystem breakdown
+        if [[ -f "$proj_path/package-vulns.json" ]]; then
+            critical_vulns=$((critical_vulns + $(jq -r '.summary.critical // 0' "$proj_path/package-vulns.json" 2>/dev/null)))
+            high_vulns=$((high_vulns + $(jq -r '.summary.high // 0' "$proj_path/package-vulns.json" 2>/dev/null)))
+            medium_vulns=$((medium_vulns + $(jq -r '.summary.medium // 0' "$proj_path/package-vulns.json" 2>/dev/null)))
+            low_vulns=$((low_vulns + $(jq -r '.summary.low // 0' "$proj_path/package-vulns.json" 2>/dev/null)))
+
+            # Count vulns by ecosystem and severity
+            while IFS='|' read -r ecosystem severity; do
+                [[ -z "$ecosystem" ]] && continue
+                case "$severity" in
+                    critical) vuln_by_ecosystem_critical[$ecosystem]=$((${vuln_by_ecosystem_critical[$ecosystem]:-0} + 1)) ;;
+                    high)     vuln_by_ecosystem_high[$ecosystem]=$((${vuln_by_ecosystem_high[$ecosystem]:-0} + 1)) ;;
+                    medium)   vuln_by_ecosystem_medium[$ecosystem]=$((${vuln_by_ecosystem_medium[$ecosystem]:-0} + 1)) ;;
+                    low)      vuln_by_ecosystem_low[$ecosystem]=$((${vuln_by_ecosystem_low[$ecosystem]:-0} + 1)) ;;
+                esac
+            done < <(jq -r '.vulnerabilities[]? | "\(.ecosystem)|\(.severity)"' "$proj_path/package-vulns.json" 2>/dev/null)
+        fi
+
+        # Licenses - collect actual license types
+        if [[ -f "$proj_path/licenses.json" ]]; then
+            while IFS= read -r lic; do
+                [[ -z "$lic" ]] && continue
+                license_counts[$lic]=$((${license_counts[$lic]:-0} + 1))
+            done < <(jq -r '.licenses[]?.license // empty' "$proj_path/licenses.json" 2>/dev/null)
+        fi
+
+        # Code secrets
+        if [[ -f "$proj_path/code-secrets.json" ]]; then
+            total_secrets=$((total_secrets + $(jq -r '.summary.total_findings // 0' "$proj_path/code-secrets.json" 2>/dev/null)))
+        fi
+
+        # Code security issues
+        if [[ -f "$proj_path/code-security.json" ]]; then
+            total_code_issues=$((total_code_issues + $(jq -r '.summary.potential_issues // (.findings | length) // 0' "$proj_path/code-security.json" 2>/dev/null)))
+        fi
+
+        # DORA performance
+        if [[ -f "$proj_path/dora.json" ]]; then
+            local perf=$(jq -r '.summary.overall_performance // .performance_level // "unknown"' "$proj_path/dora.json" 2>/dev/null)
+            [[ -n "$perf" ]] && [[ "$perf" != "null" ]] && dora_levels[$perf]=$((${dora_levels[$perf]:-0} + 1))
+        fi
+
+        # Contributors
+        if [[ -f "$proj_path/code-ownership.json" ]]; then
+            total_contributors=$((total_contributors + $(jq -r '.summary.active_contributors // 0' "$proj_path/code-ownership.json" 2>/dev/null)))
+        fi
+    done
+
+    total_vulns=$((critical_vulns + high_vulns + medium_vulns + low_vulns))
+
+    # Dependencies by Ecosystem
+    echo -e "${BOLD}Dependencies${NC} ${DIM}(${total_deps} total packages)${NC}"
+    # Sort ecosystems by count and display
+    for ecosystem in "${!pkg_by_ecosystem[@]}"; do
+        echo "$ecosystem|${pkg_by_ecosystem[$ecosystem]}"
+    done | sort -t'|' -k2 -rn | head -10 | while IFS='|' read -r eco count; do
+        # Format ecosystem name nicely
+        local display_eco=$(echo "$eco" | sed 's/npm/NPM/; s/go-module/Go/; s/pip/Python/; s/gem/Ruby/; s/maven/Java/; s/nuget/.NET/; s/cargo/Rust/; s/github-action/GitHub Actions/')
+        printf "  %-20s ${CYAN}%'d${NC} packages\n" "$display_eco:" "$count"
+    done
+    echo
+
+    # Vulnerability Summary
+    echo -e "${BOLD}Package Vulnerabilities${NC} ${DIM}(${total_vulns} total)${NC}"
+    printf "  %-20s " "By Severity:"
+    if [[ $critical_vulns -gt 0 ]]; then
+        printf "${RED}%d critical${NC}, " "$critical_vulns"
+    fi
+    if [[ $high_vulns -gt 0 ]]; then
+        printf "${YELLOW}%d high${NC}, " "$high_vulns"
+    fi
+    if [[ $medium_vulns -gt 0 ]]; then
+        printf "%d medium, " "$medium_vulns"
+    fi
+    if [[ $low_vulns -gt 0 ]]; then
+        printf "%d low" "$low_vulns"
+    fi
+    if [[ $total_vulns -eq 0 ]]; then
+        printf "${GREEN}None found${NC}"
+    fi
+    echo
+
+    # Vulnerabilities by ecosystem (if any exist)
+    local has_eco_vulns=false
+    for eco in "${!vuln_by_ecosystem_critical[@]}" "${!vuln_by_ecosystem_high[@]}"; do
+        has_eco_vulns=true
+        break
+    done
+    if [[ "$has_eco_vulns" == "true" ]]; then
+        echo -e "  ${DIM}By Ecosystem:${NC}"
+        # Collect unique ecosystems with vulns
+        declare -A eco_totals
+        for eco in "${!vuln_by_ecosystem_critical[@]}"; do
+            eco_totals[$eco]=$((${eco_totals[$eco]:-0} + ${vuln_by_ecosystem_critical[$eco]:-0}))
         done
+        for eco in "${!vuln_by_ecosystem_high[@]}"; do
+            eco_totals[$eco]=$((${eco_totals[$eco]:-0} + ${vuln_by_ecosystem_high[$eco]:-0}))
+        done
+        for eco in "${!vuln_by_ecosystem_medium[@]}"; do
+            eco_totals[$eco]=$((${eco_totals[$eco]:-0} + ${vuln_by_ecosystem_medium[$eco]:-0}))
+        done
+        for eco in "${!vuln_by_ecosystem_low[@]}"; do
+            eco_totals[$eco]=$((${eco_totals[$eco]:-0} + ${vuln_by_ecosystem_low[$eco]:-0}))
+        done
+        for eco in "${!eco_totals[@]}"; do
+            echo "$eco|${eco_totals[$eco]}"
+        done | sort -t'|' -k2 -rn | while IFS='|' read -r eco total; do
+            local display_eco=$(echo "$eco" | sed 's/npm/NPM/; s/go/Go/; s/pip/Python/')
+            local c=${vuln_by_ecosystem_critical[$eco]:-0}
+            local h=${vuln_by_ecosystem_high[$eco]:-0}
+            local m=${vuln_by_ecosystem_medium[$eco]:-0}
+            local l=${vuln_by_ecosystem_low[$eco]:-0}
+            printf "    %-18s " "$display_eco:"
+            [[ $c -gt 0 ]] && printf "${RED}%d crit${NC} " "$c"
+            [[ $h -gt 0 ]] && printf "${YELLOW}%d high${NC} " "$h"
+            [[ $m -gt 0 ]] && printf "%d med " "$m"
+            [[ $l -gt 0 ]] && printf "%d low" "$l"
+            echo
+        done
+    fi
+    echo
 
-        echo -e "  Total Dependencies:   ${CYAN}$total_deps${NC}"
-        if [[ $total_critical -gt 0 ]] || [[ $total_high -gt 0 ]]; then
-            echo -e "  Critical Vulns:       ${RED}$total_critical${NC}"
-            echo -e "  High Vulns:           ${YELLOW}$total_high${NC}"
-        else
-            echo -e "  Vulnerabilities:      ${GREEN}No critical/high issues${NC}"
+    # Licenses Found
+    if [[ ${#license_counts[@]} -gt 0 ]]; then
+        echo -e "${BOLD}Licenses Found${NC}"
+        # Sort by count and display
+        for lic in "${!license_counts[@]}"; do
+            echo "$lic|${license_counts[$lic]}"
+        done | sort -t'|' -k2 -rn | while IFS='|' read -r lic count; do
+            # Color code license risk
+            local lic_color="$NC"
+            case "$lic" in
+                MIT|Apache-2.0|BSD-2-Clause|BSD-3-Clause|ISC) lic_color="$GREEN" ;;
+                GPL-2.0|GPL-3.0|AGPL-3.0) lic_color="$RED" ;;
+                LGPL-*) lic_color="$YELLOW" ;;
+            esac
+            printf "  ${lic_color}%-20s${NC} %d occurrence(s)\n" "$lic" "$count"
+        done
+        echo
+    fi
+
+    # Code Security
+    if [[ $total_secrets -gt 0 ]] || [[ $total_code_issues -gt 0 ]]; then
+        echo -e "${BOLD}Code Security${NC}"
+        if [[ $total_secrets -gt 0 ]]; then
+            printf "  %-20s ${RED}%d${NC} exposed\n" "Secrets:" "$total_secrets"
+        fi
+        if [[ $total_code_issues -gt 0 ]]; then
+            printf "  %-20s ${YELLOW}%d${NC} potential issues\n" "Code Issues:" "$total_code_issues"
         fi
         echo
     fi
 
-    echo -e "${BOLD}Hydrated Projects:${NC}"
+    # DORA Performance Distribution
+    if [[ ${#dora_levels[@]} -gt 0 ]]; then
+        echo -e "${BOLD}DORA Performance${NC}"
+        for level in ELITE HIGH MEDIUM LOW unknown; do
+            [[ -z "${dora_levels[$level]}" ]] && continue
+            local level_color="$NC"
+            case "$level" in
+                ELITE|HIGH) level_color="$GREEN" ;;
+                MEDIUM) level_color="$YELLOW" ;;
+                LOW) level_color="$RED" ;;
+            esac
+            printf "  ${level_color}%-20s${NC} %d repos\n" "$level:" "${dora_levels[$level]}"
+        done
+        echo
+    fi
+
+    # Contributors
+    if [[ $total_contributors -gt 0 ]]; then
+        echo -e "${BOLD}Contributors${NC}"
+        printf "  %-20s ${CYAN}%d${NC} active (last 90 days)\n" "Total:" "$total_contributors"
+        echo
+    fi
+
+    # Hydrated Projects List
+    echo -e "${BOLD}Hydrated Projects${NC}"
     gibson_list_hydrated | jq -r '.[]' | sed 's/^/  /'
     echo
-    echo -e "Query with: ${CYAN}/phantom ask scout <question>${NC}"
+    echo -e "Query with: ${CYAN}./phantom.sh report --org $ORG_NAME${NC}"
+    echo -e "            ${CYAN}./phantom.sh ask scout <question>${NC}"
 }
 
 #############################################################################
