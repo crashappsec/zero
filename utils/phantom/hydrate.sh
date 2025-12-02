@@ -47,6 +47,10 @@ TARGET=""
 CLEAN_MODE=false
 PASS_THROUGH_ARGS=()
 
+# Canonical list of ALL scanners - always displayed in this order regardless of profile
+# This ensures consistent output format across all profiles
+ALL_SCANNERS="package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership dora package-provenance"
+
 #############################################################################
 # Usage
 #############################################################################
@@ -449,6 +453,13 @@ list_profiles() {
     else
         echo "quick standard advanced deep security compliance devops"
     fi
+}
+
+# Check if a scanner is included in the given profile's scanner list
+scanner_in_profile() {
+    local scanner="$1"
+    local profile_scanners="$2"
+    [[ " $profile_scanners " =~ " $scanner " ]]
 }
 
 # Check if profile requires Claude API
@@ -988,16 +999,22 @@ hydrate_org() {
                 echo -e "$(format_scanner_line "${GREEN}✓${NC}" "Cloning repository" "${DIM}${size}, ${files} files${NC}")"
             fi
 
-            # Show all scanners from current profile with cached results
-            local -a cached_scanners_array=($mode_scanners)
-            for scanner in "${cached_scanners_array[@]}"; do
+            # Show ALL scanners consistently - same list regardless of profile
+            for scanner in $ALL_SCANNERS; do
                 local display=$(get_phase_display "$scanner")
                 local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
+                local in_profile=$(scanner_in_profile "$scanner" "$mode_scanners" && echo "yes" || echo "no")
+
                 if [[ -f "$output_file" ]]; then
+                    # Has cached results
                     local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
                     echo -e "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result ${DIM}(cached)${NC}")"
+                elif [[ "$in_profile" == "yes" ]]; then
+                    # In profile but no results yet
+                    echo -e "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}pending${NC}")"
                 else
-                    echo -e "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}not run${NC}")"
+                    # Not in this profile
+                    echo -e "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}not in profile${NC}")"
                 fi
             done
 
@@ -1021,23 +1038,28 @@ hydrate_org() {
         local analysis_path="$GIBSON_PROJECTS_DIR/$project_id/analysis"
         local tick=0
 
-        # Convert scanner list to array for easier manipulation
-        local -a scanners_array=($mode_scanners)
-        local total_scanners=${#scanners_array[@]}
+        # Use canonical ALL_SCANNERS list for consistent output across profiles
+        local -a all_scanners_array=($ALL_SCANNERS)
+        local total_scanners=${#all_scanners_array[@]}
 
-        # Print initial scanner list (cloning + profile scanners only)
-        # Only show scanners that are part of this profile for consistent output
+        # Print initial scanner list - ALL scanners for consistent output
         echo -e "$(format_scanner_line "${WHITE}○${NC}" "${WHITE}Cloning repository...${NC}" "${DIM}est: ~30s${NC}")"
-        for scanner in "${scanners_array[@]}"; do
+        for scanner in "${all_scanners_array[@]}"; do
             local display=$(get_phase_display "$scanner")
             local estimate=$(get_phase_estimate "$scanner")
-            # Check if we have cached data from previous scan
             local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
+            local in_profile=$(scanner_in_profile "$scanner" "$mode_scanners" && echo "yes" || echo "no")
+
             if [[ -f "$output_file" ]] && [[ "$force_mode" != "true" ]]; then
+                # Has cached results
                 local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
                 echo -e "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result ${DIM}(cached)${NC}")"
-            else
+            elif [[ "$in_profile" == "yes" ]]; then
+                # In profile, queued for scanning
                 echo -e "$(format_scanner_line "${WHITE}○${NC}" "${WHITE}${display}${NC}" "${DIM}est: ${estimate}${NC}")"
+            else
+                # Not in this profile
+                echo -e "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}not in profile${NC}")"
             fi
         done
 
@@ -1089,17 +1111,21 @@ hydrate_org() {
                 fixed_line "$(format_scanner_line "$glow" "$shimmer_name" "${DIM}${elapsed}s (est: ~30s)${NC}")"
             fi
 
-            # Update each scanner's status
+            # Update each scanner's status - ALL scanners for consistent output
             local active_found=false
-            for scanner in "${scanners_array[@]}"; do
+            for scanner in "${all_scanners_array[@]}"; do
                 local display=$(get_phase_display "$scanner")
                 local estimate=$(get_phase_estimate "$scanner")
                 local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
+                local in_profile=$(scanner_in_profile "$scanner" "$mode_scanners" && echo "yes" || echo "no")
 
                 if [[ -f "$output_file" ]]; then
                     # Scanner completed - show result in green
                     local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
                     fixed_line "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result")"
+                elif [[ "$in_profile" != "yes" ]]; then
+                    # Not in this profile - always show as dim
+                    fixed_line "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}not in profile${NC}")"
                 elif [[ "$cloning_done" == "true" ]] && [[ "$active_found" == "false" ]]; then
                     # First incomplete scanner after cloning - mark as active with green shimmer
                     active_found=true
@@ -1139,14 +1165,18 @@ hydrate_org() {
             fixed_line "$(format_scanner_line "${RED}✗${NC}" "${RED}Cloning repository${NC}" "${RED}failed${NC}")"
         fi
 
-        # Show all scanners with final status
-        for scanner in "${scanners_array[@]}"; do
+        # Show all scanners with final status - ALL scanners for consistent output
+        for scanner in "${all_scanners_array[@]}"; do
             local display=$(get_phase_display "$scanner")
             local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
+            local in_profile=$(scanner_in_profile "$scanner" "$mode_scanners" && echo "yes" || echo "no")
 
             if [[ -f "$output_file" ]]; then
                 local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
                 fixed_line "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result")"
+            elif [[ "$in_profile" != "yes" ]]; then
+                # Not in this profile
+                fixed_line "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}not in profile${NC}")"
             else
                 fixed_line "$(format_scanner_line "${RED}✗${NC}" "${RED}${display}${NC}" "${RED}failed${NC}")"
             fi
