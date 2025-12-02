@@ -51,6 +51,10 @@ MODE="standard"  # quick, standard, thorough, deep, security
 FORCE=false
 ENRICH=false     # Incremental enrichment - only run missing collectors
 
+# Canonical list of ALL scanners - always displayed in this order regardless of profile
+# This ensures consistent output format across all profiles
+ALL_SCANNERS="package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership dora package-provenance"
+
 #############################################################################
 # Usage
 #############################################################################
@@ -465,6 +469,36 @@ get_missing_analyzers() {
         fi
     done
     echo "$missing"
+}
+
+# Check if a scanner is included in the given profile's scanner list
+scanner_in_profile() {
+    local scanner="$1"
+    local profile_scanners="$2"
+    [[ " $profile_scanners " =~ " $scanner " ]]
+}
+
+# Get display name for a scanner
+get_scanner_display_name() {
+    local scanner="$1"
+    case "$scanner" in
+        package-sbom)      echo "SBOM generation" ;;
+        tech-discovery)    echo "Tech discovery" ;;
+        package-vulns)     echo "Package vulnerabilities" ;;
+        package-health)    echo "Package health" ;;
+        licenses)          echo "License scan" ;;
+        code-security)     echo "Code security" ;;
+        iac-security)      echo "IaC security" ;;
+        code-secrets)      echo "Secrets scan" ;;
+        tech-debt)         echo "Tech debt" ;;
+        documentation)     echo "Documentation" ;;
+        git)               echo "Git insights" ;;
+        test-coverage)     echo "Test coverage" ;;
+        code-ownership)    echo "Code ownership" ;;
+        dora)              echo "DORA metrics" ;;
+        package-provenance) echo "Provenance check" ;;
+        *)                 echo "$scanner" ;;
+    esac
 }
 
 # Run a single analyzer
@@ -1250,22 +1284,22 @@ run_all_analyzers() {
     local enrich="${5:-false}"
 
     local requested_analyzers=$(get_analyzers_for_mode "$mode")
-    local analyzers="$requested_analyzers"
+    local analyzers_to_run="$requested_analyzers"
 
     # In enrich mode, only run missing analyzers
     if [[ "$enrich" == "true" ]]; then
         local completed=$(get_completed_analyzers "$output_path")
-        analyzers=$(get_missing_analyzers "$requested_analyzers" "$completed")
+        analyzers_to_run=$(get_missing_analyzers "$requested_analyzers" "$completed")
 
-        if [[ -z "$analyzers" ]]; then
+        if [[ -z "$analyzers_to_run" ]]; then
             echo -e "\n${GREEN}All requested analyzers already complete.${NC}"
             echo -e "${DIM}Use --force to re-run all analyzers.${NC}"
             return 0
         fi
     fi
 
-    local analyzer_count=$(echo "$analyzers" | wc -w | tr -d ' ')
-    local current=0
+    local profile_count=$(echo "$requested_analyzers" | wc -w | tr -d ' ')
+    local total_scanners=$(echo "$ALL_SCANNERS" | wc -w | tr -d ' ')
 
     # Show mode in header
     local mode_display=""
@@ -1279,102 +1313,111 @@ run_all_analyzers() {
     esac
 
     if [[ "$enrich" == "true" ]]; then
-        echo -e "\n${BOLD}Running $analyzer_count missing analyzers${mode_display}${NC} ${CYAN}(enrichment)${NC}"
+        echo -e "\n${BOLD}Running $profile_count analyzers${mode_display}${NC} ${CYAN}(enrichment)${NC}"
     else
-        echo -e "\n${BOLD}Running $analyzer_count analyzers${mode_display}${NC}"
+        echo -e "\n${BOLD}Running $profile_count analyzers${mode_display}${NC}"
     fi
     echo
 
-    for analyzer in $analyzers; do
-        ((current++))
+    # Iterate through ALL scanners for consistent output
+    for analyzer in $ALL_SCANNERS; do
+        local display_name=$(get_scanner_display_name "$analyzer")
+        local in_profile=$(scanner_in_profile "$analyzer" "$requested_analyzers" && echo "yes" || echo "no")
+        local should_run=$(scanner_in_profile "$analyzer" "$analyzers_to_run" && echo "yes" || echo "no")
 
-        # Show progress indicator
-        printf "  [%d/%d] %-20s " "$current" "$analyzer_count" "$analyzer"
-
-        local start_time=$(date +%s)
-        run_analyzer "$analyzer" "$repo_path" "$output_path" "$project_id"
-        local exit_code=$?
-        local end_time=$(date +%s)
-        local duration=$((end_time - start_time))
-
-        if [[ $exit_code -eq 0 ]]; then
-            printf "${GREEN}✓${NC} %2ds  " "$duration"
-
-            # Show inline summary
-            local output_file="$output_path/${analyzer}.json"
-            if [[ -f "$output_file" ]]; then
-                case "$analyzer" in
-                    vulnerabilities)
-                        local c=$(jq -r '.summary.critical // 0' "$output_file" 2>/dev/null)
-                        local h=$(jq -r '.summary.high // 0' "$output_file" 2>/dev/null)
-                        local m=$(jq -r '.summary.medium // 0' "$output_file" 2>/dev/null)
-                        local l=$(jq -r '.summary.low // 0' "$output_file" 2>/dev/null)
-                        local total=$((c + h + m + l))
-                        if [[ "$c" != "0" ]] || [[ "$h" != "0" ]]; then
-                            echo -e "${RED}$c critical${NC}, ${YELLOW}$h high${NC}"
-                        elif [[ "$total" -gt 0 ]]; then
-                            echo "$total found"
-                        else
-                            echo -e "${GREEN}clean${NC}"
-                        fi
-                        ;;
-                    dependencies)
-                        local total=$(jq -r '.total_dependencies // 0' "$output_file" 2>/dev/null)
-                        local format=$(jq -r '.sbom_format // "unknown"' "$output_file" 2>/dev/null)
-                        echo "$total packages ($format)"
-                        ;;
-                    technology)
-                        local tech_count=$(jq -r '.summary.total // (.technologies | length) // 0' "$output_file" 2>/dev/null)
-                        echo "$tech_count technologies"
-                        ;;
-                    licenses)
-                        local status=$(jq -r '.summary.overall_status // "unknown"' "$output_file" 2>/dev/null)
-                        local violations=$(jq -r '.summary.license_violations // 0' "$output_file" 2>/dev/null)
-                        if [[ "$violations" -gt 0 ]]; then
-                            echo -e "${RED}$violations violations${NC}"
-                        elif [[ "$status" == "pass" ]]; then
-                            echo -e "${GREEN}pass${NC}"
-                        else
-                            echo "$status"
-                        fi
-                        ;;
-                    security-findings)
-                        local issues=$(jq -r '.summary.potential_issues // 0' "$output_file" 2>/dev/null)
-                        local secrets=$(jq -r '.summary.potential_secrets // 0' "$output_file" 2>/dev/null)
-                        if [[ "$secrets" -gt 0 ]]; then
-                            echo -e "${RED}$secrets secrets!${NC}"
-                        elif [[ "$issues" -gt 0 ]]; then
-                            echo -e "${YELLOW}$issues issues${NC}"
-                        else
-                            echo -e "${GREEN}clean${NC}"
-                        fi
-                        ;;
-                    ownership)
-                        local contributors=$(jq -r '.summary.active_contributors // 0' "$output_file" 2>/dev/null)
-                        local bus=$(jq -r '.summary.estimated_bus_factor // 0' "$output_file" 2>/dev/null)
-                        echo "$contributors contributors, bus factor $bus"
-                        ;;
-                    dora)
-                        local perf=$(jq -r '.summary.overall_performance // "N/A"' "$output_file" 2>/dev/null)
-                        local perf_color="$NC"
-                        [[ "$perf" == "ELITE" ]] && perf_color="$GREEN"
-                        [[ "$perf" == "HIGH" ]] && perf_color="$GREEN"
-                        [[ "$perf" == "LOW" ]] && perf_color="$RED"
-                        echo -e "${perf_color}$perf${NC}"
-                        ;;
-                    package-health)
-                        echo "done"
-                        ;;
-                    *)
-                        echo "done"
-                        ;;
-                esac
-            else
-                echo ""
-            fi
+        # Format: indicator + display name (padded) + result
+        if [[ "$in_profile" != "yes" ]]; then
+            # Not in this profile - show as dimmed
+            printf "  ${DIM}○ %-24s not in profile${NC}\n" "$display_name"
+        elif [[ "$should_run" != "yes" ]]; then
+            # In profile but already complete (enrich mode)
+            printf "  ${GREEN}✓${NC} %-24s ${DIM}(cached)${NC}\n" "$display_name"
         else
-            printf "${RED}✗${NC} %2ds  " "$duration"
-            echo -e "${RED}failed${NC}"
+            # Run this analyzer - show waiting indicator
+            printf "  ${WHITE}○${NC} %-24s ${DIM}running...${NC}" "$display_name"
+
+            local start_time=$(date +%s)
+            run_analyzer "$analyzer" "$repo_path" "$output_path" "$project_id"
+            local exit_code=$?
+            local end_time=$(date +%s)
+            local duration=$((end_time - start_time))
+
+            # Clear line and show result
+            printf "\r\033[K"
+
+            if [[ $exit_code -eq 0 ]]; then
+                printf "  ${GREEN}✓${NC} %-24s " "$display_name"
+
+                # Show inline summary
+                local output_file="$output_path/${analyzer}.json"
+                if [[ -f "$output_file" ]]; then
+                    case "$analyzer" in
+                        package-vulns)
+                            local c=$(jq -r '.summary.critical // 0' "$output_file" 2>/dev/null)
+                            local h=$(jq -r '.summary.high // 0' "$output_file" 2>/dev/null)
+                            local m=$(jq -r '.summary.medium // 0' "$output_file" 2>/dev/null)
+                            local l=$(jq -r '.summary.low // 0' "$output_file" 2>/dev/null)
+                            local total=$((c + h + m + l))
+                            if [[ "$c" != "0" ]] || [[ "$h" != "0" ]]; then
+                                printf "${RED}%dC${NC} ${YELLOW}%dH${NC} %dM %dL" "$c" "$h" "$m" "$l"
+                            elif [[ "$total" -gt 0 ]]; then
+                                printf "%d found" "$total"
+                            else
+                                printf "${GREEN}clean${NC}"
+                            fi
+                            ;;
+                        package-sbom)
+                            local total=$(jq -r '.components | length // 0' "$output_file" 2>/dev/null)
+                            local format=$(jq -r '.bomFormat // "CycloneDX"' "$output_file" 2>/dev/null)
+                            printf "%d packages (%s)" "$total" "$format"
+                            ;;
+                        tech-discovery)
+                            local tech_count=$(jq -r '.technologies | length // 0' "$output_file" 2>/dev/null)
+                            printf "%d technologies" "$tech_count"
+                            ;;
+                        licenses)
+                            local status=$(jq -r '.summary.overall_status // "unknown"' "$output_file" 2>/dev/null)
+                            local violations=$(jq -r '.summary.license_violations // 0' "$output_file" 2>/dev/null)
+                            if [[ "$violations" -gt 0 ]]; then
+                                printf "${RED}%d violations${NC}" "$violations"
+                            elif [[ "$status" == "pass" ]]; then
+                                printf "${GREEN}pass${NC}"
+                            else
+                                printf "%s" "$status"
+                            fi
+                            ;;
+                        code-secrets)
+                            local secrets=$(jq -r '.summary.total_secrets // (.findings | length) // 0' "$output_file" 2>/dev/null)
+                            if [[ "$secrets" -gt 0 ]]; then
+                                printf "${RED}%d secrets!${NC}" "$secrets"
+                            else
+                                printf "${GREEN}clean${NC}"
+                            fi
+                            ;;
+                        code-ownership)
+                            local contributors=$(jq -r '.summary.active_contributors // 0' "$output_file" 2>/dev/null)
+                            local bus=$(jq -r '.summary.estimated_bus_factor // 0' "$output_file" 2>/dev/null)
+                            printf "%d contributors, bus factor %d" "$contributors" "$bus"
+                            ;;
+                        dora)
+                            local perf=$(jq -r '.summary.overall_performance // "N/A"' "$output_file" 2>/dev/null)
+                            if [[ "$perf" == "ELITE" ]] || [[ "$perf" == "HIGH" ]]; then
+                                printf "${GREEN}%s${NC}" "$perf"
+                            elif [[ "$perf" == "LOW" ]]; then
+                                printf "${RED}%s${NC}" "$perf"
+                            else
+                                printf "%s" "$perf"
+                            fi
+                            ;;
+                        *)
+                            printf "done"
+                            ;;
+                    esac
+                fi
+                printf " ${DIM}%ds${NC}\n" "$duration"
+            else
+                printf "  ${RED}✗${NC} %-24s ${RED}failed${NC} ${DIM}%ds${NC}\n" "$display_name" "$duration"
+            fi
         fi
     done
 
