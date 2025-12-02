@@ -525,6 +525,9 @@ get_phase_estimate() {
         "code-secrets") echo "~20s" ;;
         "tech-debt") echo "~30s" ;;
         "documentation") echo "~10s" ;;
+        "containers") echo "~10s" ;;
+        "chalk") echo "~15s" ;;
+        "digital-certificates") echo "~10s" ;;
         *) echo "~10s" ;;
     esac
 }
@@ -683,6 +686,60 @@ get_phase_result() {
                     printf "\033[0;32m%s signed commits\033[0m" "$signed"
                 else
                     printf "\033[2mno attestations\033[0m"
+                fi
+            fi
+            ;;
+        "containers")
+            if [[ -f "$analysis_path/containers.json" ]]; then
+                local status=$(jq -r '.status // "unknown"' "$analysis_path/containers.json" 2>/dev/null)
+                if [[ "$status" == "analyzer_not_found" ]]; then
+                    printf "\033[2mskipped\033[0m"
+                else
+                    local dockerfiles=$(jq -r '.summary.dockerfiles // 0' "$analysis_path/containers.json" 2>/dev/null)
+                    local compose=$(jq -r '.summary.compose_files // 0' "$analysis_path/containers.json" 2>/dev/null)
+                    local k8s=$(jq -r '.summary.kubernetes_manifests // 0' "$analysis_path/containers.json" 2>/dev/null)
+                    local total=$((dockerfiles + compose + k8s))
+                    if [[ $total -eq 0 ]]; then
+                        printf "\033[2mno containers\033[0m"
+                    else
+                        printf "\033[2m%d Dockerfiles, %d compose, %d k8s\033[0m" "$dockerfiles" "$compose" "$k8s"
+                    fi
+                fi
+            fi
+            ;;
+        "chalk")
+            if [[ -f "$analysis_path/chalk.json" ]]; then
+                local status=$(jq -r '.status // "unknown"' "$analysis_path/chalk.json" 2>/dev/null)
+                if [[ "$status" == "analyzer_not_found" ]]; then
+                    printf "\033[2mskipped\033[0m"
+                else
+                    local artifacts=$(jq -r '.summary.artifacts_found // 0' "$analysis_path/chalk.json" 2>/dev/null)
+                    if [[ $artifacts -eq 0 ]]; then
+                        printf "\033[2mno artifacts\033[0m"
+                    else
+                        printf "\033[0;32m%d artifacts\033[0m" "$artifacts"
+                    fi
+                fi
+            fi
+            ;;
+        "digital-certificates")
+            if [[ -f "$analysis_path/digital-certificates.json" ]]; then
+                local status=$(jq -r '.status // "unknown"' "$analysis_path/digital-certificates.json" 2>/dev/null)
+                if [[ "$status" == "analyzer_not_found" ]]; then
+                    printf "\033[2mskipped\033[0m"
+                else
+                    local certs=$(jq -r '.summary.certificates_found // 0' "$analysis_path/digital-certificates.json" 2>/dev/null)
+                    local expired=$(jq -r '.summary.expired // 0' "$analysis_path/digital-certificates.json" 2>/dev/null)
+                    local expiring=$(jq -r '.summary.expiring_soon // 0' "$analysis_path/digital-certificates.json" 2>/dev/null)
+                    if [[ $certs -eq 0 ]]; then
+                        printf "\033[2mno certs found\033[0m"
+                    elif [[ $expired -gt 0 ]]; then
+                        printf "\033[0;31m%d certs, %d expired\033[0m" "$certs" "$expired"
+                    elif [[ $expiring -gt 0 ]]; then
+                        printf "\033[1;33m%d certs, %d expiring\033[0m" "$certs" "$expiring"
+                    else
+                        printf "\033[0;32m%d certs\033[0m" "$certs"
+                    fi
                 fi
             fi
             ;;
