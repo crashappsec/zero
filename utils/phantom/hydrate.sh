@@ -1072,26 +1072,8 @@ hydrate_org() {
         local -a scanners_array=($mode_scanners)
         local total_scanners=${#scanners_array[@]}
 
-        # Get all available scanners for display
-        local all_scanners="package-sbom tech-discovery package-vulns package-health licenses code-security code-ownership dora package-provenance git test-coverage iac-security code-secrets tech-debt documentation containers chalk digital-certificates"
-
-        # Build array of scanners NOT in current profile
-        local -a skipped_scanners=()
-        for scanner in $all_scanners; do
-            local in_profile=false
-            for active in "${scanners_array[@]}"; do
-                if [[ "$scanner" == "$active" ]]; then
-                    in_profile=true
-                    break
-                fi
-            done
-            if [[ "$in_profile" == "false" ]]; then
-                skipped_scanners+=("$scanner")
-            fi
-        done
-
-        # Print initial scanner list (cloning + all profile scanners)
-        # Queued profile scanners are WHITE, skipped are DIM gray
+        # Print initial scanner list (cloning + profile scanners only)
+        # Only show scanners that are part of this profile for consistent output
         echo -e "$(format_scanner_line "${WHITE}○${NC}" "${WHITE}Cloning repository...${NC}" "${DIM}est: ~30s${NC}")"
         for scanner in "${scanners_array[@]}"; do
             local display=$(get_phase_display "$scanner")
@@ -1106,27 +1088,8 @@ hydrate_org() {
             fi
         done
 
-        # Print separator and skipped scanners if there are any
-        if [[ ${#skipped_scanners[@]} -gt 0 ]]; then
-            echo -e "  ${DIM}─────────────────────────────────────${NC}"
-            for scanner in "${skipped_scanners[@]}"; do
-                local display=$(get_phase_display "$scanner")
-                # Check if we have cached data from previous scan
-                local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
-                if [[ -f "$output_file" ]]; then
-                    local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
-                    echo -e "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result ${DIM}(cached)${NC}")"
-                else
-                    echo -e "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}skipped in profile${NC}")"
-                fi
-            done
-        fi
-
-        # Total lines to manage: 1 (cloning) + total_scanners + separator + skipped_scanners
+        # Total lines to manage: 1 (cloning) + total_scanners
         local total_lines=$((total_scanners + 1))
-        if [[ ${#skipped_scanners[@]} -gt 0 ]]; then
-            total_lines=$((total_lines + 1 + ${#skipped_scanners[@]}))  # +1 for separator line
-        fi
 
         # Hide cursor during animation to reduce visual noise
         hide_cursor
@@ -1196,22 +1159,6 @@ hydrate_org() {
                 fi
             done
 
-            # Update separator and skipped scanners if present
-            if [[ ${#skipped_scanners[@]} -gt 0 ]]; then
-                fixed_line "  ${DIM}─────────────────────────────────────${NC}"
-                for scanner in "${skipped_scanners[@]}"; do
-                    local display=$(get_phase_display "$scanner")
-                    local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
-                    if [[ -f "$output_file" ]]; then
-                        local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
-                        fixed_line "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result ${DIM}(cached)${NC}")"
-                    else
-                        # Skipped scanners stay dim gray
-                        fixed_line "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}skipped in profile${NC}")"
-                    fi
-                done
-            fi
-
             ((tick++))
             sleep 0.3
         done
@@ -1251,21 +1198,6 @@ hydrate_org() {
                 fixed_line "$(format_scanner_line "${RED}✗${NC}" "${RED}${display}${NC}" "${RED}failed${NC}")"
             fi
         done
-
-        # Show separator and skipped scanners with final status
-        if [[ ${#skipped_scanners[@]} -gt 0 ]]; then
-            fixed_line "  ${DIM}─────────────────────────────────────${NC}"
-            for scanner in "${skipped_scanners[@]}"; do
-                local display=$(get_phase_display "$scanner")
-                local output_file=$(get_scanner_output_file "$scanner" "$analysis_path")
-                if [[ -f "$output_file" ]]; then
-                    local result=$(get_phase_result "$scanner" "$analysis_path" "$project_id")
-                    fixed_line "$(format_scanner_line "${GREEN}✓${NC}" "${GREEN}${display}${NC}" "$result ${DIM}(cached)${NC}")"
-                else
-                    fixed_line "$(format_scanner_line "${DIM}○${NC}" "${DIM}${display}${NC}" "${DIM}skipped in profile${NC}")"
-                fi
-            done
-        fi
 
         if [[ $exit_status -eq 0 ]]; then
             echo -e "  ${GREEN}━━━ Complete${NC} ${DIM}(${duration}s total)${NC}"
