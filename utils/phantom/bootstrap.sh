@@ -526,6 +526,15 @@ run_analyzer() {
         package-provenance)
             analyzer_script="package-provenance.sh"
             ;;
+        containers)
+            analyzer_script="containers.sh"
+            ;;
+        chalk)
+            analyzer_script="chalk.sh"
+            ;;
+        digital-certificates)
+            analyzer_script="digital-certificates.sh"
+            ;;
     esac
 
     gibson_analysis_start "$project_id" "$analyzer" "$analyzer_script"
@@ -576,6 +585,15 @@ run_analyzer() {
             ;;
         package-provenance)
             run_provenance_analyzer "$repo_path" "$output_path"
+            ;;
+        containers)
+            run_container_analyzer "$repo_path" "$output_path"
+            ;;
+        chalk)
+            run_chalk_analyzer "$repo_path" "$output_path"
+            ;;
+        digital-certificates)
+            run_certificate_analyzer "$repo_path" "$output_path"
             ;;
         *)
             status="failed"
@@ -1126,6 +1144,95 @@ EOF
   "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
   "status": "analyzer_not_found",
   "summary": {}
+}
+EOF
+    fi
+}
+
+run_container_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    local script="$UTILS_ROOT/scanners/containers/containers.sh"
+
+    if [[ -x "$script" ]]; then
+        "$script" --local-path "$repo_path" -o "$output_path/containers.json" 2>/dev/null
+    else
+        cat > "$output_path/containers.json" << EOF
+{
+  "analyzer": "containers",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "dockerfiles": 0,
+    "compose_files": 0,
+    "kubernetes_manifests": 0
+  }
+}
+EOF
+    fi
+}
+
+run_chalk_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    # Use Claude-enabled analyzer in deep mode, otherwise data-only
+    local script=""
+    if [[ "${USE_CLAUDE:-}" == "true" ]]; then
+        script="$UTILS_ROOT/scanners/chalk/chalk.sh"
+    else
+        script="$UTILS_ROOT/scanners/chalk/chalk.sh"
+    fi
+
+    if [[ -x "$script" ]]; then
+        local claude_arg=""
+        [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
+        "$script" --local-path "$repo_path" $claude_arg -o "$output_path/chalk.json" 2>/dev/null
+    else
+        cat > "$output_path/chalk.json" << EOF
+{
+  "analyzer": "chalk",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "artifacts_found": 0
+  }
+}
+EOF
+    fi
+}
+
+run_certificate_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    # Use Claude-enabled analyzer in deep mode, otherwise data-only
+    local script=""
+    if [[ "${USE_CLAUDE:-}" == "true" ]]; then
+        script="$UTILS_ROOT/scanners/digital-certificates/digital-certificates.sh"
+    else
+        script="$UTILS_ROOT/scanners/digital-certificates/digital-certificates.sh"
+    fi
+
+    if [[ -x "$script" ]]; then
+        local claude_arg=""
+        [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
+        "$script" --local-path "$repo_path" $claude_arg -o "$output_path/digital-certificates.json" 2>/dev/null
+    else
+        cat > "$output_path/digital-certificates.json" << EOF
+{
+  "analyzer": "digital-certificates",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "certificates_found": 0,
+    "expired": 0,
+    "expiring_soon": 0
+  }
 }
 EOF
     fi
