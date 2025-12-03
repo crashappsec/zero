@@ -438,15 +438,22 @@ scan_ai_imports() {
 
         if [[ -n "$matches" ]]; then
             local file_count=$(echo "$matches" | wc -l | tr -d ' ')
+            # Get all file paths relative to repo root
+            local file_list=$(echo "$matches" | sed "s|$repo_path/||g" | head -10 | tr '\n' ',' | sed 's/,$//')
             local first_file=$(echo "$matches" | head -1 | sed "s|$repo_path/||")
             local evidence="import found in $file_count file(s): $first_file"
+
+            # Create files array for the finding
+            local files_json=$(echo "$matches" | head -10 | sed "s|$repo_path/||g" | jq -R . | jq -s .)
 
             local finding=$(jq -n \
                 --arg name "$tech" \
                 --arg category "$category" \
                 --arg method "import-pattern" \
                 --arg evidence "$evidence" \
-                '{name: $name, category: $category, version: "", confidence: 88, detection_method: $method, evidence: [$evidence]}')
+                --argjson files "$files_json" \
+                --argjson file_count "$file_count" \
+                '{name: $name, category: $category, version: "", confidence: 88, detection_method: $method, evidence: [$evidence], files: $files, file_count: $file_count}')
 
             findings=$(echo "$findings" | jq --argjson f "$finding" '. + [$f]')
         fi
@@ -473,7 +480,8 @@ aggregate_findings() {
                 floor
             ),
             detection_methods: map(.detection_method) | unique,
-            evidence: map(.evidence[]) | unique
+            evidence: map(.evidence[]) | unique,
+            files: [map(.files // [])[] | .[]] | unique
         }) |
         sort_by(-.confidence)
     ' 2>/dev/null || echo "[]"

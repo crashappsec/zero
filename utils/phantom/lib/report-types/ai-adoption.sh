@@ -176,6 +176,77 @@ generate_report_data() {
     ')
 
     #########################################################################
+    # FILE-LEVEL AI ADOPTION - Correlate files with ownership
+    #########################################################################
+    local ai_file_adoption="[]"
+    local repo_path=$(dirname "$analysis_path")/repo
+
+    # Extract files from AI technologies that have file info
+    local ai_files=$(echo "$ai_technologies" | jq -r '[.[] | select(.files != null) | .files[]] | unique | .[]' 2>/dev/null)
+
+    if [[ -n "$ai_files" ]] && [[ -d "$repo_path" ]]; then
+        while IFS= read -r file_path; do
+            [[ -z "$file_path" ]] && continue
+            local full_path="$repo_path/$file_path"
+            [[ ! -f "$full_path" ]] && continue
+
+            # Get the technology this file is associated with
+            local tech_name=$(echo "$ai_technologies" | jq -r --arg f "$file_path" '[.[] | select(.files != null and (.files | contains([$f]))) | .name] | first // "Unknown"')
+
+            # Get git blame info for the file (last modifier)
+            local blame_info=""
+            if command -v git &>/dev/null && [[ -d "$repo_path/.git" ]]; then
+                blame_info=$(cd "$repo_path" && git log -1 --format='%an|%ae|%ci' -- "$file_path" 2>/dev/null || echo "")
+            fi
+
+            local author_name="Unknown"
+            local author_email=""
+            local last_modified=""
+
+            if [[ -n "$blame_info" ]]; then
+                IFS='|' read -r author_name author_email last_modified <<< "$blame_info"
+            fi
+
+            # Get first commit date for this file (when AI was introduced)
+            local first_commit=""
+            if command -v git &>/dev/null && [[ -d "$repo_path/.git" ]]; then
+                first_commit=$(cd "$repo_path" && git log --follow --format='%ci' --diff-filter=A -- "$file_path" 2>/dev/null | tail -1 || echo "")
+            fi
+
+            local file_entry=$(jq -n \
+                --arg file "$file_path" \
+                --arg tech "$tech_name" \
+                --arg author "$author_name" \
+                --arg email "$author_email" \
+                --arg modified "$last_modified" \
+                --arg introduced "$first_commit" \
+                '{
+                    file: $file,
+                    technology: $tech,
+                    owner: $author,
+                    email: $email,
+                    last_modified: $modified,
+                    introduced: $introduced
+                }')
+
+            ai_file_adoption=$(echo "$ai_file_adoption" | jq --argjson f "$file_entry" '. + [$f]')
+        done <<< "$ai_files"
+    fi
+
+    # Group file adoption by owner
+    local adoption_by_owner=$(echo "$ai_file_adoption" | jq '
+        group_by(.owner) |
+        map({
+            owner: .[0].owner,
+            email: .[0].email,
+            file_count: length,
+            technologies: [.[].technology] | unique,
+            files: [.[].file]
+        }) |
+        sort_by(-.file_count)
+    ')
+
+    #########################################################################
     # BUILD CATEGORY DETAILS with labels
     #########################################################################
     local categories_with_labels="[]"
@@ -212,6 +283,10 @@ generate_report_data() {
     #########################################################################
     # BUILD OUTPUT JSON
     #########################################################################
+    # Count files with AI adoption
+    local ai_files_count=$(echo "$ai_file_adoption" | jq 'length')
+    local ai_owners_count=$(echo "$adoption_by_owner" | jq 'length')
+
     jq -n \
         --arg report_type "ai-adoption" \
         --arg generated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
@@ -224,15 +299,19 @@ generate_report_data() {
         --argjson has_ai_adoption "$has_ai_adoption" \
         --argjson ai_tech_count "$ai_tech_count" \
         --argjson category_count "$category_count" \
+        --argjson ai_files_count "$ai_files_count" \
+        --argjson ai_owners_count "$ai_owners_count" \
         --argjson total_contributors "$total_contributors" \
         --argjson bus_factor "$bus_factor" \
         --arg bus_factor_risk "$bus_factor_risk" \
         --argjson ai_technologies "$ai_technologies" \
         --argjson categories "$categories_with_labels" \
         --argjson top_contributors "$top_contributors" \
+        --argjson file_adoption "$ai_file_adoption" \
+        --argjson adoption_by_owner "$adoption_by_owner" \
         '{
             report_type: $report_type,
-            report_version: "1.0.0",
+            report_version: "1.1.0",
             generated_at: $generated_at,
             project: {
                 id: $project_id,
@@ -248,16 +327,17 @@ generate_report_data() {
                 has_ai_adoption: $has_ai_adoption,
                 ai_technologies_count: $ai_tech_count,
                 ai_categories_count: $category_count,
+                ai_files_count: $ai_files_count,
+                ai_owners_count: $ai_owners_count,
                 total_contributors: $total_contributors,
                 bus_factor: $bus_factor,
                 bus_factor_risk: $bus_factor_risk
             },
             ai_technologies: $ai_technologies,
             categories: $categories,
-            contributors: $top_contributors,
-            governance: {
-                note: "Phase 1 MVP - shows AI technologies and contributors separately. Phase 2 will add file-level correlation."
-            }
+            file_adoption: $file_adoption,
+            adoption_by_owner: $adoption_by_owner,
+            contributors: $top_contributors
         }'
 }
 

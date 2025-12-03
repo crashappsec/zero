@@ -1485,7 +1485,7 @@ format_ai_adoption_terminal() {
         printf "  ${BOLD}AI TECHNOLOGY DETAILS${NC}\n"
         printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
 
-        echo "$json" | jq -r '.ai_technologies[] | "\(.name)|\(.category)|\(.confidence)|\(.detection_methods | join(", "))|\(.evidence | join("; "))"' 2>/dev/null | while IFS='|' read -r name category confidence methods evidence; do
+        echo "$json" | jq -r '.ai_technologies[] | "\(.name)|\(.category)|\(.confidence)|\(.detection_methods | join(", "))|\(.evidence | join("; "))|\(.files // [] | join(", "))"' 2>/dev/null | while IFS='|' read -r name category confidence methods evidence files; do
             [[ -z "$name" ]] && continue
 
             printf "\n  ${BOLD}%s${NC} ${DIM}(%s)${NC}\n" "$name" "$category"
@@ -1499,7 +1499,63 @@ format_ai_adoption_terminal() {
             fi
             printf "    Detection:  %s\n" "$methods"
             printf "    ${DIM}Evidence: %s${NC}\n" "$evidence"
+            if [[ -n "$files" ]] && [[ "$files" != "" ]]; then
+                printf "    ${CYAN}Files: %s${NC}\n" "$files"
+            fi
         done
+
+        #########################################################################
+        # FILE-LEVEL AI ADOPTION (WHO INTRODUCED AI, WHEN)
+        #########################################################################
+        local file_adoption_count=$(echo "$json" | jq -r '.file_adoption | length // 0')
+        if [[ "$file_adoption_count" -gt 0 ]]; then
+            echo
+            hr "$BOX_LINE" 68
+            echo
+            printf "  ${BOLD}AI FILE ADOPTION${NC} ${DIM}(who introduced AI, when)${NC}\n"
+            printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+            printf "\n  %-40s %-15s %s\n" "File" "Technology" "Owner"
+            printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+            echo "$json" | jq -r '.file_adoption[:15][] | "\(.file)|\(.technology)|\(.owner)|\(.introduced)"' 2>/dev/null | while IFS='|' read -r file tech owner introduced; do
+                [[ -z "$file" ]] && continue
+                # Truncate long paths
+                local short_file="$file"
+                if [[ ${#file} -gt 38 ]]; then
+                    short_file="...${file: -35}"
+                fi
+                printf "  %-40s %-15s %s\n" "$short_file" "$tech" "$owner"
+            done
+
+            if [[ "$file_adoption_count" -gt 15 ]]; then
+                printf "  ${DIM}... and %d more files${NC}\n" "$((file_adoption_count - 15))"
+            fi
+        fi
+
+        #########################################################################
+        # AI ADOPTION BY OWNER
+        #########################################################################
+        local owners_count=$(echo "$json" | jq -r '.adoption_by_owner | length // 0')
+        if [[ "$owners_count" -gt 0 ]]; then
+            echo
+            hr "$BOX_LINE" 68
+            echo
+            printf "  ${BOLD}AI ADOPTION BY CONTRIBUTOR${NC}\n"
+            printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+            printf "\n  %-30s %8s  %s\n" "Contributor" "AI Files" "Technologies"
+            printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+            echo "$json" | jq -r '.adoption_by_owner[:10][] | "\(.owner)|\(.file_count)|\(.technologies | join(", "))"' 2>/dev/null | while IFS='|' read -r owner file_count techs; do
+                [[ -z "$owner" ]] && continue
+                printf "  %-30s %8s  %s\n" "$owner" "$file_count" "$techs"
+            done
+
+            if [[ "$owners_count" -gt 10 ]]; then
+                printf "  ${DIM}... and %d more contributors${NC}\n" "$((owners_count - 10))"
+            fi
+        fi
     fi
 
     #########################################################################
@@ -1517,11 +1573,11 @@ format_ai_adoption_terminal() {
         printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
 
         local rank=1
-        echo "$json" | jq -r '.contributors[:10][] | "\(.name)|\(.commits)|\(.lines_added)"' 2>/dev/null | while IFS='|' read -r name commits lines; do
+        while IFS='|' read -r name commits lines; do
             [[ -z "$name" ]] && continue
             printf "  %-4s %-28s %8s %8s\n" "$rank." "$name" "$commits" "$(format_number "$lines")"
             ((rank++))
-        done
+        done < <(echo "$json" | jq -r '.contributors[:10][] | "\(.name)|\(.commits)|\(.lines_added)"' 2>/dev/null)
     fi
 
     #########################################################################
@@ -1542,8 +1598,10 @@ format_ai_adoption_terminal() {
         printf "  ${GREEN}No AI technologies detected in this repository.${NC}\n"
     fi
 
-    printf "\n  ${DIM}Phase 1 MVP: Shows AI technologies + contributors separately.${NC}\n"
-    printf "  ${DIM}Phase 2 will add file-level correlation (who uses which AI).${NC}\n"
+    local file_adoption_count=$(echo "$json" | jq -r '.file_adoption | length // 0')
+    if [[ "$file_adoption_count" -gt 0 ]]; then
+        printf "\n  ${DIM}File-level AI adoption tracking enabled (Phase 2).${NC}\n"
+    fi
 
     echo
     hr "$BOX_LINE" 68
