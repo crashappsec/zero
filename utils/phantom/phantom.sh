@@ -746,14 +746,40 @@ get_profile_scanners() {
     fi
 }
 
-# Check if profile requires Claude API
+# Check if profile requires Claude API (claude_mode is "enabled" or "required")
 profile_requires_claude() {
     local profile="$1"
     if [[ -f "$CONFIG_FILE" ]]; then
-        local requires=$(jq -r --arg p "$profile" '.profiles[$p].requires_claude // false' "$CONFIG_FILE" 2>/dev/null)
-        [[ "$requires" == "true" ]]
+        local mode=$(jq -r --arg p "$profile" '.profiles[$p].claude_mode // "none"' "$CONFIG_FILE" 2>/dev/null)
+        [[ "$mode" == "enabled" || "$mode" == "required" ]]
     else
         [[ "$profile" == "deep" ]]
+    fi
+}
+
+# Get scanners that should use Claude for a profile
+get_claude_scanners() {
+    local profile="$1"
+    if [[ -f "$CONFIG_FILE" ]]; then
+        jq -r --arg p "$profile" '.profiles[$p].claude_scanners // [] | join(" ")' "$CONFIG_FILE" 2>/dev/null
+    fi
+}
+
+# Check if a scanner supports Claude (has claude_mode "optional" or "required")
+scanner_supports_claude() {
+    local scanner="$1"
+    if [[ -f "$CONFIG_FILE" ]]; then
+        local mode=$(jq -r --arg s "$scanner" '.scanners[$s].claude_mode // "none"' "$CONFIG_FILE" 2>/dev/null)
+        [[ "$mode" == "optional" || "$mode" == "required" ]]
+    else
+        return 1
+    fi
+}
+
+# List all scanners that support Claude
+list_claude_capable_scanners() {
+    if [[ -f "$CONFIG_FILE" ]]; then
+        jq -r '.scanners | to_entries[] | select(.value.claude_mode == "optional" or .value.claude_mode == "required") | .key' "$CONFIG_FILE" 2>/dev/null
     fi
 }
 
@@ -797,7 +823,7 @@ show_menu() {
 
         if [[ -f "$CONFIG_FILE" ]]; then
             # Standard profile order
-            local ordered_profiles=("quick" "standard" "advanced" "deep" "security" "compliance" "devops")
+            local ordered_profiles=("quick" "standard" "advanced" "deep" "ai-only" "security" "security-deep" "compliance" "devops")
 
             for profile in "${ordered_profiles[@]}"; do
                 if jq -e --arg p "$profile" '.profiles[$p]' "$CONFIG_FILE" &>/dev/null; then
@@ -831,8 +857,10 @@ show_menu() {
         echo -e "  ${CYAN}c${NC}  Choose      Custom Select specific collectors (checkboxes)"
         echo
         if [[ $hydrated_count -gt 0 ]]; then
+            echo -e "  ${CYAN}r${NC}  Report      Generate analysis reports ${DIM}($hydrated_count projects)${NC}"
             echo -e "  ${CYAN}s${NC}  Status      Show hydrated projects ${DIM}($hydrated_count projects)${NC}"
         else
+            echo -e "  ${CYAN}r${NC}  Report      Generate analysis reports"
             echo -e "  ${CYAN}s${NC}  Status      Show hydrated projects"
         fi
         echo -e "  ${CYAN}x${NC}  Clean       Remove all analysis data"
@@ -966,6 +994,12 @@ show_menu() {
                     echo
                     read -p "Press Enter to continue..."
                 fi
+                ;;
+            r|R)
+                # Run report generator in interactive mode
+                "$SCRIPT_DIR/report.sh" --interactive || true
+                echo
+                read -p "Press Enter to continue..."
                 ;;
             s|S)
                 run_status

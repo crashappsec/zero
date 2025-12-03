@@ -5,12 +5,12 @@
 # SPDX-License-Identifier: GPL-3.0
 
 #############################################################################
-# Phantom Report
-# Generate CLI summary reports for scanned projects
+# Phantom Report Generator
+# Generate analysis reports in various formats
 #
-# Usage: ./report.sh <org/repo>           # Single project report
-#        ./report.sh --org <name>         # Org aggregate report
-#        ./report.sh --json               # JSON output
+# Usage: ./report.sh <org/repo> [options]
+#        ./report.sh --org <name> [options]
+#        ./report.sh --interactive
 #############################################################################
 
 set -e
@@ -21,13 +21,19 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Load Gibson library
 source "$SCRIPT_DIR/lib/gibson.sh"
 
+# Load report utilities
+source "$SCRIPT_DIR/lib/report-common.sh"
+
 #############################################################################
 # Configuration
 #############################################################################
 
 TARGET=""
 ORG=""
-JSON_OUTPUT=false
+REPORT_TYPE="summary"
+OUTPUT_FORMAT="terminal"
+OUTPUT_FILE=""
+INTERACTIVE=false
 
 #############################################################################
 # Usage
@@ -35,7 +41,7 @@ JSON_OUTPUT=false
 
 usage() {
     cat << EOF
-Phantom Report - Generate CLI summary reports
+Phantom Report Generator - Generate analysis reports
 
 Usage: $0 [options] [<org/repo>]
 
@@ -43,14 +49,35 @@ TARGETS:
     <org/repo>          Report for a specific project
     --org <name>        Aggregate report for all projects in an org
 
+REPORT TYPES:
+    -t, --type <type>   Report type (default: summary)
+        summary         High-level overview of all findings
+        security        Vulnerabilities, secrets, code security
+        licenses        License compliance and dependency licenses
+        compliance      SBOM, policy compliance
+        sbom            Software Bill of Materials
+        supply-chain    Dependencies, provenance, health
+        dora            DevOps metrics and performance
+        full            Comprehensive report (all sections)
+
+OUTPUT FORMATS:
+    -f, --format <fmt>  Output format (default: terminal)
+        terminal        Colored terminal output
+        markdown        GitHub-flavored markdown
+        json            Structured JSON
+        html            Self-contained HTML
+        csv             CSV data export
+
 OPTIONS:
-    --json              Output in JSON format
+    -o, --output <file> Write to file instead of stdout
+    -i, --interactive   Interactive mode (select options via menu)
     -h, --help          Show this help
 
 EXAMPLES:
-    $0 expressjs/express            # Single project report
-    $0 --org expressjs              # Org aggregate report
-    $0 expressjs/express --json     # JSON output
+    $0 expressjs/express                           # Summary report (terminal)
+    $0 expressjs/express -t security -f markdown   # Security report in markdown
+    $0 --org expressjs -t security -f html          # Org security report as HTML
+    $0 -i                                          # Interactive mode
 
 EOF
     exit 0
@@ -70,8 +97,25 @@ parse_args() {
                 ORG="$2"
                 shift 2
                 ;;
+            -t|--type)
+                REPORT_TYPE="$2"
+                shift 2
+                ;;
+            -f|--format)
+                OUTPUT_FORMAT="$2"
+                shift 2
+                ;;
+            -o|--output)
+                OUTPUT_FILE="$2"
+                shift 2
+                ;;
+            -i|--interactive)
+                INTERACTIVE=true
+                shift
+                ;;
             --json)
-                JSON_OUTPUT=true
+                # Legacy support
+                OUTPUT_FORMAT="json"
                 shift
                 ;;
             -*)
@@ -90,219 +134,218 @@ parse_args() {
         esac
     done
 
-    if [[ -z "$TARGET" ]] && [[ -z "$ORG" ]]; then
-        echo -e "${RED}Error: No target specified${NC}" >&2
-        echo "Usage: $0 <org/repo> or $0 --org <name>"
+    # Validate report type
+    if ! validate_report_type "$REPORT_TYPE"; then
+        echo -e "${RED}Error: Invalid report type '$REPORT_TYPE'${NC}" >&2
+        echo "Valid types: ${REPORT_TYPES[*]}"
+        exit 1
+    fi
+
+    # Validate output format
+    if ! validate_format "$OUTPUT_FORMAT"; then
+        echo -e "${RED}Error: Invalid format '$OUTPUT_FORMAT'${NC}" >&2
+        echo "Valid formats: ${REPORT_FORMATS[*]}"
         exit 1
     fi
 }
 
 #############################################################################
-# Report Functions
+# Interactive Mode
 #############################################################################
 
-# Format relative time
-relative_time() {
-    local timestamp="$1"
-    if [[ -z "$timestamp" ]] || [[ "$timestamp" == "null" ]]; then
-        echo "unknown"
-        return
+interactive_menu() {
+    echo
+    echo -e "${BOLD}PHANTOM REPORT GENERATOR${NC}"
+    hr
+    echo
+
+    # Select target
+    echo -e "${BOLD}Select target:${NC}"
+    echo
+
+    # List available projects
+    local projects=()
+    local idx=1
+
+    if [[ -d "$GIBSON_PROJECTS_DIR" ]]; then
+        while IFS= read -r org_dir; do
+            local org_name=$(basename "$org_dir")
+            while IFS= read -r repo_dir; do
+                local repo_name=$(basename "$repo_dir")
+                if [[ -f "$repo_dir/analysis/manifest.json" ]]; then
+                    projects+=("$org_name/$repo_name")
+                    printf "  ${CYAN}%2d${NC}  %s/%s\n" "$idx" "$org_name" "$repo_name"
+                    ((idx++))
+                fi
+            done < <(find "$org_dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+        done < <(find "$GIBSON_PROJECTS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
     fi
 
-    local ts_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$timestamp" +%s 2>/dev/null || date -d "$timestamp" +%s 2>/dev/null)
-    local now_epoch=$(date +%s)
-    local diff=$((now_epoch - ts_epoch))
+    if [[ ${#projects[@]} -eq 0 ]]; then
+        echo -e "  ${DIM}No hydrated projects found${NC}"
+        echo -e "  ${DIM}Run a hydration first: ./phantom.sh${NC}"
+        echo
+        exit 1
+    fi
 
-    if [[ $diff -lt 60 ]]; then
-        echo "just now"
-    elif [[ $diff -lt 3600 ]]; then
-        local mins=$((diff / 60))
-        echo "$mins minute$([ $mins -ne 1 ] && echo 's') ago"
-    elif [[ $diff -lt 86400 ]]; then
-        local hours=$((diff / 3600))
-        echo "$hours hour$([ $hours -ne 1 ] && echo 's') ago"
-    elif [[ $diff -lt 604800 ]]; then
-        local days=$((diff / 86400))
-        echo "$days day$([ $days -ne 1 ] && echo 's') ago"
+    echo
+    read -p "Select project (1-${#projects[@]}): " project_choice
+
+    if [[ "$project_choice" =~ ^[0-9]+$ ]] && [[ $project_choice -ge 1 ]] && [[ $project_choice -le ${#projects[@]} ]]; then
+        TARGET="${projects[$((project_choice-1))]}"
     else
-        local weeks=$((diff / 604800))
-        echo "$weeks week$([ $weeks -ne 1 ] && echo 's') ago"
+        echo -e "${RED}Invalid selection${NC}"
+        exit 1
+    fi
+
+    echo
+    echo -e "${BOLD}Select report type:${NC}"
+    echo
+    echo -e "  ${CYAN}1${NC}  Summary        High-level overview of all findings"
+    echo -e "  ${CYAN}2${NC}  Security       Vulnerabilities, secrets, code security"
+    echo -e "  ${CYAN}3${NC}  Licenses       License compliance and dependency licenses"
+    echo -e "  ${CYAN}4${NC}  Compliance     SBOM, policy compliance"
+    echo -e "  ${CYAN}5${NC}  SBOM           Software Bill of Materials"
+    echo -e "  ${CYAN}6${NC}  Supply Chain   Dependencies, provenance, health"
+    echo -e "  ${CYAN}7${NC}  DORA           DevOps metrics and performance"
+    echo -e "  ${CYAN}8${NC}  Full           Comprehensive report (all sections)"
+    echo
+    read -p "Select type (1-8) [1]: " type_choice
+
+    case "${type_choice:-1}" in
+        1) REPORT_TYPE="summary" ;;
+        2) REPORT_TYPE="security" ;;
+        3) REPORT_TYPE="licenses" ;;
+        4) REPORT_TYPE="compliance" ;;
+        5) REPORT_TYPE="sbom" ;;
+        6) REPORT_TYPE="supply-chain" ;;
+        7) REPORT_TYPE="dora" ;;
+        8) REPORT_TYPE="full" ;;
+        *) REPORT_TYPE="summary" ;;
+    esac
+
+    echo
+    echo -e "${BOLD}Select output format:${NC}"
+    echo
+    echo -e "  ${CYAN}t${NC}  Terminal      Colored terminal output"
+    echo -e "  ${CYAN}m${NC}  Markdown      GitHub-flavored markdown"
+    echo -e "  ${CYAN}j${NC}  JSON          Structured JSON"
+    echo -e "  ${CYAN}h${NC}  HTML          Self-contained HTML"
+    echo -e "  ${CYAN}c${NC}  CSV           CSV data export"
+    echo
+    read -p "Select format (t/m/j/h/c) [t]: " format_choice
+
+    case "${format_choice:-t}" in
+        t|T) OUTPUT_FORMAT="terminal" ;;
+        m|M) OUTPUT_FORMAT="markdown" ;;
+        j|J) OUTPUT_FORMAT="json" ;;
+        h|H) OUTPUT_FORMAT="html" ;;
+        c|C) OUTPUT_FORMAT="csv" ;;
+        *) OUTPUT_FORMAT="terminal" ;;
+    esac
+
+    # For non-terminal output, ask for filename
+    if [[ "$OUTPUT_FORMAT" != "terminal" ]]; then
+        local default_ext
+        case "$OUTPUT_FORMAT" in
+            markdown) default_ext="md" ;;
+            json) default_ext="json" ;;
+            html) default_ext="html" ;;
+            csv) default_ext="csv" ;;
+        esac
+
+        local default_file="${TARGET//\//-}-${REPORT_TYPE}.${default_ext}"
+        echo
+        read -p "Output file [$default_file]: " file_choice
+        OUTPUT_FILE="${file_choice:-$default_file}"
+    fi
+
+    echo
+}
+
+#############################################################################
+# Report Generation
+#############################################################################
+
+# Load report type module
+load_report_type() {
+    local type="$1"
+    local module="$SCRIPT_DIR/lib/report-types/${type}.sh"
+
+    if [[ -f "$module" ]]; then
+        source "$module"
+        return 0
+    else
+        echo -e "${YELLOW}Warning: Report type '$type' not yet implemented${NC}" >&2
+        return 1
     fi
 }
 
-# Generate single project report
-project_report() {
+# Load format module
+load_format_module() {
+    local format="$1"
+    local module="$SCRIPT_DIR/lib/report-formats/${format}.sh"
+
+    if [[ -f "$module" ]]; then
+        source "$module"
+        return 0
+    else
+        echo -e "${YELLOW}Warning: Format '$format' not yet implemented${NC}" >&2
+        return 1
+    fi
+}
+
+# Generate report for a single project
+generate_project_report() {
     local project_id="$1"
     local analysis_path=$(gibson_project_analysis_path "$project_id")
-    local manifest="$analysis_path/manifest.json"
 
-    if [[ ! -f "$manifest" ]]; then
+    if [[ ! -d "$analysis_path" ]]; then
         echo -e "${RED}Error: No analysis found for '$project_id'${NC}" >&2
         exit 1
     fi
 
-    if [[ "$JSON_OUTPUT" == "true" ]]; then
-        project_report_json "$project_id"
-        return
-    fi
-
-    # Read manifest data
-    local scan_id=$(jq -r '.scan_id // "legacy"' "$manifest" 2>/dev/null)
-    local schema_version=$(jq -r '.schema_version // "1.0.0"' "$manifest" 2>/dev/null)
-    local profile=$(jq -r '.scan.profile // .mode // "standard"' "$manifest" 2>/dev/null)
-    local completed_at=$(jq -r '.scan.completed_at // .completed_at // "unknown"' "$manifest" 2>/dev/null)
-    local duration=$(jq -r '.scan.duration_seconds // "N/A"' "$manifest" 2>/dev/null)
-
-    # Git info
-    local commit_short=$(jq -r '.git.commit_short // "unknown"' "$manifest" 2>/dev/null)
-    local branch=$(jq -r '.git.branch // "unknown"' "$manifest" 2>/dev/null)
-
-    # Summary
-    local risk_level=$(jq -r '.summary.risk_level // "unknown"' "$manifest" 2>/dev/null)
-
-    # Print header
-    echo
-    echo -e "${BOLD}Report: $project_id${NC}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    printf "  %-14s %s\n" "Project:" "$project_id"
-    printf "  %-14s %s (%s)\n" "Analyzed:" "$(echo "$completed_at" | cut -d'T' -f1,2 | tr 'T' ' ' | cut -d':' -f1,2)" "$(relative_time "$completed_at")"
-    printf "  %-14s %s\n" "Scan ID:" "$scan_id"
-    printf "  %-14s %s\n" "Profile:" "$profile"
-    if [[ "$commit_short" != "unknown" ]] && [[ "$commit_short" != "null" ]]; then
-        printf "  %-14s %s (%s)\n" "Commit:" "$commit_short" "$branch"
-    fi
-    if [[ "$duration" != "N/A" ]] && [[ "$duration" != "null" ]]; then
-        printf "  %-14s %ss\n" "Duration:" "$duration"
-    fi
-
-    echo
-    echo -e "${BOLD}SECURITY SUMMARY${NC}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-    # Risk level with color
-    local risk_upper=$(echo "$risk_level" | tr '[:lower:]' '[:upper:]')
-    local risk_color="$GREEN"
-    case "$risk_level" in
-        critical) risk_color="$RED" ;;
-        high) risk_color="$RED" ;;
-        medium) risk_color="$YELLOW" ;;
-    esac
-    printf "  %-14s ${risk_color}%s${NC}\n" "Risk Level:" "$risk_upper"
-    echo
-
-    # Vulnerabilities
-    if [[ -f "$analysis_path/package-vulns.json" ]]; then
-        local c=$(jq -r '.summary.critical // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
-        local h=$(jq -r '.summary.high // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
-        local m=$(jq -r '.summary.medium // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
-        local l=$(jq -r '.summary.low // 0' "$analysis_path/package-vulns.json" 2>/dev/null)
-        printf "  Vulnerabilities:\n"
-        printf "    %-12s " "Critical:"
-        [[ "$c" -gt 0 ]] && echo -e "${RED}$c${NC}" || echo "0"
-        printf "    %-12s " "High:"
-        [[ "$h" -gt 0 ]] && echo -e "${YELLOW}$h${NC}" || echo "0"
-        printf "    %-12s %s\n" "Medium:" "$m"
-        printf "    %-12s %s\n" "Low:" "$l"
-    fi
-
-    # Licenses
-    if [[ -f "$analysis_path/licenses.json" ]]; then
-        local lic_status=$(jq -r '.summary.overall_status // "unknown"' "$analysis_path/licenses.json" 2>/dev/null)
-        local violations=$(jq -r '.summary.license_violations // 0' "$analysis_path/licenses.json" 2>/dev/null)
-        printf "\n  %-14s " "Licenses:"
-        if [[ "$violations" -gt 0 ]]; then
-            echo -e "${RED}$violations violations${NC}"
-        elif [[ "$lic_status" == "pass" ]]; then
-            echo -e "${GREEN}Compliant${NC}"
+    # Load report type module
+    if ! load_report_type "$REPORT_TYPE"; then
+        # Fallback to summary for unimplemented types
+        if [[ "$REPORT_TYPE" != "summary" ]]; then
+            echo -e "${YELLOW}Falling back to summary report${NC}" >&2
+            REPORT_TYPE="summary"
+            load_report_type "summary" || exit 1
         else
-            echo "$lic_status"
+            exit 1
         fi
     fi
 
-    # Secrets
-    if [[ -f "$analysis_path/code-secrets.json" ]]; then
-        local secrets=$(jq -r '.summary.total_findings // 0' "$analysis_path/code-secrets.json" 2>/dev/null)
-        printf "  %-14s " "Secrets:"
-        if [[ "$secrets" -gt 0 ]]; then
-            echo -e "${RED}$secrets exposed${NC}"
+    # Load format module
+    if ! load_format_module "$OUTPUT_FORMAT"; then
+        # Fallback to terminal for unimplemented formats
+        if [[ "$OUTPUT_FORMAT" != "terminal" ]]; then
+            echo -e "${YELLOW}Falling back to terminal output${NC}" >&2
+            OUTPUT_FORMAT="terminal"
+            load_format_module "terminal" || exit 1
         else
-            echo -e "${GREEN}0 exposed${NC}"
+            exit 1
         fi
     fi
 
-    echo
-    echo -e "${BOLD}DEPENDENCIES${NC}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    # Generate the report
+    # Report type modules export: generate_<type>_data()
+    # Format modules export: format_<format>_output()
 
-    if [[ -f "$analysis_path/package-sbom.json" ]]; then
-        local total=$(jq -r '.total_dependencies // .summary.total // 0' "$analysis_path/package-sbom.json" 2>/dev/null)
-        local direct=$(jq -r '.direct_dependencies // .summary.direct // 0' "$analysis_path/package-sbom.json" 2>/dev/null)
-        printf "  %-14s %s packages\n" "Total:" "$total"
-        printf "  %-14s %s\n" "Direct:" "$direct"
+    local report_data
+    report_data=$(generate_report_data "$project_id" "$analysis_path")
+
+    if [[ -n "$OUTPUT_FILE" ]]; then
+        format_report_output "$report_data" "$project_id" > "$OUTPUT_FILE"
+        echo -e "${GREEN}Report saved to: $OUTPUT_FILE${NC}"
+    else
+        format_report_output "$report_data" "$project_id"
     fi
-
-    if [[ -f "$analysis_path/package-health.json" ]]; then
-        local abandoned=$(jq -r '.summary.abandoned // 0' "$analysis_path/package-health.json" 2>/dev/null)
-        if [[ "$abandoned" -gt 0 ]]; then
-            printf "  %-14s " "Abandoned:"
-            echo -e "${YELLOW}$abandoned${NC}"
-        fi
-    fi
-
-    # DORA metrics if available
-    if [[ -f "$analysis_path/dora.json" ]]; then
-        local perf=$(jq -r '.summary.overall_performance // "N/A"' "$analysis_path/dora.json" 2>/dev/null)
-        if [[ "$perf" != "N/A" ]] && [[ "$perf" != "null" ]]; then
-            echo
-            echo -e "${BOLD}DORA METRICS${NC}"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            local perf_color="$NC"
-            [[ "$perf" == "ELITE" ]] && perf_color="$GREEN"
-            [[ "$perf" == "HIGH" ]] && perf_color="$GREEN"
-            [[ "$perf" == "LOW" ]] && perf_color="$RED"
-            printf "  %-14s ${perf_color}%s${NC}\n" "Performance:" "$perf"
-        fi
-    fi
-
-    # Ownership if available
-    if [[ -f "$analysis_path/code-ownership.json" ]]; then
-        local contributors=$(jq -r '.summary.active_contributors // 0' "$analysis_path/code-ownership.json" 2>/dev/null)
-        echo
-        echo -e "${BOLD}OWNERSHIP${NC}"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        printf "  %-14s %s\n" "Contributors:" "$contributors"
-    fi
-
-    echo
 }
 
-# Generate JSON project report
-project_report_json() {
-    local project_id="$1"
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
-    local manifest="$analysis_path/manifest.json"
-
-    # Build comprehensive JSON report
-    jq -n \
-        --arg project_id "$project_id" \
-        --slurpfile manifest "$manifest" \
-        --slurpfile vulns "$analysis_path/package-vulns.json" \
-        --slurpfile sbom "$analysis_path/package-sbom.json" \
-        --slurpfile licenses "$analysis_path/licenses.json" \
-        '{
-            project_id: $project_id,
-            scan_id: $manifest[0].scan_id,
-            git: $manifest[0].git,
-            scan: $manifest[0].scan,
-            summary: $manifest[0].summary,
-            vulnerabilities: ($vulns[0].summary // {}),
-            dependencies: ($sbom[0].summary // {}),
-            licenses: ($licenses[0].summary // {})
-        }' 2>/dev/null || cat "$manifest"
-}
-
-# Generate org aggregate report
-org_report() {
+# Generate report for an organization
+generate_org_report() {
     local org="$1"
     local projects=$(gibson_list_org_projects "$org")
 
@@ -311,82 +354,19 @@ org_report() {
         exit 1
     fi
 
-    if [[ "$JSON_OUTPUT" == "true" ]]; then
-        org_report_json "$org"
-        return
-    fi
+    # Load modules
+    load_report_type "$REPORT_TYPE" || exit 1
+    load_format_module "$OUTPUT_FORMAT" || exit 1
 
-    # Get org index if available
-    local org_index="$GIBSON_PROJECTS_DIR/$org/_index.json"
+    # Generate org aggregate report
+    local report_data
+    report_data=$(generate_org_report_data "$org" "$projects")
 
-    echo
-    echo -e "${BOLD}Org Report: $org${NC}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-    local project_count=$(echo "$projects" | wc -w | tr -d ' ')
-    printf "  %-14s %s\n" "Projects:" "$project_count"
-
-    if [[ -f "$org_index" ]]; then
-        local updated=$(jq -r '.updated_at // "unknown"' "$org_index" 2>/dev/null)
-        printf "  %-14s %s\n" "Updated:" "$(relative_time "$updated")"
-
-        echo
-        echo -e "${BOLD}AGGREGATE SECURITY${NC}"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-        local total_vulns=$(jq -r '.aggregate.total_vulnerabilities // 0' "$org_index" 2>/dev/null)
-        local critical=$(jq -r '.aggregate.critical // 0' "$org_index" 2>/dev/null)
-        local high=$(jq -r '.aggregate.high // 0' "$org_index" 2>/dev/null)
-        local total_deps=$(jq -r '.aggregate.total_dependencies // 0' "$org_index" 2>/dev/null)
-
-        printf "  %-14s %s\n" "Total Vulns:" "$total_vulns"
-        printf "    %-12s " "Critical:"
-        [[ "$critical" -gt 0 ]] && echo -e "${RED}$critical${NC}" || echo "0"
-        printf "    %-12s " "High:"
-        [[ "$high" -gt 0 ]] && echo -e "${YELLOW}$high${NC}" || echo "0"
-        printf "  %-14s %s\n" "Dependencies:" "$total_deps"
-
-        local repos_at_risk=$(jq -r '.aggregate.repos_at_risk // [] | join(", ")' "$org_index" 2>/dev/null)
-        if [[ -n "$repos_at_risk" ]] && [[ "$repos_at_risk" != "" ]]; then
-            printf "\n  ${YELLOW}At Risk:${NC} %s\n" "$repos_at_risk"
-        fi
-    fi
-
-    echo
-    echo -e "${BOLD}PROJECTS${NC}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-    for repo in $projects; do
-        local project_id="$org/$repo"
-        local manifest="$GIBSON_PROJECTS_DIR/$project_id/analysis/manifest.json"
-        if [[ -f "$manifest" ]]; then
-            local risk=$(jq -r '.summary.risk_level // "unknown"' "$manifest" 2>/dev/null)
-            local risk_color="$GREEN"
-            case "$risk" in
-                critical) risk_color="$RED" ;;
-                high) risk_color="$RED" ;;
-                medium) risk_color="$YELLOW" ;;
-            esac
-            local vulns=$(jq -r '.summary.total_vulnerabilities // 0' "$manifest" 2>/dev/null)
-            printf "  %-30s ${risk_color}%-8s${NC} %s vulns\n" "$repo" "$risk" "$vulns"
-        else
-            printf "  %-30s ${DIM}no analysis${NC}\n" "$repo"
-        fi
-    done
-
-    echo
-}
-
-# Generate JSON org report
-org_report_json() {
-    local org="$1"
-    local org_index="$GIBSON_PROJECTS_DIR/$org/_index.json"
-
-    if [[ -f "$org_index" ]]; then
-        cat "$org_index"
+    if [[ -n "$OUTPUT_FILE" ]]; then
+        format_report_output "$report_data" "$org" > "$OUTPUT_FILE"
+        echo -e "${GREEN}Report saved to: $OUTPUT_FILE${NC}"
     else
-        # Build report from project manifests
-        gibson_get_org_index "$org" 2>/dev/null || echo '{"error": "No org index available"}'
+        format_report_output "$report_data" "$org"
     fi
 }
 
@@ -395,16 +375,32 @@ org_report_json() {
 #############################################################################
 
 main() {
-    parse_args "$@"
-
     # Ensure Gibson is initialized
     gibson_ensure_initialized
 
+    # Parse args first (if any)
+    if [[ $# -gt 0 ]]; then
+        parse_args "$@"
+    fi
+
+    # Interactive mode - either explicitly requested or no target specified
+    if [[ "$INTERACTIVE" == "true" ]] || [[ -z "$TARGET" && -z "$ORG" ]]; then
+        interactive_menu
+    fi
+
+    # Validate we have a target
+    if [[ -z "$TARGET" ]] && [[ -z "$ORG" ]]; then
+        echo -e "${RED}Error: No target specified${NC}" >&2
+        echo "Usage: $0 <org/repo> or $0 --org <name>"
+        exit 1
+    fi
+
+    # Generate report
     if [[ -n "$ORG" ]]; then
-        org_report "$ORG"
+        generate_org_report "$ORG"
     else
         local project_id=$(gibson_project_id "$TARGET")
-        project_report "$project_id"
+        generate_project_report "$project_id"
     fi
 }
 

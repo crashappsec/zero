@@ -118,7 +118,11 @@ license_in_array() {
 identify_license_from_text() {
     local file="$1"
 
+    # MIT License detection (multiple forms)
     if grep -qi "MIT License" "$file" 2>/dev/null; then
+        echo "MIT"
+    elif grep -qi "Permission is hereby granted, free of charge" "$file" 2>/dev/null && \
+         grep -qi "THE SOFTWARE IS PROVIDED \"AS IS\"" "$file" 2>/dev/null; then
         echo "MIT"
     elif grep -qi "Apache License" "$file" 2>/dev/null && grep -qi "Version 2.0" "$file" 2>/dev/null; then
         echo "Apache-2.0"
@@ -155,6 +159,8 @@ scan_licenses() {
     local findings="[]"
     local violations=0
     local warnings=0
+    local primary_license=""
+    local primary_license_file=""
 
     # Find license files
     local license_files=$(find "$repo_path" -maxdepth 2 -type f \( -iname "LICENSE*" -o -iname "COPYING*" -o -iname "COPYRIGHT*" -o -iname "NOTICE*" \) 2>/dev/null)
@@ -183,6 +189,12 @@ scan_licenses() {
                 status="unknown"
                 policy_action="identify_and_review"
                 ((warnings++))
+            fi
+
+            # Track primary license (first LICENSE file at root)
+            if [[ -z "$primary_license" ]] && [[ "$rel_path" =~ ^LICENSE ]]; then
+                primary_license="$license"
+                primary_license_file="$rel_path"
             fi
 
             findings=$(echo "$findings" | jq \
@@ -243,7 +255,72 @@ scan_licenses() {
         fi
     fi
 
-    echo "{\"findings\": $findings, \"violations\": $violations, \"warnings\": $warnings}"
+    # Output with primary license info
+    jq -n \
+        --argjson findings "$findings" \
+        --argjson violations "$violations" \
+        --argjson warnings "$warnings" \
+        --arg primary_license "$primary_license" \
+        --arg primary_license_file "$primary_license_file" \
+        '{
+            findings: $findings,
+            violations: $violations,
+            warnings: $warnings,
+            primary_license: (if $primary_license == "" then null else $primary_license end),
+            primary_license_file: (if $primary_license_file == "" then null else $primary_license_file end)
+        }'
+}
+
+# Scan dependency licenses from SBOM
+scan_dependency_licenses() {
+    local repo_path="$1"
+    local sbom_file=""
+
+    # Look for SBOM file in analysis directory (if running as part of hydration)
+    local analysis_dir="${repo_path%/repo}/analysis"
+    if [[ -f "$analysis_dir/sbom.cdx.json" ]]; then
+        sbom_file="$analysis_dir/sbom.cdx.json"
+    elif [[ -f "$repo_path/sbom.cdx.json" ]]; then
+        sbom_file="$repo_path/sbom.cdx.json"
+    elif [[ -f "$repo_path/bom.json" ]]; then
+        sbom_file="$repo_path/bom.json"
+    fi
+
+    if [[ -z "$sbom_file" ]] || [[ ! -f "$sbom_file" ]]; then
+        echo '{"dependencies": [], "by_license": {}, "violations": [], "warnings": []}'
+        return
+    fi
+
+    echo -e "${BLUE}Analyzing dependency licenses from SBOM...${NC}" >&2
+
+    # Extract license info from SBOM and categorize
+    local result=$(jq '
+        # Extract components with licenses
+        [.components[]? | select(.licenses) | {
+            name: .name,
+            version: .version,
+            ecosystem: (.purl // "" | split(":")[0] | gsub("pkg/"; "")),
+            licenses: [.licenses[]?.license | .id // .name // "Unknown"]
+        }] |
+
+        # Group by license
+        group_by(.licenses[0]) |
+        map({
+            license: .[0].licenses[0],
+            count: length,
+            packages: [.[] | {name, version, ecosystem}]
+        }) |
+
+        # Separate into categories
+        {
+            by_license: (map({(.license): {count, packages}}) | add // {}),
+            all_packages: (map(.packages) | flatten),
+            denied: [.[] | select(.license | test("GPL|AGPL"; "i")) | {license, count, packages}],
+            review: [.[] | select(.license | test("LGPL|MPL|EPL"; "i")) | {license, count, packages}]
+        }
+    ' "$sbom_file" 2>/dev/null || echo '{"by_license": {}, "all_packages": [], "denied": [], "review": []}')
+
+    echo "$result"
 }
 
 # Scan content policy
@@ -329,13 +406,20 @@ analyze_target() {
 
     local license_results='{"findings": [], "violations": 0, "warnings": 0}'
     local content_results='{"profanity": [], "inclusive_language": [], "profanity_count": 0, "inclusive_count": 0}'
+    local dep_license_results='{"by_license": {}, "all_packages": [], "denied": [], "review": []}'
 
     if [[ "$SCAN_LICENSES" == true ]]; then
-        echo -e "${BLUE}Scanning licenses...${NC}" >&2
+        echo -e "${BLUE}Scanning project licenses...${NC}" >&2
         license_results=$(scan_licenses "$repo_path")
         local license_count=$(echo "$license_results" | jq '.findings | length')
         local violations=$(echo "$license_results" | jq '.violations')
         echo -e "${GREEN}✓ Found $license_count license references ($violations violations)${NC}" >&2
+
+        # Also scan dependency licenses from SBOM
+        dep_license_results=$(scan_dependency_licenses "$repo_path")
+        local dep_count=$(echo "$dep_license_results" | jq '.all_packages | length')
+        local denied_count=$(echo "$dep_license_results" | jq '[.denied[].count] | add // 0')
+        echo -e "${GREEN}✓ Analyzed $dep_count dependency licenses ($denied_count with denied licenses)${NC}" >&2
     fi
 
     if [[ "$SCAN_CONTENT" == true ]]; then
@@ -352,21 +436,34 @@ analyze_target() {
     # Determine overall status
     local overall_status="pass"
     local license_violations=$(echo "$license_results" | jq '.violations')
-    if [[ "$license_violations" -gt 0 ]]; then
+    local dep_violations=$(echo "$dep_license_results" | jq '[.denied[].count] | add // 0')
+    local total_violations=$((license_violations + dep_violations))
+
+    if [[ "$total_violations" -gt 0 ]]; then
         overall_status="fail"
     elif [[ $(echo "$license_results" | jq '.warnings') -gt 0 ]]; then
         overall_status="warning"
+    elif [[ $(echo "$dep_license_results" | jq '.review | length') -gt 0 ]]; then
+        overall_status="warning"
     fi
+
+    # Extract primary license info
+    local primary_license=$(echo "$license_results" | jq -r '.primary_license // empty')
+    local primary_license_file=$(echo "$license_results" | jq -r '.primary_license_file // empty')
 
     jq -n \
         --arg ts "$timestamp" \
         --arg tgt "$TARGET" \
         --arg ver "1.0.0" \
         --arg status "$overall_status" \
+        --arg primary_license "$primary_license" \
+        --arg primary_license_file "$primary_license_file" \
         --argjson licenses "$(echo "$license_results" | jq '.findings')" \
-        --argjson license_violations "$(echo "$license_results" | jq '.violations')" \
+        --argjson license_violations "$license_violations" \
         --argjson license_warnings "$(echo "$license_results" | jq '.warnings')" \
+        --argjson dep_violations "$dep_violations" \
         --argjson content "$content_results" \
+        --argjson dep_licenses "$dep_license_results" \
         '{
             analyzer: "legal-review",
             version: $ver,
@@ -375,11 +472,22 @@ analyze_target() {
             summary: {
                 overall_status: $status,
                 license_violations: $license_violations,
+                dependency_license_violations: $dep_violations,
                 license_warnings: $license_warnings,
                 profanity_issues: $content.profanity_count,
-                inclusive_language_issues: $content.inclusive_count
+                inclusive_language_issues: $content.inclusive_count,
+                total_dependencies_with_licenses: ($dep_licenses.all_packages | length)
+            },
+            repository_license: {
+                license: (if $primary_license == "" then null else $primary_license end),
+                file: (if $primary_license_file == "" then null else $primary_license_file end)
             },
             licenses: $licenses,
+            dependency_licenses: {
+                by_license: $dep_licenses.by_license,
+                denied: $dep_licenses.denied,
+                review_required: $dep_licenses.review
+            },
             content_policy: {
                 profanity: $content.profanity,
                 inclusive_language: $content.inclusive_language

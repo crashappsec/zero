@@ -93,6 +93,22 @@ is_in_kev() {
     [[ -f "$KEV_CACHE" ]] && grep -q "\"$vuln_id\"" "$KEV_CACHE" 2>/dev/null
 }
 
+# Fetch full vulnerability details from OSV.dev API
+# Returns JSON with full details including description, references, affected versions, fix info
+fetch_osv_details() {
+    local vuln_id="$1"
+    local osv_response
+
+    # OSV.dev API endpoint
+    osv_response=$(curl -sf "https://api.osv.dev/v1/vulns/${vuln_id}" 2>/dev/null)
+
+    if [[ -n "$osv_response" ]]; then
+        echo "$osv_response"
+    else
+        echo "{}"
+    fi
+}
+
 # Detect target type
 is_git_url() {
     [[ "$1" =~ ^(https?|git)://.*\.git$ ]] || [[ "$1" =~ ^git@.*:.*\.git$ ]] || [[ "$1" =~ github\.com|gitlab\.com|bitbucket\.org ]]
@@ -222,7 +238,27 @@ process_results() {
             low) ((low++)) ;;
         esac
 
-        # Build vulnerability object
+        # Fetch full details from OSV.dev
+        echo -e "${DIM}  Fetching details for $vuln_id...${NC}" >&2
+        local osv_details=$(fetch_osv_details "$vuln_id")
+
+        # Extract additional fields from OSV response
+        local description=$(echo "$osv_details" | jq -r '.details // .summary // ""' 2>/dev/null)
+        local aliases=$(echo "$osv_details" | jq -c '[.aliases[]?] // []' 2>/dev/null)
+        local references=$(echo "$osv_details" | jq -c '[.references[]? | {type: .type, url: .url}] // []' 2>/dev/null)
+        local affected_ranges=$(echo "$osv_details" | jq -c '[.affected[]? | {package: .package.name, ecosystem: .package.ecosystem, ranges: .ranges, versions: .versions}] // []' 2>/dev/null)
+        local fix_available=$(echo "$osv_details" | jq -r 'if .affected[0].ranges[0].events | map(select(.fixed)) | length > 0 then "yes" else "no" end' 2>/dev/null || echo "unknown")
+        local fixed_version=$(echo "$osv_details" | jq -r '.affected[0].ranges[0].events[] | select(.fixed) | .fixed' 2>/dev/null | head -1)
+        local published=$(echo "$osv_details" | jq -r '.published // ""' 2>/dev/null)
+        local modified=$(echo "$osv_details" | jq -r '.modified // ""' 2>/dev/null)
+        local severity_osv=$(echo "$osv_details" | jq -c '.severity // []' 2>/dev/null)
+
+        # Use OSV description if available and longer than summary
+        if [[ -n "$description" ]] && [[ ${#description} -gt ${#summary} ]]; then
+            summary="$description"
+        fi
+
+        # Build vulnerability object with full details
         local vuln_obj=$(jq -n \
             --arg id "$vuln_id" \
             --arg pkg "$package" \
@@ -233,6 +269,14 @@ process_results() {
             --argjson score "$priority_score" \
             --argjson kev "$in_kev" \
             --arg sum "$summary" \
+            --argjson aliases "$aliases" \
+            --argjson references "$references" \
+            --argjson affected "$affected_ranges" \
+            --arg fix_available "$fix_available" \
+            --arg fixed_version "$fixed_version" \
+            --arg published "$published" \
+            --arg modified "$modified" \
+            --argjson severity_scores "$severity_osv" \
             '{
                 id: $id,
                 package: $pkg,
@@ -242,7 +286,16 @@ process_results() {
                 severity: $sev,
                 priority_score: $score,
                 in_cisa_kev: $kev,
-                summary: $sum
+                summary: $sum,
+                aliases: $aliases,
+                references: $references,
+                affected: $affected,
+                fix_available: $fix_available,
+                fixed_version: (if $fixed_version == "" then null else $fixed_version end),
+                published: (if $published == "" then null else $published end),
+                modified: (if $modified == "" then null else $modified end),
+                severity_scores: $severity_scores,
+                osv_url: ("https://osv.dev/vulnerability/" + $id)
             }')
 
         vulns_array=$(echo "$vulns_array" | jq --argjson v "$vuln_obj" '. + [$v]')
