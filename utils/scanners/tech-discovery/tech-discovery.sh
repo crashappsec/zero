@@ -60,6 +60,7 @@ OPTIONS:
     --local-path PATH       Use pre-cloned repository (skips cloning)
     --sbom FILE             Use existing SBOM file (skips syft generation)
     --confidence N          Minimum confidence threshold (0-100, default: 50)
+    --scan-docker-images    Also scan Docker images referenced in Dockerfile/compose
     -o, --output FILE       Write JSON to file (default: stdout)
     -k, --keep-clone        Keep cloned repository
     -h, --help              Show this help
@@ -70,9 +71,17 @@ OUTPUT:
     - summary: counts by category
     - technologies: array of findings with confidence scores
 
+DETECTION LAYERS:
+    1. SBOM packages (via syft)
+    2. Config files (Dockerfile, package.json, etc.)
+    3. Environment variables (.env files)
+    4. Docker image scanning (optional, --scan-docker-images)
+    5. AI import patterns (scans source files for AI library imports)
+
 EXAMPLES:
     $0 https://github.com/expressjs/express
     $0 --local-path ~/.gibson/projects/foo/repo
+    $0 --scan-docker-images /path/to/docker/project
     $0 -o tech.json /path/to/project
 
 EOF
@@ -279,6 +288,173 @@ scan_env_variables() {
     echo "$findings"
 }
 
+# Layer 4: Scan Docker images for packages
+scan_docker_images() {
+    local repo_path="$1"
+    local findings="[]"
+
+    # Find Dockerfiles
+    local dockerfiles=$(find "$repo_path" -maxdepth 3 -type f -name "Dockerfile*" 2>/dev/null)
+    [[ -z "$dockerfiles" ]] && { echo "[]"; return; }
+
+    # Extract image names from FROM statements and docker-compose
+    local images=""
+
+    # From Dockerfiles
+    for df in $dockerfiles; do
+        local img=$(grep -E "^FROM " "$df" 2>/dev/null | head -1 | awk '{print $2}' | sed 's/:.*$//')
+        [[ -n "$img" ]] && images="$images $img"
+    done
+
+    # From docker-compose.yml
+    if [[ -f "$repo_path/docker-compose.yml" ]] || [[ -f "$repo_path/docker-compose.yaml" ]]; then
+        local compose_file="$repo_path/docker-compose.yml"
+        [[ -f "$repo_path/docker-compose.yaml" ]] && compose_file="$repo_path/docker-compose.yaml"
+        local compose_images=$(grep -E "^\s+image:" "$compose_file" 2>/dev/null | sed 's/.*image:\s*//' | sed 's/:.*$//' | tr -d '"' | tr -d "'")
+        images="$images $compose_images"
+    fi
+
+    # Unique images
+    images=$(echo "$images" | tr ' ' '\n' | sort -u | grep -v '^$')
+    [[ -z "$images" ]] && { echo "[]"; return; }
+
+    echo -e "${BLUE}Scanning Docker images for AI packages...${NC}" >&2
+
+    for image in $images; do
+        # Skip base images that won't have interesting packages
+        [[ "$image" =~ ^(alpine|ubuntu|debian|busybox|scratch)$ ]] && continue
+
+        # Try to scan the image with syft (will pull if not local)
+        local temp_sbom=$(mktemp)
+        if timeout 60 syft scan "registry:$image:latest" -o cyclonedx-json > "$temp_sbom" 2>/dev/null; then
+            echo -e "${GREEN}✓ Scanned Docker image: $image${NC}" >&2
+
+            # Scan for AI packages in the image SBOM
+            local image_findings=$(scan_sbom_packages "$temp_sbom")
+
+            # Add source info to evidence
+            image_findings=$(echo "$image_findings" | jq --arg img "$image" '
+                map(. + {
+                    detection_method: "docker-image-sbom",
+                    evidence: (.evidence + ["from Docker image: " + $img])
+                })
+            ')
+
+            findings=$(echo "$findings $image_findings" | jq -s 'add')
+        else
+            echo -e "${YELLOW}⚠ Could not scan Docker image: $image${NC}" >&2
+        fi
+        rm -f "$temp_sbom"
+    done
+
+    echo "$findings"
+}
+
+# Layer 5: Scan source files for AI import patterns
+scan_ai_imports() {
+    local repo_path="$1"
+    local findings="[]"
+
+    echo -e "${BLUE}Scanning source files for AI imports...${NC}" >&2
+
+    # AI-related import patterns with their technology mappings
+    # Format: pattern|technology|category|file_glob
+    local patterns=(
+        # OpenAI
+        'import.*openai|OpenAI|ai-ml/llm-apis|*.py'
+        'from openai import|OpenAI|ai-ml/llm-apis|*.py'
+        "import.*from ['\"]openai['\"]|OpenAI|ai-ml/llm-apis|*.ts,*.js,*.tsx,*.jsx"
+        'new OpenAI\(|OpenAI|ai-ml/llm-apis|*.ts,*.js,*.tsx,*.jsx'
+
+        # Anthropic
+        'import anthropic|Anthropic|ai-ml/llm-apis|*.py'
+        'from anthropic import|Anthropic|ai-ml/llm-apis|*.py'
+        "import.*from ['\"]@anthropic-ai/sdk['\"]|Anthropic|ai-ml/llm-apis|*.ts,*.js,*.tsx,*.jsx"
+
+        # LangChain
+        'from langchain|LangChain|ai-ml/frameworks|*.py'
+        'import langchain|LangChain|ai-ml/frameworks|*.py'
+        "import.*from ['\"]langchain['\"]|LangChain|ai-ml/frameworks|*.ts,*.js,*.tsx,*.jsx"
+        "import.*from ['\"]@langchain/|LangChain|ai-ml/frameworks|*.ts,*.js,*.tsx,*.jsx"
+
+        # LlamaIndex
+        'from llama_index|LlamaIndex|ai-ml/frameworks|*.py'
+        'import llama_index|LlamaIndex|ai-ml/frameworks|*.py'
+
+        # Google AI / Gemini
+        'import google.generativeai|Google AI|ai-ml/llm-apis|*.py'
+        'from google.generativeai|Google AI|ai-ml/llm-apis|*.py'
+        "import.*from ['\"]@google/generative-ai['\"]|Google AI|ai-ml/llm-apis|*.ts,*.js,*.tsx,*.jsx"
+
+        # Cohere
+        'import cohere|Cohere|ai-ml/llm-apis|*.py'
+        'from cohere import|Cohere|ai-ml/llm-apis|*.py'
+
+        # Mistral
+        'from mistralai|Mistral|ai-ml/llm-apis|*.py'
+        'import mistralai|Mistral|ai-ml/llm-apis|*.py'
+
+        # Pinecone
+        'from pinecone|Pinecone|ai-ml/vectordb|*.py'
+        'import pinecone|Pinecone|ai-ml/vectordb|*.py'
+        "import.*from ['\"]@pinecone-database/pinecone['\"]|Pinecone|ai-ml/vectordb|*.ts,*.js,*.tsx,*.jsx"
+
+        # Weaviate
+        'import weaviate|Weaviate|ai-ml/vectordb|*.py'
+        'from weaviate|Weaviate|ai-ml/vectordb|*.py'
+
+        # ChromaDB
+        'import chromadb|ChromaDB|ai-ml/vectordb|*.py'
+        'from chromadb|ChromaDB|ai-ml/vectordb|*.py'
+
+        # Qdrant
+        'from qdrant_client|Qdrant|ai-ml/vectordb|*.py'
+        'import qdrant_client|Qdrant|ai-ml/vectordb|*.py'
+
+        # Hugging Face
+        'from transformers|Hugging Face|ai-ml/mlops|*.py'
+        'import transformers|Hugging Face|ai-ml/mlops|*.py'
+        'from huggingface_hub|Hugging Face|ai-ml/mlops|*.py'
+
+        # Weights & Biases
+        'import wandb|Weights & Biases|ai-ml/mlops|*.py'
+    )
+
+    for pattern_spec in "${patterns[@]}"; do
+        IFS='|' read -r pattern tech category globs <<< "$pattern_spec"
+
+        # Convert glob patterns to find arguments
+        local find_args=()
+        IFS=',' read -ra glob_array <<< "$globs"
+        for g in "${glob_array[@]}"; do
+            find_args+=(-name "$g" -o)
+        done
+        # Remove last -o
+        unset 'find_args[${#find_args[@]}-1]'
+
+        # Search for pattern in matching files
+        local matches=$(find "$repo_path" -type f \( "${find_args[@]}" \) 2>/dev/null | \
+            xargs grep -l -E "$pattern" 2>/dev/null | head -5)
+
+        if [[ -n "$matches" ]]; then
+            local file_count=$(echo "$matches" | wc -l | tr -d ' ')
+            local first_file=$(echo "$matches" | head -1 | sed "s|$repo_path/||")
+            local evidence="import found in $file_count file(s): $first_file"
+
+            local finding=$(jq -n \
+                --arg name "$tech" \
+                --arg category "$category" \
+                --arg method "import-pattern" \
+                --arg evidence "$evidence" \
+                '{name: $name, category: $category, version: "", confidence: 88, detection_method: $method, evidence: [$evidence]}')
+
+            findings=$(echo "$findings" | jq --argjson f "$finding" '. + [$f]')
+        fi
+    done
+
+    echo "$findings"
+}
+
 # Aggregate and deduplicate findings
 aggregate_findings() {
     local all_findings="$1"
@@ -326,6 +502,8 @@ analyze_target() {
     local layer1="[]"
     local layer2="[]"
     local layer3="[]"
+    local layer4="[]"
+    local layer5="[]"
 
     if [[ -n "$sbom_file" ]] && [[ -f "$sbom_file" ]]; then
         layer1=$(scan_sbom_packages "$sbom_file")
@@ -336,8 +514,16 @@ analyze_target() {
     layer2=$(scan_config_files "$repo_path")
     layer3=$(scan_env_variables "$repo_path")
 
+    # Layer 4: Docker image scanning (optional - can be slow)
+    if [[ "${SCAN_DOCKER_IMAGES:-false}" == "true" ]]; then
+        layer4=$(scan_docker_images "$repo_path")
+    fi
+
+    # Layer 5: AI import pattern scanning (always enabled for AI adoption tracking)
+    layer5=$(scan_ai_imports "$repo_path")
+
     # Combine all findings
-    local all_findings=$(echo "$layer1 $layer2 $layer3" | jq -s 'add')
+    local all_findings=$(echo "$layer1 $layer2 $layer3 $layer4 $layer5" | jq -s 'add')
 
     # Aggregate and deduplicate
     local results=$(aggregate_findings "$all_findings")
@@ -393,6 +579,7 @@ generate_output() {
 }
 
 # Parse arguments
+SCAN_DOCKER_IMAGES=false
 while [[ $# -gt 0 ]]; do
     case "$1" in
         -h|--help) usage ;;
@@ -407,6 +594,10 @@ while [[ $# -gt 0 ]]; do
         --confidence)
             CONFIDENCE_THRESHOLD="$2"
             shift 2
+            ;;
+        --scan-docker-images)
+            SCAN_DOCKER_IMAGES=true
+            shift
             ;;
         -o|--output)
             OUTPUT_FILE="$2"
@@ -426,6 +617,7 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+export SCAN_DOCKER_IMAGES
 
 # Load RAG patterns if available
 if [[ -d "$RAG_ROOT" ]] && type load_all_patterns &>/dev/null; then
