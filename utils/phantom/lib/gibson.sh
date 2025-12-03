@@ -743,10 +743,21 @@ gibson_finalize_manifest() {
     local started_at=$(jq -r '.scan.started_at // .started_at // empty' "$manifest" 2>/dev/null)
     local duration_seconds="null"
     if [[ -n "$started_at" ]]; then
-        local start_epoch=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$started_at" +%s 2>/dev/null || date -d "$started_at" +%s 2>/dev/null)
+        # Parse ISO 8601 UTC timestamp (ends with Z)
+        # On macOS, set TZ=UTC to correctly interpret the Z suffix
+        local start_epoch
+        if [[ "$started_at" == *Z ]]; then
+            # macOS date doesn't handle Z suffix correctly, use UTC timezone
+            start_epoch=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$started_at" +%s 2>/dev/null)
+        fi
+        # Fallback for GNU date on Linux
+        [[ -z "$start_epoch" ]] && start_epoch=$(date -d "$started_at" +%s 2>/dev/null)
+
         local end_epoch=$(date +%s)
         if [[ -n "$start_epoch" ]]; then
             duration_seconds=$((end_epoch - start_epoch))
+            # Ensure non-negative
+            [[ $duration_seconds -lt 0 ]] && duration_seconds=0
         fi
     fi
 
@@ -861,7 +872,14 @@ gibson_print_status() {
 gibson_time_ago() {
     local timestamp="$1"
     local now=$(date +%s)
-    local then=$(date -j -f "%Y-%m-%dT%H:%M:%SZ" "$timestamp" +%s 2>/dev/null || date -d "$timestamp" +%s 2>/dev/null)
+    local then
+
+    # Handle UTC timestamps (ending with Z) - macOS needs TZ=UTC
+    if [[ "$timestamp" == *Z ]]; then
+        then=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$timestamp" +%s 2>/dev/null)
+    fi
+    # Fallback for GNU date on Linux
+    [[ -z "$then" ]] && then=$(date -d "$timestamp" +%s 2>/dev/null)
 
     if [[ -z "$then" ]]; then
         echo "unknown"

@@ -232,17 +232,15 @@ show_cursor() {
     printf "\033[?25h"
 }
 
-# Fixed width line output - prevents flashing by overwriting with spaces
-# Usage: fixed_line "content" [width]
+# Fixed width line output - clears to end of line after content
+# Usage: fixed_line "content"
 fixed_line() {
     local content="$1"
-    local width="${2:-100}"
-    # Strip ANSI codes to get actual visible length
-    local visible_content=$(echo -e "$content" | sed 's/\x1b\[[0-9;]*m//g')
-    local visible_len=${#visible_content}
-    local padding=$((width - visible_len))
-    if [[ $padding -lt 0 ]]; then padding=0; fi
-    printf "\r%b%${padding}s\n" "$content" ""
+    # \r = go to start of line
+    # %b = print content (interpret escape sequences)
+    # \033[K = clear from cursor to end of line
+    # \n = newline
+    printf "\r%b\033[K\n" "$content"
 }
 
 # Format a scanner line with aligned columns

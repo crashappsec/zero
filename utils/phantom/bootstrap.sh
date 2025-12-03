@@ -75,7 +75,9 @@ ANALYSIS MODES:
     --standard          Standard scan (~2min) - most analyzers (default)
     --advanced          Full scan (~5min) - all static analyzers
     --deep              Deep scan (~10min) - Claude-assisted analysis
+    --ai-only           AI-only scan (~5min) - only Claude-capable scanners
     --security          Security focus - vulns, code security, provenance
+    --security-deep     Security with AI (~5min) - security + Claude insights
 
 OPTIONS:
     --branch <name>     Clone specific branch (default: default branch)
@@ -135,8 +137,18 @@ parse_args() {
                 export USE_CLAUDE=true
                 shift
                 ;;
+            --ai-only)
+                MODE="ai-only"
+                export USE_CLAUDE=true
+                shift
+                ;;
             --security|--security-only)
                 MODE="security"
+                shift
+                ;;
+            --security-deep)
+                MODE="security-deep"
+                export USE_CLAUDE=true
                 shift
                 ;;
             --collectors)
@@ -1358,56 +1370,221 @@ run_all_analyzers() {
                             local m=$(jq -r '.summary.medium // 0' "$output_file" 2>/dev/null)
                             local l=$(jq -r '.summary.low // 0' "$output_file" 2>/dev/null)
                             local total=$((c + h + m + l))
-                            if [[ "$c" != "0" ]] || [[ "$h" != "0" ]]; then
-                                printf "${RED}%dC${NC} ${YELLOW}%dH${NC} %dM %dL" "$c" "$h" "$m" "$l"
-                            elif [[ "$total" -gt 0 ]]; then
-                                printf "%d found" "$total"
+                            # Always show full breakdown
+                            if [[ "$c" -gt 0 ]]; then
+                                printf "${RED}%dC${NC} " "$c"
                             else
-                                printf "${GREEN}clean${NC}"
+                                printf "${DIM}0C${NC} "
+                            fi
+                            if [[ "$h" -gt 0 ]]; then
+                                printf "${YELLOW}%dH${NC} " "$h"
+                            else
+                                printf "${DIM}0H${NC} "
+                            fi
+                            if [[ "$m" -gt 0 ]]; then
+                                printf "%dM " "$m"
+                            else
+                                printf "${DIM}0M${NC} "
+                            fi
+                            if [[ "$l" -gt 0 ]]; then
+                                printf "%dL" "$l"
+                            else
+                                printf "${DIM}0L${NC}"
+                            fi
+                            if [[ $total -eq 0 ]]; then
+                                printf " ${GREEN}✓${NC}"
                             fi
                             ;;
                         package-sbom)
-                            local total=$(jq -r '.components | length // 0' "$output_file" 2>/dev/null)
-                            local format=$(jq -r '.bomFormat // "CycloneDX"' "$output_file" 2>/dev/null)
-                            printf "%d packages (%s)" "$total" "$format"
+                            # Get total from package-sbom.json summary
+                            local total=$(jq -r '.summary.total // .total_dependencies // 0' "$output_file" 2>/dev/null)
+                            local direct=$(jq -r '.summary.direct // .direct_dependencies // 0' "$output_file" 2>/dev/null)
+                            # Get ecosystem breakdown from sbom.cdx.json if it exists
+                            local sbom_file="$output_path/sbom.cdx.json"
+                            local ecosystems=""
+                            if [[ -f "$sbom_file" ]]; then
+                                ecosystems=$(jq -r '[.components[]? | .purl // empty | ltrimstr("pkg:") | split("/")[0]] | map(select(length > 0)) | group_by(.) | map({type: .[0], count: length}) | sort_by(-.count) | .[0:3] | map("\(.type):\(.count)") | join(" ")' "$sbom_file" 2>/dev/null)
+                            fi
+                            if [[ -n "$ecosystems" ]] && [[ "$ecosystems" != "null" ]] && [[ "$ecosystems" != "" ]]; then
+                                printf "%d packages ${DIM}(%d direct, %s)${NC}" "$total" "$direct" "$ecosystems"
+                            else
+                                printf "%d packages ${DIM}(%d direct)${NC}" "$total" "$direct"
+                            fi
                             ;;
                         tech-discovery)
-                            local tech_count=$(jq -r '.technologies | length // 0' "$output_file" 2>/dev/null)
-                            printf "%d technologies" "$tech_count"
+                            # Show actual technologies found (top 5)
+                            local techs=$(jq -r '.technologies // .summary.by_category // {} | if type == "array" then .[0:5] | map(.name // .technology // .) | join(", ") else (to_entries | .[0:5] | map(.key) | join(", ")) end' "$output_file" 2>/dev/null)
+                            local tech_count=$(jq -r '.technologies | length // (.summary.total // 0)' "$output_file" 2>/dev/null)
+                            if [[ -n "$techs" ]] && [[ "$techs" != "null" ]] && [[ "$techs" != "" ]]; then
+                                if [[ $tech_count -gt 5 ]]; then
+                                    printf "%s ${DIM}+%d more${NC}" "$techs" "$((tech_count - 5))"
+                                else
+                                    printf "%s" "$techs"
+                                fi
+                            else
+                                printf "%d technologies" "$tech_count"
+                            fi
                             ;;
                         licenses)
-                            local status=$(jq -r '.summary.overall_status // "unknown"' "$output_file" 2>/dev/null)
+                            local total_licenses=$(jq -r '.licenses | length // 0' "$output_file" 2>/dev/null)
                             local violations=$(jq -r '.summary.license_violations // 0' "$output_file" 2>/dev/null)
+                            local copyleft=$(jq -r '.summary.copyleft_count // 0' "$output_file" 2>/dev/null)
+                            # Get license type breakdown (top 4)
+                            local license_breakdown=$(jq -r '[.licenses[]?.license // empty] | group_by(.) | map({lic: .[0], count: length}) | sort_by(-.count) | .[0:4] | map("\(.lic):\(.count)") | join(" ")' "$output_file" 2>/dev/null)
+
                             if [[ "$violations" -gt 0 ]]; then
-                                printf "${RED}%d violations${NC}" "$violations"
-                            elif [[ "$status" == "pass" ]]; then
-                                printf "${GREEN}pass${NC}"
+                                printf "${RED}%d violations${NC} " "$violations"
+                            fi
+                            if [[ -n "$license_breakdown" ]] && [[ "$license_breakdown" != "null" ]] && [[ "$license_breakdown" != "" ]]; then
+                                printf "${DIM}%s${NC}" "$license_breakdown"
                             else
-                                printf "%s" "$status"
+                                printf "%d licenses" "$total_licenses"
+                            fi
+                            if [[ "$copyleft" -gt 0 ]]; then
+                                printf " ${YELLOW}(%d copyleft)${NC}" "$copyleft"
                             fi
                             ;;
                         code-secrets)
-                            local secrets=$(jq -r '.summary.total_secrets // (.findings | length) // 0' "$output_file" 2>/dev/null)
+                            local secrets=$(jq -r '.summary.total_findings // (.findings | length) // 0' "$output_file" 2>/dev/null)
                             if [[ "$secrets" -gt 0 ]]; then
-                                printf "${RED}%d secrets!${NC}" "$secrets"
+                                # Show breakdown by type
+                                local by_type=$(jq -r '.summary.by_type // {} | to_entries | map("\(.key):\(.value)") | join(" ")' "$output_file" 2>/dev/null)
+                                if [[ -n "$by_type" ]] && [[ "$by_type" != "null" ]] && [[ "$by_type" != "" ]]; then
+                                    printf "${RED}%d secrets${NC} ${DIM}(%s)${NC}" "$secrets" "$by_type"
+                                else
+                                    printf "${RED}%d secrets!${NC}" "$secrets"
+                                fi
                             else
-                                printf "${GREEN}clean${NC}"
+                                printf "${GREEN}0 secrets ✓${NC}"
+                            fi
+                            ;;
+                        code-security)
+                            local total=$(jq -r '.summary.total // (.findings | length) // 0' "$output_file" 2>/dev/null)
+                            local high=$(jq -r '.summary.high // 0' "$output_file" 2>/dev/null)
+                            local medium=$(jq -r '.summary.medium // 0' "$output_file" 2>/dev/null)
+                            if [[ "$total" -gt 0 ]]; then
+                                if [[ "$high" -gt 0 ]]; then
+                                    printf "${RED}%d high${NC} " "$high"
+                                fi
+                                if [[ "$medium" -gt 0 ]]; then
+                                    printf "${YELLOW}%d medium${NC}" "$medium"
+                                fi
+                                if [[ "$high" -eq 0 ]] && [[ "$medium" -eq 0 ]]; then
+                                    printf "%d findings" "$total"
+                                fi
+                            else
+                                printf "${GREEN}0 issues ✓${NC}"
+                            fi
+                            ;;
+                        iac-security)
+                            local total=$(jq -r '.summary.total // (.findings | length) // 0' "$output_file" 2>/dev/null)
+                            local high=$(jq -r '.summary.high // 0' "$output_file" 2>/dev/null)
+                            if [[ "$total" -gt 0 ]]; then
+                                if [[ "$high" -gt 0 ]]; then
+                                    printf "${RED}%d high${NC} %d total" "$high" "$total"
+                                else
+                                    printf "%d findings" "$total"
+                                fi
+                            else
+                                printf "${GREEN}0 issues ✓${NC}"
                             fi
                             ;;
                         code-ownership)
                             local contributors=$(jq -r '.summary.active_contributors // 0' "$output_file" 2>/dev/null)
                             local bus=$(jq -r '.summary.estimated_bus_factor // 0' "$output_file" 2>/dev/null)
-                            printf "%d contributors, bus factor %d" "$contributors" "$bus"
+                            local top_contrib=$(jq -r '.contributors[0].name // .contributors[0].author // empty' "$output_file" 2>/dev/null)
+                            if [[ "$bus" -le 1 ]]; then
+                                printf "${RED}bus factor %d${NC} " "$bus"
+                            else
+                                printf "bus factor %d " "$bus"
+                            fi
+                            printf "${DIM}%d contributors${NC}" "$contributors"
+                            if [[ -n "$top_contrib" ]]; then
+                                printf " ${DIM}(top: %s)${NC}" "$top_contrib"
+                            fi
                             ;;
                         dora)
                             local perf=$(jq -r '.summary.overall_performance // "N/A"' "$output_file" 2>/dev/null)
-                            if [[ "$perf" == "ELITE" ]] || [[ "$perf" == "HIGH" ]]; then
-                                printf "${GREEN}%s${NC}" "$perf"
+                            local deploy_freq=$(jq -r '.summary.deployment_frequency // .metrics.deployment_frequency.level // "N/A"' "$output_file" 2>/dev/null)
+                            if [[ "$perf" == "ELITE" ]]; then
+                                printf "${GREEN}ELITE${NC}"
+                            elif [[ "$perf" == "HIGH" ]]; then
+                                printf "${GREEN}HIGH${NC}"
                             elif [[ "$perf" == "LOW" ]]; then
-                                printf "${RED}%s${NC}" "$perf"
+                                printf "${RED}LOW${NC}"
                             else
                                 printf "%s" "$perf"
                             fi
+                            if [[ "$deploy_freq" != "N/A" ]] && [[ "$deploy_freq" != "null" ]]; then
+                                printf " ${DIM}(deploys: %s)${NC}" "$deploy_freq"
+                            fi
+                            ;;
+                        tech-debt)
+                            local debt_score=$(jq -r '.summary.debt_score // 0' "$output_file" 2>/dev/null)
+                            local todos=$(jq -r '.summary.todo_count // 0' "$output_file" 2>/dev/null)
+                            local fixmes=$(jq -r '.summary.fixme_count // 0' "$output_file" 2>/dev/null)
+                            local deprecated=$(jq -r '.summary.deprecated_count // 0' "$output_file" 2>/dev/null)
+                            local markers=$((todos + fixmes))
+                            if [[ "$debt_score" -gt 70 ]]; then
+                                printf "${RED}score %d${NC} " "$debt_score"
+                            elif [[ "$debt_score" -gt 40 ]]; then
+                                printf "${YELLOW}score %d${NC} " "$debt_score"
+                            else
+                                printf "score %d " "$debt_score"
+                            fi
+                            printf "${DIM}%d TODOs %d FIXMEs${NC}" "$todos" "$fixmes"
+                            if [[ "$deprecated" -gt 0 ]]; then
+                                printf " ${YELLOW}%d deprecated${NC}" "$deprecated"
+                            fi
+                            ;;
+                        documentation)
+                            local score=$(jq -r '.summary.score // 0' "$output_file" 2>/dev/null)
+                            local has_readme=$(jq -r '.summary.has_readme // false' "$output_file" 2>/dev/null)
+                            local has_license=$(jq -r '.summary.has_license // false' "$output_file" 2>/dev/null)
+                            printf "score %d " "$score"
+                            if [[ "$has_readme" == "true" ]]; then
+                                printf "${GREEN}README${NC} "
+                            else
+                                printf "${RED}no README${NC} "
+                            fi
+                            if [[ "$has_license" == "true" ]]; then
+                                printf "${GREEN}LICENSE${NC}"
+                            else
+                                printf "${YELLOW}no LICENSE${NC}"
+                            fi
+                            ;;
+                        git)
+                            local commits=$(jq -r '.summary.total_commits // 0' "$output_file" 2>/dev/null)
+                            local contributors=$(jq -r '.summary.contributors // 0' "$output_file" 2>/dev/null)
+                            local commits_90d=$(jq -r '.summary.commits_90d // 0' "$output_file" 2>/dev/null)
+                            printf "%d commits " "$commits"
+                            printf "${DIM}%d contributors${NC} " "$contributors"
+                            if [[ "$commits_90d" -gt 0 ]]; then
+                                printf "${DIM}(%d in 90d)${NC}" "$commits_90d"
+                            fi
+                            ;;
+                        test-coverage)
+                            local coverage=$(jq -r '.summary.coverage_percentage // 0' "$output_file" 2>/dev/null)
+                            local has_tests=$(jq -r '.summary.has_tests // false' "$output_file" 2>/dev/null)
+                            if [[ "$has_tests" == "true" ]]; then
+                                if [[ "$coverage" -ge 80 ]]; then
+                                    printf "${GREEN}%d%%${NC}" "$coverage"
+                                elif [[ "$coverage" -ge 50 ]]; then
+                                    printf "${YELLOW}%d%%${NC}" "$coverage"
+                                else
+                                    printf "${RED}%d%%${NC}" "$coverage"
+                                fi
+                            else
+                                printf "${DIM}no tests found${NC}"
+                            fi
+                            ;;
+                        package-provenance)
+                            local signed=$(jq -r '.summary.signed_packages // 0' "$output_file" 2>/dev/null)
+                            local slsa=$(jq -r '.summary.slsa_level // "none"' "$output_file" 2>/dev/null)
+                            if [[ "$slsa" != "none" ]] && [[ "$slsa" != "null" ]]; then
+                                printf "${GREEN}SLSA %s${NC} " "$slsa"
+                            fi
+                            printf "%d signed" "$signed"
                             ;;
                         *)
                             printf "done"
@@ -1663,8 +1840,26 @@ main() {
 
         # Record scan in history
         local scan_end_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+        # Calculate duration - use TZ=UTC for macOS timestamp parsing
+        local start_epoch
+        if [[ "$scan_start_time" == *Z ]]; then
+            start_epoch=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$scan_start_time" +%s 2>/dev/null)
+        fi
+        [[ -z "$start_epoch" ]] && start_epoch=$(date -d "$scan_start_time" +%s 2>/dev/null || echo "0")
+        local end_epoch=$(date +%s)
+        local duration_seconds=$((end_epoch - start_epoch))
+        [[ $duration_seconds -lt 0 ]] && duration_seconds=0
+
+        # Extract git info from context
+        local commit_hash=$(echo "$git_context" | jq -r '.commit_hash // ""' 2>/dev/null)
+        local commit_short=$(echo "$git_context" | jq -r '.commit_short // ""' 2>/dev/null)
+        local git_branch=$(echo "$git_context" | jq -r '.branch // ""' 2>/dev/null)
+
+        # Convert scanners to JSON array
         local scanners_run=$(get_analyzers_for_mode "$MODE")
-        gibson_append_scan_history "$project_id" "$scan_id" "$git_context" "$scan_start_time" "$scan_end_time" "$MODE" "$scanners_run" "complete"
+        local scanners_json=$(echo "$scanners_run" | tr ' ' '\n' | jq -R . | jq -sc '.')
+
+        gibson_append_scan_history "$project_id" "$scan_id" "$commit_hash" "$commit_short" "$git_branch" "$scan_start_time" "$scan_end_time" "$duration_seconds" "$MODE" "$scanners_json" "complete" "{}"
 
         # Update org-level index
         gibson_update_org_index "$project_id"
@@ -1779,8 +1974,26 @@ main() {
 
     # Record scan in history
     local scan_end_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    # Calculate duration - use TZ=UTC for macOS timestamp parsing
+    local start_epoch
+    if [[ "$scan_start_time" == *Z ]]; then
+        start_epoch=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$scan_start_time" +%s 2>/dev/null)
+    fi
+    [[ -z "$start_epoch" ]] && start_epoch=$(date -d "$scan_start_time" +%s 2>/dev/null || echo "0")
+    local end_epoch=$(date +%s)
+    local duration_seconds=$((end_epoch - start_epoch))
+    [[ $duration_seconds -lt 0 ]] && duration_seconds=0
+
+    # Extract git info from context
+    local commit_hash=$(echo "$git_context" | jq -r '.commit_hash // ""' 2>/dev/null)
+    local commit_short=$(echo "$git_context" | jq -r '.commit_short // ""' 2>/dev/null)
+    local git_branch=$(echo "$git_context" | jq -r '.branch // ""' 2>/dev/null)
+
+    # Convert scanners to JSON array
     local scanners_run=$(get_analyzers_for_mode "$MODE")
-    gibson_append_scan_history "$project_id" "$scan_id" "$git_context" "$scan_start_time" "$scan_end_time" "$MODE" "$scanners_run" "complete"
+    local scanners_json=$(echo "$scanners_run" | tr ' ' '\n' | jq -R . | jq -sc '.')
+
+    gibson_append_scan_history "$project_id" "$scan_id" "$commit_hash" "$commit_short" "$git_branch" "$scan_start_time" "$scan_end_time" "$duration_seconds" "$MODE" "$scanners_json" "complete" "{}"
 
     # Update org-level index for agent queries
     gibson_update_org_index "$project_id"

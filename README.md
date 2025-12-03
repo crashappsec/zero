@@ -14,41 +14,33 @@ Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 
 ## What is Phantom?
 
-Phantom is a modern Developer-First Platform Intelligence (DPI) system built on AI agents, skills, RAG knowledge bases, and specialized prompts. It serves as a master orchestrator for repository analysis - bootstrapping projects, running analyzers, and querying results through specialist agents. It includes utilities to extract structured data from source code that agents use for comprehensive analysis of security, compliance, code ownership, and development practices.
+Phantom is a set of open-source tools for software and security engineers. It's core is a set of AI agents, the knowledge they use and a RAG database with authoritatve information they can use when reasoning. It also consists of a set of shell-script utilities that can be run stand-alone or using Claude, leveraging all of some of the capabilities in this repo. 
 
-**Note:** Phantom's open-source agents operate on source code alone, but deliver significantly more sophisticated insights when combined with [Crash Override's](https://crashoverride.com) platform - particularly its deep build inspection technology and cloud services integration - providing enterprise-grade DPI for modern DevOps engineering teams.
+The agents, knowledge and RAG was built to augment the Crash Override platform at crashoverride.com. Crash Override works by connecting source-code and the cooud through deep build inspection so it has a single source of truth about everything that is happening in an SDLC. Phantom just operates on the source-code and, when used on it's own has no knowledge of the deep build inspection data or the cloud, however it can be used in conjunction with two other Crash Override projects, Chalk at chalkproject.io which is a core part if deep build inspection and Ocular ocularproject.io that orchestrates code syncing and tools orchestration at scale. 
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│  PHANTOM                                                             │
-│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  │
-│                                                                      │
-│  ./phantom.sh hydrate expressjs/express                              │
-│                                                                      │
-│  [1/7] dependencies     ✓  1s   21 packages (CycloneDX)             │
-│  [2/7] technology       ✓  6s   2 technologies                      │
-│  [3/7] vulnerabilities  ✓  1s   clean                               │
-│  [4/7] licenses         ✓  2s   pass                                │
-│  [5/7] security         ✓  1s   2 issues                            │
-│  [6/7] ownership        ✓  3s   20 contributors, bus factor 2       │
-│  [7/7] dora             ✓  0s   ELITE                               │
-│                                                                      │
-│  Risk Level: LOW                                                     │
-│  Storage: ~/.phantom/projects/expressjs/express/ (11 MB)             │
-└─────────────────────────────────────────────────────────────────────┘
-```
+Phantoms utilities are also designed to provide richer meta-data about source code that can be used by the AI agents and as stand-alone functionality, that is beyond currently available tools. For instance SCA or supply chain security tools match vulnerabilites to open-source libraries, Phantom extends that to provide health score about libraries, can make recomendations of alternative healthier libraries and now developers can reduce their use of packages to improve build times and reduce risk.
 
 ## Features
 
-- **SBOM Generation** - Software Bill of Materials in CycloneDX format
-- **Vulnerability Scanning** - CVE detection via OSV.dev integration
+Features are being rapidly developed but currently include:
+
+- **Code Sync** - Clone and sync source code from Github to analyze locally and access to the Github API for further data
+- **SBOM** - Software Bill of Materials generation and analysis
+- **Package Vulnerabilities** - CVE detection via OSV.dev integration
+- **Package Health** - OSSF scorecards and reliability
 - **Technology Identification** - Automated tech stack detection with RAG-powered patterns
 - **License Compliance** - SPDX license analysis and compliance checking
 - **Code Security** - Static analysis for security issues and secrets
+- **IaC Security** - Analysis of infrastretcure as code
+- **Secret Detection** - Discover secrets in code
 - **Code Ownership** - Bus factor analysis and contributor insights
 - **DORA Metrics** - Deployment frequency, lead time, and performance metrics
-- **Package Health** - Abandoned package and typosquatting detection
 - **Provenance** - Git signature verification and supply chain integrity
+- **Code Quality** - including test coverage and documentation 
+
+Many features have two modes, a basic mode that can operate independently and an advanced mode that levaerages Claude. 
+
+You can also use the Agents, providing a full LLM experience to ask quetions about and analyze all of the data. 
 
 ## Quick Start
 
@@ -69,12 +61,7 @@ Phantom is a modern Developer-First Platform Intelligence (DPI) system built on 
 git clone https://github.com/crashappsec/gibson-powers.git
 cd gibson-powers
 
-# Run setup to install dependencies and configure
-./utils/phantom/phantom.sh setup
-
-# Verify everything is ready
-./utils/phantom/phantom.sh check
-```
+Phantom provides an interactive terminal menu that can check for pre-requsities, install thewm automatically if asked and run the core utilities. Any individual task can be run stand alone and are availbale in the /utils folder. 
 
 ### Usage
 
@@ -194,6 +181,34 @@ Each analyzer is also available as a standalone utility:
 ./utils/certificate-analyser/cert-analyser.sh api.example.com
 ```
 
+## Report Generation
+
+Generate comprehensive reports in multiple formats:
+
+```bash
+# Interactive mode - select project and options
+./utils/phantom/report.sh -i
+
+# Command line - specify project and options
+./utils/phantom/report.sh expressjs/express                    # Summary report (terminal)
+./utils/phantom/report.sh expressjs/express -t security        # Security report
+./utils/phantom/report.sh expressjs/express -t security -f html -o report.html
+
+# Report types: summary, security, licenses, sbom, compliance, supply-chain, dora, full
+# Output formats: terminal, markdown, json, html, csv
+```
+
+| Report Type | Description |
+|-------------|-------------|
+| **summary** | High-level overview of all findings |
+| **security** | Vulnerabilities, secrets, code security issues |
+| **licenses** | License compliance and dependency licenses |
+| **sbom** | Software Bill of Materials |
+| **compliance** | Documentation, ownership, policy compliance |
+| **supply-chain** | Dependencies, health, provenance |
+| **dora** | DevOps metrics and performance |
+| **full** | Comprehensive report (all sections) |
+
 ## Claude Integration
 
 For AI-enhanced analysis, set your Anthropic API key and use `--deep` mode:
@@ -282,5 +297,5 @@ Phantom is maintained by the open source community and sponsored by [Crash Overr
 ---
 
 **Status**: Experimental Preview
-**Version**: 4.0.0
-**Last Updated**: 2025-11-27
+**Version**: 4.1.0
+**Last Updated**: 2025-12-03
