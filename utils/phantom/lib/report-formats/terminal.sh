@@ -1515,17 +1515,27 @@ format_ai_adoption_terminal() {
             printf "  ${BOLD}AI FILE ADOPTION${NC} ${DIM}(who introduced AI, when)${NC}\n"
             printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
 
-            printf "\n  %-40s %-15s %s\n" "File" "Technology" "Owner"
+            printf "\n  %-32s %-12s %-18s %s\n" "File" "Technology" "Owner" "Introduced"
             printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
 
             echo "$json" | jq -r '.file_adoption[:15][] | "\(.file)|\(.technology)|\(.owner)|\(.introduced)"' 2>/dev/null | while IFS='|' read -r file tech owner introduced; do
                 [[ -z "$file" ]] && continue
                 # Truncate long paths
                 local short_file="$file"
-                if [[ ${#file} -gt 38 ]]; then
-                    short_file="...${file: -35}"
+                if [[ ${#file} -gt 30 ]]; then
+                    short_file="...${file: -27}"
                 fi
-                printf "  %-40s %-15s %s\n" "$short_file" "$tech" "$owner"
+                # Truncate owner name
+                local short_owner="$owner"
+                if [[ ${#owner} -gt 16 ]]; then
+                    short_owner="${owner:0:14}.."
+                fi
+                # Format date (extract YYYY-MM-DD)
+                local short_date=""
+                if [[ -n "$introduced" ]] && [[ "$introduced" != "null" ]]; then
+                    short_date=$(echo "$introduced" | cut -d' ' -f1)
+                fi
+                printf "  %-32s %-12s %-18s ${DIM}%s${NC}\n" "$short_file" "$tech" "$short_owner" "$short_date"
             done
 
             if [[ "$file_adoption_count" -gt 15 ]]; then
