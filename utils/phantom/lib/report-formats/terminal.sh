@@ -51,6 +51,12 @@ format_report_output() {
         full)
             format_full_terminal "$json_data" "$target_id"
             ;;
+        code-ownership)
+            format_code_ownership_terminal "$json_data" "$target_id"
+            ;;
+        ai-adoption)
+            format_ai_adoption_terminal "$json_data" "$target_id"
+            ;;
         *)
             format_summary_terminal "$json_data" "$target_id"
             ;;
@@ -1141,6 +1147,410 @@ format_full_terminal() {
     echo
 }
 
+# Format code-ownership report for terminal (3-tier view)
+format_code_ownership_terminal() {
+    local json="$1"
+    local target_id="$2"
+
+    local project_id=$(echo "$json" | jq -r '.project.id // "Unknown"')
+    local profile=$(echo "$json" | jq -r '.project.profile // "standard"')
+    local completed_at=$(echo "$json" | jq -r '.project.completed_at // ""')
+    local commit=$(echo "$json" | jq -r '.project.commit_short // ""')
+    local branch=$(echo "$json" | jq -r '.project.branch // ""')
+
+    # Tier availability
+    local tier1=$(echo "$json" | jq -r '.tiers.basic // false')
+    local tier2=$(echo "$json" | jq -r '.tiers.analysis // false')
+    local tier3=$(echo "$json" | jq -r '.tiers.ai_insights // false')
+
+    echo
+    printf "${BOLD}${BOX_TL}"
+    printf '%*s' 66 '' | tr ' ' "$BOX_H"
+    printf "${BOX_TR}${NC}\n"
+    printf "${BOLD}${BOX_V}  CODE OWNERSHIP REPORT%*s${BOX_V}${NC}\n" 43 ''
+    printf "${BOLD}${BOX_BL}"
+    printf '%*s' 66 '' | tr ' ' "$BOX_H"
+    printf "${BOX_BR}${NC}\n"
+    echo
+
+    printf "  ${BOLD}Project:${NC}     %s\n" "$project_id"
+    printf "  ${BOLD}Scanned:${NC}     %s ${DIM}(%s)${NC}\n" "$(format_timestamp "$completed_at")" "$(relative_time "$completed_at")"
+    printf "  ${BOLD}Profile:${NC}     %s\n" "$profile"
+    if [[ -n "$commit" ]] && [[ "$commit" != "null" ]]; then
+        printf "  ${BOLD}Commit:${NC}      %s ${DIM}(%s)${NC}\n" "$commit" "$branch"
+    fi
+
+    #########################################################################
+    # TIER 1: BASIC - CODEOWNERS Detection
+    #########################################################################
+    echo
+    hr "$BOX_LINE" 68
+    echo
+    printf "  ${BOLD}TIER 1: BASIC${NC} ${DIM}(CODEOWNERS Detection)${NC}\n"
+    printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+    if [[ "$tier1" == "true" ]]; then
+        local codeowners_exists=$(echo "$json" | jq -r '.tier1_basic.codeowners.exists // false')
+        local codeowners_path=$(echo "$json" | jq -r '.tier1_basic.codeowners.path // ""')
+        local codeowners_valid=$(echo "$json" | jq -r '.tier1_basic.codeowners.valid // "unknown"')
+        local codeowners_patterns=$(echo "$json" | jq -r '.tier1_basic.codeowners.total_patterns // 0')
+        local codeowners_owners=$(echo "$json" | jq -r '.tier1_basic.codeowners.unique_owners // 0')
+
+        printf "  %-20s │  " "CODEOWNERS File"
+        if [[ "$codeowners_exists" == "true" ]]; then
+            printf "${GREEN}Present${NC} ${DIM}(%s)${NC}\n" "$codeowners_path"
+        else
+            printf "${YELLOW}Not Found${NC}\n"
+        fi
+
+        if [[ "$codeowners_exists" == "true" ]]; then
+            printf "  %-20s │  " "Syntax Valid"
+            case "$codeowners_valid" in
+                valid) printf "${GREEN}✓ Valid${NC}\n" ;;
+                warnings) printf "${YELLOW}⚠ Warnings${NC}\n" ;;
+                invalid) printf "${RED}✗ Invalid${NC}\n" ;;
+                *) printf "%s\n" "$codeowners_valid" ;;
+            esac
+            printf "  %-20s │  %s\n" "Patterns Defined" "$codeowners_patterns"
+            printf "  %-20s │  %s\n" "Unique Owners" "$codeowners_owners"
+
+            # Show issues if any
+            local issue_count=$(echo "$json" | jq -r '.tier1_basic.codeowners.issues | length // 0')
+            if [[ "$issue_count" -gt 0 ]]; then
+                echo
+                printf "  ${YELLOW}Issues Found:${NC}\n"
+                echo "$json" | jq -r '.tier1_basic.codeowners.issues[:3][] | "    • \(.type): \(.message)"' 2>/dev/null
+                if [[ "$issue_count" -gt 3 ]]; then
+                    printf "    ${DIM}... and %d more issues${NC}\n" $((issue_count - 3))
+                fi
+            fi
+        fi
+    else
+        printf "  ${DIM}No CODEOWNERS data available${NC}\n"
+        printf "  ${DIM}Run code-ownership scanner to collect data${NC}\n"
+    fi
+
+    #########################################################################
+    # TIER 2: ANALYSIS - Bus Factor & Metrics
+    #########################################################################
+    echo
+    hr "$BOX_LINE" 68
+    echo
+    printf "  ${BOLD}TIER 2: ANALYSIS${NC} ${DIM}(Bus Factor & Concentration)${NC}\n"
+    printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+    if [[ "$tier2" == "true" ]]; then
+        local bus_factor=$(echo "$json" | jq -r '.tier2_analysis.bus_factor.value // 0')
+        local risk_level=$(echo "$json" | jq -r '.tier2_analysis.bus_factor.risk_level // "unknown"')
+        local risk_desc=$(echo "$json" | jq -r '.tier2_analysis.bus_factor.risk_description // ""')
+        local gini=$(echo "$json" | jq -r '.tier2_analysis.concentration.gini_coefficient // 0')
+        local top1_pct=$(echo "$json" | jq -r '.tier2_analysis.concentration.top_contributor_percentage // 0')
+        local top3_pct=$(echo "$json" | jq -r '.tier2_analysis.concentration.top_3_contributors_percentage // 0')
+        local total_commits=$(echo "$json" | jq -r '.tier2_analysis.summary.total_commits // 0')
+        local active_contributors=$(echo "$json" | jq -r '.tier2_analysis.summary.active_contributors // 0')
+        local period_days=$(echo "$json" | jq -r '.tier2_analysis.period_days // 90')
+
+        printf "  %-20s │  " "Bus Factor"
+        case "$risk_level" in
+            critical) printf "${RED}%s${NC} ${RED}(CRITICAL)${NC}\n" "$bus_factor" ;;
+            high) printf "${RED}%s${NC} ${YELLOW}(HIGH RISK)${NC}\n" "$bus_factor" ;;
+            medium) printf "${YELLOW}%s${NC} ${YELLOW}(MEDIUM)${NC}\n" "$bus_factor" ;;
+            low) printf "${GREEN}%s${NC} ${GREEN}(LOW RISK)${NC}\n" "$bus_factor" ;;
+            *) printf "%s\n" "$bus_factor" ;;
+        esac
+
+        if [[ -n "$risk_desc" ]] && [[ "$risk_desc" != "null" ]]; then
+            printf "  %-20s │  ${DIM}%s${NC}\n" "" "$risk_desc"
+        fi
+
+        echo
+        printf "  ${BOLD}Concentration Metrics${NC}\n"
+        printf "  %-20s │  %.2f " "Gini Coefficient" "$gini"
+        if (( $(echo "$gini > 0.6" | bc -l 2>/dev/null || echo 0) )); then
+            printf "${RED}(High concentration)${NC}\n"
+        elif (( $(echo "$gini > 0.4" | bc -l 2>/dev/null || echo 0) )); then
+            printf "${YELLOW}(Moderate)${NC}\n"
+        else
+            printf "${GREEN}(Well distributed)${NC}\n"
+        fi
+        printf "  %-20s │  %.1f%%\n" "Top Contributor" "$top1_pct"
+        printf "  %-20s │  %.1f%%\n" "Top 3 Contributors" "$top3_pct"
+
+        echo
+        printf "  ${BOLD}Activity (last %s days)${NC}\n" "$period_days"
+        printf "  %-20s │  %s\n" "Total Commits" "$total_commits"
+        printf "  %-20s │  %s\n" "Active Contributors" "$active_contributors"
+
+        # Show top contributors
+        local contrib_count=$(echo "$json" | jq -r '.tier2_analysis.contributors | length // 0')
+        if [[ "$contrib_count" -gt 0 ]]; then
+            echo
+            printf "  ${BOLD}Top Contributors${NC}\n"
+            echo "$json" | jq -r '.tier2_analysis.contributors[:5][] | "\(.name)|\(.commits)|\(.ownership_percentage)"' 2>/dev/null | while IFS='|' read -r name commits pct; do
+                [[ -z "$name" ]] && continue
+                printf "    %-25s %4d commits  %5.1f%%\n" "$name" "$commits" "$pct"
+            done
+        fi
+    else
+        printf "  ${DIM}No bus factor analysis available${NC}\n"
+        printf "  ${DIM}Run bus-factor scanner for detailed metrics${NC}\n"
+    fi
+
+    #########################################################################
+    # TIER 3: AI INSIGHTS (Future)
+    #########################################################################
+    echo
+    hr "$BOX_LINE" 68
+    echo
+    printf "  ${BOLD}TIER 3: AI INSIGHTS${NC} ${DIM}(Claude Analysis)${NC}\n"
+    printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+    if [[ "$tier3" == "true" ]]; then
+        local ai_model=$(echo "$json" | jq -r '.tier3_ai_insights.model // ""')
+        if [[ -n "$ai_model" ]]; then
+            printf "  ${DIM}Analyzed by: %s${NC}\n\n" "$ai_model"
+        fi
+
+        local insight_count=$(echo "$json" | jq -r '.tier3_ai_insights.insights | length // 0')
+        local rec_count=$(echo "$json" | jq -r '.tier3_ai_insights.recommendations | length // 0')
+
+        if [[ "$insight_count" -gt 0 ]]; then
+            printf "  ${BOLD}Key Insights:${NC}\n"
+            echo "$json" | jq -r '.tier3_ai_insights.insights[]' 2>/dev/null | while read -r insight; do
+                printf "    ${CYAN}→${NC} %s\n" "$insight"
+            done
+        fi
+
+        if [[ "$rec_count" -gt 0 ]]; then
+            echo
+            printf "  ${BOLD}Recommendations:${NC}\n"
+            echo "$json" | jq -r '.tier3_ai_insights.recommendations[]' 2>/dev/null | while read -r rec; do
+                printf "    ${GREEN}•${NC} %s\n" "$rec"
+            done
+        fi
+
+        # Risk areas
+        local risk_count=$(echo "$json" | jq -r '.tier3_ai_insights.risk_areas | length // 0')
+        if [[ "$risk_count" -gt 0 ]]; then
+            echo
+            printf "  ${BOLD}Risk Areas:${NC}\n"
+            echo "$json" | jq -r '.tier3_ai_insights.risk_areas[] | "\(.area)|\(.owner)|\(.risk)|\(.reason)"' 2>/dev/null | while IFS='|' read -r area owner risk reason; do
+                local risk_color="$GREEN"
+                [[ "$risk" == "medium" ]] && risk_color="$YELLOW"
+                [[ "$risk" == "high" ]] && risk_color="$RED"
+                [[ "$risk" == "critical" ]] && risk_color="$RED"
+                printf "    ${risk_color}■${NC} %-20s ${DIM}(%s)${NC}\n" "$area" "$owner"
+                printf "      ${DIM}%s${NC}\n" "$reason"
+            done
+        fi
+
+        # Action items
+        local action_count=$(echo "$json" | jq -r '.tier3_ai_insights.action_items | length // 0')
+        if [[ "$action_count" -gt 0 ]]; then
+            echo
+            printf "  ${BOLD}Action Items:${NC}\n"
+            echo "$json" | jq -r '.tier3_ai_insights.action_items[] | "\(.priority)|\(.action)|\(.owner)"' 2>/dev/null | while IFS='|' read -r priority action owner; do
+                local priority_icon="○"
+                [[ "$priority" == "high" ]] && priority_icon="${RED}●${NC}"
+                [[ "$priority" == "medium" ]] && priority_icon="${YELLOW}●${NC}"
+                [[ "$priority" == "low" ]] && priority_icon="${GREEN}●${NC}"
+                printf "    %b %s\n" "$priority_icon" "$action"
+                printf "      ${DIM}Owner: %s${NC}\n" "$owner"
+            done
+        fi
+
+        # Suggested CODEOWNERS
+        local codeowners_count=$(echo "$json" | jq -r '.tier3_ai_insights.suggested_codeowners | length // 0')
+        if [[ "$codeowners_count" -gt 0 ]]; then
+            echo
+            printf "  ${BOLD}Suggested CODEOWNERS:${NC}\n"
+            printf "  ${DIM}┌────────────────────────────────────────────────────────────┐${NC}\n"
+            echo "$json" | jq -r '.tier3_ai_insights.suggested_codeowners[]' 2>/dev/null | while read -r line; do
+                printf "  ${DIM}│${NC} %-58s ${DIM}│${NC}\n" "$line"
+            done
+            printf "  ${DIM}└────────────────────────────────────────────────────────────┘${NC}\n"
+        fi
+    else
+        printf "  ${DIM}AI analysis not available${NC}\n"
+        printf "  ${DIM}Use --deep profile or run with Claude for insights like:${NC}\n"
+        printf "  ${DIM}  • Critical risk areas and succession planning${NC}\n"
+        printf "  ${DIM}  • Knowledge transfer recommendations${NC}\n"
+        printf "  ${DIM}  • Auto-generated optimal CODEOWNERS file${NC}\n"
+    fi
+
+    echo
+    hr "$BOX_LINE" 68
+    echo -e "  ${DIM}Generated by Phantom Report v${REPORT_VERSION}${NC}"
+    echo
+}
+
+# Format AI adoption report for terminal
+format_ai_adoption_terminal() {
+    local json="$1"
+    local target_id="$2"
+
+    local project_id=$(echo "$json" | jq -r '.project.id // "Unknown"')
+    local profile=$(echo "$json" | jq -r '.project.profile // "standard"')
+    local completed_at=$(echo "$json" | jq -r '.project.completed_at // ""')
+    local commit=$(echo "$json" | jq -r '.project.git.commit // ""')
+    local branch=$(echo "$json" | jq -r '.project.git.branch // ""')
+
+    # Summary
+    local has_ai=$(echo "$json" | jq -r '.summary.has_ai_adoption // false')
+    local ai_tech_count=$(echo "$json" | jq -r '.summary.ai_technologies_count // 0')
+    local ai_cat_count=$(echo "$json" | jq -r '.summary.ai_categories_count // 0')
+    local total_contributors=$(echo "$json" | jq -r '.summary.total_contributors // 0')
+    local bus_factor=$(echo "$json" | jq -r '.summary.bus_factor // 0')
+    local bus_factor_risk=$(echo "$json" | jq -r '.summary.bus_factor_risk // "unknown"')
+
+    echo
+    printf "${BOLD}${BOX_TL}"
+    printf '%*s' 66 '' | tr ' ' "$BOX_H"
+    printf "${BOX_TR}${NC}\n"
+    printf "${BOLD}${BOX_V}  AI ADOPTION REPORT%*s${BOX_V}${NC}\n" 46 ''
+    printf "${BOLD}${BOX_BL}"
+    printf '%*s' 66 '' | tr ' ' "$BOX_H"
+    printf "${BOX_BR}${NC}\n"
+    echo
+
+    printf "  ${BOLD}Project:${NC}     %s\n" "$project_id"
+    printf "  ${BOLD}Scanned:${NC}     %s ${DIM}(%s)${NC}\n" "$(format_timestamp "$completed_at")" "$(relative_time "$completed_at")"
+    printf "  ${BOLD}Profile:${NC}     %s\n" "$profile"
+    if [[ -n "$commit" ]] && [[ "$commit" != "null" ]] && [[ "$commit" != "" ]]; then
+        printf "  ${BOLD}Commit:${NC}      %s ${DIM}(%s)${NC}\n" "$commit" "$branch"
+    fi
+
+    echo
+    hr "$BOX_LINE" 68
+    echo
+
+    #########################################################################
+    # SUMMARY
+    #########################################################################
+    printf "  ${BOLD}SUMMARY${NC}\n"
+    printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+    printf "  %-20s │  " "AI Adoption"
+    if [[ "$has_ai" == "true" ]]; then
+        printf "${CYAN}Yes${NC} - %s technologies detected\n" "$ai_tech_count"
+    else
+        printf "${DIM}No AI technologies detected${NC}\n"
+    fi
+
+    printf "  %-20s │  %s\n" "AI Categories" "$ai_cat_count"
+    printf "  %-20s │  %s\n" "Contributors" "$total_contributors"
+
+    printf "  %-20s │  " "Bus Factor"
+    case "$bus_factor_risk" in
+        critical) printf "${RED}%s (CRITICAL)${NC}\n" "$bus_factor" ;;
+        high) printf "${RED}%s (HIGH)${NC}\n" "$bus_factor" ;;
+        medium) printf "${YELLOW}%s (MEDIUM)${NC}\n" "$bus_factor" ;;
+        low) printf "${GREEN}%s (LOW)${NC}\n" "$bus_factor" ;;
+        *) printf "%s\n" "$bus_factor" ;;
+    esac
+
+    #########################################################################
+    # AI TECHNOLOGIES BY CATEGORY
+    #########################################################################
+    if [[ "$has_ai" == "true" ]]; then
+        echo
+        hr "$BOX_LINE" 68
+        echo
+        printf "  ${BOLD}AI TECHNOLOGIES BY CATEGORY${NC}\n"
+        printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+        # Get max count for bar scaling
+        local max_count=$(echo "$json" | jq -r '[.categories[].count] | max // 1')
+
+        echo "$json" | jq -r '.categories[] | "\(.label)|\(.count)|\(.technologies | join(", "))"' 2>/dev/null | while IFS='|' read -r label count techs; do
+            [[ -z "$label" ]] && continue
+
+            # Calculate bar width (max 20 chars)
+            local bar_width=$((count * 20 / max_count))
+            [[ "$bar_width" -lt 1 ]] && bar_width=1
+            local bar=$(printf '%*s' "$bar_width" '' | tr ' ' '█')
+            local empty_width=$((20 - bar_width))
+            local empty=$(printf '%*s' "$empty_width" '' | tr ' ' '░')
+
+            printf "\n  ${CYAN}%-20s${NC} ${GREEN}%s${NC}%s  %s tech%s\n" "$label" "$bar" "$empty" "$count" "$([[ $count -ne 1 ]] && echo 's')"
+            printf "  ${DIM}%-20s %s${NC}\n" "" "$techs"
+        done
+
+        #########################################################################
+        # AI TECHNOLOGY DETAILS
+        #########################################################################
+        echo
+        hr "$BOX_LINE" 68
+        echo
+        printf "  ${BOLD}AI TECHNOLOGY DETAILS${NC}\n"
+        printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+        echo "$json" | jq -r '.ai_technologies[] | "\(.name)|\(.category)|\(.confidence)|\(.detection_methods | join(", "))|\(.evidence | join("; "))"' 2>/dev/null | while IFS='|' read -r name category confidence methods evidence; do
+            [[ -z "$name" ]] && continue
+
+            printf "\n  ${BOLD}%s${NC} ${DIM}(%s)${NC}\n" "$name" "$category"
+            printf "    Confidence: "
+            if [[ "$confidence" -ge 90 ]]; then
+                printf "${GREEN}%s%%${NC}\n" "$confidence"
+            elif [[ "$confidence" -ge 70 ]]; then
+                printf "${YELLOW}%s%%${NC}\n" "$confidence"
+            else
+                printf "${DIM}%s%%${NC}\n" "$confidence"
+            fi
+            printf "    Detection:  %s\n" "$methods"
+            printf "    ${DIM}Evidence: %s${NC}\n" "$evidence"
+        done
+    fi
+
+    #########################################################################
+    # TOP CONTRIBUTORS
+    #########################################################################
+    local contrib_count=$(echo "$json" | jq -r '.contributors | length // 0')
+    if [[ "$contrib_count" -gt 0 ]]; then
+        echo
+        hr "$BOX_LINE" 68
+        echo
+        printf "  ${BOLD}TOP CONTRIBUTORS${NC} ${DIM}(potential AI adopters)${NC}\n"
+        printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+        printf "\n  %-4s %-28s %8s %8s\n" "Rank" "Contributor" "Commits" "Lines"
+        printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+        local rank=1
+        echo "$json" | jq -r '.contributors[:10][] | "\(.name)|\(.commits)|\(.lines_added)"' 2>/dev/null | while IFS='|' read -r name commits lines; do
+            [[ -z "$name" ]] && continue
+            printf "  %-4s %-28s %8s %8s\n" "$rank." "$name" "$commits" "$(format_number "$lines")"
+            ((rank++))
+        done
+    fi
+
+    #########################################################################
+    # GOVERNANCE NOTE
+    #########################################################################
+    echo
+    hr "$BOX_LINE" 68
+    echo
+    printf "  ${BOLD}GOVERNANCE${NC}\n"
+    printf "  %s\n" "$(printf '%*s' 64 '' | tr ' ' '─')"
+
+    if [[ "$has_ai" == "true" ]]; then
+        printf "  ${YELLOW}Note:${NC} AI technologies detected. Consider:\n"
+        printf "    • Reviewing AI vendor agreements and data policies\n"
+        printf "    • Ensuring compliance with organizational AI guidelines\n"
+        printf "    • Tracking AI-related costs and API usage\n"
+    else
+        printf "  ${GREEN}No AI technologies detected in this repository.${NC}\n"
+    fi
+
+    printf "\n  ${DIM}Phase 1 MVP: Shows AI technologies + contributors separately.${NC}\n"
+    printf "  ${DIM}Phase 2 will add file-level correlation (who uses which AI).${NC}\n"
+
+    echo
+    hr "$BOX_LINE" 68
+    echo -e "  ${DIM}Generated by Phantom Report v${REPORT_VERSION}${NC}"
+    echo
+}
+
 export -f format_report_output
 export -f format_summary_terminal
 export -f format_project_summary_terminal
@@ -1152,3 +1562,5 @@ export -f format_compliance_terminal
 export -f format_supply_chain_terminal
 export -f format_dora_terminal
 export -f format_full_terminal
+export -f format_code_ownership_terminal
+export -f format_ai_adoption_terminal

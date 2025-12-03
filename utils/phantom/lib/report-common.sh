@@ -20,7 +20,7 @@ _REPORT_COMMON_LOADED=true
 REPORT_VERSION="1.0.0"
 
 # Report types
-REPORT_TYPES=("summary" "security" "licenses" "compliance" "sbom" "supply-chain" "dora" "full")
+REPORT_TYPES=("summary" "security" "licenses" "compliance" "sbom" "supply-chain" "dora" "code-ownership" "ai-adoption" "full")
 
 # Output formats
 REPORT_FORMATS=("terminal" "markdown" "json" "html" "csv")
