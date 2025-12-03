@@ -24,6 +24,12 @@ format_report_output() {
         security)
             format_security_markdown "$json_data" "$target_id"
             ;;
+        code-ownership)
+            format_code_ownership_markdown "$json_data" "$target_id"
+            ;;
+        ai-adoption)
+            format_ai_adoption_markdown "$json_data" "$target_id"
+            ;;
         *)
             format_summary_markdown "$json_data" "$target_id"
             ;;
@@ -333,10 +339,330 @@ format_security_markdown() {
     format_summary_markdown "$json" "$target_id"
 }
 
+# Format code-ownership report for markdown (3-tier view)
+format_code_ownership_markdown() {
+    local json="$1"
+    local target_id="$2"
+
+    local project_id=$(echo "$json" | jq -r '.project.id // "Unknown"')
+    local profile=$(echo "$json" | jq -r '.project.profile // "standard"')
+    local completed_at=$(echo "$json" | jq -r '.project.completed_at // ""')
+
+    local tier1=$(echo "$json" | jq -r '.tiers.basic // false')
+    local tier2=$(echo "$json" | jq -r '.tiers.analysis // false')
+    local tier3=$(echo "$json" | jq -r '.tiers.ai_insights // false')
+
+    cat << EOF
+# Code Ownership Report
+
+**Project:** ${project_id}
+**Scanned:** ${completed_at}
+**Profile:** ${profile}
+
+---
+
+## Tier 1: Basic (CODEOWNERS Detection)
+
+EOF
+
+    if [[ "$tier1" == "true" ]]; then
+        local codeowners_exists=$(echo "$json" | jq -r '.tier1_basic.codeowners.exists // false')
+        if [[ "$codeowners_exists" == "true" ]]; then
+            local codeowners_path=$(echo "$json" | jq -r '.tier1_basic.codeowners.path // ""')
+            local codeowners_valid=$(echo "$json" | jq -r '.tier1_basic.codeowners.valid // "unknown"')
+            local codeowners_patterns=$(echo "$json" | jq -r '.tier1_basic.codeowners.total_patterns // 0')
+            local codeowners_owners=$(echo "$json" | jq -r '.tier1_basic.codeowners.unique_owners // 0')
+            echo "✅ **CODEOWNERS File:** Present (\`${codeowners_path}\`)"
+            echo "- **Syntax:** ${codeowners_valid}"
+            echo "- **Patterns:** ${codeowners_patterns}"
+            echo "- **Unique Owners:** ${codeowners_owners}"
+        else
+            echo "⚠️ **CODEOWNERS File:** Not Found"
+        fi
+    else
+        echo "*No CODEOWNERS data available*"
+    fi
+
+    cat << EOF
+
+---
+
+## Tier 2: Analysis (Bus Factor & Concentration)
+
+EOF
+
+    if [[ "$tier2" == "true" ]]; then
+        local bus_factor=$(echo "$json" | jq -r '.tier2_analysis.bus_factor.value // 0')
+        local risk_level=$(echo "$json" | jq -r '.tier2_analysis.bus_factor.risk_level // "unknown"')
+        local risk_desc=$(echo "$json" | jq -r '.tier2_analysis.bus_factor.risk_description // ""')
+        local gini=$(echo "$json" | jq -r '.tier2_analysis.concentration.gini_coefficient // 0')
+        local top1_pct=$(echo "$json" | jq -r '.tier2_analysis.concentration.top_contributor_percentage // 0')
+        local top3_pct=$(echo "$json" | jq -r '.tier2_analysis.concentration.top_3_contributors_percentage // 0')
+        local total_commits=$(echo "$json" | jq -r '.tier2_analysis.summary.total_commits // 0')
+        local active_contributors=$(echo "$json" | jq -r '.tier2_analysis.summary.active_contributors // 0')
+
+        local risk_emoji="🟢"
+        [[ "$risk_level" == "medium" ]] && risk_emoji="🟡"
+        [[ "$risk_level" == "high" ]] && risk_emoji="🟠"
+        [[ "$risk_level" == "critical" ]] && risk_emoji="🔴"
+        local risk_level_upper=$(echo "$risk_level" | tr '[:lower:]' '[:upper:]')
+
+        echo "### Bus Factor: ${bus_factor} ${risk_emoji} (${risk_level_upper})"
+        echo ""
+        echo "> ${risk_desc}"
+        echo ""
+        echo "### Concentration Metrics"
+        echo ""
+        echo "| Metric | Value |"
+        echo "|--------|-------|"
+        echo "| Gini Coefficient | ${gini} |"
+        echo "| Top Contributor | ${top1_pct}% |"
+        echo "| Top 3 Contributors | ${top3_pct}% |"
+        echo ""
+        echo "### Activity"
+        echo ""
+        echo "- **Total Commits:** ${total_commits}"
+        echo "- **Active Contributors:** ${active_contributors}"
+        echo ""
+        echo "### Top Contributors"
+        echo ""
+        echo "| Contributor | Commits | Ownership |"
+        echo "|-------------|---------|-----------|"
+        echo "$json" | jq -r '.tier2_analysis.contributors[:5][] | "| \(.name) | \(.commits) | \(.ownership_percentage)% |"' 2>/dev/null
+    else
+        echo "*No bus factor analysis available - run bus-factor scanner*"
+    fi
+
+    cat << EOF
+
+---
+
+## Tier 3: AI Insights (Claude Analysis)
+
+EOF
+
+    if [[ "$tier3" == "true" ]]; then
+        local ai_model=$(echo "$json" | jq -r '.tier3_ai_insights.model // ""')
+        if [[ -n "$ai_model" ]]; then
+            echo "*Analyzed by: ${ai_model}*"
+            echo ""
+        fi
+
+        echo "### Key Insights"
+        echo ""
+        echo "$json" | jq -r '.tier3_ai_insights.insights[]? | "- \(.)"' 2>/dev/null
+        echo ""
+        echo "### Recommendations"
+        echo ""
+        echo "$json" | jq -r '.tier3_ai_insights.recommendations[]? | "- \(.)"' 2>/dev/null
+
+        # Risk areas
+        local risk_count=$(echo "$json" | jq -r '.tier3_ai_insights.risk_areas | length // 0')
+        if [[ "$risk_count" -gt 0 ]]; then
+            echo ""
+            echo "### Risk Areas"
+            echo ""
+            echo "| Area | Owner | Risk | Reason |"
+            echo "|------|-------|------|--------|"
+            echo "$json" | jq -r '.tier3_ai_insights.risk_areas[]? | "| \(.area) | \(.owner) | \(.risk | ascii_upcase) | \(.reason) |"' 2>/dev/null
+        fi
+
+        # Action items
+        local action_count=$(echo "$json" | jq -r '.tier3_ai_insights.action_items | length // 0')
+        if [[ "$action_count" -gt 0 ]]; then
+            echo ""
+            echo "### Action Items"
+            echo ""
+            echo "| Priority | Action | Owner |"
+            echo "|----------|--------|-------|"
+            echo "$json" | jq -r '.tier3_ai_insights.action_items[]? | "| \(.priority | ascii_upcase) | \(.action) | \(.owner) |"' 2>/dev/null
+        fi
+
+        # Suggested CODEOWNERS
+        local codeowners_count=$(echo "$json" | jq -r '.tier3_ai_insights.suggested_codeowners | length // 0')
+        if [[ "$codeowners_count" -gt 0 ]]; then
+            echo ""
+            echo "### Suggested CODEOWNERS"
+            echo ""
+            echo "\`\`\`"
+            echo "$json" | jq -r '.tier3_ai_insights.suggested_codeowners[]?' 2>/dev/null
+            echo "\`\`\`"
+        fi
+    else
+        echo "*AI analysis not available*"
+        echo ""
+        echo "Use \`--deep\` profile or run with Claude for insights like:"
+        echo "- Critical risk areas and succession planning"
+        echo "- Knowledge transfer recommendations"
+        echo "- Auto-generated optimal CODEOWNERS file"
+    fi
+
+    cat << EOF
+
+---
+
+*Generated by Phantom Report v${REPORT_VERSION:-1.0.0}*
+*$(date '+%Y-%m-%d %H:%M:%S %Z')*
+EOF
+}
+
+# Format AI adoption report for markdown
+format_ai_adoption_markdown() {
+    local json="$1"
+    local target_id="$2"
+
+    local project_id=$(echo "$json" | jq -r '.project.id // "Unknown"')
+    local profile=$(echo "$json" | jq -r '.project.profile // "standard"')
+    local completed_at=$(echo "$json" | jq -r '.project.completed_at // ""')
+    local commit=$(echo "$json" | jq -r '.project.git.commit // ""')
+    local branch=$(echo "$json" | jq -r '.project.git.branch // ""')
+
+    local has_ai=$(echo "$json" | jq -r '.summary.has_ai_adoption // false')
+    local ai_tech_count=$(echo "$json" | jq -r '.summary.ai_technologies_count // 0')
+    local ai_cat_count=$(echo "$json" | jq -r '.summary.ai_categories_count // 0')
+    local total_contributors=$(echo "$json" | jq -r '.summary.total_contributors // 0')
+    local bus_factor=$(echo "$json" | jq -r '.summary.bus_factor // 0')
+    local bus_factor_risk=$(echo "$json" | jq -r '.summary.bus_factor_risk // "unknown"')
+
+    local ai_badge_color="green"
+    [[ "$has_ai" == "true" ]] && ai_badge_color="blue"
+
+    cat << EOF
+# AI Adoption Report
+
+**Project:** \`${project_id}\`
+**Scanned:** ${completed_at}
+**Profile:** ${profile}
+EOF
+
+    if [[ -n "$commit" ]] && [[ "$commit" != "null" ]]; then
+        echo "**Commit:** \`${commit}\` (${branch})"
+    fi
+
+    cat << EOF
+
+$(badge "AI%20Adoption" "$(if [[ "$has_ai" == "true" ]]; then echo "Detected"; else echo "None"; fi)" "$ai_badge_color") $(badge "Technologies" "$ai_tech_count" "blue") $(badge "Contributors" "$total_contributors" "lightgrey")
+
+---
+
+## Summary
+
+| Metric | Value |
+|--------|-------|
+| **AI Technologies** | $ai_tech_count |
+| **AI Categories** | $ai_cat_count |
+| **Contributors** | $total_contributors |
+| **Bus Factor** | $bus_factor ($bus_factor_risk) |
+
+EOF
+
+    if [[ "$has_ai" == "true" ]]; then
+        cat << EOF
+---
+
+## AI Technologies by Category
+
+EOF
+
+        echo "$json" | jq -r '.categories[] | "### \(.label) (\(.count))\n\n\(.technologies | map("- \(.)") | join("\n"))\n"' 2>/dev/null
+
+        cat << EOF
+
+---
+
+## AI Technology Details
+
+| Technology | Category | Confidence | Detection Method |
+|------------|----------|------------|------------------|
+EOF
+
+        echo "$json" | jq -r '.ai_technologies[] | "| \(.name) | \(.category) | \(.confidence)% | \(.detection_methods | join(", ")) |"' 2>/dev/null
+
+        cat << EOF
+
+### Evidence
+
+EOF
+
+        echo "$json" | jq -r '.ai_technologies[] | "**\(.name):** \(.evidence | join("; "))"' 2>/dev/null
+    else
+        cat << EOF
+---
+
+## No AI Technologies Detected
+
+This repository does not appear to use any AI/ML technologies based on:
+- Package dependencies (SBOM analysis)
+- Configuration files
+- Environment variables
+
+EOF
+    fi
+
+    local contrib_count=$(echo "$json" | jq -r '.contributors | length // 0')
+    if [[ "$contrib_count" -gt 0 ]]; then
+        cat << EOF
+
+---
+
+## Top Contributors
+
+*Potential AI adopters based on overall contribution activity*
+
+| Rank | Contributor | Commits | Lines Added |
+|------|-------------|---------|-------------|
+EOF
+
+        local rank=1
+        echo "$json" | jq -r '.contributors[:10][] | "\(.name)|\(.commits)|\(.lines_added)"' 2>/dev/null | while IFS='|' read -r name commits lines; do
+            [[ -z "$name" ]] && continue
+            echo "| $rank | $name | $commits | $lines |"
+            ((rank++))
+        done
+    fi
+
+    cat << EOF
+
+---
+
+## Governance Considerations
+
+EOF
+
+    if [[ "$has_ai" == "true" ]]; then
+        cat << EOF
+> ⚠️ **AI technologies detected.** Consider the following:
+
+- [ ] Review AI vendor agreements and data policies
+- [ ] Ensure compliance with organizational AI guidelines
+- [ ] Track AI-related costs and API usage
+- [ ] Assess security implications of AI integrations
+
+EOF
+    else
+        echo "✅ No AI governance concerns identified."
+    fi
+
+    cat << EOF
+
+---
+
+*Phase 1 MVP: Shows AI technologies + contributors separately.*
+*Phase 2 will add file-level correlation (who uses which AI where).*
+
+---
+
+*Generated by Phantom Report v${REPORT_VERSION:-1.0.0}*
+*$(date '+%Y-%m-%d %H:%M:%S %Z')*
+EOF
+}
+
 export -f format_report_output
 export -f format_summary_markdown
 export -f format_project_summary_markdown
 export -f format_org_summary_markdown
 export -f format_security_markdown
+export -f format_code_ownership_markdown
+export -f format_ai_adoption_markdown
 export -f get_badge_color
 export -f badge

@@ -1,0 +1,51 @@
+{
+  "version": "1.0.0",
+  "description": "AI technology category definitions for AI Adoption reporting",
+
+  "ai_category_patterns": [
+    "ai-ml/*",
+    "genai-tools/*"
+  ],
+
+  "categories": {
+    "ai-ml/apis": {
+      "label": "LLM APIs",
+      "description": "Large Language Model API providers",
+      "risk_level": "medium",
+      "examples": ["OpenAI", "Anthropic", "Google AI", "Cohere", "Mistral"]
+    },
+    "ai-ml/frameworks": {
+      "label": "AI Frameworks",
+      "description": "AI/ML application frameworks and orchestration",
+      "risk_level": "low",
+      "examples": ["LangChain", "LlamaIndex"]
+    },
+    "ai-ml/vectordb": {
+      "label": "Vector Databases",
+      "description": "Vector storage for embeddings and RAG applications",
+      "risk_level": "low",
+      "examples": ["Pinecone", "Weaviate", "Qdrant", "ChromaDB"]
+    },
+    "ai-ml/mlops": {
+      "label": "MLOps Tools",
+      "description": "Machine learning operations and model management",
+      "risk_level": "low",
+      "examples": ["Hugging Face", "Weights & Biases"]
+    },
+    "genai-tools": {
+      "label": "AI Coding Assistants",
+      "description": "AI-powered code generation and assistance tools",
+      "risk_level": "medium",
+      "examples": ["GitHub Copilot", "Cursor", "Codeium", "Tabnine"]
+    }
+  },
+
+  "governance": {
+    "require_approval": ["ai-ml/apis"],
+    "security_review": ["ai-ml/apis", "genai-tools"],
+    "data_classification": {
+      "ai-ml/apis": "May process sensitive data via API calls",
+      "genai-tools": "May expose code context to external services"
+    }
+  }
+}

@@ -39,6 +39,12 @@ render_report() {
         sbom)
             csv_output=$(render_sbom_csv "$json_data")
             ;;
+        code-ownership)
+            csv_output=$(render_code_ownership_csv "$json_data")
+            ;;
+        ai-adoption)
+            csv_output=$(render_ai_adoption_csv "$json_data")
+            ;;
         full)
             csv_output=$(render_full_csv "$json_data")
             ;;
@@ -496,6 +502,161 @@ render_full_csv() {
     echo "SLSA Level,$slsa"
 }
 
+# Render code-ownership report as CSV (3-tier view)
+render_code_ownership_csv() {
+    local json_data="$1"
+
+    # Tier information header
+    echo "# Code Ownership Report - 3-Tier Analysis"
+    echo "Tier,Category,Metric,Value,Status"
+
+    # Project info
+    local project_id=$(echo "$json_data" | jq -r '.project.id // "unknown"')
+    local profile=$(echo "$json_data" | jq -r '.project.profile // "standard"')
+    local completed=$(echo "$json_data" | jq -r '.project.completed_at // ""')
+
+    echo "Info,Project,ID,$(csv_escape "$project_id"),"
+    echo "Info,Project,Profile,$(csv_escape "$profile"),"
+    echo "Info,Project,Completed,$(csv_escape "$completed"),"
+
+    # TIER 1: BASIC - CODEOWNERS
+    local tier1=$(echo "$json_data" | jq -r '.tiers.basic // false')
+    if [[ "$tier1" == "true" ]]; then
+        local codeowners_exists=$(echo "$json_data" | jq -r '.tier1_basic.codeowners.exists // false')
+        local codeowners_path=$(echo "$json_data" | jq -r '.tier1_basic.codeowners.path // ""')
+        local codeowners_valid=$(echo "$json_data" | jq -r '.tier1_basic.codeowners.valid // "unknown"')
+        local codeowners_patterns=$(echo "$json_data" | jq -r '.tier1_basic.codeowners.total_patterns // 0')
+        local codeowners_owners=$(echo "$json_data" | jq -r '.tier1_basic.codeowners.unique_owners // 0')
+
+        echo "Tier 1,CODEOWNERS,Exists,$codeowners_exists,$([ "$codeowners_exists" == "true" ] && echo "PASS" || echo "WARN")"
+        if [[ "$codeowners_exists" == "true" ]]; then
+            echo "Tier 1,CODEOWNERS,Path,$(csv_escape "$codeowners_path"),"
+            echo "Tier 1,CODEOWNERS,Valid,$codeowners_valid,$([ "$codeowners_valid" == "valid" ] && echo "PASS" || echo "WARN")"
+            echo "Tier 1,CODEOWNERS,Total Patterns,$codeowners_patterns,"
+            echo "Tier 1,CODEOWNERS,Unique Owners,$codeowners_owners,"
+        fi
+    else
+        echo "Tier 1,CODEOWNERS,Data Available,false,N/A"
+    fi
+
+    # TIER 2: ANALYSIS - Bus Factor & Concentration
+    local tier2=$(echo "$json_data" | jq -r '.tiers.analysis // false')
+    if [[ "$tier2" == "true" ]]; then
+        # Bus factor
+        local bus_factor=$(echo "$json_data" | jq -r '.tier2_analysis.bus_factor.value // 0')
+        local risk_level=$(echo "$json_data" | jq -r '.tier2_analysis.bus_factor.risk_level // "unknown"')
+        local risk_desc=$(echo "$json_data" | jq -r '.tier2_analysis.bus_factor.risk_description // ""')
+
+        local bus_status="OK"
+        case "$risk_level" in
+            critical) bus_status="CRITICAL" ;;
+            high) bus_status="HIGH" ;;
+            medium) bus_status="MEDIUM" ;;
+            low) bus_status="OK" ;;
+        esac
+
+        echo "Tier 2,Bus Factor,Value,$bus_factor,$bus_status"
+        echo "Tier 2,Bus Factor,Risk Level,$risk_level,"
+        echo "Tier 2,Bus Factor,Risk Description,$(csv_escape "$risk_desc"),"
+
+        # Concentration metrics
+        local gini=$(echo "$json_data" | jq -r '.tier2_analysis.concentration.gini_coefficient // 0')
+        local top1_pct=$(echo "$json_data" | jq -r '.tier2_analysis.concentration.top_contributor_percentage // 0')
+        local top3_pct=$(echo "$json_data" | jq -r '.tier2_analysis.concentration.top_3_contributors_percentage // 0')
+
+        echo "Tier 2,Concentration,Gini Coefficient,$gini,"
+        echo "Tier 2,Concentration,Top Contributor %,${top1_pct}%,"
+        echo "Tier 2,Concentration,Top 3 Contributors %,${top3_pct}%,"
+
+        # Summary stats
+        local total_commits=$(echo "$json_data" | jq -r '.tier2_analysis.summary.total_commits // 0')
+        local active_contributors=$(echo "$json_data" | jq -r '.tier2_analysis.summary.active_contributors // 0')
+
+        echo "Tier 2,Activity,Total Commits,$total_commits,"
+        echo "Tier 2,Activity,Active Contributors,$active_contributors,"
+
+        # Contributors list
+        echo ""
+        echo "# Top Contributors"
+        echo "Rank,Name,Email,Commits,Ownership %"
+        local rank=1
+        echo "$json_data" | jq -r '.tier2_analysis.contributors[:10][] | "\(.name),\(.email // ""),\(.commits),\(.ownership_percentage)"' 2>/dev/null | while read -r line; do
+            echo "$rank,$line"
+            rank=$((rank + 1))
+        done
+    else
+        echo "Tier 2,Bus Factor,Data Available,false,N/A"
+    fi
+
+    # TIER 3: AI INSIGHTS
+    local tier3=$(echo "$json_data" | jq -r '.tiers.ai_insights // false')
+    echo ""
+    echo "# AI Insights (Tier 3)"
+    if [[ "$tier3" == "true" ]]; then
+        echo "Type,Content"
+        echo "$json_data" | jq -r '.tier3_ai_insights.insights[]? | "Insight,\"\(.)\"" ' 2>/dev/null
+        echo "$json_data" | jq -r '.tier3_ai_insights.recommendations[]? | "Recommendation,\"\(.)\"" ' 2>/dev/null
+    else
+        echo "Status,Not Available"
+        echo "Note,Use --deep profile or run with Claude for AI analysis"
+    fi
+}
+
+# Render AI adoption report as CSV
+render_ai_adoption_csv() {
+    local json_data="$1"
+
+    echo "# AI Adoption Report"
+    echo "Category,Metric,Value,Status"
+
+    # Project info
+    local project_id=$(echo "$json_data" | jq -r '.project.id // "unknown"')
+    local profile=$(echo "$json_data" | jq -r '.project.profile // "standard"')
+    local completed=$(echo "$json_data" | jq -r '.project.completed_at // ""')
+
+    echo "Project,ID,$(csv_escape "$project_id"),"
+    echo "Project,Profile,$(csv_escape "$profile"),"
+    echo "Project,Completed,$(csv_escape "$completed"),"
+
+    # Summary
+    local has_ai=$(echo "$json_data" | jq -r '.summary.has_ai_adoption // false')
+    local ai_tech_count=$(echo "$json_data" | jq -r '.summary.ai_technologies_count // 0')
+    local ai_cat_count=$(echo "$json_data" | jq -r '.summary.ai_categories_count // 0')
+    local total_contributors=$(echo "$json_data" | jq -r '.summary.total_contributors // 0')
+    local bus_factor=$(echo "$json_data" | jq -r '.summary.bus_factor // 0')
+    local bus_factor_risk=$(echo "$json_data" | jq -r '.summary.bus_factor_risk // "unknown"')
+
+    echo ""
+    echo "# Summary"
+    echo "Summary,AI Adoption Detected,$has_ai,$([ "$has_ai" == "true" ] && echo "INFO" || echo "OK")"
+    echo "Summary,AI Technologies,$ai_tech_count,"
+    echo "Summary,AI Categories,$ai_cat_count,"
+    echo "Summary,Total Contributors,$total_contributors,"
+    echo "Summary,Bus Factor,$bus_factor,$bus_factor_risk"
+
+    # AI Technologies
+    echo ""
+    echo "# AI Technologies"
+    echo "Name,Category,Confidence,Detection Methods,Evidence"
+    echo "$json_data" | jq -r '.ai_technologies[]? | "\(.name),\(.category),\(.confidence),\(.detection_methods | join("; ")),\"\(.evidence | join("; "))\""' 2>/dev/null
+
+    # Categories
+    echo ""
+    echo "# AI Categories"
+    echo "Category,Label,Count,Technologies"
+    echo "$json_data" | jq -r '.categories[]? | "\(.category),\(.label),\(.count),\"\(.technologies | join("; "))\""' 2>/dev/null
+
+    # Contributors
+    echo ""
+    echo "# Top Contributors"
+    echo "Rank,Name,Email,Commits,Lines Added"
+    local rank=1
+    echo "$json_data" | jq -r '.contributors[:10][]? | "\(.name),\(.email // ""),\(.commits),\(.lines_added // 0)"' 2>/dev/null | while read -r line; do
+        echo "$rank,$line"
+        rank=$((rank + 1))
+    done
+}
+
 # Render generic CSV (flatten JSON to key-value pairs)
 render_generic_csv() {
     local json_data="$1"
@@ -579,6 +740,8 @@ export -f render_licenses_csv
 export -f render_supply_chain_csv
 export -f render_dora_csv
 export -f render_sbom_csv
+export -f render_code_ownership_csv
+export -f render_ai_adoption_csv
 export -f render_full_csv
 export -f render_generic_csv
 export -f get_risk_status
