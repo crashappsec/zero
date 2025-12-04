@@ -53,7 +53,7 @@ ENRICH=false     # Incremental enrichment - only run missing collectors
 
 # Canonical list of ALL scanners - always displayed in this order regardless of profile
 # This ensures consistent output format across all profiles
-ALL_SCANNERS="package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership dora package-provenance"
+ALL_SCANNERS="package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership bus-factor dora package-provenance"
 
 #############################################################################
 # Usage
@@ -420,16 +420,16 @@ get_analyzers_for_mode() {
             ;;
         standard|full)
             # Standard scan (~2min): Most useful scanners, no Claude-assisted scans
-            echo "package-sbom tech-discovery package-vulns licenses code-security code-secrets tech-debt code-ownership dora"
+            echo "package-sbom tech-discovery package-vulns licenses code-security code-secrets tech-debt code-ownership bus-factor dora"
             ;;
         advanced)
             # Advanced scan (~5min): All static scanners including slow ones
-            echo "package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership dora package-provenance"
+            echo "package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership bus-factor dora package-provenance"
             ;;
         deep)
             # Deep scan with Claude (~10min): All scanners + Claude enhancement
             # Note: Individual scanners check USE_CLAUDE env var
-            echo "package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership dora package-provenance"
+            echo "package-sbom tech-discovery package-vulns package-health licenses code-security iac-security code-secrets tech-debt documentation git test-coverage code-ownership bus-factor dora package-provenance"
             ;;
         security)
             # Security focus: Vulnerability and code security
@@ -507,6 +507,7 @@ get_scanner_display_name() {
         git)               echo "Git insights" ;;
         test-coverage)     echo "Test coverage" ;;
         code-ownership)    echo "Code ownership" ;;
+        bus-factor)        echo "Bus factor" ;;
         dora)              echo "DORA metrics" ;;
         package-provenance) echo "Provenance check" ;;
         *)                 echo "$scanner" ;;
@@ -565,6 +566,9 @@ run_analyzer() {
             ;;
         code-ownership)
             analyzer_script="code-ownership.sh"
+            ;;
+        bus-factor)
+            analyzer_script="bus-factor.sh"
             ;;
         dora)
             analyzer_script="dora.sh"
@@ -625,6 +629,9 @@ run_analyzer() {
             ;;
         code-ownership)
             run_ownership_analyzer "$repo_path" "$output_path"
+            ;;
+        bus-factor)
+            run_bus_factor_analyzer "$repo_path" "$output_path"
             ;;
         dora)
             run_dora_analyzer "$repo_path" "$output_path"
@@ -1085,6 +1092,31 @@ run_ownership_analyzer() {
   "status": "analyzer_not_found",
   "summary": {
     "total_files": 0,
+    "active_contributors": 0
+  }
+}
+EOF
+    fi
+}
+
+run_bus_factor_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    local bus_factor_script="$UTILS_ROOT/scanners/code-ownership/bus-factor.sh"
+
+    if [[ -x "$bus_factor_script" ]]; then
+        "$bus_factor_script" --local-path "$repo_path" -o "$output_path/bus-factor.json" 2>/dev/null
+    else
+        cat > "$output_path/bus-factor.json" << EOF
+{
+  "analyzer": "bus-factor",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "bus_factor": 0,
+    "risk_level": "unknown",
     "active_contributors": 0
   }
 }

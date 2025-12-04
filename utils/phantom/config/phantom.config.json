@@ -197,7 +197,7 @@
       "description": "Balanced analysis covering security and code quality",
       "estimated_time": "~2 minutes",
       "claude_mode": "none",
-      "scanners": ["package-sbom", "package-vulns", "tech-discovery", "licenses", "code-secrets", "code-ownership"]
+      "scanners": ["package-sbom", "package-vulns", "package-health", "tech-discovery", "licenses", "code-secrets", "code-ownership"]
     },
     "advanced": {
       "name": "Advanced",

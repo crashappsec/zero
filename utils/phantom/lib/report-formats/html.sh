@@ -189,6 +189,7 @@ HTMLHEAD
         dora) format_dora_html "$json_data" ;;
         sbom) format_sbom_html "$json_data" ;;
         full) format_full_html "$json_data" ;;
+        code-ownership) format_code_ownership_html "$json_data" ;;
         *) format_summary_html "$json_data" ;;
     esac
 
@@ -511,6 +512,118 @@ format_full_html() {
 HTMLBODY
 }
 
+format_code_ownership_html() {
+    local json="$1"
+    local project_id=$(echo "$json" | jq -r '.project.id // "Unknown"')
+    local tier1=$(echo "$json" | jq -r '.tiers.basic // false')
+    local tier2=$(echo "$json" | jq -r '.tiers.analysis // false')
+    local tier3=$(echo "$json" | jq -r '.tiers.ai_insights // false')
+
+    cat << HTMLBODY
+<header>
+    <h1>Code Ownership Report</h1>
+    <div class="meta"><span><strong>Project:</strong> ${project_id}</span></div>
+</header>
+
+<div class="card">
+    <h2>Tier 1: Basic (CODEOWNERS Detection)</h2>
+HTMLBODY
+
+    if [[ "$tier1" == "true" ]]; then
+        local codeowners_exists=$(echo "$json" | jq -r '.tier1_basic.codeowners.exists // false')
+        if [[ "$codeowners_exists" == "true" ]]; then
+            local codeowners_path=$(echo "$json" | jq -r '.tier1_basic.codeowners.path // ""')
+            local codeowners_valid=$(echo "$json" | jq -r '.tier1_basic.codeowners.valid // "unknown"')
+            echo "    <p><strong>CODEOWNERS File:</strong> ✅ Present (<code>${codeowners_path}</code>)</p>"
+            echo "    <p><strong>Syntax:</strong> ${codeowners_valid}</p>"
+        else
+            echo "    <p><strong>CODEOWNERS File:</strong> ⚠️ Not Found</p>"
+        fi
+    else
+        echo "    <p>No CODEOWNERS data available</p>"
+    fi
+
+    echo "</div>"
+
+    cat << HTMLBODY
+<div class="card">
+    <h2>Tier 2: Analysis (Bus Factor & Concentration)</h2>
+HTMLBODY
+
+    if [[ "$tier2" == "true" ]]; then
+        local bus_factor=$(echo "$json" | jq -r '.tier2_analysis.bus_factor.value // 0')
+        local risk_level=$(echo "$json" | jq -r '.tier2_analysis.bus_factor.risk_level // "unknown"')
+        local risk_desc=$(echo "$json" | jq -r '.tier2_analysis.bus_factor.risk_description // ""')
+        local gini=$(echo "$json" | jq -r '.tier2_analysis.concentration.gini_coefficient // 0')
+        local top1_pct=$(echo "$json" | jq -r '.tier2_analysis.concentration.top_contributor_percentage // 0')
+        local top3_pct=$(echo "$json" | jq -r '.tier2_analysis.concentration.top_3_contributors_percentage // 0')
+        local risk_level_upper=$(echo "$risk_level" | tr '[:lower:]' '[:upper:]')
+
+        local risk_class="badge-low"
+        [[ "$risk_level" == "medium" ]] && risk_class="badge-medium"
+        [[ "$risk_level" == "high" ]] && risk_class="badge-high"
+        [[ "$risk_level" == "critical" ]] && risk_class="badge-critical"
+
+        cat << HTMLBODY
+    <div class="grid">
+        <div class="stat-card">
+            <div class="stat-value">${bus_factor}</div>
+            <div class="stat-label">Bus Factor</div>
+            <span class="badge ${risk_class}">${risk_level_upper}</span>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${gini}</div>
+            <div class="stat-label">Gini Coefficient</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">${top1_pct}%</div>
+            <div class="stat-label">Top Contributor</div>
+        </div>
+    </div>
+    <div class="summary-box">
+        <p>${risk_desc}</p>
+    </div>
+    <h3>Top Contributors</h3>
+    <table>
+        <tr><th>Contributor</th><th>Commits</th><th>Ownership</th></tr>
+$(echo "$json" | jq -r '.tier2_analysis.contributors[:5][]? | "<tr><td>\(.name)</td><td>\(.commits)</td><td>\(.ownership_percentage)%</td></tr>"' 2>/dev/null)
+    </table>
+HTMLBODY
+    else
+        echo "    <p>No bus factor analysis available - run bus-factor scanner</p>"
+    fi
+
+    echo "</div>"
+
+    cat << HTMLBODY
+<div class="card">
+    <h2>Tier 3: AI Insights (Claude Analysis)</h2>
+HTMLBODY
+
+    if [[ "$tier3" == "true" ]]; then
+        echo "    <h3>Key Insights</h3>"
+        echo "    <ul>"
+        echo "$json" | jq -r '.tier3_ai_insights.insights[]? | "<li>\(.)</li>"' 2>/dev/null
+        echo "    </ul>"
+        echo "    <h3>Recommendations</h3>"
+        echo "    <ul>"
+        echo "$json" | jq -r '.tier3_ai_insights.recommendations[]? | "<li>\(.)</li>"' 2>/dev/null
+        echo "    </ul>"
+    else
+        cat << HTMLBODY
+    <p><em>AI analysis not available</em></p>
+    <p>Use <code>--deep</code> profile or run with Claude for insights like:</p>
+    <ul>
+        <li>Critical risk areas and succession planning</li>
+        <li>Knowledge transfer recommendations</li>
+        <li>Auto-generated optimal CODEOWNERS file</li>
+    </ul>
+HTMLBODY
+    fi
+
+    echo "</div>"
+}
+
 export -f format_report_output
 export -f format_summary_html
 export -f format_security_html
@@ -520,4 +633,5 @@ export -f format_supply_chain_html
 export -f format_dora_html
 export -f format_sbom_html
 export -f format_full_html
+export -f format_code_ownership_html
 export -f get_score_class
