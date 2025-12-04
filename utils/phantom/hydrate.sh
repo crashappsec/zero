@@ -22,6 +22,9 @@
 # remaining repos even if one fails
 # set -e
 
+# Ignore SIGPIPE to prevent script termination when piped to head/tee
+trap '' PIPE
+
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Load Gibson library
@@ -1030,7 +1033,8 @@ hydrate_org() {
         local start_time=$(date +%s)
 
         # Run bootstrap in background
-        "$SCRIPT_DIR/bootstrap.sh" "$repo" "${extra_args[@]}" > "$log_file" 2>&1 &
+        # Note: Redirect stdin from /dev/null to prevent bootstrap from consuming the while loop's stdin
+        "$SCRIPT_DIR/bootstrap.sh" "$repo" "${extra_args[@]}" < /dev/null > "$log_file" 2>&1 &
         local pid=$!
 
         local analysis_path="$GIBSON_PROJECTS_DIR/$project_id/analysis"
@@ -1067,7 +1071,7 @@ hydrate_org() {
         # Hide cursor during animation to reduce visual noise
         hide_cursor
 
-        # Cleanup function for proper exit
+        # Cleanup function for proper exit - only called on INT/TERM
         cleanup_animation() {
             show_cursor
             # Kill the background process if running
@@ -1076,11 +1080,14 @@ hydrate_org() {
                 wait $pid 2>/dev/null
             fi
             rm -f "$log_file"
-            exit 130  # Standard exit code for Ctrl+C
+            # Set flag to indicate user interrupted
+            USER_INTERRUPTED=true
         }
 
-        # Trap to ensure cursor is shown and process killed on exit (ctrl-c, etc)
-        trap 'cleanup_animation' INT TERM
+        # Trap to ensure cursor is shown and process killed on Ctrl+C
+        USER_INTERRUPTED=false
+        trap 'cleanup_animation; exit 130' INT
+        trap 'cleanup_animation' TERM
 
         # Monitor progress
         while kill -0 $pid 2>/dev/null; do
@@ -1143,6 +1150,12 @@ hydrate_org() {
         # Show cursor again after animation and clear trap
         show_cursor
         trap - INT TERM
+
+        # Check if user interrupted
+        if [[ "$USER_INTERRUPTED" == "true" ]]; then
+            echo -e "  ${YELLOW}Interrupted by user${NC}"
+            break
+        fi
 
         # Get exit status
         wait $pid

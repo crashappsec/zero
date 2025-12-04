@@ -58,6 +58,7 @@ REPORT TYPES:
         sbom            Software Bill of Materials
         supply-chain    Dependencies, provenance, health
         dora            DevOps metrics and performance
+        code-ownership  3-tier ownership analysis (basic/analysis/AI)
         full            Comprehensive report (all sections)
 
 OUTPUT FORMATS:
