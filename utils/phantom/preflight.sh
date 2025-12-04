@@ -65,6 +65,7 @@ CHECKS:
       • osv-scanner - Vulnerability scanning (Google OSV)
       • syft        - SBOM generation (Anchore)
       • gh          - GitHub CLI for enhanced features
+      • semgrep     - AST-aware code scanning
 
     API Keys:
       • GITHUB_TOKEN      - Required for private repos, recommended for rate limits
@@ -201,6 +202,7 @@ run_checks() {
     check_tool "osv-scanner" "recommended" "brew install osv-scanner" "Vulnerability scanning"
     check_tool "syft" "recommended" "brew install syft" "SBOM generation"
     check_tool "gh" "recommended" "brew install gh" "GitHub CLI"
+    check_tool "semgrep" "recommended" "brew install semgrep" "AST-aware code scanning"
     echo
 
     # API Keys
