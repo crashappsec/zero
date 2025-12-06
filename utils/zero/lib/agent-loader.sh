@@ -39,6 +39,7 @@ agent_get_dir() {
 
     case "$agent_name" in
         # Primary agents (Hackers movie inspired names - directories match agent names)
+        zero)     dir="zero" ;;      # Zero Cool - master orchestrator, coordinates all agents
         cereal)   dir="cereal" ;;    # Cereal Killer - paranoid, watches for malware in deps
         razor)    dir="razor" ;;     # Razor - cuts through code to find vulnerabilities
         blade)    dir="blade" ;;     # Blade - meticulous, detail-oriented for auditing
@@ -66,6 +67,7 @@ agent_get_required_data() {
     local agent_name="$1"
 
     case "$agent_name" in
+        zero)         echo "all" ;;  # Zero can access all data to delegate
         cereal)       echo "vulnerabilities package-health dependencies package-malcontent licenses package-sbom" ;;
         cereal-basic) echo "vulnerabilities package-health dependencies licenses package-sbom" ;;
         razor)        echo "code-security code-secrets technology secrets-scanner" ;;
@@ -87,6 +89,7 @@ agent_get_tools() {
     local agent_name="$1"
 
     case "$agent_name" in
+        zero)         echo "Read Grep Glob Bash WebSearch WebFetch Task" ;;  # Full orchestrator capability
         cereal)       echo "Read Grep Glob WebSearch WebFetch" ;;  # Full investigation capability
         cereal-basic) echo "Read Grep Glob" ;;
         razor)        echo "Read Grep Glob WebSearch" ;;           # Security research
