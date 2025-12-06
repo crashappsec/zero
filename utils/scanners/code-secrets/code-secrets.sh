@@ -14,8 +14,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSION="1.1.0"
 
 # Source common utilities if available
-if [[ -f "$SCRIPT_DIR/../phantom/lib/common.sh" ]]; then
-    source "$SCRIPT_DIR/../phantom/lib/common.sh"
+if [[ -f "$SCRIPT_DIR/../zero/lib/common.sh" ]]; then
+    source "$SCRIPT_DIR/../zero/lib/common.sh"
 fi
 
 # Default values
@@ -37,7 +37,7 @@ Usage: $(basename "$0") [OPTIONS]
 Options:
     --local-path <path>    Path to local repository
     --repo <owner/repo>    GitHub repository (requires gh CLI)
-    --org <org>            GitHub org (uses first repo found in phantom cache)
+    --org <org>            GitHub org (uses first repo found in zero cache)
     --output <file>        Output file (default: stdout)
     --verbose              Enable verbose output
     --help                 Show this help message
@@ -97,14 +97,14 @@ REPO_PATH=""
 if [[ -n "$LOCAL_PATH" ]]; then
     REPO_PATH="$LOCAL_PATH"
 elif [[ -n "$REPO" ]]; then
-    # Check phantom cache first
+    # Check zero cache first
     REPO_ORG=$(echo "$REPO" | cut -d'/' -f1)
     REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
-    PHANTOM_PATH="$HOME/.phantom/projects/$REPO_ORG/$REPO_NAME/repo"
+    ZERO_CACHE_PATH="$HOME/.zero/projects/$REPO_ORG/$REPO_NAME/repo"
     GIBSON_PATH="$HOME/.gibson/projects/${REPO_ORG}-${REPO_NAME}/repo"
 
-    if [[ -d "$PHANTOM_PATH" ]]; then
-        REPO_PATH="$PHANTOM_PATH"
+    if [[ -d "$ZERO_CACHE_PATH" ]]; then
+        REPO_PATH="$ZERO_CACHE_PATH"
     elif [[ -d "$GIBSON_PATH" ]]; then
         REPO_PATH="$GIBSON_PATH"
     else
@@ -112,8 +112,8 @@ elif [[ -n "$REPO" ]]; then
         exit 1
     fi
 elif [[ -n "$ORG" ]]; then
-    # Look in phantom cache for repos in org
-    ORG_PATH="$HOME/.phantom/projects/$ORG"
+    # Look in zero cache for repos in org
+    ORG_PATH="$HOME/.zero/projects/$ORG"
     REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 
     # Colors for output
@@ -152,7 +152,7 @@ elif [[ -n "$ORG" ]]; then
                 echo -e "${BLUE}Hydrating ${#REPOS_NOT_CLONED[@]} repositories...${NC}" >&2
                 for repo in "${REPOS_NOT_CLONED[@]}"; do
                     echo -e "${CYAN}Cloning $ORG/$repo...${NC}" >&2
-                    "$REPO_ROOT/utils/phantom/hydrate.sh" --repo "$ORG/$repo" --quick >&2 2>&1 || true
+                    "$REPO_ROOT/utils/zero/hydrate.sh" --repo "$ORG/$repo" --quick >&2 2>&1 || true
                     if [[ -d "$ORG_PATH/$repo/repo" ]]; then
                         REPOS_TO_SCAN+=("$repo")
                         echo -e "${GREEN}✓ $repo ready${NC}" >&2

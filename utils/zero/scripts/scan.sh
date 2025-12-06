@@ -21,16 +21,16 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PHANTOM_DIR="$(dirname "$SCRIPT_DIR")"
+ZERO_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Load Phantom library
-source "$PHANTOM_DIR/lib/phantom-lib.sh"
+source "$ZERO_DIR/lib/zero-lib.sh"
 
 # Load config loader for dynamic profiles
-source "$PHANTOM_DIR/config/config-loader.sh"
+source "$ZERO_DIR/config/config-loader.sh"
 
 # Load .env if available
-UTILS_ROOT="$(dirname "$PHANTOM_DIR")"
+UTILS_ROOT="$(dirname "$ZERO_DIR")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 SCANNERS_DIR="$UTILS_ROOT/scanners"
 
@@ -68,7 +68,7 @@ MODES:
     Single Repo:    $0 owner/repo [options]
     Organization:   $0 --org <org-name> [options]
 
-PROFILES (from phantom.config.json):
+PROFILES (from zero.config.json):
 EOF
     print_profile_help
     cat << EOF
@@ -287,7 +287,7 @@ scan_repo() {
     # Check if repo is cloned
     if [[ ! -d "$repo_path" ]]; then
         echo -e "  ${RED}✗${NC} Repository not cloned"
-        echo -e "    Run: ${CYAN}./phantom.sh clone $repo${NC}"
+        echo -e "    Run: ${CYAN}./zero.sh clone $repo${NC}"
         return 1
     fi
 
@@ -343,9 +343,9 @@ scan_single() {
 
     # Check if repo is cloned
     if [[ ! -d "$repo_path" ]]; then
-        print_phantom_banner
+        print_zero_banner
         echo -e "${RED}Error: Repository not cloned${NC}"
-        echo -e "Run: ${CYAN}./phantom.sh clone $repo${NC}"
+        echo -e "Run: ${CYAN}./zero.sh clone $repo${NC}"
         return 1
     fi
 
@@ -360,7 +360,7 @@ scan_single() {
 scan_org() {
     local org="$1"
 
-    print_phantom_banner
+    print_zero_banner
     echo -e "${BOLD}Scan Organization${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
@@ -369,7 +369,7 @@ scan_org() {
     local org_path="$GIBSON_PROJECTS_DIR/$org"
     if [[ ! -d "$org_path" ]]; then
         echo -e "${RED}No cloned repos found for org: $org${NC}" >&2
-        echo -e "Clone first with: ${CYAN}./phantom.sh clone --org $org${NC}"
+        echo -e "Clone first with: ${CYAN}./zero.sh clone --org $org${NC}"
         exit 1
     fi
 
@@ -420,7 +420,7 @@ scan_org() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo -e "${GREEN}✓ Complete${NC}: $success scanned, $failed failed"
     echo
-    echo -e "View results: ${CYAN}./phantom.sh report --org $org${NC}"
+    echo -e "View results: ${CYAN}./zero.sh report --org $org${NC}"
 }
 
 #############################################################################

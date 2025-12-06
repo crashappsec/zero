@@ -15,12 +15,12 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PHANTOM_DIR="$(dirname "$SCRIPT_DIR")"
-UTILS_ROOT="$(dirname "$PHANTOM_DIR")"
+ZERO_DIR="$(dirname "$SCRIPT_DIR")"
+UTILS_ROOT="$(dirname "$ZERO_DIR")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 
 # Load Phantom library for banner
-source "$PHANTOM_DIR/lib/phantom-lib.sh"
+source "$ZERO_DIR/lib/zero-lib.sh"
 
 # Load .env if it exists
 if [[ -f "$REPO_ROOT/.env" ]]; then
@@ -282,7 +282,7 @@ check_directory() {
 #############################################################################
 
 run_checks() {
-    print_phantom_banner
+    print_zero_banner
     echo -e "${BOLD}Preflight Check${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
@@ -317,8 +317,8 @@ run_checks() {
 
     # Phantom Directory (these are auto-created on first run, so just informational)
     echo -e "${BOLD}Phantom Storage${NC}"
-    check_directory "$HOME/.phantom" "~/.phantom" || true
-    check_directory "$HOME/.phantom/projects" "projects" || true
+    check_directory "$HOME/.zero" "~/.zero" || true
+    check_directory "$HOME/.zero/projects" "projects" || true
     echo
 
     # Offer to install missing tools
@@ -332,14 +332,14 @@ run_checks() {
         echo -e "${GREEN}${BOLD}✓ All checks passed!${NC}"
         echo
         echo "Ready to hydrate a project:"
-        echo -e "  ${CYAN}./phantom.sh hydrate <owner/repo>${NC}"
+        echo -e "  ${CYAN}./zero.sh hydrate <owner/repo>${NC}"
         return 0
     elif [[ $ERRORS -eq 0 ]]; then
         echo -e "${YELLOW}${BOLD}⚠ $WARNINGS warnings${NC}"
         echo
         echo "You can proceed, but some features may be limited."
         echo "Ready to hydrate a project:"
-        echo -e "  ${CYAN}./phantom.sh hydrate <owner/repo>${NC}"
+        echo -e "  ${CYAN}./zero.sh hydrate <owner/repo>${NC}"
         return 0
     else
         echo -e "${RED}${BOLD}✗ $ERRORS errors, $WARNINGS warnings${NC}"

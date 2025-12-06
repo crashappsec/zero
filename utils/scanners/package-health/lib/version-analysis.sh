@@ -13,8 +13,8 @@ SCANNERS_ROOT="$(dirname "$SCANNER_DIR")"
 UTILS_ROOT="$(dirname "$SCANNERS_ROOT")"
 
 # Load configuration
-if [ -f "$UTILS_ROOT/phantom/config/config-loader.sh" ]; then
-    source "$UTILS_ROOT/phantom/config/config-loader.sh"
+if [ -f "$UTILS_ROOT/zero/config/config-loader.sh" ]; then
+    source "$UTILS_ROOT/zero/config/config-loader.sh"
     CONFIG=$(load_config "package-health-analysis")
 else
     CONFIG="{}"

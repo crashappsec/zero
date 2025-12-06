@@ -17,13 +17,13 @@ set -e
 
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PHANTOM_DIR="$(dirname "$SCRIPT_DIR")"
+ZERO_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Load Phantom library
-source "$PHANTOM_DIR/lib/phantom-lib.sh"
+source "$ZERO_DIR/lib/zero-lib.sh"
 
 # Load report utilities
-source "$PHANTOM_DIR/lib/report-common.sh"
+source "$ZERO_DIR/lib/report-common.sh"
 
 #############################################################################
 # Configuration
@@ -197,7 +197,7 @@ interactive_menu() {
 
     if [[ ${#projects[@]} -eq 0 ]]; then
         echo -e "  ${DIM}No hydrated projects found${NC}"
-        echo -e "  ${DIM}Run a hydration first: ./phantom.sh${NC}"
+        echo -e "  ${DIM}Run a hydration first: ./zero.sh${NC}"
         echo
         exit 1
     fi
@@ -261,7 +261,7 @@ interactive_menu() {
     # For non-terminal output, reports are auto-saved with standardized names
     if [[ "$OUTPUT_FORMAT" != "terminal" ]]; then
         echo
-        echo -e "${DIM}Reports will be saved to: ~/.phantom/projects/<org>/<repo>/analysis/reports/${NC}"
+        echo -e "${DIM}Reports will be saved to: ~/.zero/projects/<org>/<repo>/analysis/reports/${NC}"
         echo -e "${DIM}Naming format: ${REPORT_TYPE}_<scanID>_<datetime>.<ext>${NC}"
     fi
 
@@ -307,7 +307,7 @@ get_reports_dir() {
 # Load report type module
 load_report_type() {
     local type="$1"
-    local module="$PHANTOM_DIR/lib/report-types/${type}.sh"
+    local module="$ZERO_DIR/lib/report-types/${type}.sh"
 
     if [[ -f "$module" ]]; then
         source "$module"
@@ -321,7 +321,7 @@ load_report_type() {
 # Load format module
 load_format_module() {
     local format="$1"
-    local module="$PHANTOM_DIR/lib/report-formats/${format}.sh"
+    local module="$ZERO_DIR/lib/report-formats/${format}.sh"
 
     if [[ -f "$module" ]]; then
         source "$module"

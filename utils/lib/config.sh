@@ -34,7 +34,7 @@ export RAG_DIR="${RAG_DIR:-$REPO_ROOT/rag}"
 export RAG_SERVER_URL="${RAG_SERVER_URL:-}"
 export RAG_API_KEY="${RAG_API_KEY:-}"
 export RAG_SERVER_TYPE="${RAG_SERVER_TYPE:-local}"
-export RAG_COLLECTION="${RAG_COLLECTION:-phantom-knowledge}"
+export RAG_COLLECTION="${RAG_COLLECTION:-zero-knowledge}"
 
 # RAG (Retrieval-Augmented Generation) knowledge base paths
 export RAG_SUPPLY_CHAIN_DIR="$RAG_DIR/supply-chain"

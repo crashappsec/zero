@@ -416,7 +416,7 @@ EXAMPLES:
 
 ENVIRONMENT:
     SEMGREP_COMMUNITY_DIR      Override rules storage location
-                               (default: ~/.phantom/semgrep-rules)
+                               (default: ~/.zero/semgrep-rules)
 
 EOF
     exit 0

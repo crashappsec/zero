@@ -23,10 +23,10 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PHANTOM_DIR="$(dirname "$SCRIPT_DIR")"
+ZERO_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Load Phantom library
-source "$PHANTOM_DIR/lib/phantom-lib.sh"
+source "$ZERO_DIR/lib/zero-lib.sh"
 
 #############################################################################
 # Configuration
