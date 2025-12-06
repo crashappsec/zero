@@ -22,8 +22,8 @@ CONFIG_FILE="$SCRIPT_DIR/config.json"
 CONFIG_EXAMPLE="$SCRIPT_DIR/config.example.json"
 
 # Load config library
-if [[ -f "$UTILS_ROOT/phantom/config/config-loader.sh" ]]; then
-    source "$UTILS_ROOT/phantom/config/config-loader.sh"
+if [[ -f "$UTILS_ROOT/zero/config/config-loader.sh" ]]; then
+    source "$UTILS_ROOT/zero/config/config-loader.sh"
 fi
 
 # Load .env file if it exists in repository root
@@ -35,7 +35,7 @@ fi
 
 # Load GitHub token from config.json if not in .env
 # Priority: .env GITHUB_TOKEN > config.json github.pat
-if [[ -f "$UTILS_ROOT/phantom/config/config-loader.sh" ]]; then
+if [[ -f "$UTILS_ROOT/zero/config/config-loader.sh" ]]; then
     load_github_token 2>/dev/null || true
 fi
 

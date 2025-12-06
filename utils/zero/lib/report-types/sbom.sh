@@ -90,7 +90,7 @@ generate_report_data() {
             report_type: "sbom",
             report_version: "1.0.0",
             generated_at: (now | todate),
-            sbom_format: "phantom-sbom",
+            sbom_format: "zero-sbom",
             sbom_version: "1.0",
             project: {
                 id: $project_id,
@@ -111,7 +111,7 @@ generate_report_data() {
             },
             formats_available: {
                 cyclonedx: ($has_cyclonedx == "true"),
-                phantom_json: true
+                zero_json: true
             },
             components: $components
         }'

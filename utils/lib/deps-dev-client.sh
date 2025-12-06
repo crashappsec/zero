@@ -18,8 +18,8 @@ UTILS_ROOT="$(dirname "$DEPS_DEV_LIB_DIR")"
 
 # Load configuration if available
 DEPS_DEV_CONFIG="{}"
-if [ -f "$UTILS_ROOT/phantom/config/config-loader.sh" ]; then
-    source "$UTILS_ROOT/phantom/config/config-loader.sh"
+if [ -f "$UTILS_ROOT/zero/config/config-loader.sh" ]; then
+    source "$UTILS_ROOT/zero/config/config-loader.sh"
     # Try multiple config names for backward compatibility
     DEPS_DEV_CONFIG=$(load_config "deps-dev" 2>/dev/null || load_config "package-health-analysis" 2>/dev/null || load_config "supply-chain" 2>/dev/null || echo "{}")
 fi

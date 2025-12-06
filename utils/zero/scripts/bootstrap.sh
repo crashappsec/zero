@@ -21,13 +21,13 @@ set -e
 
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PHANTOM_DIR="$(dirname "$SCRIPT_DIR")"
+ZERO_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Load Phantom library
-source "$PHANTOM_DIR/lib/phantom-lib.sh"
+source "$ZERO_DIR/lib/zero-lib.sh"
 
 # Load shared config if available
-UTILS_ROOT="$(dirname "$PHANTOM_DIR")"
+UTILS_ROOT="$(dirname "$ZERO_DIR")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 
 if [[ -f "$UTILS_ROOT/lib/config.sh" ]]; then
@@ -35,7 +35,7 @@ if [[ -f "$UTILS_ROOT/lib/config.sh" ]]; then
 fi
 
 # Load config loader for dynamic profiles
-source "$PHANTOM_DIR/config/config-loader.sh"
+source "$ZERO_DIR/config/config-loader.sh"
 
 # Load .env if it exists
 if [[ -f "$REPO_ROOT/.env" ]]; then
@@ -76,7 +76,7 @@ TARGETS:
     GitHub shorthand: owner/repo
     Local path:       /path/to/project or ./project
 
-ANALYSIS MODES (from phantom.config.json):
+ANALYSIS MODES (from zero.config.json):
 EOF
     print_profile_help
     cat << EOF
@@ -98,8 +98,8 @@ EXAMPLES:
     $0 ./local-project --security           # Security-focused scan
 
 FLOW:
-    1. Clone repository to ~/.phantom/projects/<id>/repo/
-    2. Run analyzers and store JSON in ~/.phantom/projects/<id>/analysis/
+    1. Clone repository to ~/.zero/projects/<id>/repo/
+    2. Run analyzers and store JSON in ~/.zero/projects/<id>/analysis/
     3. Set as active project for agent queries
 
 EOF
@@ -425,7 +425,7 @@ detect_project_type() {
 
 # Get list of analyzers to run based on mode
 # Note: dependencies (SBOM) must run first as other analyzers use sbom.cdx.json
-# Profiles are loaded dynamically from phantom.config.json
+# Profiles are loaded dynamically from zero.config.json
 get_analyzers_for_mode() {
     local mode="$1"
 
@@ -1839,14 +1839,14 @@ print_final_summary() {
 
     echo
     echo -e "${BOLD}Agents ready:${NC}"
-    echo -e "  Scout     → ${CYAN}/phantom ask scout ...${NC}"
-    echo -e "  Sentinel  → ${CYAN}/phantom ask sentinel ...${NC}"
-    echo -e "  Quinn     → ${CYAN}/phantom ask quinn ...${NC}"
-    echo -e "  Harper    → ${CYAN}/phantom ask harper ...${NC}"
+    echo -e "  Scout     → ${CYAN}/zero ask scout ...${NC}"
+    echo -e "  Sentinel  → ${CYAN}/zero ask sentinel ...${NC}"
+    echo -e "  Quinn     → ${CYAN}/zero ask quinn ...${NC}"
+    echo -e "  Harper    → ${CYAN}/zero ask harper ...${NC}"
 
     echo
     local size=$(gibson_project_size "$project_id")
-    echo -e "Storage: ${CYAN}~/.phantom/projects/$project_id/${NC} ($size)"
+    echo -e "Storage: ${CYAN}~/.zero/projects/$project_id/${NC} ($size)"
 }
 
 #############################################################################
@@ -1859,7 +1859,7 @@ main() {
     # Run preflight check (silent unless errors)
     if [[ -x "$SCRIPT_DIR/preflight.sh" ]]; then
         if ! "$SCRIPT_DIR/preflight.sh" > /dev/null 2>&1; then
-            echo -e "${RED}Preflight check failed. Run ./utils/phantom/preflight.sh to see details.${NC}"
+            echo -e "${RED}Preflight check failed. Run ./utils/zero/preflight.sh to see details.${NC}"
             exit 1
         fi
     fi
@@ -1895,7 +1895,7 @@ main() {
     if [[ "$ENRICH" == "true" ]]; then
         if ! gibson_project_exists "$project_id"; then
             echo -e "${RED}Project '$project_id' does not exist. Cannot enrich.${NC}"
-            echo "Use standard hydration first: ./phantom.sh hydrate $TARGET"
+            echo "Use standard hydration first: ./zero.sh hydrate $TARGET"
             exit 1
         fi
 
@@ -1958,13 +1958,13 @@ main() {
     if [[ "$SCAN_ONLY" == "true" ]]; then
         if ! gibson_project_exists "$project_id"; then
             echo -e "${RED}Project '$project_id' does not exist. Cannot scan.${NC}"
-            echo "Clone first with: ./phantom.sh clone $TARGET"
+            echo "Clone first with: ./zero.sh clone $TARGET"
             exit 1
         fi
 
         if [[ ! -d "$repo_path" ]]; then
             echo -e "${RED}Repository not found at $repo_path${NC}"
-            echo "Clone first with: ./phantom.sh clone $TARGET"
+            echo "Clone first with: ./zero.sh clone $TARGET"
             exit 1
         fi
 
@@ -2092,7 +2092,7 @@ main() {
 
         echo
         echo -e "${GREEN}✓ Clone complete${NC}"
-        echo -e "Run scanners with: ${CYAN}./phantom.sh scan $TARGET${NC}"
+        echo -e "Run scanners with: ${CYAN}./zero.sh scan $TARGET${NC}"
         return 0
     fi
 

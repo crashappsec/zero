@@ -21,13 +21,13 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PHANTOM_DIR="$(dirname "$SCRIPT_DIR")"
+ZERO_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Load Phantom library
-source "$PHANTOM_DIR/lib/phantom-lib.sh"
+source "$ZERO_DIR/lib/zero-lib.sh"
 
 # Load .env if available
-UTILS_ROOT="$(dirname "$PHANTOM_DIR")"
+UTILS_ROOT="$(dirname "$ZERO_DIR")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 if [[ -f "$REPO_ROOT/.env" ]]; then
     set -a
@@ -267,7 +267,7 @@ clone_repo() {
 clone_single() {
     local repo="$1"
 
-    print_phantom_banner
+    print_zero_banner
     echo -e "${BOLD}Clone Repository${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
@@ -280,7 +280,7 @@ clone_single() {
     echo
     if [[ $status -eq 0 ]]; then
         echo -e "${GREEN}✓ Clone complete${NC}"
-        echo -e "Run scanners with: ${CYAN}./phantom.sh scan $repo${NC}"
+        echo -e "Run scanners with: ${CYAN}./zero.sh scan $repo${NC}"
     else
         echo -e "${RED}✗ Clone failed${NC}"
     fi
@@ -293,7 +293,7 @@ clone_org() {
 
     check_gh_cli
 
-    print_phantom_banner
+    print_zero_banner
     echo -e "${BOLD}Clone Organization${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
@@ -344,7 +344,7 @@ clone_org() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo -e "${GREEN}✓ Complete${NC}: $success cloned, $failed failed"
     echo
-    echo -e "Run scanners with: ${CYAN}./phantom.sh scan --org $org${NC}"
+    echo -e "Run scanners with: ${CYAN}./zero.sh scan --org $org${NC}"
 }
 
 #############################################################################

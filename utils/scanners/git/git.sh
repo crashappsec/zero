@@ -53,8 +53,8 @@ TARGET:
 
 OPTIONS:
     --local-path PATH       Use pre-cloned repository (skips cloning)
-    --repo OWNER/REPO       GitHub repository (looks in phantom cache)
-    --org ORG               GitHub org (uses first repo found in phantom cache)
+    --repo OWNER/REPO       GitHub repository (looks in zero cache)
+    --org ORG               GitHub org (uses first repo found in zero cache)
     -o, --output FILE       Write JSON to file (default: stdout)
     -k, --keep-clone        Keep cloned repository
     -h, --help              Show this help
@@ -69,7 +69,7 @@ OUTPUT:
 
 EXAMPLES:
     $0 https://github.com/expressjs/express
-    $0 --local-path ~/.phantom/projects/foo/repo
+    $0 --local-path ~/.zero/projects/foo/repo
     $0 -o git-insights.json /path/to/project
 
 EOF
@@ -520,14 +520,14 @@ if [[ -n "$LOCAL_PATH" ]]; then
     scan_path="$LOCAL_PATH"
     TARGET="$LOCAL_PATH"
 elif [[ -n "$REPO" ]]; then
-    # Look in phantom/gibson cache
+    # Look in zero cache
     REPO_ORG=$(echo "$REPO" | cut -d'/' -f1)
     REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
-    PHANTOM_PATH="$HOME/.phantom/projects/$REPO_ORG/$REPO_NAME/repo"
+    ZERO_CACHE_PATH="$HOME/.zero/projects/$REPO_ORG/$REPO_NAME/repo"
     GIBSON_PATH="$HOME/.gibson/projects/${REPO_ORG}-${REPO_NAME}/repo"
 
-    if [[ -d "$PHANTOM_PATH" ]]; then
-        scan_path="$PHANTOM_PATH"
+    if [[ -d "$ZERO_CACHE_PATH" ]]; then
+        scan_path="$ZERO_CACHE_PATH"
         TARGET="$REPO"
     elif [[ -d "$GIBSON_PATH" ]]; then
         scan_path="$GIBSON_PATH"
@@ -538,7 +538,7 @@ elif [[ -n "$REPO" ]]; then
     fi
 elif [[ -n "$ORG" ]]; then
     # Scan ALL repos in the org
-    ORG_PATH="$HOME/.phantom/projects/$ORG"
+    ORG_PATH="$HOME/.zero/projects/$ORG"
     if [[ -d "$ORG_PATH" ]]; then
         # Collect repos with and without cloned code
         REPOS_TO_SCAN=()

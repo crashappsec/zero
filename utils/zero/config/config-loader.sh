@@ -16,10 +16,10 @@ CONFIG_DIR=""
 find_utils_root() {
     local current_dir="$1"
     while [[ "$current_dir" != "/" ]]; do
-        # Check if we're inside utils/phantom/config
-        if [[ -d "$current_dir/phantom/config" ]] && [[ -f "$current_dir/phantom/config/config.example.json" ]]; then
+        # Check if we're inside utils/zero/config
+        if [[ -d "$current_dir/zero/config" ]] && [[ -f "$current_dir/zero/config/config.example.json" ]]; then
             UTILS_ROOT="$current_dir"
-            CONFIG_DIR="$current_dir/phantom/config"
+            CONFIG_DIR="$current_dir/zero/config"
             return 0
         fi
         # Check if current dir is the config dir itself
@@ -41,7 +41,7 @@ if ! find_utils_root "$(pwd)"; then
     fi
 fi
 
-# Config paths (now in phantom/config/)
+# Config paths (now in zero/config/)
 GLOBAL_CONFIG="${CONFIG_DIR}/config.json"
 GLOBAL_CONFIG_EXAMPLE="${CONFIG_DIR}/config.example.json"
 
@@ -178,10 +178,10 @@ load_github_token() {
 
 #############################################################################
 # Profile Functions
-# Dynamically load scan profiles from phantom.config.json
+# Dynamically load scan profiles from zero.config.json
 #############################################################################
 
-PHANTOM_CONFIG="${CONFIG_DIR}/phantom.config.json"
+PHANTOM_CONFIG="${CONFIG_DIR}/zero.config.json"
 
 # Get list of available profile names
 # Usage: get_available_profiles

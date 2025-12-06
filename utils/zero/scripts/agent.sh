@@ -18,15 +18,15 @@ set -e
 
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-PHANTOM_DIR="$(dirname "$SCRIPT_DIR")"
-UTILS_DIR="$(dirname "$PHANTOM_DIR")"
+ZERO_DIR="$(dirname "$SCRIPT_DIR")"
+UTILS_DIR="$(dirname "$ZERO_DIR")"
 REPO_ROOT="$(dirname "$UTILS_DIR")"
 
 # Load Phantom library
-source "$PHANTOM_DIR/lib/phantom-lib.sh"
+source "$ZERO_DIR/lib/zero-lib.sh"
 
 # Load Agent loader
-source "$PHANTOM_DIR/lib/agent-loader.sh"
+source "$ZERO_DIR/lib/agent-loader.sh"
 
 #############################################################################
 # Agent Registry (Bash 3.x compatible - no associative arrays)
@@ -108,7 +108,7 @@ EOF
 
 # List available agents
 list_agents() {
-    print_phantom_banner
+    print_zero_banner
     echo -e "${BOLD}Available Agents${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
@@ -167,7 +167,7 @@ select_project() {
 
     if [[ ! -d "$GIBSON_PROJECTS_DIR" ]]; then
         echo -e "${YELLOW}No projects hydrated yet.${NC}"
-        echo "Run: ./phantom.sh hydrate <owner/repo>"
+        echo "Run: ./zero.sh hydrate <owner/repo>"
         return 1
     fi
 
@@ -294,7 +294,7 @@ EOF
 
 # Interactive chat mode
 run_interactive() {
-    print_phantom_banner
+    print_zero_banner
     echo -e "${BOLD}Agent Chat${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
@@ -316,7 +316,7 @@ run_interactive() {
 
     # Generate prompt file
     local persona=$(agent_get_persona "$agent")
-    local prompt_file="/tmp/phantom-agent-${agent}-$(date +%s).md"
+    local prompt_file="/tmp/zero-agent-${agent}-$(date +%s).md"
     generate_prompt_file "$agent" "$project" "$prompt_file"
 
     echo
@@ -334,11 +334,11 @@ run_interactive() {
     echo -e "  1. Copy this command:"
     echo -e "     ${CYAN}cat $prompt_file${NC}"
     echo
-    echo -e "  2. Or use the /phantom slash command:"
-    echo -e "     ${CYAN}/phantom ask $agent \"Your question here\"${NC}"
+    echo -e "  2. Or use the /zero slash command:"
+    echo -e "     ${CYAN}/zero ask $agent \"Your question here\"${NC}"
     echo
     echo -e "  3. For investigation mode (uses tools):"
-    echo -e "     ${CYAN}/phantom ask $agent \"Investigate the malcontent findings\"${NC}"
+    echo -e "     ${CYAN}/zero ask $agent \"Investigate the malcontent findings\"${NC}"
     echo
 
     # Output the prompt file path for scripting
@@ -404,7 +404,7 @@ main() {
                 # Agent specified, check if project specified
                 if [[ -z "$project" ]]; then
                     # Try to get active project or prompt
-                    print_phantom_banner
+                    print_zero_banner
                     echo -e "${BOLD}Agent Chat${NC}"
                     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
                     echo
@@ -416,7 +416,7 @@ main() {
 
                 # Generate prompt for specified agent/project
                 local persona=$(agent_get_persona "$agent")
-                local prompt_file="/tmp/phantom-agent-${agent}-$(date +%s).md"
+                local prompt_file="/tmp/zero-agent-${agent}-$(date +%s).md"
                 generate_prompt_file "$agent" "$project" "$prompt_file"
 
                 echo
@@ -424,7 +424,7 @@ main() {
                 echo -e "  Project: $project"
                 echo -e "  Prompt:  ${CYAN}$prompt_file${NC}"
                 echo
-                echo -e "Start with: ${CYAN}/phantom ask $agent \"Your question\"${NC}"
+                echo -e "Start with: ${CYAN}/zero ask $agent \"Your question\"${NC}"
             else
                 run_interactive
             fi

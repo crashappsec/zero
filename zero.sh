@@ -696,7 +696,7 @@ run_malcontent_update() {
     fi
 }
 
-# Get profile info from phantom.config.json
+# Get profile info from zero.config.json
 get_profile_info() {
     local profile="$1"
     local field="$2"
@@ -915,7 +915,7 @@ show_menu() {
                         # Check if org has cloned repos
                         if [[ ! -d "$GIBSON_REPOS_DIR/$org_name" ]]; then
                             echo -e "${RED}Error: No cloned repos found for org '$org_name'${NC}"
-                            echo -e "Clone first with: ${CYAN}./phantom.sh clone --org $org_name${NC}"
+                            echo -e "Clone first with: ${CYAN}./zero.sh clone --org $org_name${NC}"
                         else
                             echo
                             echo -e "Select scan profile:"
@@ -1171,7 +1171,7 @@ main() {
             fi
             # Check preflight first
             if ! run_check > /dev/null 2>&1; then
-                echo -e "${YELLOW}Warning: Preflight check has issues. Run './phantom.sh check' to see details.${NC}"
+                echo -e "${YELLOW}Warning: Preflight check has issues. Run './zero.sh check' to see details.${NC}"
                 echo
             fi
             # Delegate to scan.sh
@@ -1187,7 +1187,7 @@ main() {
             fi
             # Check preflight first
             if ! run_check > /dev/null 2>&1; then
-                echo -e "${YELLOW}Warning: Preflight check has issues. Run './phantom.sh check' to see details.${NC}"
+                echo -e "${YELLOW}Warning: Preflight check has issues. Run './zero.sh check' to see details.${NC}"
                 echo
             fi
             # Delegate to hydrate.sh (clone + scan)
