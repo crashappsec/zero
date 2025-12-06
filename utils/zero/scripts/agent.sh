@@ -349,6 +349,14 @@ EOF
         exit 1
     fi
 
+    # Check if we're in an interactive terminal
+    if [[ ! -t 0 ]] || [[ ! -t 1 ]]; then
+        echo -e "${RED}Error: Agent chat requires an interactive terminal${NC}" >&2
+        echo -e "Run this command directly in your terminal, not from a script or pipe."
+        rm -f "$prompt_file"
+        exit 1
+    fi
+
     echo -e "${GREEN}✓${NC} Launching chat with ${BOLD}$persona${NC}..."
     [[ -n "$project_id" ]] && echo -e "  Project: ${CYAN}$project_id${NC}"
     echo
