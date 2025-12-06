@@ -310,7 +310,6 @@ launch_claude_chat() {
     local project_id="${2:-}"
 
     local persona=$(agent_get_persona "$agent_name")
-    local agent_dir=$(agent_get_dir "$agent_name")
 
     # Build system prompt from agent definition
     local agent_md="$REPO_ROOT/agents/$agent_name/agent.md"
@@ -319,14 +318,16 @@ launch_claude_chat() {
         exit 1
     fi
 
-    local system_prompt=$(cat "$agent_md")
+    # Write system prompt to temp file to handle special characters
+    local prompt_file=$(mktemp)
+    cat "$agent_md" > "$prompt_file"
 
     # Add project context if available
     if [[ -n "$project_id" ]]; then
-        local project_path=$(gibson_project_path "$project_id")
-        if [[ -d "$project_path/analysis" ]]; then
+        local project_path=$(gibson_project_path "$project_id" 2>/dev/null || echo "")
+        if [[ -n "$project_path" ]] && [[ -d "$project_path/analysis" ]]; then
             local summary=$(get_findings_summary "$agent_name" "$project_id" 2>/dev/null || echo "{}")
-            system_prompt="$system_prompt
+            cat >> "$prompt_file" << EOF
 
 ## Current Project: $project_id
 
@@ -335,7 +336,8 @@ Analysis data is available at: $project_path/analysis/
 ### Findings Summary
 \`\`\`json
 $summary
-\`\`\`"
+\`\`\`
+EOF
         fi
     fi
 
@@ -343,6 +345,7 @@ $summary
     if ! command -v claude &>/dev/null; then
         echo -e "${RED}Error: 'claude' CLI not found${NC}" >&2
         echo -e "Install Claude Code: ${CYAN}npm install -g @anthropic-ai/claude-code${NC}"
+        rm -f "$prompt_file"
         exit 1
     fi
 
@@ -350,8 +353,11 @@ $summary
     [[ -n "$project_id" ]] && echo -e "  Project: ${CYAN}$project_id${NC}"
     echo
 
-    # Launch claude with the system prompt
-    claude --system-prompt "$system_prompt"
+    # Launch claude with the system prompt from file
+    local system_prompt=$(cat "$prompt_file")
+    rm -f "$prompt_file"
+
+    exec claude --system-prompt "$system_prompt"
 }
 
 # Interactive chat mode
