@@ -57,6 +57,22 @@ fi
 export SCANNER_RED SCANNER_GREEN SCANNER_YELLOW SCANNER_BLUE SCANNER_CYAN SCANNER_DIM SCANNER_BOLD SCANNER_NC
 
 #############################################################################
+# AGENT PERSONALITY (Optional integration)
+# Source agent personality library if available
+#############################################################################
+
+_SCANNER_AGENT=""  # Current agent persona
+
+# Try to load agent personality library
+_UTILS_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$_UTILS_LIB_DIR/agent-personality.sh" ]]; then
+    source "$_UTILS_LIB_DIR/agent-personality.sh"
+    _AGENT_PERSONALITY_LOADED=true
+else
+    _AGENT_PERSONALITY_LOADED=false
+fi
+
+#############################################################################
 # STATUS INDICATORS
 # Unicode symbols for status messages
 #############################################################################
@@ -96,7 +112,7 @@ _PROGRESS_START_TIME=""
 #############################################################################
 
 # Initialize scanner with name and version
-# Usage: scanner_init "my-scanner" "1.0.0" [--verbose] [--quiet] [--format FORMAT]
+# Usage: scanner_init "my-scanner" "1.0.0" [--verbose] [--quiet] [--format FORMAT] [--agent AGENT]
 scanner_init() {
     _SCANNER_NAME="${1:-scanner}"
     _SCANNER_VERSION="${2:-1.0.0}"
@@ -107,6 +123,7 @@ scanner_init() {
             --verbose|-v) _SCANNER_VERBOSE=true; shift ;;
             --quiet|-q) _SCANNER_QUIET=true; shift ;;
             --format|-f) _SCANNER_FORMAT="$2"; shift 2 ;;
+            --agent|-a) _SCANNER_AGENT="$2"; shift 2 ;;
             *) shift ;;
         esac
     done
@@ -173,12 +190,21 @@ scanner_step() {
 #############################################################################
 
 # Print scanner header
-# Usage: scanner_header "target-name" [--no-banner]
+# Usage: scanner_header "target-name" [--no-banner] [--no-agent]
 scanner_header() {
     local target="${1:-}"
     local show_banner=true
+    local show_agent=true
 
-    [[ "${2:-}" == "--no-banner" ]] && show_banner=false
+    shift || true
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --no-banner) show_banner=false; shift ;;
+            --no-agent) show_agent=false; shift ;;
+            *) shift ;;
+        esac
+    done
+
     [[ "$_SCANNER_QUIET" == "true" ]] && return 0
 
     if [[ "$show_banner" == "true" ]]; then
@@ -196,20 +222,26 @@ EOF
         echo "" >&2
     fi
 
-    echo -e "${SCANNER_BOLD}Scanner:${SCANNER_NC} $_SCANNER_NAME v$_SCANNER_VERSION" >&2
+    # Show agent intro if agent is set and personality is loaded
+    if [[ "$show_agent" == "true" ]] && [[ -n "$_SCANNER_AGENT" ]] && [[ "$_AGENT_PERSONALITY_LOADED" == "true" ]]; then
+        agent_intro "$_SCANNER_AGENT"
+    else
+        echo -e "${SCANNER_BOLD}Scanner:${SCANNER_NC} $_SCANNER_NAME v$_SCANNER_VERSION" >&2
 
-    if [[ -n "$target" ]]; then
-        echo -e "${SCANNER_BOLD}Target:${SCANNER_NC}  $target" >&2
+        if [[ -n "$target" ]]; then
+            echo -e "${SCANNER_BOLD}Target:${SCANNER_NC}  $target" >&2
+        fi
+
+        echo -e "${SCANNER_BOLD}Started:${SCANNER_NC} $(date '+%Y-%m-%d %H:%M:%S')" >&2
+        echo "" >&2
     fi
-
-    echo -e "${SCANNER_BOLD}Started:${SCANNER_NC} $(date '+%Y-%m-%d %H:%M:%S')" >&2
-    echo "" >&2
 }
 
 # Print scanner footer with duration
-# Usage: scanner_footer "success" | "warning" | "error"
+# Usage: scanner_footer "success" | "warning" | "error" [finding_count]
 scanner_footer() {
     local status="${1:-success}"
+    local finding_count="${2:-}"
     local end_time=$(date +%s)
     local duration=$((end_time - _SCANNER_START_TIME))
 
@@ -237,6 +269,21 @@ scanner_footer() {
     esac
 
     echo -e "${status_color}${status_icon} ${status_text}${SCANNER_NC} ${SCANNER_DIM}(${duration}s)${SCANNER_NC}" >&2
+
+    # Easter eggs based on finding count
+    if [[ "$_AGENT_PERSONALITY_LOADED" == "true" ]] && [[ -n "$finding_count" ]]; then
+        check_easter_egg "$finding_count" 2>/dev/null || true
+    fi
+
+    # Agent signoff if agent is set
+    if [[ -n "$_SCANNER_AGENT" ]] && [[ "$_AGENT_PERSONALITY_LOADED" == "true" ]]; then
+        agent_signoff "$_SCANNER_AGENT"
+    fi
+
+    # Team celebration for clean scans
+    if [[ "$status" == "success" ]] && [[ "$finding_count" == "0" ]] && [[ "$_AGENT_PERSONALITY_LOADED" == "true" ]]; then
+        hack_the_planet
+    fi
 }
 
 #############################################################################
@@ -252,6 +299,13 @@ scanner_progress_start() {
     _PROGRESS_START_TIME=$(date +%s)
 
     [[ "$_SCANNER_QUIET" == "true" ]] && return 0
+
+    # Show agent start message if available
+    if [[ -n "$_SCANNER_AGENT" ]] && [[ "$_AGENT_PERSONALITY_LOADED" == "true" ]]; then
+        local msg
+        msg=$(agent_progress_message "$_SCANNER_AGENT" "start")
+        echo -e "${SCANNER_DIM}${msg}${SCANNER_NC}" >&2
+    fi
 
     # Initial display
     printf "\r${SCANNER_BLUE}${_PROGRESS_LABEL}${SCANNER_NC}: 0/${_PROGRESS_TOTAL}" >&2
@@ -554,7 +608,7 @@ scanner_risk_indicator() {
     esac
 }
 
-# Display risk counts
+# Display risk counts with optional agent reaction
 # Usage: scanner_risk_summary 3 7 12 5  # critical high medium low
 scanner_risk_summary() {
     local critical="${1:-0}"
@@ -564,10 +618,63 @@ scanner_risk_summary() {
 
     [[ "$_SCANNER_QUIET" == "true" ]] && return 0
 
+    # Show agent reaction based on highest severity
+    if [[ -n "$_SCANNER_AGENT" ]] && [[ "$_AGENT_PERSONALITY_LOADED" == "true" ]]; then
+        local severity="clean"
+        if [[ $critical -gt 0 ]]; then
+            severity="critical"
+        elif [[ $high -gt 0 ]]; then
+            severity="high"
+        elif [[ $medium -gt 0 ]]; then
+            severity="medium"
+        elif [[ $low -gt 0 ]]; then
+            severity="low"
+        fi
+
+        local reaction
+        reaction=$(agent_react "$_SCANNER_AGENT" "$severity")
+        echo "" >&2
+        echo -e "${SCANNER_DIM}${reaction}${SCANNER_NC}" >&2
+        echo "" >&2
+    fi
+
     [[ $critical -gt 0 ]] && echo -e "  ${SCANNER_RED}●${SCANNER_NC} Critical: $critical" >&2
     [[ $high -gt 0 ]]     && echo -e "  ${SCANNER_RED}○${SCANNER_NC} High: $high" >&2
     [[ $medium -gt 0 ]]   && echo -e "  ${SCANNER_YELLOW}●${SCANNER_NC} Medium: $medium" >&2
     [[ $low -gt 0 ]]      && echo -e "  ${SCANNER_GREEN}○${SCANNER_NC} Low: $low" >&2
+}
+
+#############################################################################
+# AGENT-AWARE FINDING DISPLAY
+#############################################################################
+
+# Display a finding with agent commentary
+# Usage: scanner_finding "critical" "vulnerability" "SQL Injection in login.php"
+scanner_finding() {
+    local severity="${1:-medium}"
+    local type="${2:-general}"
+    local message="${3:-Finding detected}"
+
+    [[ "$_SCANNER_QUIET" == "true" ]] && return 0
+
+    # Severity indicator
+    local indicator
+    case "${severity,,}" in
+        critical) indicator="${SCANNER_RED}●${SCANNER_NC}" ;;
+        high)     indicator="${SCANNER_RED}○${SCANNER_NC}" ;;
+        medium)   indicator="${SCANNER_YELLOW}●${SCANNER_NC}" ;;
+        low)      indicator="${SCANNER_GREEN}○${SCANNER_NC}" ;;
+        *)        indicator="${SCANNER_BLUE}○${SCANNER_NC}" ;;
+    esac
+
+    echo -e "  ${indicator} ${message}" >&2
+
+    # Add agent commentary for critical/high findings
+    if [[ "$_AGENT_PERSONALITY_LOADED" == "true" ]] && [[ "${severity,,}" =~ ^(critical|high)$ ]]; then
+        local commentary
+        commentary=$(finding_commentary "$severity" "$type")
+        echo -e "    ${SCANNER_DIM}${commentary}${SCANNER_NC}" >&2
+    fi
 }
 
 #############################################################################
@@ -599,3 +706,18 @@ export -f scanner_require
 export -f scanner_require_all
 export -f scanner_risk_indicator
 export -f scanner_risk_summary
+export -f scanner_finding
+
+# Export agent personality functions if loaded
+if [[ "$_AGENT_PERSONALITY_LOADED" == "true" ]]; then
+    export -f agent_progress_message 2>/dev/null || true
+    export -f agent_react 2>/dev/null || true
+    export -f agent_intro 2>/dev/null || true
+    export -f agent_signoff 2>/dev/null || true
+    export -f crew_status 2>/dev/null || true
+    export -f get_movie_quote 2>/dev/null || true
+    export -f check_easter_egg 2>/dev/null || true
+    export -f hack_the_planet 2>/dev/null || true
+    export -f report_header_quote 2>/dev/null || true
+    export -f finding_commentary 2>/dev/null || true
+fi

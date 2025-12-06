@@ -44,6 +44,7 @@ CONFIDENCE_THRESHOLD=50
 OUTPUT_FORMAT="json"
 VERBOSE=false
 QUIET=false
+AGENT="nikon"  # Lord Nikon - architecture/patterns, fits tech-discovery
 
 usage() {
     cat << EOF
@@ -64,6 +65,7 @@ OPTIONS:
     --confidence N          Minimum confidence threshold (0-100, default: 50)
     --scan-docker-images    Also scan Docker images referenced in Dockerfile/compose
     --format FORMAT         Output format: json, markdown, terminal, html (default: json)
+    --agent AGENT           Enable agent personality (nikon, cereal, etc.)
     -o, --output FILE       Write output to file (default: stdout)
     -k, --keep-clone        Keep cloned repository
     -v, --verbose           Verbose output
@@ -111,6 +113,10 @@ while [[ $# -gt 0 ]]; do
             OUTPUT_FORMAT="$2"
             shift 2
             ;;
+        --agent|-a)
+            AGENT="$2"
+            shift 2
+            ;;
         -o|--output)
             OUTPUT_FILE="$2"
             shift 2
@@ -139,8 +145,11 @@ while [[ $# -gt 0 ]]; do
 done
 export SCAN_DOCKER_IMAGES
 
-# Initialize scanner
-scanner_init "tech-discovery" "2.0.0" $(if $VERBOSE; then echo "--verbose"; fi) $(if $QUIET; then echo "--quiet"; fi)
+# Initialize scanner with agent personality
+scanner_init "tech-discovery" "2.0.0" \
+    $(if $VERBOSE; then echo "--verbose"; fi) \
+    $(if $QUIET; then echo "--quiet"; fi) \
+    --agent "$AGENT"
 
 # Check dependencies
 scanner_require "jq" "brew install jq" || exit 1
@@ -663,4 +672,6 @@ else
     fi
 fi
 
-scanner_footer "success"
+# Pass finding count for easter eggs
+total_found=$(echo "$final_json" | jq -r '.summary.total // 0')
+scanner_footer "success" "$total_found"
