@@ -36,16 +36,22 @@ source "$ZERO_DIR/lib/agent-loader.sh"
 agent_get_description() {
     local agent_name="$1"
     case "$agent_name" in
-        scout)    echo "Supply chain security - vulnerabilities, malcontent, package health" ;;
-        sentinel) echo "Code security - static analysis, secrets, SAST findings" ;;
-        quinn)    echo "Compliance - SOC 2, ISO 27001, audit evidence" ;;
-        harper)   echo "Legal - licenses, data privacy, contracts" ;;
-        casey)    echo "Frontend - React, TypeScript, accessibility" ;;
-        morgan)   echo "Backend - APIs, databases, data pipelines" ;;
-        ada)      echo "Architecture - system design, patterns, trade-offs" ;;
-        bailey)   echo "Build - CI/CD, performance, caching" ;;
-        phoenix)  echo "DevOps - infrastructure, Kubernetes, incidents" ;;
-        jordan)   echo "Engineering metrics - DORA, team health, KPIs" ;;
+        zero)     echo "Master orchestrator - coordinates all agents (Zero Cool)" ;;
+        cereal)   echo "Supply chain security - paranoid about dependencies (Cereal Killer)" ;;
+        razor)    echo "Code security - cuts through vulnerabilities" ;;
+        blade)    echo "Compliance - meticulous auditor" ;;
+        phreak)   echo "Legal - licenses, knows the angles (Phantom Phreak)" ;;
+        acid)     echo "Frontend - stylish code quality (Acid Burn)" ;;
+        dade)     echo "Backend - calm, methodical systems (Crash Override)" ;;
+        nikon)    echo "Architecture - photographic memory for patterns (Lord Nikon)" ;;
+        joey)     echo "Build - eager to prove himself" ;;
+        plague)   echo "DevOps - reformed villain, knows the threats (The Plague)" ;;
+        gibson)   echo "Engineering metrics - the supercomputer sees all" ;;
+        # Legacy aliases
+        scout)    echo "Supply chain security (alias for cereal)" ;;
+        sentinel) echo "Code security (alias for razor)" ;;
+        quinn)    echo "Compliance (alias for blade)" ;;
+        harper)   echo "Legal (alias for phreak)" ;;
         *)        echo "Unknown agent" ;;
     esac
 }
@@ -54,16 +60,22 @@ agent_get_description() {
 agent_get_persona() {
     local agent_name="$1"
     case "$agent_name" in
-        scout)    echo "Scout" ;;
-        sentinel) echo "Sentinel" ;;
-        quinn)    echo "Quinn" ;;
-        harper)   echo "Harper" ;;
-        casey)    echo "Casey" ;;
-        morgan)   echo "Morgan" ;;
-        ada)      echo "Ada" ;;
-        bailey)   echo "Bailey" ;;
-        phoenix)  echo "Phoenix" ;;
-        jordan)   echo "Jordan" ;;
+        zero)     echo "Zero Cool" ;;
+        cereal)   echo "Cereal Killer" ;;
+        razor)    echo "Razor" ;;
+        blade)    echo "Blade" ;;
+        phreak)   echo "Phantom Phreak" ;;
+        acid)     echo "Acid Burn" ;;
+        dade)     echo "Crash Override" ;;
+        nikon)    echo "Lord Nikon" ;;
+        joey)     echo "Joey" ;;
+        plague)   echo "The Plague" ;;
+        gibson)   echo "The Gibson" ;;
+        # Legacy aliases
+        scout)    echo "Cereal Killer" ;;
+        sentinel) echo "Razor" ;;
+        quinn)    echo "Blade" ;;
+        harper)   echo "Phantom Phreak" ;;
         *)        echo "$agent_name" ;;
     esac
 }
@@ -86,7 +98,7 @@ OPTIONS:
 
 AGENTS:
 EOF
-    for agent in scout sentinel quinn harper casey morgan ada bailey phoenix jordan; do
+    for agent in zero cereal razor blade phreak acid dade nikon joey plague gibson; do
         if agent_exists "$agent"; then
             local persona=$(agent_get_persona "$agent")
             local desc=$(agent_get_description "$agent")
@@ -114,11 +126,11 @@ list_agents() {
     echo
 
     local i=1
-    for agent in scout sentinel quinn harper casey morgan ada bailey phoenix jordan; do
+    for agent in zero cereal razor blade phreak acid dade nikon joey plague gibson; do
         if agent_exists "$agent"; then
             local persona=$(agent_get_persona "$agent")
             local desc=$(agent_get_description "$agent")
-            local tools=$(agent_get_tools "$agent")
+            local tools=$(agent_get_tools "$agent" 2>/dev/null || echo "all")
             echo -e "  ${CYAN}$i${NC}  ${BOLD}$persona${NC} ($agent)"
             echo -e "      ${DIM}$desc${NC}"
             echo -e "      ${DIM}Tools: $tools${NC}"
@@ -137,7 +149,7 @@ select_agent() {
     local agents=""
     local agent_count=0
     local i=1
-    for agent in scout sentinel quinn harper casey morgan ada bailey phoenix jordan; do
+    for agent in zero cereal razor blade phreak acid dade nikon joey plague gibson; do
         if agent_exists "$agent"; then
             agents="$agents $agent"
             agent_count=$((agent_count + 1))
@@ -292,6 +304,56 @@ EOF
     echo "$output_file"
 }
 
+# Launch Claude with agent persona
+launch_claude_chat() {
+    local agent_name="$1"
+    local project_id="${2:-}"
+
+    local persona=$(agent_get_persona "$agent_name")
+    local agent_dir=$(agent_get_dir "$agent_name")
+
+    # Build system prompt from agent definition
+    local agent_md="$REPO_ROOT/agents/$agent_name/agent.md"
+    if [[ ! -f "$agent_md" ]]; then
+        echo -e "${RED}Error: Agent definition not found: $agent_md${NC}" >&2
+        exit 1
+    fi
+
+    local system_prompt=$(cat "$agent_md")
+
+    # Add project context if available
+    if [[ -n "$project_id" ]]; then
+        local project_path=$(gibson_project_path "$project_id")
+        if [[ -d "$project_path/analysis" ]]; then
+            local summary=$(get_findings_summary "$agent_name" "$project_id" 2>/dev/null || echo "{}")
+            system_prompt="$system_prompt
+
+## Current Project: $project_id
+
+Analysis data is available at: $project_path/analysis/
+
+### Findings Summary
+\`\`\`json
+$summary
+\`\`\`"
+        fi
+    fi
+
+    # Check if claude CLI is available
+    if ! command -v claude &>/dev/null; then
+        echo -e "${RED}Error: 'claude' CLI not found${NC}" >&2
+        echo -e "Install Claude Code: ${CYAN}npm install -g @anthropic-ai/claude-code${NC}"
+        exit 1
+    fi
+
+    echo -e "${GREEN}✓${NC} Launching chat with ${BOLD}$persona${NC}..."
+    [[ -n "$project_id" ]] && echo -e "  Project: ${CYAN}$project_id${NC}"
+    echo
+
+    # Launch claude with the system prompt
+    claude --system-prompt "$system_prompt"
+}
+
 # Interactive chat mode
 run_interactive() {
     print_zero_banner
@@ -308,41 +370,18 @@ run_interactive() {
         exit 1
     fi
 
-    # Select project
-    local project=$(select_project)
-    if [[ -z "$project" ]]; then
-        exit 1
+    # Select project (optional)
+    local project=""
+    if [[ -d "$GIBSON_PROJECTS_DIR" ]]; then
+        echo
+        read -p "Load project context? [y/N]: " load_project
+        if [[ "$load_project" =~ ^[Yy] ]]; then
+            project=$(select_project)
+        fi
     fi
 
-    # Generate prompt file
-    local persona=$(agent_get_persona "$agent")
-    local prompt_file="/tmp/zero-agent-${agent}-$(date +%s).md"
-    generate_prompt_file "$agent" "$project" "$prompt_file"
-
-    echo
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${GREEN}✓${NC} Agent context prepared"
-    echo
-    echo -e "  Agent:   ${BOLD}$persona${NC} ($agent)"
-    echo -e "  Project: ${BOLD}$project${NC}"
-    echo -e "  Prompt:  ${CYAN}$prompt_file${NC}"
-    echo
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo
-    echo -e "${BOLD}To start the conversation:${NC}"
-    echo
-    echo -e "  1. Copy this command:"
-    echo -e "     ${CYAN}cat $prompt_file${NC}"
-    echo
-    echo -e "  2. Or use the /zero slash command:"
-    echo -e "     ${CYAN}/zero ask $agent \"Your question here\"${NC}"
-    echo
-    echo -e "  3. For investigation mode (uses tools):"
-    echo -e "     ${CYAN}/zero ask $agent \"Investigate the malcontent findings\"${NC}"
-    echo
-
-    # Output the prompt file path for scripting
-    echo "$prompt_file"
+    # Launch Claude with agent
+    launch_claude_chat "$agent" "$project"
 }
 
 #############################################################################
@@ -401,30 +440,8 @@ main() {
             ;;
         interactive)
             if [[ -n "$agent" ]]; then
-                # Agent specified, check if project specified
-                if [[ -z "$project" ]]; then
-                    # Try to get active project or prompt
-                    print_zero_banner
-                    echo -e "${BOLD}Agent Chat${NC}"
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo
-                    project=$(select_project)
-                    if [[ -z "$project" ]]; then
-                        exit 1
-                    fi
-                fi
-
-                # Generate prompt for specified agent/project
-                local persona=$(agent_get_persona "$agent")
-                local prompt_file="/tmp/zero-agent-${agent}-$(date +%s).md"
-                generate_prompt_file "$agent" "$project" "$prompt_file"
-
-                echo
-                echo -e "${GREEN}✓${NC} Agent context prepared for ${BOLD}$persona${NC}"
-                echo -e "  Project: $project"
-                echo -e "  Prompt:  ${CYAN}$prompt_file${NC}"
-                echo
-                echo -e "Start with: ${CYAN}/zero ask $agent \"Your question\"${NC}"
+                # Agent specified - launch Claude directly
+                launch_claude_chat "$agent" "$project"
             else
                 run_interactive
             fi
