@@ -5,31 +5,28 @@
 # SPDX-License-Identifier: GPL-3.0
 
 #############################################################################
-# Technology Identification - Data Collector
-# Pure data collection - outputs JSON for agent analysis
+# Technology Identification Scanner
+# Detects technologies, frameworks, and services used in a codebase
 #
-# This is the data-only version. AI analysis is handled by agents.
+# This scanner uses the unified scanner-ux library for consistent UX.
 #
-# Usage: ./technology-identification-data.sh [options] <target>
+# Usage: ./tech-discovery.sh [options] <target>
 # Output: JSON with detected technologies, categories, and confidence scores
 #############################################################################
 
 set -e
 
-# Colors for terminal output (stderr only)
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-# Get script directory
+# Get script directory and load libraries
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 SCANNERS_ROOT="$(dirname "$SCRIPT_DIR")"
 UTILS_ROOT="$(dirname "$SCANNERS_ROOT")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 
-# Load global libraries
+# Load unified scanner UX library
+source "$UTILS_ROOT/lib/scanner-ux.sh"
+source "$UTILS_ROOT/lib/scanner-reports.sh"
+
+# Load scanner-specific libraries
 source "$UTILS_ROOT/lib/sbom.sh" 2>/dev/null || true
 source "$SCRIPT_DIR/lib/pattern-loader.sh" 2>/dev/null || true
 
@@ -44,10 +41,15 @@ TEMP_DIR=""
 CLEANUP=true
 TARGET=""
 CONFIDENCE_THRESHOLD=50
+OUTPUT_FORMAT="json"
+VERBOSE=false
+QUIET=false
 
 usage() {
     cat << EOF
-Technology Identification - Data Collector (JSON output for agent analysis)
+Technology Identification Scanner
+
+Detects technologies, frameworks, and services used in a codebase.
 
 Usage: $0 [OPTIONS] <target>
 
@@ -61,15 +63,12 @@ OPTIONS:
     --sbom FILE             Use existing SBOM file (skips syft generation)
     --confidence N          Minimum confidence threshold (0-100, default: 50)
     --scan-docker-images    Also scan Docker images referenced in Dockerfile/compose
-    -o, --output FILE       Write JSON to file (default: stdout)
+    --format FORMAT         Output format: json, markdown, terminal, html (default: json)
+    -o, --output FILE       Write output to file (default: stdout)
     -k, --keep-clone        Keep cloned repository
+    -v, --verbose           Verbose output
+    -q, --quiet             Suppress progress output
     -h, --help              Show this help
-
-OUTPUT:
-    JSON object with:
-    - metadata: scan timestamp, target, analyzer version
-    - summary: counts by category
-    - technologies: array of findings with confidence scores
 
 DETECTION LAYERS:
     1. SBOM packages (via syft)
@@ -80,21 +79,72 @@ DETECTION LAYERS:
 
 EXAMPLES:
     $0 https://github.com/expressjs/express
-    $0 --local-path ~/.gibson/projects/foo/repo
-    $0 --scan-docker-images /path/to/docker/project
-    $0 -o tech.json /path/to/project
+    $0 --local-path ~/.zero/repos/foo/repo
+    $0 --format markdown -o report.md /path/to/project
 
 EOF
     exit 0
 }
 
-# Check if syft is installed
-check_syft() {
-    if ! command -v syft &> /dev/null; then
-        echo '{"error": "syft not installed", "install": "brew install syft"}' >&2
-        exit 1
-    fi
-}
+# Parse arguments
+SCAN_DOCKER_IMAGES=false
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help) usage ;;
+        --local-path)
+            LOCAL_PATH="$2"
+            shift 2
+            ;;
+        --sbom)
+            SBOM_FILE="$2"
+            shift 2
+            ;;
+        --confidence)
+            CONFIDENCE_THRESHOLD="$2"
+            shift 2
+            ;;
+        --scan-docker-images)
+            SCAN_DOCKER_IMAGES=true
+            shift
+            ;;
+        --format|-f)
+            OUTPUT_FORMAT="$2"
+            shift 2
+            ;;
+        -o|--output)
+            OUTPUT_FILE="$2"
+            shift 2
+            ;;
+        -k|--keep-clone)
+            CLEANUP=false
+            shift
+            ;;
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -q|--quiet)
+            QUIET=true
+            shift
+            ;;
+        -*)
+            scanner_error "Unknown option: $1"
+            exit 1
+            ;;
+        *)
+            TARGET="$1"
+            shift
+            ;;
+    esac
+done
+export SCAN_DOCKER_IMAGES
+
+# Initialize scanner
+scanner_init "tech-discovery" "2.0.0" $(if $VERBOSE; then echo "--verbose"; fi) $(if $QUIET; then echo "--quiet"; fi)
+
+# Check dependencies
+scanner_require "jq" "brew install jq" || exit 1
+scanner_require "syft" "brew install syft" || exit 1
 
 # Detect if target is a Git URL
 is_git_url() {
@@ -112,28 +162,29 @@ clone_repository() {
     local repo_url="$1"
     TEMP_DIR=$(mktemp -d)
 
-    echo -e "${BLUE}Cloning repository...${NC}" >&2
+    scanner_step "Cloning repository"
     if git clone --depth 1 "$repo_url" "$TEMP_DIR" > /dev/null 2>&1; then
-        echo -e "${GREEN}✓ Cloned${NC}" >&2
+        scanner_step "Cloning repository" "success"
         return 0
     else
-        echo '{"error": "Failed to clone repository"}'
+        scanner_step "Cloning repository" "error"
+        scanner_error "Failed to clone repository"
         exit 1
     fi
 }
 
 # Generate SBOM if needed
-generate_sbom() {
+generate_sbom_file() {
     local target_dir="$1"
     local sbom_file=$(mktemp)
 
-    echo -e "${BLUE}Generating SBOM...${NC}" >&2
+    scanner_step "Generating SBOM"
     if syft scan "$target_dir" -o cyclonedx-json > "$sbom_file" 2>/dev/null; then
-        echo -e "${GREEN}✓ SBOM generated${NC}" >&2
+        scanner_step "Generating SBOM" "success"
         echo "$sbom_file"
         return 0
     else
-        echo -e "${YELLOW}⚠ SBOM generation failed${NC}" >&2
+        scanner_step "Generating SBOM" "warning"
         return 1
     fi
 }
@@ -151,14 +202,19 @@ scan_sbom_packages() {
     local sbom_file="$1"
     local findings="[]"
 
-    # Extract components from SBOM
     local components=$(jq -c '.components[]?' "$sbom_file" 2>/dev/null)
-
     [[ -z "$components" ]] && { echo "[]"; return; }
 
+    local total=$(echo "$components" | wc -l | tr -d ' ')
+    scanner_progress_start "Scanning packages" "$total"
+
+    local count=0
     while IFS= read -r component; do
+        ((count++))
         local name=$(echo "$component" | jq -r '.name // ""')
         local version=$(echo "$component" | jq -r '.version // ""')
+
+        scanner_progress_update "$count" "$name"
 
         # Try RAG pattern match
         local match_result=""
@@ -175,8 +231,6 @@ scan_sbom_packages() {
             tech_category=$(echo "$match_result" | jq -r '.category // ""' 2>/dev/null)
             confidence=$(echo "$match_result" | jq -r '.confidence // 95' 2>/dev/null)
         else
-            # No RAG pattern match - skip this package
-            # All technology patterns should be defined in rag/technology-identification/
             continue
         fi
 
@@ -194,6 +248,7 @@ scan_sbom_packages() {
         findings=$(echo "$findings" | jq --argjson f "$finding" '. + [$f]')
     done <<< "$components"
 
+    scanner_progress_end
     echo "$findings"
 }
 
@@ -201,6 +256,8 @@ scan_sbom_packages() {
 scan_config_files() {
     local repo_path="$1"
     local findings="[]"
+
+    scanner_step "Scanning configuration files"
 
     # Dockerfile
     if [[ -f "$repo_path/Dockerfile" ]] || find "$repo_path" -name "Dockerfile*" -type f 2>/dev/null | grep -q .; then
@@ -252,6 +309,7 @@ scan_config_files() {
         findings=$(echo "$findings" | jq '. + [{"name": "Rust", "category": "languages/runtime", "confidence": 95, "detection_method": "config-file", "evidence": ["Cargo.toml found"]}]')
     fi
 
+    scanner_step "Scanning configuration files" "success"
     echo "$findings"
 }
 
@@ -262,6 +320,8 @@ scan_env_variables() {
 
     local env_files=$(find "$repo_path" -maxdepth 3 -type f \( -name ".env*" -o -name "*.env" \) 2>/dev/null)
     [[ -z "$env_files" ]] && { echo "[]"; return; }
+
+    scanner_step "Scanning environment variables"
 
     local env_content=$(cat $env_files 2>/dev/null)
 
@@ -285,6 +345,7 @@ scan_env_variables() {
         findings=$(echo "$findings" | jq '. + [{"name": "Database", "category": "databases", "confidence": 60, "detection_method": "env-variable", "evidence": ["Database environment variables found"]}]')
     fi
 
+    scanner_step "Scanning environment variables" "success"
     echo "$findings"
 }
 
@@ -293,20 +354,17 @@ scan_docker_images() {
     local repo_path="$1"
     local findings="[]"
 
-    # Find Dockerfiles
     local dockerfiles=$(find "$repo_path" -maxdepth 3 -type f -name "Dockerfile*" 2>/dev/null)
     [[ -z "$dockerfiles" ]] && { echo "[]"; return; }
 
-    # Extract image names from FROM statements and docker-compose
-    local images=""
+    scanner_step "Scanning Docker images"
 
-    # From Dockerfiles
+    local images=""
     for df in $dockerfiles; do
         local img=$(grep -E "^FROM " "$df" 2>/dev/null | head -1 | awk '{print $2}' | sed 's/:.*$//')
         [[ -n "$img" ]] && images="$images $img"
     done
 
-    # From docker-compose.yml
     if [[ -f "$repo_path/docker-compose.yml" ]] || [[ -f "$repo_path/docker-compose.yaml" ]]; then
         local compose_file="$repo_path/docker-compose.yml"
         [[ -f "$repo_path/docker-compose.yaml" ]] && compose_file="$repo_path/docker-compose.yaml"
@@ -314,39 +372,30 @@ scan_docker_images() {
         images="$images $compose_images"
     fi
 
-    # Unique images
     images=$(echo "$images" | tr ' ' '\n' | sort -u | grep -v '^$')
-    [[ -z "$images" ]] && { echo "[]"; return; }
-
-    echo -e "${BLUE}Scanning Docker images for AI packages...${NC}" >&2
+    [[ -z "$images" ]] && { scanner_step "Scanning Docker images" "warning"; echo "[]"; return; }
 
     for image in $images; do
-        # Skip base images that won't have interesting packages
         [[ "$image" =~ ^(alpine|ubuntu|debian|busybox|scratch)$ ]] && continue
 
-        # Try to scan the image with syft (will pull if not local)
         local temp_sbom=$(mktemp)
         if timeout 60 syft scan "registry:$image:latest" -o cyclonedx-json > "$temp_sbom" 2>/dev/null; then
-            echo -e "${GREEN}✓ Scanned Docker image: $image${NC}" >&2
-
-            # Scan for AI packages in the image SBOM
+            scanner_debug "Scanned Docker image: $image"
             local image_findings=$(scan_sbom_packages "$temp_sbom")
-
-            # Add source info to evidence
             image_findings=$(echo "$image_findings" | jq --arg img "$image" '
                 map(. + {
                     detection_method: "docker-image-sbom",
                     evidence: (.evidence + ["from Docker image: " + $img])
                 })
             ')
-
             findings=$(echo "$findings $image_findings" | jq -s 'add')
         else
-            echo -e "${YELLOW}⚠ Could not scan Docker image: $image${NC}" >&2
+            scanner_debug "Could not scan Docker image: $image"
         fi
         rm -f "$temp_sbom"
     done
 
+    scanner_step "Scanning Docker images" "success"
     echo "$findings"
 }
 
@@ -355,95 +404,46 @@ scan_ai_imports() {
     local repo_path="$1"
     local findings="[]"
 
-    echo -e "${BLUE}Scanning source files for AI imports...${NC}" >&2
+    scanner_step "Scanning AI import patterns"
 
-    # AI-related import patterns with their technology mappings
-    # Format: pattern|technology|category|file_glob
     local patterns=(
-        # OpenAI
         'import.*openai|OpenAI|ai-ml/llm-apis|*.py'
         'from openai import|OpenAI|ai-ml/llm-apis|*.py'
         "import.*from ['\"]openai['\"]|OpenAI|ai-ml/llm-apis|*.ts,*.js,*.tsx,*.jsx"
-        'new OpenAI\(|OpenAI|ai-ml/llm-apis|*.ts,*.js,*.tsx,*.jsx'
-
-        # Anthropic
         'import anthropic|Anthropic|ai-ml/llm-apis|*.py'
         'from anthropic import|Anthropic|ai-ml/llm-apis|*.py'
         "import.*from ['\"]@anthropic-ai/sdk['\"]|Anthropic|ai-ml/llm-apis|*.ts,*.js,*.tsx,*.jsx"
-
-        # LangChain
         'from langchain|LangChain|ai-ml/frameworks|*.py'
         'import langchain|LangChain|ai-ml/frameworks|*.py'
-        "import.*from ['\"]langchain['\"]|LangChain|ai-ml/frameworks|*.ts,*.js,*.tsx,*.jsx"
-        "import.*from ['\"]@langchain/|LangChain|ai-ml/frameworks|*.ts,*.js,*.tsx,*.jsx"
-
-        # LlamaIndex
         'from llama_index|LlamaIndex|ai-ml/frameworks|*.py'
-        'import llama_index|LlamaIndex|ai-ml/frameworks|*.py'
-
-        # Google AI / Gemini
         'import google.generativeai|Google AI|ai-ml/llm-apis|*.py'
-        'from google.generativeai|Google AI|ai-ml/llm-apis|*.py'
-        "import.*from ['\"]@google/generative-ai['\"]|Google AI|ai-ml/llm-apis|*.ts,*.js,*.tsx,*.jsx"
-
-        # Cohere
         'import cohere|Cohere|ai-ml/llm-apis|*.py'
-        'from cohere import|Cohere|ai-ml/llm-apis|*.py'
-
-        # Mistral
         'from mistralai|Mistral|ai-ml/llm-apis|*.py'
-        'import mistralai|Mistral|ai-ml/llm-apis|*.py'
-
-        # Pinecone
         'from pinecone|Pinecone|ai-ml/vectordb|*.py'
-        'import pinecone|Pinecone|ai-ml/vectordb|*.py'
-        "import.*from ['\"]@pinecone-database/pinecone['\"]|Pinecone|ai-ml/vectordb|*.ts,*.js,*.tsx,*.jsx"
-
-        # Weaviate
         'import weaviate|Weaviate|ai-ml/vectordb|*.py'
-        'from weaviate|Weaviate|ai-ml/vectordb|*.py'
-
-        # ChromaDB
         'import chromadb|ChromaDB|ai-ml/vectordb|*.py'
-        'from chromadb|ChromaDB|ai-ml/vectordb|*.py'
-
-        # Qdrant
         'from qdrant_client|Qdrant|ai-ml/vectordb|*.py'
-        'import qdrant_client|Qdrant|ai-ml/vectordb|*.py'
-
-        # Hugging Face
         'from transformers|Hugging Face|ai-ml/mlops|*.py'
-        'import transformers|Hugging Face|ai-ml/mlops|*.py'
-        'from huggingface_hub|Hugging Face|ai-ml/mlops|*.py'
-
-        # Weights & Biases
         'import wandb|Weights & Biases|ai-ml/mlops|*.py'
     )
 
     for pattern_spec in "${patterns[@]}"; do
         IFS='|' read -r pattern tech category globs <<< "$pattern_spec"
 
-        # Convert glob patterns to find arguments
         local find_args=()
         IFS=',' read -ra glob_array <<< "$globs"
         for g in "${glob_array[@]}"; do
             find_args+=(-name "$g" -o)
         done
-        # Remove last -o
         unset 'find_args[${#find_args[@]}-1]'
 
-        # Search for pattern in matching files
         local matches=$(find "$repo_path" -type f \( "${find_args[@]}" \) 2>/dev/null | \
             xargs grep -l -E "$pattern" 2>/dev/null | head -5)
 
         if [[ -n "$matches" ]]; then
             local file_count=$(echo "$matches" | wc -l | tr -d ' ')
-            # Get all file paths relative to repo root
-            local file_list=$(echo "$matches" | sed "s|$repo_path/||g" | head -10 | tr '\n' ',' | sed 's/,$//')
             local first_file=$(echo "$matches" | head -1 | sed "s|$repo_path/||")
             local evidence="import found in $file_count file(s): $first_file"
-
-            # Create files array for the finding
             local files_json=$(echo "$matches" | head -10 | sed "s|$repo_path/||g" | jq -R . | jq -s .)
 
             local finding=$(jq -n \
@@ -459,6 +459,7 @@ scan_ai_imports() {
         fi
     done
 
+    scanner_step "Scanning AI import patterns" "success"
     echo "$findings"
 }
 
@@ -466,7 +467,6 @@ scan_ai_imports() {
 aggregate_findings() {
     local all_findings="$1"
 
-    # Group by technology name and calculate composite confidence
     echo "$all_findings" | jq '
         group_by(.name) |
         map({
@@ -494,17 +494,13 @@ analyze_target() {
     local sbom_file=""
     local should_cleanup_sbom=false
 
-    # Use provided SBOM or generate new one
     if [[ -n "$provided_sbom" ]] && [[ -f "$provided_sbom" ]]; then
-        echo -e "${BLUE}Using provided SBOM...${NC}" >&2
+        scanner_info "Using provided SBOM"
         sbom_file="$provided_sbom"
     else
-        # Generate SBOM
-        sbom_file=$(generate_sbom "$repo_path")
+        sbom_file=$(generate_sbom_file "$repo_path")
         should_cleanup_sbom=true
     fi
-
-    echo -e "${BLUE}Running technology detection...${NC}" >&2
 
     # Run all detection layers
     local layer1="[]"
@@ -515,45 +511,33 @@ analyze_target() {
 
     if [[ -n "$sbom_file" ]] && [[ -f "$sbom_file" ]]; then
         layer1=$(scan_sbom_packages "$sbom_file")
-        # Only cleanup if we generated the SBOM ourselves
         [[ "$should_cleanup_sbom" == "true" ]] && rm -f "$sbom_file"
     fi
 
     layer2=$(scan_config_files "$repo_path")
     layer3=$(scan_env_variables "$repo_path")
 
-    # Layer 4: Docker image scanning (optional - can be slow)
     if [[ "${SCAN_DOCKER_IMAGES:-false}" == "true" ]]; then
         layer4=$(scan_docker_images "$repo_path")
     fi
 
-    # Layer 5: AI import pattern scanning (always enabled for AI adoption tracking)
     layer5=$(scan_ai_imports "$repo_path")
 
-    # Combine all findings
     local all_findings=$(echo "$layer1 $layer2 $layer3 $layer4 $layer5" | jq -s 'add')
-
-    # Aggregate and deduplicate
     local results=$(aggregate_findings "$all_findings")
-
-    # Filter by confidence threshold
     results=$(echo "$results" | jq --argjson threshold "$CONFIDENCE_THRESHOLD" 'map(select(.confidence >= $threshold))')
 
     echo "$results"
 }
 
-# Generate final JSON output
+# Generate final output
 generate_output() {
     local findings="$1"
     local target="$2"
 
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
     local total=$(echo "$findings" | jq 'length')
-
-    # Count by category
     local by_category=$(echo "$findings" | jq 'group_by(.category) | map({key: .[0].category, value: length}) | from_entries')
-
-    # Confidence distribution
     local high=$(echo "$findings" | jq '[.[] | select(.confidence >= 80)] | length')
     local medium=$(echo "$findings" | jq '[.[] | select(.confidence >= 60 and .confidence < 80)] | length')
     local low=$(echo "$findings" | jq '[.[] | select(.confidence < 60)] | length')
@@ -561,7 +545,7 @@ generate_output() {
     jq -n \
         --arg ts "$timestamp" \
         --arg tgt "$target" \
-        --arg ver "1.0.0" \
+        --arg ver "2.0.0" \
         --argjson total "$total" \
         --argjson by_cat "$by_category" \
         --argjson hi "$high" \
@@ -569,7 +553,7 @@ generate_output() {
         --argjson lo "$low" \
         --argjson techs "$findings" \
         '{
-            analyzer: "technology-identification",
+            analyzer: "tech-discovery",
             version: $ver,
             timestamp: $ts,
             target: $tgt,
@@ -586,61 +570,21 @@ generate_output() {
         }'
 }
 
-# Parse arguments
-SCAN_DOCKER_IMAGES=false
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -h|--help) usage ;;
-        --local-path)
-            LOCAL_PATH="$2"
-            shift 2
-            ;;
-        --sbom)
-            SBOM_FILE="$2"
-            shift 2
-            ;;
-        --confidence)
-            CONFIDENCE_THRESHOLD="$2"
-            shift 2
-            ;;
-        --scan-docker-images)
-            SCAN_DOCKER_IMAGES=true
-            shift
-            ;;
-        -o|--output)
-            OUTPUT_FILE="$2"
-            shift 2
-            ;;
-        -k|--keep-clone)
-            CLEANUP=false
-            shift
-            ;;
-        -*)
-            echo "Unknown option: $1" >&2
-            exit 1
-            ;;
-        *)
-            TARGET="$1"
-            shift
-            ;;
-    esac
-done
-export SCAN_DOCKER_IMAGES
+#############################################################################
+# MAIN EXECUTION
+#############################################################################
 
 # Load RAG patterns if available
 if [[ -d "$RAG_ROOT" ]] && type load_all_patterns &>/dev/null; then
-    echo -e "${BLUE}Loading technology patterns...${NC}" >&2
+    scanner_debug "Loading technology patterns from RAG"
     load_all_patterns "$RAG_ROOT" 2>/dev/null || true
 fi
-
-# Main execution
-check_syft
 
 scan_path=""
 repo_name=""
 
 if [[ -n "$LOCAL_PATH" ]]; then
-    [[ ! -d "$LOCAL_PATH" ]] && { echo '{"error": "Local path does not exist"}'; exit 1; }
+    [[ ! -d "$LOCAL_PATH" ]] && { scanner_error "Local path does not exist"; exit 1; }
     scan_path="$LOCAL_PATH"
     repo_name=$(basename "$LOCAL_PATH")
 elif [[ -n "$TARGET" ]]; then
@@ -652,36 +596,71 @@ elif [[ -n "$TARGET" ]]; then
         scan_path="$TARGET"
         repo_name=$(basename "$TARGET")
     elif is_sbom_file "$TARGET"; then
-        # Direct SBOM analysis
-        echo -e "${BLUE}Analyzing SBOM file...${NC}" >&2
+        scanner_header "$TARGET"
         findings=$(scan_sbom_packages "$TARGET")
         final_json=$(generate_output "$findings" "$TARGET")
-        if [[ -n "$OUTPUT_FILE" ]]; then
-            echo "$final_json" > "$OUTPUT_FILE"
-            echo -e "${GREEN}✓ Results written to $OUTPUT_FILE${NC}" >&2
+
+        if [[ "$OUTPUT_FORMAT" == "json" ]]; then
+            if [[ -n "$OUTPUT_FILE" ]]; then
+                echo "$final_json" > "$OUTPUT_FILE"
+                scanner_success "Results written to $OUTPUT_FILE"
+            else
+                echo "$final_json"
+            fi
         else
-            echo "$final_json"
+            report_init "tech-discovery" "2.0.0" "$TARGET"
+            report_add_section "Technologies" "$findings"
+            if [[ -n "$OUTPUT_FILE" ]]; then
+                report_save "$OUTPUT_FILE" "$OUTPUT_FORMAT"
+            else
+                report_generate "$OUTPUT_FORMAT"
+            fi
         fi
+        scanner_footer "success"
         exit 0
     else
-        echo '{"error": "Invalid target - must be URL, directory, or SBOM file"}'
+        scanner_error "Invalid target - must be URL, directory, or SBOM file"
         exit 1
     fi
 else
-    echo '{"error": "No target specified"}'
-    exit 1
+    scanner_error "No target specified"
+    usage
 fi
 
-echo -e "${BLUE}Scanning: $repo_name${NC}" >&2
+# Display header
+scanner_header "$repo_name"
 
-# Run analysis (pass SBOM_FILE if provided)
+# Run analysis
 findings=$(analyze_target "$scan_path" "$SBOM_FILE")
 final_json=$(generate_output "$findings" "${TARGET:-$scan_path}")
 
-# Output
-if [[ -n "$OUTPUT_FILE" ]]; then
-    echo "$final_json" > "$OUTPUT_FILE"
-    echo -e "${GREEN}✓ Results written to $OUTPUT_FILE${NC}" >&2
+# Display summary
+scanner_summary_start "Results"
+scanner_summary_metric "Technologies found" "$(echo "$final_json" | jq -r '.summary.total')" "info"
+scanner_summary_metric "High confidence" "$(echo "$final_json" | jq -r '.summary.confidence_distribution.high')" "good"
+scanner_summary_metric "Medium confidence" "$(echo "$final_json" | jq -r '.summary.confidence_distribution.medium')" "warning"
+scanner_summary_metric "Low confidence" "$(echo "$final_json" | jq -r '.summary.confidence_distribution.low')" "info"
+scanner_summary_end
+
+# Output results
+if [[ "$OUTPUT_FORMAT" == "json" ]]; then
+    if [[ -n "$OUTPUT_FILE" ]]; then
+        echo "$final_json" > "$OUTPUT_FILE"
+        scanner_success "Results written to $OUTPUT_FILE"
+    else
+        echo "$final_json"
+    fi
 else
-    echo "$final_json"
+    # Use report library for other formats
+    report_init "tech-discovery" "2.0.0" "$repo_name"
+    report_set_metadata_json "summary" "$(echo "$final_json" | jq '.summary')"
+    report_add_section "Technologies Detected" "$(echo "$final_json" | jq '.technologies')"
+
+    if [[ -n "$OUTPUT_FILE" ]]; then
+        report_save "$OUTPUT_FILE" "$OUTPUT_FORMAT"
+    else
+        report_generate "$OUTPUT_FORMAT"
+    fi
 fi
+
+scanner_footer "success"
