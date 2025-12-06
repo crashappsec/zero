@@ -1197,24 +1197,9 @@ main() {
             run_status
             ;;
         agent|chat)
-            # Agent mode is handled via Claude Code slash command /agent
-            echo -e "${BOLD}Agent Mode${NC}"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo
-            echo "Agent mode launches Zero, the master orchestrator."
-            echo "(Named after Zero Cool from the movie Hackers)"
-            echo
-            echo -e "To start, use the slash command in Claude Code:"
-            echo -e "  ${CYAN}/agent${NC}"
-            echo
-            echo "Zero coordinates these specialist agents:"
-            echo "  • Cereal   - Supply chain, malware, vulnerabilities"
-            echo "  • Razor    - Code security, secrets, SAST"
-            echo "  • Blade    - Compliance, SOC 2, ISO 27001"
-            echo "  • Phreak   - Legal, licenses, data privacy"
-            echo "  • And more..."
-            echo
-            echo -e "Example: ${DIM}\"Investigate if we have malware in our codebase\"${NC}"
+            # Launch interactive agent chat
+            shift
+            exec "$ZERO_DIR/scripts/agent.sh" "$@"
             ;;
         ask)
             shift
