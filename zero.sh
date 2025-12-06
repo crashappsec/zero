@@ -1053,14 +1053,15 @@ Named after Zero Cool from the movie Hackers (1995)
 Usage: $(basename "$0") [command] [options]
 
 COMMANDS:
-    (none)              Interactive menu
+    (none)              Chat with Zero Cool - tell him what you need
+    menu                Interactive CLI menu
     check               Verify tools and configuration
     clone <repo>        Clone a repository (no scanning)
     scan <repo>         Scan an already-cloned repository
     hydrate <repo>      Clone and scan a repository (e.g., expressjs/express)
     hydrate --org <n>   Analyze all repos in an organization
-    agent               Chat with a specialist agent (interactive)
-    agent <name>        Chat with a specific agent (cereal, razor, etc.)
+    agent               Chat with a specialist agent (interactive picker)
+    agent <name>        Chat with a specific agent (cereal, razor, zero, etc.)
     status              Show hydrated projects
     report <repo>       Generate summary report for a project
     history <repo>      Show scan history for a project
@@ -1141,6 +1142,11 @@ EOF
 main() {
     case "${1:-}" in
         "")
+            # Default: launch Zero chat - the universal orchestrator
+            exec "$ZERO_DIR/scripts/agent.sh" zero
+            ;;
+        menu)
+            # Interactive menu for CLI browsing
             show_menu
             ;;
         setup)

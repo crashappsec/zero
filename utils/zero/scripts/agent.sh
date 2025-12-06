@@ -353,11 +353,14 @@ EOF
     [[ -n "$project_id" ]] && echo -e "  Project: ${CYAN}$project_id${NC}"
     echo
 
-    # Launch claude with the system prompt from file
-    local system_prompt=$(cat "$prompt_file")
-    rm -f "$prompt_file"
+    # Launch claude with the system prompt
+    # Use --append-system-prompt to add persona to Claude's default behavior
+    # Keep the temp file for passing to claude to avoid shell escaping issues
+    claude --append-system-prompt "$(cat "$prompt_file")"
+    local exit_code=$?
 
-    exec claude --system-prompt "$system_prompt"
+    rm -f "$prompt_file"
+    exit $exit_code
 }
 
 # Interactive chat mode
