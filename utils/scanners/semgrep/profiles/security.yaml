@@ -1,0 +1,67 @@
+# Semgrep Security Profile
+# Comprehensive security scanning configuration
+#
+# This profile combines:
+# - Gibson custom rules (RAG-generated)
+# - Semgrep community security rules
+#
+# Usage: semgrep-scanner.sh --profile security <repo>
+
+profile:
+  name: security
+  description: Comprehensive security scanning for vulnerabilities and secrets
+
+# Rule sources (in priority order)
+sources:
+  # Gibson custom rules (always included)
+  custom:
+    - secrets.yaml           # Secret detection patterns
+    - tech-discovery.yaml    # Technology identification
+
+  # Semgrep registry rule packs
+  community:
+    - p/security-audit       # Comprehensive security audit
+    - p/owasp-top-ten        # OWASP Top 10
+    - p/cwe-top-25           # CWE Top 25
+    - p/secrets              # Additional secret patterns
+    - p/supply-chain         # Supply chain security
+    - p/command-injection    # Command injection
+    - p/sql-injection        # SQL injection
+    - p/xss                  # Cross-site scripting
+    - p/insecure-transport   # TLS/SSL issues
+
+# Severity thresholds
+severity:
+  minimum: INFO              # Include all severities
+  fail_on: ERROR             # Fail CI on ERROR or higher
+
+# Confidence filtering
+confidence:
+  minimum: MEDIUM            # Skip LOW confidence findings
+
+# Output configuration
+output:
+  format: json
+  include_git_blame: true
+  group_by: severity
+  max_findings: 1000
+
+# Performance tuning
+performance:
+  timeout_per_file: 30       # Seconds per file
+  max_memory: 4096           # MB
+  jobs: auto                 # Use all CPU cores
+
+# Exclusions
+exclude:
+  paths:
+    - "**/node_modules/**"
+    - "**/vendor/**"
+    - "**/.git/**"
+    - "**/dist/**"
+    - "**/build/**"
+    - "**/*.min.js"
+    - "**/*.bundle.js"
+  rules:
+    # Rules to skip (too noisy, false positives)
+    - generic.secrets.gitleaks.generic-api-key  # Too many false positives

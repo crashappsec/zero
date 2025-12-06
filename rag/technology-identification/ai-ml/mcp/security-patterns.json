@@ -1,0 +1,76 @@
+{
+  "technology": "mcp",
+  "security_concerns": {
+    "risk_level": "MEDIUM-HIGH",
+    "categories": ["data_access", "code_execution", "credential_exposure"]
+  },
+  "vulnerability_patterns": {
+    "command_injection": {
+      "patterns": [
+        "exec\\(",
+        "spawn\\(",
+        "execSync\\(",
+        "child_process",
+        "subprocess\\.run\\(",
+        "os\\.system\\(",
+        "shell=True"
+      ],
+      "description": "MCP servers executing shell commands with user input",
+      "severity": "HIGH",
+      "cwe": "CWE-78"
+    },
+    "path_traversal": {
+      "patterns": [
+        "readFile.*\\$",
+        "writeFile.*\\$",
+        "fs\\.read",
+        "fs\\.write",
+        "open\\(.*\\+",
+        "\\.\\./",
+        "path\\.join.*\\$"
+      ],
+      "description": "File access without path validation",
+      "severity": "HIGH",
+      "cwe": "CWE-22"
+    },
+    "credential_exposure": {
+      "patterns": [
+        "api_key",
+        "apiKey",
+        "secret",
+        "password",
+        "token",
+        "credentials",
+        "auth"
+      ],
+      "context": ["mcpServers", "env", "args"],
+      "description": "Credentials in MCP configuration",
+      "severity": "MEDIUM",
+      "cwe": "CWE-798"
+    },
+    "overprivileged_access": {
+      "patterns": [
+        "allowedDirectories.*\\*",
+        "allowedDirectories.*\\/",
+        "rootPath.*\\/",
+        "basePath.*\\/",
+        "command.*sudo",
+        "command.*rm",
+        "command.*chmod"
+      ],
+      "description": "MCP server with excessive permissions",
+      "severity": "MEDIUM",
+      "cwe": "CWE-250"
+    }
+  },
+  "audit_checklist": [
+    "Review all tool implementations for input validation",
+    "Check file system access restrictions",
+    "Verify credential storage is secure",
+    "Audit command execution paths",
+    "Review network access capabilities",
+    "Check for sensitive data in tool responses",
+    "Verify transport security (stdio vs network)"
+  ],
+  "confidence": 0.90
+}

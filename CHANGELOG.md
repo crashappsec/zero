@@ -11,7 +11,85 @@ All notable changes to the Gibson Powers repository will be documented in this f
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [5.0.0] - 2025-12-06
+
+### Major Rebranding: Phantom → Zero
+
+The project has been renamed from **Phantom** to **Zero**, with all agents renamed after characters from the movie **Hackers (1995)**. "Hack the planet!"
+
+### Added
+- **Zero Orchestrator**: New master orchestrator named after Zero Cool
+  - `/agent` slash command to chat with Zero
+  - Zero delegates to specialist agents automatically
+  - Full investigation capability with Read, Grep, Glob, WebSearch tools
+
+- **Hackers-Themed Agent Team**:
+  | New Name | Old Name | Character | Role |
+  |----------|----------|-----------|------|
+  | Zero | (new) | Zero Cool | Master orchestrator |
+  | Cereal | Scout | Cereal Killer | Supply chain security |
+  | Razor | Sentinel | Razor | Code security |
+  | Blade | Quinn | Blade | Compliance auditing |
+  | Phreak | Harper | Phantom Phreak | Legal counsel |
+  | Acid | Casey | Acid Burn | Frontend engineer |
+  | Dade | Morgan | Dade Murphy | Backend engineer |
+  | Nikon | Ada | Lord Nikon | Software architect |
+  | Joey | Bailey | Joey | Build engineer |
+  | Plague | Phoenix | The Plague | DevOps engineer |
+  | Gibson | Jordan | The Gibson | Engineering metrics |
+
+- **Malcontent Scanner Integration**: Supply chain compromise detection with 14,500+ YARA rules
+- **Agent Loader Library**: `utils/zero/lib/agent-loader.sh` for loading agent context
+- **Enhanced Agent Definitions**: All 10 agents with knowledge bases and prompts
+
+### Changed
+- **Directory Structure**:
+  - `utils/phantom/` → `utils/zero/`
+  - `phantom.sh` → `zero.sh`
+  - `.phantom/` → `.zero/`
+  - `utils/zero/lib/phantom-lib.sh` → `utils/zero/lib/zero-lib.sh`
+  - `utils/zero/config/phantom.config.json` → `utils/zero/config/zero.config.json`
+
+- **Slash Commands**:
+  - `/phantom` → `/zero`
+  - New `/agent` for agent mode
+
+- **Environment Variables**:
+  - `PHANTOM_HOME` → `ZERO_HOME`
+  - Data stored in `~/.zero/` instead of `~/.phantom/`
+
+- **CLI Branding**: New Zero ASCII banner with green color scheme
+
+### Removed
+- **Skills Directory**: Removed `skills/` - functionality replaced by agent knowledge bases
+- **Obsolete Planning Docs**: Removed 13+ implemented planning documents from `docs/`
+- **Test Reports**: Removed old `test-reports/` and `code-security-reports/` directories
+
+### Migration Guide
+
+1. Rename your data directory:
+   ```bash
+   mv ~/.phantom ~/.zero
+   ```
+
+2. Update any scripts using `phantom.sh`:
+   ```bash
+   # Old
+   ./phantom.sh hydrate owner/repo
+
+   # New
+   ./zero.sh hydrate owner/repo
+   ```
+
+3. Update agent names in prompts:
+   - `scout` → `cereal`
+   - `sentinel` → `razor`
+   - `quinn` → `blade`
+   - etc.
+
+---
+
+## [4.1.0] - 2025-12-03
 
 ### Changed
 - **Status Indicator Updates**: Clarified development maturity levels

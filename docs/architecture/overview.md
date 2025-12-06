@@ -2,31 +2,35 @@
 
 ## Introduction
 
-This repository provides a comprehensive toolkit for software analysis and engineering assistance. The system uses AI agents enhanced with structured knowledge bases, deployable to Claude instances and the Crash Override platform.
+Zero is a comprehensive toolkit for software analysis and engineering assistance. Named after Zero Cool from the movie Hackers (1995), the system uses AI agents enhanced with structured knowledge bases, deployable to Claude instances and the Crash Override platform.
 
 ## High-Level Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                               AGENTS                                         │
-│                          (Self-contained, portable)                          │
+│                                 ZERO                                         │
+│                        (Master Orchestrator)                                 │
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                        Security Agents                               │   │
-│  │  ┌────────────────┐  ┌────────────────┐                             │   │
-│  │  │  Supply Chain  │  │  Code Security │                             │   │
-│  │  └────────────────┘  └────────────────┘                             │   │
+│  │                      Security Agents                                 │   │
+│  │  ┌────────────────┐ ┌────────────────┐ ┌────────────────┐           │   │
+│  │  │ Cereal (Supply │ │ Razor (Code    │ │ Blade (Audit)  │           │   │
+│  │  │ Chain)         │ │ Security)      │ │                │           │   │
+│  │  └────────────────┘ └────────────────┘ └────────────────┘           │   │
+│  │  ┌────────────────┐                                                 │   │
+│  │  │ Phreak (Legal) │                                                 │   │
+│  │  └────────────────┘                                                 │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │                       Engineering Agents                             │   │
 │  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │   │
-│  │  │ Frontend │ │ Backend  │ │Architect │ │  Build   │ │  DevOps  │  │   │
-│  │  │ Engineer │ │ Engineer │ │          │ │ Engineer │ │ Engineer │  │   │
+│  │  │  Acid    │ │  Dade    │ │  Nikon   │ │  Joey    │ │  Plague  │  │   │
+│  │  │(Frontend)│ │(Backend) │ │(Architect│ │ (Build)  │ │ (DevOps) │  │   │
 │  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘  │   │
 │  │                        ┌──────────────┐                             │   │
-│  │                        │ Engineering  │                             │   │
-│  │                        │   Leader     │                             │   │
+│  │                        │   Gibson     │                             │   │
+│  │                        │  (Metrics)   │                             │   │
 │  │                        └──────────────┘                             │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
@@ -41,7 +45,7 @@ This repository provides a comprehensive toolkit for software analysis and engin
 │                          DEPLOYMENT TARGETS                                  │
 │  ┌─────────────────────┐  ┌─────────────────────┐  ┌──────────────────┐    │
 │  │   Claude Instance   │  │  Crash Override     │  │   CLI Tools      │    │
-│  │   (Claude Code)     │  │    Platform         │  │   (utils/)       │    │
+│  │   (Claude Code)     │  │    Platform         │  │   (zero.sh)      │    │
 │  └─────────────────────┘  └─────────────────────┘  └──────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -50,18 +54,20 @@ This repository provides a comprehensive toolkit for software analysis and engin
 
 ### 1. Agents (`agents/`)
 
-Self-contained, portable AI agents. Each agent includes everything needed to run:
+Self-contained, portable AI agents named after Hackers (1995) characters:
 
 ```
 agents/
-├── supply-chain/           # Security: dependency vulnerabilities, licenses
-├── code-security/          # Security: static analysis, secrets, patterns
-├── frontend-engineer/      # Engineering: React, TypeScript, web apps
-├── backend-engineer/       # Engineering: APIs, databases, data engineering
-├── architect/              # Engineering: system design, patterns, auth
-├── build-engineer/         # Engineering: CI/CD optimization, build speed
-├── devops-engineer/        # Engineering: deployments, infrastructure
-├── engineering-leader/     # Engineering: costs, metrics, team effectiveness
+├── cereal/                 # Cereal Killer - Supply chain security, CVEs, malcontent
+├── razor/                  # Razor - Static analysis, secrets, SAST
+├── blade/                  # Blade - Compliance, SOC 2, ISO 27001
+├── phreak/                 # Phantom Phreak - Legal, licenses, data privacy
+├── acid/                   # Acid Burn - React, TypeScript, accessibility
+├── dade/                   # Dade Murphy - APIs, databases, data engineering
+├── nikon/                  # Lord Nikon - System design, architecture patterns
+├── joey/                   # Joey - CI/CD optimization, build speed
+├── plague/                 # The Plague - Infrastructure, Kubernetes
+├── gibson/                 # The Gibson - DORA metrics, team effectiveness
 └── shared/                 # Cross-agent knowledge
 ```
 
@@ -157,27 +163,52 @@ Common definitions in `agents/shared/` ensure consistency:
 ## Directory Structure
 
 ```
-phantom/
-├── agents/                 # Self-contained AI agents
-│   ├── supply-chain/
-│   ├── code-security/
-│   ├── frontend-engineer/
-│   ├── backend-engineer/
-│   ├── architect/
-│   ├── build-engineer/
-│   ├── devops-engineer/
-│   ├── engineering-leader/
+zero/
+├── zero.sh                 # Main CLI entry point
+├── agents/                 # Self-contained AI agents (Hackers-themed)
+│   ├── cereal/             # Cereal Killer - supply chain
+│   ├── razor/              # Razor - code security
+│   ├── blade/              # Blade - compliance
+│   ├── phreak/             # Phantom Phreak - legal
+│   ├── acid/               # Acid Burn - frontend
+│   ├── dade/               # Dade Murphy - backend
+│   ├── nikon/              # Lord Nikon - architecture
+│   ├── joey/               # Joey - build
+│   ├── plague/             # The Plague - devops
+│   ├── gibson/             # The Gibson - metrics
 │   └── shared/
 ├── docs/                   # Documentation
 │   └── architecture/
-├── utils/                  # CLI analysis tools
+├── utils/
+│   ├── zero/               # Zero orchestrator
+│   │   ├── lib/            # Libraries (zero-lib.sh, agent-loader.sh)
+│   │   ├── scripts/        # CLI scripts (hydrate, scan, report)
+│   │   └── config/         # Configuration files
+│   └── scanners/           # Individual scanners
 ├── rag/                    # RAG content library
-├── skills/                 # Claude Code skills
-├── prompts/               # Prompt templates
-└── config/                # Configuration
+├── prompts/                # Prompt templates
+└── .claude/
+    └── commands/           # Slash commands (/agent, /zero)
+```
+
+## Storage
+
+All analysis data is stored in `~/.zero/`:
+
+```
+~/.zero/
+├── config.json                 # Global settings
+├── index.json                  # Project index
+└── repos/
+    └── expressjs/
+        └── express/
+            ├── project.json    # Project metadata
+            ├── repo/           # Cloned repository
+            └── analysis/       # Analysis results
 ```
 
 ## Related Documentation
 
 - [Agents README](../../agents/README.md) - Agent catalog and usage
 - [Knowledge Base Architecture](knowledge-base.md) - Knowledge organization
+- [Zero Architecture](../plans/zero-architecture.md) - Orchestrator design

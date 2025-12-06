@@ -4,9 +4,9 @@ Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Contributing to Phantom
+# Contributing to Zero
 
-Thank you for your interest in contributing to Phantom! This document provides guidelines and instructions for contributing.
+Thank you for your interest in contributing to Zero! This document provides guidelines and instructions for contributing.
 
 ## Table of Contents
 
@@ -33,7 +33,7 @@ Before creating bug reports, please check existing issues to avoid duplicates. W
 - **Steps to reproduce** the issue
 - **Expected behavior** vs actual behavior
 - **Screenshots** if applicable
-- **Environment details** (OS, Phantom version, etc.)
+- **Environment details** (OS, Zero version, etc.)
 
 ### Suggesting Enhancements
 
@@ -59,8 +59,8 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/yourusername/phantom.git
-   cd phantom
+   git clone https://github.com/yourusername/gibson-powers.git
+   cd gibson-powers
    ```
 3. Create a feature branch:
    ```bash
@@ -81,17 +81,14 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 The [phantom-tests](https://github.com/phantom-tests) organization provides sample repositories for testing your changes without affecting real projects.
 
 ```bash
-# Test your code ownership changes
-./utils/code-ownership/ownership-analyser.sh \
-  https://github.com/phantom-tests/express
+# Test hydration
+./zero.sh hydrate phantom-tests/express --quick
 
-# Test DORA metrics changes
-./utils/dora-metrics/dora-analyser.sh \
-  --repo https://github.com/phantom-tests/express
+# Test with the security profile
+./zero.sh hydrate phantom-tests/express --security
 
-# Test supply chain changes
-./utils/supply-chain/vulnerability-analyser.sh \
-  https://github.com/phantom-tests/express
+# Generate a report
+./zero.sh report phantom-tests/express
 ```
 
 This ensures:
@@ -349,4 +346,4 @@ If you have questions about contributing, please:
 3. Open a new discussion
 4. Reach out to maintainers
 
-Thank you for contributing to Phantom!
+Thank you for contributing to Zero!

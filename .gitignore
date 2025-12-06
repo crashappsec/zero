@@ -71,3 +71,9 @@ sbom-output/
 reports/
 *.sequence
 .DS_Store
+
+# Zero data directory (cloned repos and analysis results)
+.zero/
+
+# Semgrep community rules (downloaded from registry)
+rag/semgrep/community-rules/
