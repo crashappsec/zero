@@ -16,7 +16,7 @@ SCANNERS_ROOT="$(dirname "$SCANNER_DIR")"
 
 # Load deps.dev client from shared libs (if not already loaded)
 if ! command -v deps_dev_get_package_info &> /dev/null; then
-    source "$SCANNERS_ROOT/shared/lib/deps-dev-client.sh"
+    source "$UTILS_ROOT/lib/deps-dev-client.sh"
 fi
 
 #############################################################################

@@ -16,7 +16,7 @@ REPO_ROOT="$(dirname "$UTILS_ROOT")"
 source "$UTILS_ROOT/lib/sbom.sh"
 
 # Load shared libraries
-source "$SCANNERS_ROOT/shared/lib/deps-dev-client.sh"
+source "$UTILS_ROOT/lib/deps-dev-client.sh"
 
 # Load local libraries
 source "$SCRIPT_DIR/lib/health-scoring.sh"

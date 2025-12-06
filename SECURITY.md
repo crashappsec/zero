@@ -18,7 +18,7 @@ As this is an early-stage project, we currently only support the main branch. On
 
 ## Reporting a Vulnerability
 
-We take the security of Phantom seriously. If you believe you have found a security vulnerability, please report it to us as described below.
+We take the security of Zero seriously. If you believe you have found a security vulnerability, please report it to us as described below.
 
 ### Where to Report
 
@@ -168,9 +168,9 @@ If you have questions about this security policy, please:
 
 ## Recognition
 
-We appreciate security researchers who help keep Phantom safe. With your permission, we will:
+We appreciate security researchers who help keep Zero safe. With your permission, we will:
 - Credit you in the security advisory
 - List you in our security acknowledgments
 - Provide a reference for your responsible disclosure
 
-Thank you for helping keep Phantom and our community safe!
+Thank you for helping keep Zero and our community safe!

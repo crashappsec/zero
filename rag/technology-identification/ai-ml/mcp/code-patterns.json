@@ -1,0 +1,57 @@
+{
+  "technology": "mcp",
+  "patterns": {
+    "server_implementation": {
+      "javascript": [
+        "new Server\\(",
+        "server\\.setRequestHandler\\(",
+        "ListToolsRequestSchema",
+        "CallToolRequestSchema",
+        "ListResourcesRequestSchema",
+        "ReadResourceRequestSchema",
+        "ListPromptsRequestSchema",
+        "GetPromptRequestSchema",
+        "StdioServerTransport",
+        "SSEServerTransport",
+        "McpServer",
+        "server\\.tool\\(",
+        "server\\.resource\\(",
+        "server\\.prompt\\("
+      ],
+      "python": [
+        "@server\\.list_tools\\(",
+        "@server\\.call_tool\\(",
+        "@server\\.list_resources\\(",
+        "@server\\.read_resource\\(",
+        "@server\\.list_prompts\\(",
+        "@server\\.get_prompt\\(",
+        "Server\\(name=",
+        "stdio_server\\(",
+        "mcp\\.server\\.Server"
+      ]
+    },
+    "client_implementation": {
+      "javascript": [
+        "new Client\\(",
+        "client\\.connect\\(",
+        "client\\.listTools\\(",
+        "client\\.callTool\\(",
+        "client\\.listResources\\(",
+        "client\\.readResource\\("
+      ],
+      "python": [
+        "Client\\(",
+        "client\\.list_tools\\(",
+        "client\\.call_tool\\(",
+        "client\\.list_resources\\(",
+        "client\\.read_resource\\("
+      ]
+    },
+    "tool_definitions": [
+      "inputSchema",
+      "parameters.*type.*object",
+      "tool.*name.*description"
+    ]
+  },
+  "confidence": 0.85
+}
