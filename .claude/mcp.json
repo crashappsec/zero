@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "gibson": {
+      "command": "node",
+      "args": [
+        "/Users/curphey/Documents/GitHub/gibson-powers/mcp-server/dist/index.js"
+      ],
+      "env": {
+        "PHANTOM_HOME": "/Users/curphey/.phantom/projects"
+      }
+    }
+  }
+}

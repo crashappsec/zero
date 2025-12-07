@@ -1,0 +1,38 @@
+{
+  "name": "@zero/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Zero - Repository analysis data layer",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "zero-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "glob": "^10.3.10",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.6.2",
+    "typescript": "^5.3.2"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "claude",
+    "security",
+    "analysis"
+  ],
+  "author": "Crash Override Inc.",
+  "license": "GPL-3.0"
+}

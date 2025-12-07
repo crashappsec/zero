@@ -77,3 +77,5 @@ reports/
 
 # Semgrep community rules (downloaded from registry)
 rag/semgrep/community-rules/
+mcp-server/node_modules/
+mcp-server/dist/
