@@ -421,8 +421,8 @@ calculate_debt_score() {
     # === Category 5: Test Coverage (weight: 15) - placeholder ===
     # From RAG: ratio >0.8=0, 0.5-0.8=20, 0.3-0.5=45, 0.1-0.3=70, <0.1=100
     local test_score=50  # Default to moderate if unknown
-    # Convert ratio to percentage integer (0.06 -> 6)
-    local test_pct=$(echo "$test_ratio * 100" | bc | cut -d. -f1)
+    # Convert ratio to percentage integer (0.06 -> 6) - use awk for portability
+    local test_pct=$(awk -v ratio="$test_ratio" 'BEGIN {printf "%.0f", ratio * 100}')
     test_pct=${test_pct:-0}
     if [[ $test_pct -ge 80 ]]; then
         test_score=0
@@ -503,9 +503,9 @@ calculate_category_scores() {
         dup_score=15
     fi
 
-    # Test coverage score
+    # Test coverage score - use awk for portability
     local test_score=50
-    local test_pct=$(echo "$test_ratio * 100" | bc 2>/dev/null | cut -d. -f1)
+    local test_pct=$(awk -v ratio="$test_ratio" 'BEGIN {printf "%.0f", ratio * 100}')
     test_pct=${test_pct:-0}
     if [[ $test_pct -ge 80 ]]; then
         test_score=0

@@ -282,7 +282,8 @@ check_abandonment_status() {
     local maintained_score=$(echo "$metrics" | jq -r '.maintained_score // null')
 
     if [[ "$maintained_score" != "null" && "$maintained_score" != "" ]]; then
-        if [[ $(echo "$maintained_score < 3" | bc -l 2>/dev/null || echo "0") == "1" ]]; then
+        # Use awk for portability instead of bc
+        if [[ $(awk -v score="$maintained_score" 'BEGIN {print (score < 3) ? "1" : "0"}') == "1" ]]; then
             risk_factors+=("low_maintained_score_${maintained_score}")
             if [[ "$risk_level" == "low" ]]; then
                 risk_level="medium"
