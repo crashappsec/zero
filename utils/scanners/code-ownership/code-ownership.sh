@@ -229,9 +229,9 @@ analyze_ownership() {
                 continue
             fi
 
-            # Validate owner format (@username or @org/team)
+            # Validate owner format (@username or @org/team) - GitHub allows dots in usernames
             for owner in $owners; do
-                if [[ ! "$owner" =~ ^@[a-zA-Z0-9_-]+(/[a-zA-Z0-9_-]+)?$ ]]; then
+                if [[ ! "$owner" =~ ^@[a-zA-Z0-9._-]+(/[a-zA-Z0-9._-]+)?$ ]]; then
                     validation_issues=$(echo "$validation_issues" | jq \
                         --arg msg "Line $line_num: Invalid owner format '$owner'" \
                         --arg type "syntax" \
