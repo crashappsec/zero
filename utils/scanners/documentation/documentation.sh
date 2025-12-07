@@ -212,7 +212,7 @@ find_standard_files() {
     fi
 
     # LICENSE
-    local license=$(find "$repo_dir" -maxdepth 1 -iname "license*" -o -iname "licence*" -type f 2>/dev/null | head -1)
+    local license=$(find "$repo_dir" -maxdepth 1 \( -iname "license*" -o -iname "licence*" \) -type f 2>/dev/null | head -1)
     if [[ -n "$license" ]]; then
         local license_type=""
         local content=$(head -20 "$license")
@@ -240,7 +240,7 @@ find_standard_files() {
     fi
 
     # CHANGELOG
-    local changelog=$(find "$repo_dir" -maxdepth 1 -iname "changelog*" -o -iname "history*" -o -iname "changes*" -type f 2>/dev/null | head -1)
+    local changelog=$(find "$repo_dir" -maxdepth 1 \( -iname "changelog*" -o -iname "history*" -o -iname "changes*" \) -type f 2>/dev/null | head -1)
     if [[ -n "$changelog" ]]; then
         local info=$(get_file_info "$changelog" "$repo_dir")
         files=$(echo "$files" | jq --argjson info "$info" '.changelog = ($info + {"exists": true})')
@@ -689,8 +689,14 @@ elif [[ -n "$ORG" ]]; then
             done
             echo "" >&2
 
-            read -p "Would you like to hydrate these repos for analysis? [y/N] " -n 1 -r >&2
-            echo "" >&2
+            # Only prompt if interactive terminal
+            if [[ -t 0 ]]; then
+                read -p "Would you like to hydrate these repos for analysis? [y/N] " -n 1 -r >&2
+                echo "" >&2
+            else
+                echo -e "${CYAN}Non-interactive mode: skipping uncloned repos${NC}" >&2
+                REPLY="n"
+            fi
 
             if [[ $REPLY =~ ^[Yy]$ ]]; then
                 echo -e "${BLUE}Hydrating ${#REPOS_NOT_CLONED[@]} repositories...${NC}" >&2

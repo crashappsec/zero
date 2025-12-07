@@ -145,8 +145,14 @@ elif [[ -n "$ORG" ]]; then
             done
             echo "" >&2
 
-            read -p "Would you like to hydrate these repos for analysis? [y/N] " -n 1 -r >&2
-            echo "" >&2
+            # Only prompt if interactive terminal
+            if [[ -t 0 ]]; then
+                read -p "Would you like to hydrate these repos for analysis? [y/N] " -n 1 -r >&2
+                echo "" >&2
+            else
+                echo -e "${CYAN}Non-interactive mode: skipping uncloned repos${NC}" >&2
+                REPLY="n"
+            fi
 
             if [[ $REPLY =~ ^[Yy]$ ]]; then
                 echo -e "${BLUE}Hydrating ${#REPOS_NOT_CLONED[@]} repositories...${NC}" >&2

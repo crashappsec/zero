@@ -299,7 +299,7 @@ scan_secrets() {
     local findings="[]"
 
     # AWS keys pattern
-    local aws_keys=$(grep -rn "AKIA[0-9A-Z]\{16\}" "$repo_dir" --include="*" 2>/dev/null | head -10 || true)
+    local aws_keys=$(grep -rn "AKIA[0-9A-Z]\{16\}" "$repo_dir" 2>/dev/null | grep -v "node_modules\|\.git\|vendor" | head -10 || true)
     if [[ -n "$aws_keys" ]]; then
         while IFS=: read -r file line content; do
             [[ -z "$file" ]] && continue
@@ -310,7 +310,7 @@ scan_secrets() {
     fi
 
     # GitHub tokens
-    local gh_tokens=$(grep -rn "gh[pousr]_[A-Za-z0-9_]\{36,\}" "$repo_dir" --include="*" 2>/dev/null | head -10 || true)
+    local gh_tokens=$(grep -rn "gh[pousr]_[A-Za-z0-9_]\{36,\}" "$repo_dir" 2>/dev/null | grep -v "node_modules\|\.git\|vendor" | head -10 || true)
     if [[ -n "$gh_tokens" ]]; then
         while IFS=: read -r file line content; do
             [[ -z "$file" ]] && continue
@@ -321,7 +321,7 @@ scan_secrets() {
     fi
 
     # Private keys
-    local priv_keys=$(grep -rln "BEGIN.*PRIVATE KEY" "$repo_dir" --include="*" 2>/dev/null | head -10 || true)
+    local priv_keys=$(grep -rln "BEGIN.*PRIVATE KEY" "$repo_dir" 2>/dev/null | grep -v "node_modules\|\.git\|vendor" | head -10 || true)
     if [[ -n "$priv_keys" ]]; then
         while IFS= read -r file; do
             [[ -z "$file" ]] && continue

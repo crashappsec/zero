@@ -90,7 +90,7 @@ rules:
     category: languages
     detection_type: import
     confidence: 90
-  pattern: import "[^"
+  pattern: import "$PKG"
 - id: gibson.business-tools.payment.braintree.braintree.import.javascript
   message: Braintree library import detected
   severity: INFO
@@ -324,7 +324,7 @@ rules:
     category: developer-tools/testing
     detection_type: import
     confidence: 90
-  pattern: require("chai")
+  pattern: require("mocha")
 - id: gibson.web-frameworks.frontend.vue.vue.import.javascript
   message: Vue library import detected
   severity: INFO
