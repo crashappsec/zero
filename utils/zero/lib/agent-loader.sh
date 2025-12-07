@@ -21,6 +21,7 @@ ZERO_DIR="$(dirname "$AGENT_LOADER_DIR")"
 UTILS_DIR="$(dirname "$ZERO_DIR")"
 REPO_ROOT="$(dirname "$UTILS_DIR")"
 AGENTS_DIR="$REPO_ROOT/agents"
+PERSONAS_DIR="$REPO_ROOT/rag/personas"
 
 # Load zero-lib if not already loaded
 if ! type gibson_project_path &>/dev/null; then
@@ -315,6 +316,132 @@ should_investigate() {
 }
 
 #############################################################################
+# Persona Functions
+#############################################################################
+
+# List available personas
+# Usage: persona_list
+persona_list() {
+    echo "security-engineer software-engineer engineering-leader auditor"
+}
+
+# Check if a persona exists
+# Usage: persona_exists "security-engineer"
+persona_exists() {
+    local persona_name="$1"
+    [[ -f "$PERSONAS_DIR/${persona_name}.md" ]]
+}
+
+# Get persona file path
+# Usage: persona_get_path "security-engineer"
+persona_get_path() {
+    local persona_name="$1"
+    local path="$PERSONAS_DIR/${persona_name}.md"
+
+    if [[ -f "$path" ]]; then
+        echo "$path"
+    else
+        echo ""
+        return 1
+    fi
+}
+
+# Get persona overlay path for a specific agent
+# Usage: persona_get_overlay_path "cereal" "security-engineer"
+persona_get_overlay_path() {
+    local agent_name="$1"
+    local persona_name="$2"
+    local path="$PERSONAS_DIR/overlays/${agent_name}/${persona_name}-overlay.md"
+
+    if [[ -f "$path" ]]; then
+        echo "$path"
+    else
+        echo ""
+        return 1
+    fi
+}
+
+# Load persona definition content
+# Usage: load_persona "security-engineer"
+load_persona() {
+    local persona_name="$1"
+    local path=$(persona_get_path "$persona_name")
+
+    if [[ -z "$path" ]]; then
+        echo ""
+        return 1
+    fi
+
+    cat "$path"
+}
+
+# Load persona overlay for an agent (if exists)
+# Usage: load_persona_overlay "cereal" "security-engineer"
+load_persona_overlay() {
+    local agent_name="$1"
+    local persona_name="$2"
+    local path=$(persona_get_overlay_path "$agent_name" "$persona_name")
+
+    if [[ -z "$path" ]]; then
+        echo ""
+        return 0  # Not an error - overlays are optional
+    fi
+
+    cat "$path"
+}
+
+# Build complete persona context (base + overlay)
+# Usage: build_persona_context "cereal" "security-engineer"
+build_persona_context() {
+    local agent_name="$1"
+    local persona_name="$2"
+
+    local base=$(load_persona "$persona_name")
+    local overlay=$(load_persona_overlay "$agent_name" "$persona_name")
+
+    if [[ -z "$base" ]]; then
+        echo '{"error": "Persona not found: '"$persona_name"'"}'
+        return 1
+    fi
+
+    # Build JSON context
+    jq -n \
+        --arg persona "$persona_name" \
+        --arg base "$base" \
+        --arg overlay "$overlay" \
+        --arg agent "$agent_name" \
+        '{
+            persona: $persona,
+            agent: $agent,
+            definition: $base,
+            overlay: (if $overlay != "" then $overlay else null end),
+            has_overlay: ($overlay != "")
+        }' 2>/dev/null || echo '{"error": "Failed to build persona context"}'
+}
+
+# Load agent context WITH persona
+# Usage: load_agent_context_with_persona "cereal" "expressjs/express" "security-engineer"
+load_agent_context_with_persona() {
+    local agent_name="$1"
+    local project_id="$2"
+    local persona_name="$3"
+
+    # Get base agent context
+    local agent_context=$(load_agent_context "$agent_name" "$project_id")
+
+    if [[ -z "$persona_name" ]]; then
+        echo "$agent_context"
+        return 0
+    fi
+
+    # Get persona context
+    local persona_context=$(build_persona_context "$agent_name" "$persona_name")
+
+    # Merge contexts
+    echo "$agent_context" | jq --argjson persona "$persona_context" '. + {persona: $persona}' 2>/dev/null || echo "$agent_context"
+}
+
+#############################################################################
 # Export functions
 #############################################################################
 
@@ -329,3 +456,11 @@ export -f load_scanner_data_for_agent
 export -f load_agent_context
 export -f get_findings_summary
 export -f should_investigate
+export -f persona_list
+export -f persona_exists
+export -f persona_get_path
+export -f persona_get_overlay_path
+export -f load_persona
+export -f load_persona_overlay
+export -f build_persona_context
+export -f load_agent_context_with_persona
