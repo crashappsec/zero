@@ -208,20 +208,31 @@ process_results() {
             ((kev_count++))
         fi
 
-        # CVSS scoring
+        # CVSS scoring - use awk for portability instead of bc
         if [[ -n "$cvss" ]] && [[ "$cvss" != "0" ]]; then
-            if (( $(echo "$cvss >= 9.0" | bc -l 2>/dev/null || echo 0) )); then
-                priority_score=$((priority_score + 50))
-                severity="critical"
-            elif (( $(echo "$cvss >= 7.0" | bc -l 2>/dev/null || echo 0) )); then
-                priority_score=$((priority_score + 30))
-                severity="high"
-            elif (( $(echo "$cvss >= 4.0" | bc -l 2>/dev/null || echo 0) )); then
-                priority_score=$((priority_score + 15))
-                severity="medium"
-            else
-                priority_score=$((priority_score + 5))
-            fi
+            local cvss_level=$(awk -v score="$cvss" 'BEGIN {
+                if (score >= 9.0) print "critical"
+                else if (score >= 7.0) print "high"
+                else if (score >= 4.0) print "medium"
+                else print "low"
+            }')
+            case "$cvss_level" in
+                critical)
+                    priority_score=$((priority_score + 50))
+                    severity="critical"
+                    ;;
+                high)
+                    priority_score=$((priority_score + 30))
+                    severity="high"
+                    ;;
+                medium)
+                    priority_score=$((priority_score + 15))
+                    severity="medium"
+                    ;;
+                *)
+                    priority_score=$((priority_score + 5))
+                    ;;
+            esac
         fi
 
         # Override severity if in KEV

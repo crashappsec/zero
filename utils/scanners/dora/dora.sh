@@ -96,46 +96,37 @@ is_git_url() {
     [[ "$1" =~ ^(https?|git)://.*\.git$ ]] || [[ "$1" =~ ^git@.*:.*\.git$ ]] || [[ "$1" =~ github\.com|gitlab\.com|bitbucket\.org ]]
 }
 
-# Classify deployment frequency
+# Classify deployment frequency - use awk for portability
 classify_df() {
     local df="$1"
-    if (( $(echo "$df >= 1" | bc -l) )); then
-        echo "ELITE"
-    elif (( $(echo "$df >= 0.14" | bc -l) )); then
-        echo "HIGH"
-    elif (( $(echo "$df >= 0.03" | bc -l) )); then
-        echo "MEDIUM"
-    else
-        echo "LOW"
-    fi
+    awk -v val="$df" 'BEGIN {
+        if (val >= 1) print "ELITE"
+        else if (val >= 0.14) print "HIGH"
+        else if (val >= 0.03) print "MEDIUM"
+        else print "LOW"
+    }'
 }
 
-# Classify lead time (hours)
+# Classify lead time (hours) - use awk for portability
 classify_lt() {
     local lt="$1"
-    if (( $(echo "$lt < 24" | bc -l) )); then
-        echo "ELITE"
-    elif (( $(echo "$lt < 168" | bc -l) )); then
-        echo "HIGH"
-    elif (( $(echo "$lt < 730" | bc -l) )); then
-        echo "MEDIUM"
-    else
-        echo "LOW"
-    fi
+    awk -v val="$lt" 'BEGIN {
+        if (val < 24) print "ELITE"
+        else if (val < 168) print "HIGH"
+        else if (val < 730) print "MEDIUM"
+        else print "LOW"
+    }'
 }
 
-# Classify change failure rate (percent)
+# Classify change failure rate (percent) - use awk for portability
 classify_cfr() {
     local cfr="$1"
-    if (( $(echo "$cfr <= 15" | bc -l) )); then
-        echo "ELITE"
-    elif (( $(echo "$cfr <= 30" | bc -l) )); then
-        echo "HIGH"
-    elif (( $(echo "$cfr <= 45" | bc -l) )); then
-        echo "MEDIUM"
-    else
-        echo "LOW"
-    fi
+    awk -v val="$cfr" 'BEGIN {
+        if (val <= 15) print "ELITE"
+        else if (val <= 30) print "HIGH"
+        else if (val <= 45) print "MEDIUM"
+        else print "LOW"
+    }'
 }
 
 # Calculate overall performance
@@ -181,8 +172,8 @@ analyze_dora() {
 
     echo -e "${BLUE}Analyzing DORA metrics (last $days days)...${NC}" >&2
 
-    # Calculate date range
-    local since_date=$(date -v-${days}d +%Y-%m-%d 2>/dev/null || date -d "$days days ago" +%Y-%m-%d 2>/dev/null)
+    # Calculate date range - try GNU date first (Linux), then BSD date (macOS)
+    local since_date=$(date -d "$days days ago" +%Y-%m-%d 2>/dev/null || date -v-${days}d +%Y-%m-%d 2>/dev/null)
 
     # Total commits in period
     local total_commits=$(git log --since="$since_date" --oneline 2>/dev/null | wc -l | tr -d ' ')
@@ -195,8 +186,8 @@ analyze_dora() {
         total_commits=$(git log --oneline | wc -l | tr -d ' ')
     fi
 
-    # Deployment frequency (commits per day as proxy)
-    local df=$(echo "scale=3; $total_commits / $days" | bc)
+    # Deployment frequency (commits per day as proxy) - use awk for portability
+    local df=$(awk -v commits="$total_commits" -v d="$days" 'BEGIN {printf "%.3f", commits / d}')
     local df_class=$(classify_df "$df")
 
     # Lead time estimation (average time between commits in hours)
@@ -239,7 +230,8 @@ analyze_dora() {
 
     local cfr=0
     if [[ "$total_commits" -gt 0 ]]; then
-        cfr=$(echo "scale=1; ($revert_commits / $total_commits) * 100" | bc)
+        # Use awk for portability
+        cfr=$(awk -v reverts="$revert_commits" -v total="$total_commits" 'BEGIN {printf "%.1f", (reverts / total) * 100}')
     fi
     local cfr_class=$(classify_cfr "$cfr")
 

@@ -49,8 +49,8 @@ calculate_openssf_score() {
         return
     fi
 
-    # OpenSSF score is 0-10, convert to 0-100
-    echo "scale=2; $openssf_score * 10" | bc
+    # OpenSSF score is 0-10, convert to 0-100 - use awk for portability
+    awk -v score="$openssf_score" 'BEGIN {printf "%.2f", score * 10}'
 }
 
 # Calculate maintenance score (0-100)
@@ -243,13 +243,12 @@ calculate_health_score() {
     local dependent_count=$(echo "$package_summary" | jq -r '.dependent_count // 0 | if . == null then 0 else . end')
     local popularity_score=$(calculate_popularity_score "$dependent_count")
 
-    # Calculate weighted score
-    local composite_score=$(echo "scale=2; \
-        ($openssf_score * $WEIGHT_OPENSSF) + \
-        ($maintenance_score * $WEIGHT_MAINTENANCE) + \
-        ($security_score * $WEIGHT_SECURITY) + \
-        ($freshness_score * $WEIGHT_FRESHNESS) + \
-        ($popularity_score * $WEIGHT_POPULARITY)" | bc)
+    # Calculate weighted score - use awk for portability
+    local composite_score=$(awk -v openssf="$openssf_score" -v maint="$maintenance_score" \
+        -v sec="$security_score" -v fresh="$freshness_score" -v pop="$popularity_score" \
+        -v w_openssf="$WEIGHT_OPENSSF" -v w_maint="$WEIGHT_MAINTENANCE" \
+        -v w_sec="$WEIGHT_SECURITY" -v w_fresh="$WEIGHT_FRESHNESS" -v w_pop="$WEIGHT_POPULARITY" \
+        'BEGIN {printf "%.2f", (openssf * w_openssf) + (maint * w_maint) + (sec * w_sec) + (fresh * w_fresh) + (pop * w_pop)}')
 
     # Round to integer
     printf "%.0f" "$composite_score"

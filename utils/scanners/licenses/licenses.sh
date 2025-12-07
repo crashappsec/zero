@@ -237,7 +237,8 @@ scan_licenses() {
 
     # Check Cargo.toml
     if [[ -f "$repo_path/Cargo.toml" ]]; then
-        local cargo_license=$(grep -oP '^license\s*=\s*"\K[^"]+' "$repo_path/Cargo.toml" 2>/dev/null | head -1)
+        # Use awk instead of grep -oP for macOS compatibility
+        local cargo_license=$(awk -F'"' '/^license\s*=/ {print $2}' "$repo_path/Cargo.toml" 2>/dev/null | head -1)
         if [[ -n "$cargo_license" ]]; then
             local status="unknown"
             if license_in_array "$cargo_license" "${ALLOWED_LICENSES[@]}"; then
