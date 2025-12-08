@@ -68,6 +68,8 @@ CHECKS:
       • semgrep     - AST-aware code scanning
       • checkov     - IaC security scanning
       • malcontent  - Supply chain compromise detection (Chainguard)
+      • trivy       - Container image vulnerability scanning (Aqua)
+      • hadolint    - Dockerfile linting
 
     API Keys:
       • GITHUB_TOKEN      - Required for private repos, recommended for rate limits
@@ -302,6 +304,8 @@ run_checks() {
     check_tool "semgrep" "recommended" "brew install semgrep" "AST-aware code scanning"
     check_checkov
     check_malcontent
+    check_tool "trivy" "recommended" "brew install trivy" "Container vulnerability scanning"
+    check_tool "hadolint" "recommended" "brew install hadolint" "Dockerfile linting"
     echo
 
     # API Keys
