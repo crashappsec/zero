@@ -351,7 +351,7 @@ get_scanner_freshness() {
     local analysis_path="$project_path/analysis"
     local scanners_path="$analysis_path/scanners"
 
-    local result='{}'
+    local result='{"scanners":{}}'
 
     # Check manifest for timestamps
     if [[ -f "$analysis_path/manifest.json" ]]; then
