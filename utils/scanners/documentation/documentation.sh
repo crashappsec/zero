@@ -653,13 +653,13 @@ elif [[ -n "$REPO" ]]; then
     REPO_ORG=$(echo "$REPO" | cut -d'/' -f1)
     REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
     ZERO_CACHE_PATH="$HOME/.zero/projects/$REPO_ORG/$REPO_NAME/repo"
-    GIBSON_PATH="$HOME/.gibson/projects/${REPO_ORG}-${REPO_NAME}/repo"
+    LEGACY_PATH="$HOME/.zero/projects/${REPO_ORG}-${REPO_NAME}/repo"
 
     if [[ -d "$ZERO_CACHE_PATH" ]]; then
         scan_path="$ZERO_CACHE_PATH"
         TARGET="$REPO"
-    elif [[ -d "$GIBSON_PATH" ]]; then
-        scan_path="$GIBSON_PATH"
+    elif [[ -d "$LEGACY_PATH" ]]; then
+        scan_path="$LEGACY_PATH"
         TARGET="$REPO"
     else
         echo '{"error": "Repository not found in cache. Clone it first or use --local-path"}'

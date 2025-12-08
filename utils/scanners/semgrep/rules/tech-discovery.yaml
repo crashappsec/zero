@@ -1,5 +1,5 @@
 rules:
-- id: gibson.cloud-providers.cloudflare.cloudflare.import.javascript
+- id: zero.cloud-providers.cloudflare.cloudflare.import.javascript
   message: Cloudflare library import detected
   severity: INFO
   languages:
@@ -10,7 +10,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("wrangler")
-- id: gibson.databases.postgresql.postgresql.import.javascript
+- id: zero.databases.postgresql.postgresql.import.javascript
   message: PostgreSQL library import detected
   severity: INFO
   languages:
@@ -21,7 +21,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("pg")
-- id: gibson.databases.redis.redis.import.javascript
+- id: zero.databases.redis.redis.import.javascript
   message: Redis library import detected
   severity: INFO
   languages:
@@ -34,7 +34,7 @@ rules:
   pattern-either:
   - pattern: require("redis")
   - pattern: require("ioredis")
-- id: gibson.databases.sqlite.sqlite.import.javascript
+- id: zero.databases.sqlite.sqlite.import.javascript
   message: SQLite library import detected
   severity: INFO
   languages:
@@ -45,7 +45,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("better-sqlite3")
-- id: gibson.databases.mongodb.mongodb.import.javascript
+- id: zero.databases.mongodb.mongodb.import.javascript
   message: MongoDB library import detected
   severity: INFO
   languages:
@@ -58,7 +58,7 @@ rules:
   pattern-either:
   - pattern: require("mongodb")
   - pattern: require("mongoose")
-- id: gibson.databases.mysql.mysql.import.javascript
+- id: zero.databases.mysql.mysql.import.javascript
   message: MySQL library import detected
   severity: INFO
   languages:
@@ -69,7 +69,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("mysql2?")
-- id: gibson.databases.elasticsearch.elasticsearch.import.javascript
+- id: zero.databases.elasticsearch.elasticsearch.import.javascript
   message: Elasticsearch library import detected
   severity: INFO
   languages:
@@ -80,7 +80,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("@elastic/elasticsearch")
-- id: gibson.languages.go.go.import.go
+- id: zero.languages.go.go.import.go
   message: Go library import detected
   severity: INFO
   languages:
@@ -91,7 +91,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: import "[^"
-- id: gibson.business-tools.payment.braintree.braintree.import.javascript
+- id: zero.business-tools.payment.braintree.braintree.import.javascript
   message: Braintree library import detected
   severity: INFO
   languages:
@@ -102,7 +102,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("braintree")
-- id: gibson.business-tools.payment.stripe.stripe.import.javascript
+- id: zero.business-tools.payment.stripe.stripe.import.javascript
   message: Stripe library import detected
   severity: INFO
   languages:
@@ -113,7 +113,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("stripe")
-- id: gibson.ai-ml.apis.cohere.cohere.import.python
+- id: zero.ai-ml.apis.cohere.cohere.import.python
   message: Cohere library import detected
   severity: INFO
   languages:
@@ -124,7 +124,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: cohere\.Client(...)
-- id: gibson.ai-ml.apis.cohere.cohere.import.javascript
+- id: zero.ai-ml.apis.cohere.cohere.import.javascript
   message: Cohere library import detected
   severity: INFO
   languages:
@@ -135,7 +135,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: import $X from "cohere-ai"
-- id: gibson.ai-ml.apis.together-ai.together-ai.import.javascript
+- id: zero.ai-ml.apis.together-ai.together-ai.import.javascript
   message: Together AI library import detected
   severity: INFO
   languages:
@@ -146,7 +146,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("together-ai")
-- id: gibson.ai-ml.apis.perplexity.perplexity-ai.import.javascript
+- id: zero.ai-ml.apis.perplexity.perplexity-ai.import.javascript
   message: Perplexity AI library import detected
   severity: INFO
   languages:
@@ -157,7 +157,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("perplexity-sdk")
-- id: gibson.ai-ml.apis.google-ai.google-ai.import.javascript
+- id: zero.ai-ml.apis.google-ai.google-ai.import.javascript
   message: Google AI library import detected
   severity: INFO
   languages:
@@ -168,7 +168,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: import $X from "@google/generative-ai"
-- id: gibson.ai-ml.apis.replicate.replicate.import.python
+- id: zero.ai-ml.apis.replicate.replicate.import.python
   message: Replicate library import detected
   severity: INFO
   languages:
@@ -181,7 +181,7 @@ rules:
   pattern-either:
   - pattern: import replicate
   - pattern: replicate\.run(...)
-- id: gibson.ai-ml.apis.replicate.replicate.import.javascript
+- id: zero.ai-ml.apis.replicate.replicate.import.javascript
   message: Replicate library import detected
   severity: INFO
   languages:
@@ -194,7 +194,7 @@ rules:
   pattern-either:
   - pattern: import $X from "replicate"
   - pattern: new Replicate(...)
-- id: gibson.ai-ml.apis.anthropic.anthropic-claude.import.javascript
+- id: zero.ai-ml.apis.anthropic.anthropic-claude.import.javascript
   message: Anthropic Claude library import detected
   severity: INFO
   languages:
@@ -205,7 +205,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: import $X from "@anthropic-ai/sdk"
-- id: gibson.ai-ml.apis.ai21.ai21-labs.import.python
+- id: zero.ai-ml.apis.ai21.ai21-labs.import.python
   message: AI21 Labs library import detected
   severity: INFO
   languages:
@@ -218,7 +218,7 @@ rules:
   pattern-either:
   - pattern: import ai21
   - pattern: from ai21 import $X
-- id: gibson.ai-ml.apis.mistral.mistral-ai.import.python
+- id: zero.ai-ml.apis.mistral.mistral-ai.import.python
   message: Mistral AI library import detected
   severity: INFO
   languages:
@@ -231,7 +231,7 @@ rules:
   pattern-either:
   - pattern: import mistralai
   - pattern: from mistralai import $X
-- id: gibson.ai-ml.apis.mistral.mistral-ai.import.javascript
+- id: zero.ai-ml.apis.mistral.mistral-ai.import.javascript
   message: Mistral AI library import detected
   severity: INFO
   languages:
@@ -244,7 +244,7 @@ rules:
   pattern-either:
   - pattern: import $X from "@mistralai/mistralai"
   - pattern: new MistralClient(...)
-- id: gibson.ai-ml.apis.openai.openai.import.python
+- id: zero.ai-ml.apis.openai.openai.import.python
   message: OpenAI library import detected
   severity: INFO
   languages:
@@ -257,7 +257,7 @@ rules:
   pattern-either:
   - pattern: import openai
   - pattern: from openai import $X
-- id: gibson.ai-ml.apis.openai.openai.import.javascript
+- id: zero.ai-ml.apis.openai.openai.import.javascript
   message: OpenAI library import detected
   severity: INFO
   languages:
@@ -270,7 +270,7 @@ rules:
   pattern-either:
   - pattern: import $X from "openai"
   - pattern: new OpenAI(...)
-- id: gibson.ai-ml.frameworks.langchain.langchain.import.javascript
+- id: zero.ai-ml.frameworks.langchain.langchain.import.javascript
   message: langchain library import detected
   severity: INFO
   languages:
@@ -281,7 +281,7 @@ rules:
     detection_type: import
     confidence: 85
   pattern: require("langchain")
-- id: gibson.monitoring.datadog.datadog.import.javascript
+- id: zero.monitoring.datadog.datadog.import.javascript
   message: Datadog library import detected
   severity: INFO
   languages:
@@ -292,7 +292,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("dd-trace")
-- id: gibson.monitoring.newrelic.new-relic.import.javascript
+- id: zero.monitoring.newrelic.new-relic.import.javascript
   message: New Relic library import detected
   severity: INFO
   languages:
@@ -303,7 +303,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("newrelic")
-- id: gibson.monitoring.sentry.sentry.import.javascript
+- id: zero.monitoring.sentry.sentry.import.javascript
   message: Sentry library import detected
   severity: INFO
   languages:
@@ -314,7 +314,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("@sentry/(node|browser|react)")
-- id: gibson.developer-tools.testing.mocha.mocha.import.javascript
+- id: zero.developer-tools.testing.mocha.mocha.import.javascript
   message: Mocha library import detected
   severity: INFO
   languages:
@@ -325,7 +325,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("chai")
-- id: gibson.web-frameworks.frontend.vue.vue.import.javascript
+- id: zero.web-frameworks.frontend.vue.vue.import.javascript
   message: Vue library import detected
   severity: INFO
   languages:
@@ -336,7 +336,7 @@ rules:
     detection_type: import
     confidence: 85
   pattern: require("vue")
-- id: gibson.web-frameworks.frontend.remix.remix.import.javascript
+- id: zero.web-frameworks.frontend.remix.remix.import.javascript
   message: remix library import detected
   severity: INFO
   languages:
@@ -347,7 +347,7 @@ rules:
     detection_type: import
     confidence: 85
   pattern: require("@remix-run/react")
-- id: gibson.web-frameworks.backend.express.express.import.javascript
+- id: zero.web-frameworks.backend.express.express.import.javascript
   message: Express library import detected
   severity: INFO
   languages:
@@ -358,7 +358,7 @@ rules:
     detection_type: import
     confidence: 85
   pattern: require("express")
-- id: gibson.web-frameworks.backend.fastapi.fastapi.import.python
+- id: zero.web-frameworks.backend.fastapi.fastapi.import.python
   message: FastAPI library import detected
   severity: INFO
   languages:
@@ -371,7 +371,7 @@ rules:
   pattern-either:
   - pattern: from fastapi import $X
   - pattern: import fastapi
-- id: gibson.web-frameworks.backend.nestjs.nestjs.import.javascript
+- id: zero.web-frameworks.backend.nestjs.nestjs.import.javascript
   message: nestjs library import detected
   severity: INFO
   languages:
@@ -382,7 +382,7 @@ rules:
     detection_type: import
     confidence: 85
   pattern: require("@nestjs/core")
-- id: gibson.web-frameworks.backend.django.django.import.python
+- id: zero.web-frameworks.backend.django.django.import.python
   message: Django library import detected
   severity: INFO
   languages:
@@ -393,7 +393,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: import django
-- id: gibson.web-frameworks.backend.rails.rails.import.javascript
+- id: zero.web-frameworks.backend.rails.rails.import.javascript
   message: rails library import detected
   severity: INFO
   languages:
@@ -404,7 +404,7 @@ rules:
     detection_type: import
     confidence: 85
   pattern: require("rails")
-- id: gibson.web-frameworks.backend.fastify.fastify.import.javascript
+- id: zero.web-frameworks.backend.fastify.fastify.import.javascript
   message: Fastify library import detected
   severity: INFO
   languages:
@@ -415,7 +415,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("fastify")
-- id: gibson.messaging.rabbitmq.rabbitmq.import.javascript
+- id: zero.messaging.rabbitmq.rabbitmq.import.javascript
   message: RabbitMQ library import detected
   severity: INFO
   languages:
@@ -426,7 +426,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("amqplib")
-- id: gibson.messaging.sqs.amazon-sqs.import.javascript
+- id: zero.messaging.sqs.amazon-sqs.import.javascript
   message: Amazon SQS library import detected
   severity: INFO
   languages:
@@ -437,7 +437,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("@aws-sdk/client-sqs")
-- id: gibson.messaging.kafka.apache-kafka.import.javascript
+- id: zero.messaging.kafka.apache-kafka.import.javascript
   message: Apache Kafka library import detected
   severity: INFO
   languages:
@@ -450,7 +450,7 @@ rules:
   pattern-either:
   - pattern: require("kafkajs")
   - pattern: require("node-rdkafka")
-- id: gibson.authentication.cognito.aws-cognito.import.javascript
+- id: zero.authentication.cognito.aws-cognito.import.javascript
   message: AWS Cognito library import detected
   severity: INFO
   languages:
@@ -461,7 +461,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("amazon-cognito-identity-js")
-- id: gibson.authentication.okta.okta.import.javascript
+- id: zero.authentication.okta.okta.import.javascript
   message: Okta library import detected
   severity: INFO
   languages:
@@ -472,7 +472,7 @@ rules:
     detection_type: import
     confidence: 90
   pattern: require("@okta/okta-sdk-nodejs")
-- id: gibson.authentication.auth0.auth0.import.javascript
+- id: zero.authentication.auth0.auth0.import.javascript
   message: Auth0 library import detected
   severity: INFO
   languages:

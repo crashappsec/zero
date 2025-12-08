@@ -21,13 +21,13 @@ set -e
 
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ZERO_DIR="$(dirname "$SCRIPT_DIR")"
+ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Load Phantom library
-source "$ZERO_DIR/lib/zero-lib.sh"
+# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load shared config if available
-UTILS_ROOT="$(dirname "$ZERO_DIR")"
+UTILS_ROOT="$(dirname "$ZERO_UTILS_DIR")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 
 if [[ -f "$UTILS_ROOT/lib/config.sh" ]]; then
@@ -35,7 +35,7 @@ if [[ -f "$UTILS_ROOT/lib/config.sh" ]]; then
 fi
 
 # Load config loader for dynamic profiles
-source "$ZERO_DIR/config/config-loader.sh"
+source "$ZERO_UTILS_DIR/config/config-loader.sh"
 
 # Load .env if it exists
 if [[ -f "$REPO_ROOT/.env" ]]; then
@@ -56,6 +56,7 @@ FORCE=false
 ENRICH=false      # Incremental enrichment - only run missing collectors
 CLONE_ONLY=false  # Just clone, don't scan
 SCAN_ONLY=false   # Just scan existing clone, don't clone
+PARALLEL=true     # Run scanners in parallel (default: true)
 
 # Canonical list of ALL scanners - loaded from config for display
 # This ensures consistent output format across all profiles
@@ -88,6 +89,8 @@ OPTIONS:
     --enrich            Only run collectors not previously run (incremental)
     --clone-only        Clone repository without scanning
     --scan-only         Scan existing clone without cloning
+    --parallel          Run scanners in parallel (default: enabled)
+    --no-parallel       Run scanners sequentially
     -h, --help          Show this help
 
 EXAMPLES:
@@ -166,6 +169,14 @@ parse_args() {
                 ;;
             --scan-only)
                 SCAN_ONLY=true
+                shift
+                ;;
+            --parallel)
+                PARALLEL=true
+                shift
+                ;;
+            --no-parallel)
+                PARALLEL=false
                 shift
                 ;;
             --*)
@@ -488,6 +499,161 @@ get_scanner_display_name() {
     get_scanner_name "$scanner"
 }
 
+#############################################################################
+# Parallel Execution Support
+#############################################################################
+
+# Scanners that depend on SBOM (must wait for package-sbom to complete)
+SBOM_DEPENDENT_SCANNERS="tech-discovery package-vulns package-health licenses"
+
+# Check if scanner depends on SBOM
+scanner_needs_sbom() {
+    local scanner="$1"
+    [[ " $SBOM_DEPENDENT_SCANNERS " =~ " $scanner " ]]
+}
+
+# Run scanner in background and save result to temp file
+# Usage: run_scanner_background <analyzer> <repo_path> <output_path> <project_id> <result_dir>
+run_scanner_background() {
+    local analyzer="$1"
+    local repo_path="$2"
+    local output_path="$3"
+    local project_id="$4"
+    local result_dir="$5"
+
+    local start_time=$(date +%s)
+    run_analyzer "$analyzer" "$repo_path" "$output_path" "$project_id"
+    local exit_code=$?
+    local end_time=$(date +%s)
+    local duration=$((end_time - start_time))
+
+    # Save result to temp file
+    echo "$exit_code $duration" > "$result_dir/$analyzer.result"
+}
+
+# Display scanner result from temp file
+# Usage: display_scanner_result <analyzer> <output_path> <result_dir>
+display_scanner_result() {
+    local analyzer="$1"
+    local output_path="$2"
+    local result_dir="$3"
+    local display_name=$(get_scanner_display_name "$analyzer")
+
+    local result_file="$result_dir/$analyzer.result"
+    if [[ ! -f "$result_file" ]]; then
+        printf "  ${RED}✗${NC} %-24s ${RED}no result${NC}\n" "$display_name"
+        return 1
+    fi
+
+    read exit_code duration < "$result_file"
+
+    if [[ "$exit_code" -eq 0 ]]; then
+        printf "  ${GREEN}✓${NC} %-24s " "$display_name"
+        display_scanner_summary "$analyzer" "$output_path"
+        printf " ${DIM}%ds${NC}\n" "$duration"
+    else
+        printf "  ${RED}✗${NC} %-24s ${RED}failed${NC} ${DIM}%ds${NC}\n" "$display_name" "$duration"
+    fi
+
+    return $exit_code
+}
+
+# Display inline summary for a scanner (extracted from run_all_analyzers)
+display_scanner_summary() {
+    local analyzer="$1"
+    local output_path="$2"
+    local output_file="$output_path/${analyzer}.json"
+
+    if [[ ! -f "$output_file" ]]; then
+        printf "done"
+        return
+    fi
+
+    case "$analyzer" in
+        package-vulns)
+            local c=$(jq -r '.summary.critical // 0' "$output_file" 2>/dev/null)
+            local h=$(jq -r '.summary.high // 0' "$output_file" 2>/dev/null)
+            local m=$(jq -r '.summary.medium // 0' "$output_file" 2>/dev/null)
+            local l=$(jq -r '.summary.low // 0' "$output_file" 2>/dev/null)
+            local total=$((c + h + m + l))
+            if [[ "$c" -gt 0 ]]; then printf "${RED}%dC${NC} " "$c"; else printf "${DIM}0C${NC} "; fi
+            if [[ "$h" -gt 0 ]]; then printf "${YELLOW}%dH${NC} " "$h"; else printf "${DIM}0H${NC} "; fi
+            if [[ "$m" -gt 0 ]]; then printf "%dM " "$m"; else printf "${DIM}0M${NC} "; fi
+            if [[ "$l" -gt 0 ]]; then printf "%dL" "$l"; else printf "${DIM}0L${NC}"; fi
+            [[ $total -eq 0 ]] && printf " ${GREEN}✓${NC}" || true
+            ;;
+        package-sbom)
+            local total=$(jq -r '.summary.total // .total_dependencies // 0' "$output_file" 2>/dev/null)
+            local ecosystems=$(jq -r '[.summary.ecosystems // {} | to_entries[] | "\(.key):\(.value)"] | join(" ")' "$output_file" 2>/dev/null)
+            printf "%d deps" "$total"
+            [[ -n "$ecosystems" ]] && printf " ${DIM}(%s)${NC}" "$ecosystems" || true
+            ;;
+        package-health)
+            local abandoned=$(jq -r '.summary.abandoned // 0' "$output_file" 2>/dev/null)
+            local deprecated=$(jq -r '.summary.deprecated // 0' "$output_file" 2>/dev/null)
+            local unmaintained=$(jq -r '.summary.unmaintained // 0' "$output_file" 2>/dev/null)
+            local total=$((abandoned + deprecated + unmaintained))
+            if [[ $total -gt 0 ]]; then
+                [[ "$abandoned" -gt 0 ]] && printf "${RED}%d abandoned${NC} " "$abandoned" || true
+                [[ "$deprecated" -gt 0 ]] && printf "${YELLOW}%d deprecated${NC} " "$deprecated" || true
+                [[ "$unmaintained" -gt 0 ]] && printf "%d unmaintained " "$unmaintained" || true
+            else
+                printf "${GREEN}healthy ✓${NC}"
+            fi
+            ;;
+        licenses)
+            local status=$(jq -r '.summary.status // .summary.overall_status // "unknown"' "$output_file" 2>/dev/null)
+            local violations=$(jq -r '.summary.violations // .summary.license_violations // 0' "$output_file" 2>/dev/null)
+            if [[ "$violations" -gt 0 ]]; then
+                printf "${RED}%d violations${NC}" "$violations"
+            elif [[ "$status" == "compliant" ]] || [[ "$status" == "clean" ]]; then
+                printf "${GREEN}compliant ✓${NC}"
+            else
+                printf "%s" "$status"
+            fi
+            ;;
+        tech-discovery)
+            local count=$(jq -r '.technologies | length // 0' "$output_file" 2>/dev/null)
+            local primary=$(jq -r '.primary_language // .summary.primary_language // empty' "$output_file" 2>/dev/null)
+            printf "%d technologies" "$count"
+            [[ -n "$primary" ]] && printf " ${DIM}(%s)${NC}" "$primary" || true
+            ;;
+        code-security)
+            local total=$(jq -r '.summary.total // (.findings | length) // 0' "$output_file" 2>/dev/null)
+            local high=$(jq -r '.summary.high // 0' "$output_file" 2>/dev/null)
+            if [[ "$total" -gt 0 ]]; then
+                [[ "$high" -gt 0 ]] && printf "${RED}%d high${NC} " "$high" || true
+                printf "%d findings" "$total"
+            else
+                printf "${GREEN}0 issues ✓${NC}"
+            fi
+            ;;
+        code-secrets)
+            local total=$(jq -r '.summary.total // (.secrets | length) // 0' "$output_file" 2>/dev/null)
+            if [[ "$total" -gt 0 ]]; then
+                printf "${RED}%d secrets${NC}" "$total"
+            else
+                printf "${GREEN}0 secrets ✓${NC}"
+            fi
+            ;;
+        package-malcontent)
+            local total_files=$(jq -r '.summary.total_files // 0' "$output_file" 2>/dev/null)
+            local critical=$(jq -r '.summary.by_risk.critical // 0' "$output_file" 2>/dev/null)
+            local high=$(jq -r '.summary.by_risk.high // 0' "$output_file" 2>/dev/null)
+            if [[ "$total_files" -gt 0 ]]; then
+                printf "%d files " "$total_files"
+                [[ "$critical" -gt 0 ]] && printf "${RED}%dC${NC} " "$critical" || true
+                [[ "$high" -gt 0 ]] && printf "${YELLOW}%dH${NC}" "$high" || true
+            else
+                printf "${GREEN}0 findings ✓${NC}"
+            fi
+            ;;
+        *)
+            printf "done"
+            ;;
+    esac
+}
+
 # Run a single analyzer
 run_analyzer() {
     local analyzer="$1"
@@ -567,7 +733,7 @@ run_analyzer() {
             ;;
     esac
 
-    gibson_analysis_start "$project_id" "$analyzer" "$analyzer_script"
+    zero_analysis_start "$project_id" "$analyzer" "$analyzer_script"
 
     # Run the scanner
     case "$analyzer" in
@@ -654,7 +820,7 @@ run_analyzer() {
         summary=$(jq '.summary // null' "$output_file" 2>/dev/null || echo "null")
     fi
 
-    gibson_analysis_complete "$project_id" "$analyzer" "$status" "$duration" "$summary"
+    zero_analysis_complete "$project_id" "$analyzer" "$status" "$duration" "$summary"
 
     return $exit_code
 }
@@ -1697,6 +1863,173 @@ run_all_analyzers() {
     echo
 }
 
+# Run analyzers in parallel phases
+# Phase 1: package-sbom (generates SBOM for dependent scanners)
+# Phase 2: All other scanners in parallel batches
+run_all_analyzers_parallel() {
+    local repo_path="$1"
+    local output_path="$2"
+    local project_id="$3"
+    local mode="$4"
+    local enrich="${5:-false}"
+
+    local requested_analyzers=$(get_analyzers_for_mode "$mode")
+    local analyzers_to_run="$requested_analyzers"
+
+    # In enrich mode, only run missing analyzers
+    if [[ "$enrich" == "true" ]]; then
+        local completed=$(get_completed_analyzers "$output_path")
+        analyzers_to_run=$(get_missing_analyzers "$requested_analyzers" "$completed")
+
+        if [[ -z "$analyzers_to_run" ]]; then
+            echo -e "\n${GREEN}All requested analyzers already complete.${NC}"
+            echo -e "${DIM}Use --force to re-run all analyzers.${NC}"
+            return 0
+        fi
+    fi
+
+    local profile_count=$(echo "$requested_analyzers" | wc -w | tr -d ' ')
+    local parallel_jobs=$(get_parallel_jobs)
+
+    # Show mode in header
+    local mode_display=""
+    case "$mode" in
+        quick)    mode_display=" ${DIM}(quick mode)${NC}" ;;
+        standard) mode_display=" ${DIM}(standard mode)${NC}" ;;
+        advanced) mode_display=" ${DIM}(advanced mode)${NC}" ;;
+        deep)     mode_display=" ${DIM}(deep mode)${NC}" ;;
+        security) mode_display=" ${DIM}(security mode)${NC}" ;;
+        custom)   mode_display=" ${DIM}(custom selection)${NC}" ;;
+    esac
+
+    if [[ "$enrich" == "true" ]]; then
+        echo -e "\n${BOLD}Running $profile_count analyzers${mode_display}${NC} ${CYAN}(enrichment, $parallel_jobs parallel)${NC}"
+    else
+        echo -e "\n${BOLD}Running $profile_count analyzers${mode_display}${NC} ${CYAN}($parallel_jobs parallel)${NC}"
+    fi
+    echo
+
+    # Create temp directory for results
+    local result_dir=$(mktemp -d)
+    trap "rm -rf $result_dir" EXIT
+
+    # Phase 1: Run package-sbom first if needed (other scanners depend on it)
+    local needs_sbom=false
+    local has_sbom_scanner=false
+    if scanner_in_list "package-sbom" "$analyzers_to_run"; then
+        has_sbom_scanner=true
+    fi
+    for analyzer in $analyzers_to_run; do
+        if scanner_needs_sbom "$analyzer"; then
+            needs_sbom=true
+            break
+        fi
+    done
+
+    if [[ "$has_sbom_scanner" == "true" ]]; then
+        local display_name=$(get_scanner_display_name "package-sbom")
+        printf "  ${WHITE}○${NC} %-24s ${DIM}running...${NC}" "$display_name"
+
+        local start_time=$(date +%s)
+        run_analyzer "package-sbom" "$repo_path" "$output_path" "$project_id"
+        local exit_code=$?
+        local end_time=$(date +%s)
+        local duration=$((end_time - start_time))
+
+        printf "\r\033[K"
+        if [[ $exit_code -eq 0 ]]; then
+            printf "  ${GREEN}✓${NC} %-24s " "$display_name"
+            display_scanner_summary "package-sbom" "$output_path"
+            printf " ${DIM}%ds${NC}\n" "$duration"
+        else
+            printf "  ${RED}✗${NC} %-24s ${RED}failed${NC} ${DIM}%ds${NC}\n" "$display_name" "$duration"
+        fi
+    fi
+
+    # Build list of remaining scanners (excluding package-sbom)
+    local remaining_scanners=""
+    for analyzer in $analyzers_to_run; do
+        [[ "$analyzer" == "package-sbom" ]] && continue
+        remaining_scanners="$remaining_scanners $analyzer"
+    done
+    remaining_scanners=$(echo "$remaining_scanners" | xargs)  # trim
+
+    if [[ -z "$remaining_scanners" ]]; then
+        echo
+        return 0
+    fi
+
+    # Show "running..." for all remaining scanners
+    local scanner_lines=()
+    for analyzer in $remaining_scanners; do
+        local display_name=$(get_scanner_display_name "$analyzer")
+        printf "  ${WHITE}○${NC} %-24s ${DIM}queued...${NC}\n" "$display_name"
+        scanner_lines+=("$analyzer")
+    done
+
+    # Move cursor back up to overwrite status lines
+    local line_count=${#scanner_lines[@]}
+    printf "\033[%dA" "$line_count"
+
+    # Phase 2: Run remaining scanners in parallel batches
+    local pids=()
+    local pid_to_analyzer=()
+    local running=0
+
+    for analyzer in $remaining_scanners; do
+        local display_name=$(get_scanner_display_name "$analyzer")
+
+        # Update status line
+        printf "\r\033[K  ${CYAN}●${NC} %-24s ${DIM}running...${NC}\n" "$display_name"
+
+        # Start scanner in background
+        (
+            local start_time=$(date +%s)
+            run_analyzer "$analyzer" "$repo_path" "$output_path" "$project_id" 2>/dev/null
+            local exit_code=$?
+            local end_time=$(date +%s)
+            local duration=$((end_time - start_time))
+            echo "$exit_code $duration" > "$result_dir/$analyzer.result"
+        ) &
+
+        pids+=($!)
+        pid_to_analyzer+=("$analyzer")
+        ((running++))
+
+        # Limit concurrent jobs
+        if [[ $running -ge $parallel_jobs ]]; then
+            # Wait for oldest job to complete (ignore exit code - we check results later)
+            wait "${pids[0]}" 2>/dev/null || true
+            pids=("${pids[@]:1}")
+            pid_to_analyzer=("${pid_to_analyzer[@]:1}")
+            ((running--))
+        fi
+    done
+
+    # Wait for remaining jobs
+    for pid in "${pids[@]}"; do
+        wait "$pid" 2>/dev/null || true
+    done
+
+    # Move cursor back up to beginning of scanner list
+    printf "\033[%dA" "$line_count"
+
+    # Display all results
+    for analyzer in $remaining_scanners; do
+        display_scanner_result "$analyzer" "$output_path" "$result_dir"
+    done
+
+    # Show scanners not in profile
+    for analyzer in $ALL_SCANNERS; do
+        if ! scanner_in_list "$analyzer" "$requested_analyzers"; then
+            local display_name=$(get_scanner_display_name "$analyzer")
+            printf "  ${DIM}○ %-24s not in profile${NC}\n" "$display_name"
+        fi
+    done
+
+    echo
+}
+
 #############################################################################
 # Summary Generation
 #############################################################################
@@ -1758,7 +2091,7 @@ generate_summary() {
     fi
 
     # Update manifest summary
-    gibson_update_summary "$project_id" "$risk_level" "$total_deps" "$direct_deps" "$total_vulns" "$total_findings" "$license_status" "$abandoned"
+    zero_update_summary "$project_id" "$risk_level" "$total_deps" "$direct_deps" "$total_vulns" "$total_findings" "$license_status" "$abandoned"
 }
 
 print_final_summary() {
@@ -1873,7 +2206,7 @@ print_final_summary() {
     echo -e "  Harper    → ${CYAN}/zero ask harper ...${NC}"
 
     echo
-    local size=$(gibson_project_size "$project_id")
+    local size=$(zero_project_size "$project_id")
     echo -e "Storage: ${CYAN}~/.zero/projects/$project_id/${NC} ($size)"
 }
 
@@ -1909,19 +2242,19 @@ main() {
     fi
 
     # Ensure Gibson is initialized
-    gibson_ensure_initialized
+    zero_ensure_initialized
 
     # Generate project ID
-    local project_id=$(gibson_project_id "$TARGET")
+    local project_id=$(zero_project_id "$TARGET")
 
     # Setup paths
-    local project_path=$(gibson_project_path "$project_id")
-    local repo_path=$(gibson_project_repo_path "$project_id")
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
+    local repo_path=$(zero_project_repo_path "$project_id")
+    local analysis_path=$(zero_project_analysis_path "$project_id")
 
     # Handle enrich mode - project must already exist
     if [[ "$ENRICH" == "true" ]]; then
-        if ! gibson_project_exists "$project_id"; then
+        if ! zero_project_exists "$project_id"; then
             echo -e "${RED}Project '$project_id' does not exist. Cannot enrich.${NC}"
             echo "Use standard hydration first: ./zero.sh hydrate $TARGET"
             exit 1
@@ -1934,21 +2267,25 @@ main() {
         # Get git context for history tracking
         local git_context=""
         if [[ -d "$repo_path/.git" ]]; then
-            git_context=$(gibson_get_git_context "$repo_path")
+            git_context=$(zero_get_git_context "$repo_path")
         fi
 
         # Print header for enrichment
-        gibson_print_header
+        zero_print_header
         echo -e "Enriching: ${CYAN}$TARGET${NC}"
         echo -e "Project ID: ${CYAN}$project_id${NC}"
         echo -e "Scan ID: ${DIM}$scan_id${NC}"
 
         # Skip cloning, just run missing analyzers
-        run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE" "true"
+        if [[ "$PARALLEL" == "true" ]]; then
+            run_all_analyzers_parallel "$repo_path" "$analysis_path" "$project_id" "$MODE" "true"
+        else
+            run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE" "true"
+        fi
 
         # Update summary and finalize
         generate_summary "$project_id" "$analysis_path"
-        gibson_finalize_manifest "$project_id"
+        zero_finalize_manifest "$project_id"
 
         # Record scan in history
         local scan_end_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -1971,20 +2308,20 @@ main() {
         local scanners_run=$(get_analyzers_for_mode "$MODE")
         local scanners_json=$(echo "$scanners_run" | tr ' ' '\n' | jq -R . | jq -sc '.')
 
-        gibson_append_scan_history "$project_id" "$scan_id" "$commit_hash" "$commit_short" "$git_branch" "$scan_start_time" "$scan_end_time" "$duration_seconds" "$MODE" "$scanners_json" "complete" "{}"
+        zero_append_scan_history "$project_id" "$scan_id" "$commit_hash" "$commit_short" "$git_branch" "$scan_start_time" "$scan_end_time" "$duration_seconds" "$MODE" "$scanners_json" "complete" "{}"
 
         # Update org-level index
-        gibson_update_org_index "$project_id"
+        zero_update_org_index "$project_id"
 
-        gibson_index_update_status "$project_id" "ready"
-        gibson_set_active_project "$project_id"
+        zero_index_update_status "$project_id" "ready"
+        zero_set_active_project "$project_id"
         print_final_summary "$project_id" "$analysis_path"
         return 0
     fi
 
     # Handle scan-only mode - project must already be cloned
     if [[ "$SCAN_ONLY" == "true" ]]; then
-        if ! gibson_project_exists "$project_id"; then
+        if ! zero_project_exists "$project_id"; then
             echo -e "${RED}Project '$project_id' does not exist. Cannot scan.${NC}"
             echo "Clone first with: ./zero.sh clone $TARGET"
             exit 1
@@ -2003,11 +2340,11 @@ main() {
         # Get git context for history tracking
         local git_context=""
         if [[ -d "$repo_path/.git" ]]; then
-            git_context=$(gibson_get_git_context "$repo_path")
+            git_context=$(zero_get_git_context "$repo_path")
         fi
 
         # Print header for scan
-        gibson_print_header
+        zero_print_header
         echo -e "Scanning: ${CYAN}$TARGET${NC}"
         echo -e "Project ID: ${CYAN}$project_id${NC}"
         echo -e "Mode: ${CYAN}$MODE${NC}"
@@ -2018,14 +2355,18 @@ main() {
 
         # Initialize/update analysis manifest
         local commit=$(echo "$git_context" | jq -r '.commit_hash // ""' 2>/dev/null)
-        gibson_init_analysis_manifest "$project_id" "$commit" "$MODE" "$scan_id" "$git_context"
+        zero_init_analysis_manifest "$project_id" "$commit" "$MODE" "$scan_id" "$git_context"
 
         # Run analyzers
-        run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE"
+        if [[ "$PARALLEL" == "true" ]]; then
+            run_all_analyzers_parallel "$repo_path" "$analysis_path" "$project_id" "$MODE"
+        else
+            run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE"
+        fi
 
         # Update summary and finalize
         generate_summary "$project_id" "$analysis_path"
-        gibson_finalize_manifest "$project_id"
+        zero_finalize_manifest "$project_id"
 
         # Record scan in history
         local scan_end_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -2045,24 +2386,24 @@ main() {
         local scanners_run=$(get_analyzers_for_mode "$MODE")
         local scanners_json=$(echo "$scanners_run" | tr ' ' '\n' | jq -R . | jq -sc '.')
 
-        gibson_append_scan_history "$project_id" "$scan_id" "$commit_hash" "$commit_short" "$git_branch" "$scan_start_time" "$scan_end_time" "$duration_seconds" "$MODE" "$scanners_json" "complete" "{}"
+        zero_append_scan_history "$project_id" "$scan_id" "$commit_hash" "$commit_short" "$git_branch" "$scan_start_time" "$scan_end_time" "$duration_seconds" "$MODE" "$scanners_json" "complete" "{}"
 
-        gibson_update_org_index "$project_id"
-        gibson_index_update_status "$project_id" "ready"
-        gibson_set_active_project "$project_id"
+        zero_update_org_index "$project_id"
+        zero_index_update_status "$project_id" "ready"
+        zero_set_active_project "$project_id"
         print_final_summary "$project_id" "$analysis_path"
         return 0
     fi
 
     # Check if project already exists
-    if gibson_project_exists "$project_id" && [[ "$FORCE" != "true" ]]; then
+    if zero_project_exists "$project_id" && [[ "$FORCE" != "true" ]]; then
         echo -e "${YELLOW}Project '$project_id' already exists.${NC}"
         echo "Use --force to re-bootstrap, or --enrich to add missing analyzers."
         exit 1
     fi
 
     # Print header
-    gibson_print_header
+    zero_print_header
     echo -e "Target: ${CYAN}$TARGET${NC}"
     echo -e "Project ID: ${CYAN}$project_id${NC}"
     echo
@@ -2077,15 +2418,15 @@ main() {
     mkdir -p "$analysis_path"
 
     # Add to index
-    gibson_index_add_project "$project_id" "$TARGET" "bootstrapping"
+    zero_index_add_project "$project_id" "$TARGET" "bootstrapping"
 
     # Clone or copy project
     echo -n "Cloning..."
-    if gibson_is_local_source "$TARGET"; then
+    if zero_is_local_source "$TARGET"; then
         copy_local_project "$TARGET" "$repo_path"
         echo -e " ${GREEN}✓${NC} (local copy)"
     else
-        local clone_url=$(gibson_clone_url "$TARGET")
+        local clone_url=$(zero_clone_url "$TARGET")
         if [[ -z "$clone_url" ]]; then
             echo -e " ${RED}✗${NC}"
             echo "Error: Could not determine clone URL for '$TARGET'"
@@ -2097,7 +2438,7 @@ main() {
         if [[ $? -ne 0 ]]; then
             echo -e " ${RED}✗${NC}"
             echo "Clone failed: $clone_output"
-            gibson_index_remove_project "$project_id"
+            zero_index_remove_project "$project_id"
             exit 1
         fi
         echo -e " ${GREEN}✓${NC}"
@@ -2114,9 +2455,9 @@ main() {
 
         # Create basic project metadata
         local source_type="github"
-        gibson_is_local_source "$TARGET" && source_type="local"
-        gibson_create_project_metadata "$project_id" "$TARGET" "$source_type" "$branch" "$commit"
-        gibson_index_update_status "$project_id" "cloned"
+        zero_is_local_source "$TARGET" && source_type="local"
+        zero_create_project_metadata "$project_id" "$TARGET" "$source_type" "$branch" "$commit"
+        zero_index_update_status "$project_id" "cloned"
 
         echo
         echo -e "${GREEN}✓ Clone complete${NC}"
@@ -2136,7 +2477,7 @@ main() {
     # Get full git context JSON for history tracking
     local git_context=""
     if [[ -d "$repo_path/.git" ]]; then
-        git_context=$(gibson_get_git_context "$repo_path")
+        git_context=$(zero_get_git_context "$repo_path")
     fi
 
     if [[ -n "$branch" ]]; then
@@ -2159,23 +2500,27 @@ main() {
 
     # Determine source type
     local source_type="github"
-    gibson_is_local_source "$TARGET" && source_type="local"
+    zero_is_local_source "$TARGET" && source_type="local"
 
     # Create project metadata
-    gibson_create_project_metadata "$project_id" "$TARGET" "$source_type" "$branch" "$commit"
-    gibson_update_project_type "$project_id" "$languages" "$frameworks" "$package_managers"
+    zero_create_project_metadata "$project_id" "$TARGET" "$source_type" "$branch" "$commit"
+    zero_update_project_type "$project_id" "$languages" "$frameworks" "$package_managers"
 
     # Initialize analysis manifest (with mode, scan_id, and git context)
-    gibson_init_analysis_manifest "$project_id" "$commit" "$MODE" "$scan_id" "$git_context"
+    zero_init_analysis_manifest "$project_id" "$commit" "$MODE" "$scan_id" "$git_context"
 
     # Run analyzers
-    run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE"
+    if [[ "$PARALLEL" == "true" ]]; then
+        run_all_analyzers_parallel "$repo_path" "$analysis_path" "$project_id" "$MODE"
+    else
+        run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE"
+    fi
 
     # Generate summary
     generate_summary "$project_id" "$analysis_path"
 
     # Finalize manifest
-    gibson_finalize_manifest "$project_id"
+    zero_finalize_manifest "$project_id"
 
     # Record scan in history
     local scan_end_time=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -2198,16 +2543,16 @@ main() {
     local scanners_run=$(get_analyzers_for_mode "$MODE")
     local scanners_json=$(echo "$scanners_run" | tr ' ' '\n' | jq -R . | jq -sc '.')
 
-    gibson_append_scan_history "$project_id" "$scan_id" "$commit_hash" "$commit_short" "$git_branch" "$scan_start_time" "$scan_end_time" "$duration_seconds" "$MODE" "$scanners_json" "complete" "{}"
+    zero_append_scan_history "$project_id" "$scan_id" "$commit_hash" "$commit_short" "$git_branch" "$scan_start_time" "$scan_end_time" "$duration_seconds" "$MODE" "$scanners_json" "complete" "{}"
 
     # Update org-level index for agent queries
-    gibson_update_org_index "$project_id"
+    zero_update_org_index "$project_id"
 
     # Update index status
-    gibson_index_update_status "$project_id" "ready"
+    zero_index_update_status "$project_id" "ready"
 
     # Set as active project
-    gibson_set_active_project "$project_id"
+    zero_set_active_project "$project_id"
 
     # Print final summary
     print_final_summary "$project_id" "$analysis_path"

@@ -1,12 +1,12 @@
 {
-  "$schema": "./phantom.config.schema.json",
+  "$schema": "./zero.config.schema.json",
   "_version": "1.1.0",
-  "_docs": "Phantom configuration file. See phantom.config.example.json for full documentation.",
+  "_docs": "Zero configuration file. See zero.config.example.json for full documentation.",
   "_claude_mode_docs": "claude_mode: 'none' = no Claude support, 'optional' = Claude enhances output, 'required' = Claude is mandatory",
 
   "settings": {
     "default_profile": "standard",
-    "storage_path": "~/.phantom",
+    "storage_path": "~/.zero",
     "parallel_jobs": 4,
     "scanner_timeout_seconds": 300,
     "cache_ttl_hours": 24,

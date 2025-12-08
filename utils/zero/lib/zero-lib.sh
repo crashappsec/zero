@@ -10,16 +10,15 @@
 # Named after Zero Cool from the movie Hackers (1995)
 #############################################################################
 
-# Zero root directory - defaults to .zero in the repo root
-# This makes zero data visible in IDEs and keeps it project-scoped
+# Zero root directory - defaults to ~/.zero in user home
 # Can be overridden with ZERO_HOME environment variable
 _ZERO_LIB_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 _ZERO_REPO_ROOT="$(dirname "$(dirname "$(dirname "$_ZERO_LIB_DIR")")")"
-export GIBSON_DIR="${ZERO_HOME:-$_ZERO_REPO_ROOT/.zero}"
-export GIBSON_REPOS_DIR="$GIBSON_DIR/repos"
+export ZERO_DIR="${ZERO_HOME:-$HOME/.zero}"
+export ZERO_REPOS_DIR="$ZERO_DIR/repos"
 # Legacy alias for compatibility
-export GIBSON_PROJECTS_DIR="$GIBSON_REPOS_DIR"
-export GIBSON_VERSION="1.0.0"
+export ZERO_PROJECTS_DIR="$ZERO_REPOS_DIR"
+export ZERO_VERSION="1.0.0"
 
 # Color codes
 RED='\033[0;31m'
@@ -127,24 +126,24 @@ print_phantom_banner_animated() { print_zero_banner_animated "$@"; }
 
 # Initialize ~/.zero/ directory structure
 # Creates all necessary directories and config files if they don't exist
-gibson_init() {
+zero_init() {
     local force="${1:-false}"
 
     # Check if already initialized
-    if [[ -f "$GIBSON_DIR/config.json" ]] && [[ "$force" != "true" ]]; then
+    if [[ -f "$ZERO_DIR/config.json" ]] && [[ "$force" != "true" ]]; then
         return 0
     fi
 
     echo -e "${CYAN}Initializing Zero directory at ~/.zero...${NC}"
 
     # Create directory structure
-    mkdir -p "$GIBSON_DIR"
-    mkdir -p "$GIBSON_PROJECTS_DIR"
-    mkdir -p "$GIBSON_DIR/cache"
+    mkdir -p "$ZERO_DIR"
+    mkdir -p "$ZERO_PROJECTS_DIR"
+    mkdir -p "$ZERO_DIR/cache"
 
     # Create config.json if it doesn't exist
-    if [[ ! -f "$GIBSON_DIR/config.json" ]]; then
-        cat > "$GIBSON_DIR/config.json" << 'EOF'
+    if [[ ! -f "$ZERO_DIR/config.json" ]]; then
+        cat > "$ZERO_DIR/config.json" << 'EOF'
 {
   "version": "1.0.0",
   "created_at": null,
@@ -190,13 +189,13 @@ EOF
         local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
         if command -v jq &> /dev/null; then
             local tmp=$(mktemp)
-            jq --arg ts "$timestamp" '.created_at = $ts' "$GIBSON_DIR/config.json" > "$tmp" && mv "$tmp" "$GIBSON_DIR/config.json"
+            jq --arg ts "$timestamp" '.created_at = $ts' "$ZERO_DIR/config.json" > "$tmp" && mv "$tmp" "$ZERO_DIR/config.json"
         fi
     fi
 
     # Create index.json if it doesn't exist
-    if [[ ! -f "$GIBSON_DIR/index.json" ]]; then
-        cat > "$GIBSON_DIR/index.json" << 'EOF'
+    if [[ ! -f "$ZERO_DIR/index.json" ]]; then
+        cat > "$ZERO_DIR/index.json" << 'EOF'
 {
   "version": "1.0.0",
   "projects": {},
@@ -210,14 +209,14 @@ EOF
 }
 
 # Check if Gibson is initialized
-gibson_is_initialized() {
-    [[ -d "$GIBSON_DIR" ]] && [[ -f "$GIBSON_DIR/config.json" ]] && [[ -f "$GIBSON_DIR/index.json" ]]
+zero_is_initialized() {
+    [[ -d "$ZERO_DIR" ]] && [[ -f "$ZERO_DIR/config.json" ]] && [[ -f "$ZERO_DIR/index.json" ]]
 }
 
 # Ensure Gibson is initialized (auto-init if not)
-gibson_ensure_initialized() {
-    if ! gibson_is_initialized; then
-        gibson_init
+zero_ensure_initialized() {
+    if ! zero_is_initialized; then
+        zero_init
     fi
 }
 
@@ -232,7 +231,7 @@ gibson_ensure_initialized() {
 #   git@github.com:lodash/lodash.git -> lodash/lodash
 #   expressjs/express -> expressjs/express
 #   /path/to/local/project -> local/project
-gibson_project_id() {
+zero_project_id() {
     local source="$1"
     local project_id=""
     local owner=""
@@ -271,7 +270,7 @@ gibson_project_id() {
 }
 
 # Get the GitHub clone URL from various input formats
-gibson_clone_url() {
+zero_clone_url() {
     local source="$1"
 
     # Already a full URL
@@ -286,7 +285,7 @@ gibson_clone_url() {
 }
 
 # Check if source is a local path
-gibson_is_local_source() {
+zero_is_local_source() {
     local source="$1"
     [[ -d "$source" ]] || [[ "$source" =~ ^\./ ]] || [[ "$source" =~ ^/ ]]
 }
@@ -296,36 +295,36 @@ gibson_is_local_source() {
 #############################################################################
 
 # Get project directory path
-gibson_project_path() {
+zero_project_path() {
     local project_id="$1"
-    echo "$GIBSON_PROJECTS_DIR/$project_id"
+    echo "$ZERO_PROJECTS_DIR/$project_id"
 }
 
 # Get project repo path
-gibson_project_repo_path() {
+zero_project_repo_path() {
     local project_id="$1"
-    echo "$GIBSON_PROJECTS_DIR/$project_id/repo"
+    echo "$ZERO_PROJECTS_DIR/$project_id/repo"
 }
 
 # Get project analysis path
-gibson_project_analysis_path() {
+zero_project_analysis_path() {
     local project_id="$1"
-    echo "$GIBSON_PROJECTS_DIR/$project_id/analysis"
+    echo "$ZERO_PROJECTS_DIR/$project_id/analysis"
 }
 
 # Check if project exists
-gibson_project_exists() {
+zero_project_exists() {
     local project_id="$1"
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
     [[ -d "$project_path" ]]
 }
 
 # Check if project is fully hydrated (has repo and completed analysis)
 # Returns 0 if hydrated, 1 if not
-gibson_is_hydrated() {
+zero_is_hydrated() {
     local project_id="$1"
 
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
     local repo_path="$project_path/repo"
     local analysis_path="$project_path/analysis"
 
@@ -351,8 +350,8 @@ gibson_is_hydrated() {
 
 # Check if active project is hydrated and ready for queries
 # Prints error message and returns 1 if not ready
-gibson_require_hydrated() {
-    local project_id=$(gibson_active_project)
+zero_require_hydrated() {
+    local project_id=$(zero_active_project)
 
     if [[ -z "$project_id" ]]; then
         echo -e "${RED}No active project.${NC}" >&2
@@ -360,7 +359,7 @@ gibson_require_hydrated() {
         return 1
     fi
 
-    if ! gibson_is_hydrated "$project_id"; then
+    if ! zero_is_hydrated "$project_id"; then
         echo -e "${RED}Project '$project_id' is not fully hydrated.${NC}" >&2
         echo -e "Run ${CYAN}/zero hydrate $project_id --force${NC} to complete hydration." >&2
         return 1
@@ -370,11 +369,11 @@ gibson_require_hydrated() {
 }
 
 # Get hydration status as JSON
-gibson_hydration_status() {
+zero_hydration_status() {
     local project_id="$1"
 
     if [[ -z "$project_id" ]]; then
-        project_id=$(gibson_active_project)
+        project_id=$(zero_active_project)
     fi
 
     if [[ -z "$project_id" ]]; then
@@ -382,11 +381,11 @@ gibson_hydration_status() {
         return
     fi
 
-    local project_path=$(gibson_project_path "$project_id")
-    local has_project=$(gibson_project_exists "$project_id" && echo "true" || echo "false")
+    local project_path=$(zero_project_path "$project_id")
+    local has_project=$(zero_project_exists "$project_id" && echo "true" || echo "false")
     local has_repo=$([[ -d "$project_path/repo" ]] && echo "true" || echo "false")
     local has_manifest=$([[ -f "$project_path/analysis/manifest.json" ]] && echo "true" || echo "false")
-    local proj_status=$(jq -r --arg id "$project_id" '.projects[$id].status // "unknown"' "$GIBSON_DIR/index.json" 2>/dev/null)
+    local proj_status=$(jq -r --arg id "$project_id" '.projects[$id].status // "unknown"' "$ZERO_DIR/index.json" 2>/dev/null)
 
     local hydrated="false"
     local reason="unknown"
@@ -426,8 +425,8 @@ gibson_hydration_status() {
 }
 
 # List all hydrated projects
-gibson_list_hydrated() {
-    local projects=$(gibson_list_projects)
+zero_list_hydrated() {
+    local projects=$(zero_list_projects)
 
     if [[ -z "$projects" ]]; then
         echo "[]"
@@ -438,7 +437,7 @@ gibson_list_hydrated() {
 
     while IFS= read -r project_id; do
         [[ -z "$project_id" ]] && continue
-        if gibson_is_hydrated "$project_id"; then
+        if zero_is_hydrated "$project_id"; then
             hydrated_list=$(echo "$hydrated_list" | jq --arg id "$project_id" '. + [$id]')
         fi
     done <<< "$projects"
@@ -447,13 +446,13 @@ gibson_list_hydrated() {
 }
 
 # List all projects by scanning directory structure
-gibson_list_projects() {
-    if [[ ! -d "$GIBSON_PROJECTS_DIR" ]]; then
+zero_list_projects() {
+    if [[ ! -d "$ZERO_PROJECTS_DIR" ]]; then
         return
     fi
 
     # Scan for org/repo directories that have an analysis folder
-    for org_dir in "$GIBSON_PROJECTS_DIR"/*/; do
+    for org_dir in "$ZERO_PROJECTS_DIR"/*/; do
         [[ ! -d "$org_dir" ]] && continue
         local org=$(basename "$org_dir")
 
@@ -466,28 +465,28 @@ gibson_list_projects() {
 }
 
 # Get active project
-gibson_active_project() {
-    if [[ ! -f "$GIBSON_DIR/index.json" ]]; then
+zero_active_project() {
+    if [[ ! -f "$ZERO_DIR/index.json" ]]; then
         echo ""
         return
     fi
-    jq -r '.active // ""' "$GIBSON_DIR/index.json" 2>/dev/null || echo ""
+    jq -r '.active // ""' "$ZERO_DIR/index.json" 2>/dev/null || echo ""
 }
 
 # Set active project
-gibson_set_active_project() {
+zero_set_active_project() {
     local project_id="$1"
 
-    if [[ ! -f "$GIBSON_DIR/index.json" ]]; then
+    if [[ ! -f "$ZERO_DIR/index.json" ]]; then
         return 1
     fi
 
     local tmp=$(mktemp)
-    jq --arg id "$project_id" '.active = $id' "$GIBSON_DIR/index.json" > "$tmp" && mv "$tmp" "$GIBSON_DIR/index.json"
+    jq --arg id "$project_id" '.active = $id' "$ZERO_DIR/index.json" > "$tmp" && mv "$tmp" "$ZERO_DIR/index.json"
 }
 
 # Add project to index
-gibson_index_add_project() {
+zero_index_add_project() {
     local project_id="$1"
     local source="$2"
     local status="${3:-bootstrapping}"
@@ -504,11 +503,11 @@ gibson_index_add_project() {
          "created_at": $ts,
          "last_analyzed": null,
          "status": $st
-       }' "$GIBSON_DIR/index.json" > "$tmp" && mv "$tmp" "$GIBSON_DIR/index.json"
+       }' "$ZERO_DIR/index.json" > "$tmp" && mv "$tmp" "$ZERO_DIR/index.json"
 }
 
 # Update project status in index
-gibson_index_update_status() {
+zero_index_update_status() {
     local project_id="$1"
     local status="$2"
 
@@ -519,20 +518,20 @@ gibson_index_update_status() {
        --arg st "$status" \
        --arg ts "$timestamp" \
        '.projects[$id].status = $st | .projects[$id].last_analyzed = $ts' \
-       "$GIBSON_DIR/index.json" > "$tmp" && mv "$tmp" "$GIBSON_DIR/index.json"
+       "$ZERO_DIR/index.json" > "$tmp" && mv "$tmp" "$ZERO_DIR/index.json"
 }
 
 # Remove project from index
-gibson_index_remove_project() {
+zero_index_remove_project() {
     local project_id="$1"
 
     local tmp=$(mktemp)
-    jq --arg id "$project_id" 'del(.projects[$id])' "$GIBSON_DIR/index.json" > "$tmp" && mv "$tmp" "$GIBSON_DIR/index.json"
+    jq --arg id "$project_id" 'del(.projects[$id])' "$ZERO_DIR/index.json" > "$tmp" && mv "$tmp" "$ZERO_DIR/index.json"
 
     # Clear active if it was this project
-    local active=$(gibson_active_project)
+    local active=$(zero_active_project)
     if [[ "$active" == "$project_id" ]]; then
-        gibson_set_active_project ""
+        zero_set_active_project ""
     fi
 }
 
@@ -541,14 +540,14 @@ gibson_index_remove_project() {
 #############################################################################
 
 # Create project.json for a new project
-gibson_create_project_metadata() {
+zero_create_project_metadata() {
     local project_id="$1"
     local source="$2"
     local source_type="$3"  # github, local
     local branch="$4"
     local commit="$5"
 
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
     cat > "$project_path/project.json" << EOF
@@ -570,13 +569,13 @@ EOF
 }
 
 # Update detected project type in project.json
-gibson_update_project_type() {
+zero_update_project_type() {
     local project_id="$1"
     local languages="$2"      # JSON array string
     local frameworks="$3"     # JSON array string
     local package_managers="$4"  # JSON array string
 
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
     local project_json="$project_path/project.json"
 
     if [[ ! -f "$project_json" ]]; then
@@ -592,9 +591,9 @@ gibson_update_project_type() {
 }
 
 # Read project.json
-gibson_read_project_metadata() {
+zero_read_project_metadata() {
     local project_id="$1"
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
 
     if [[ -f "$project_path/project.json" ]]; then
         cat "$project_path/project.json"
@@ -608,14 +607,14 @@ gibson_read_project_metadata() {
 #############################################################################
 
 # Initialize analysis manifest for a project
-gibson_init_analysis_manifest() {
+zero_init_analysis_manifest() {
     local project_id="$1"
     local commit="$2"
     local mode="${3:-standard}"
     local scan_id="${4:-}"
     local git_context="${5:-}"
 
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local analysis_path=$(zero_project_analysis_path "$project_id")
     mkdir -p "$analysis_path"
 
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -671,13 +670,13 @@ gibson_init_analysis_manifest() {
 }
 
 # Record analysis start
-gibson_analysis_start() {
+zero_analysis_start() {
     local project_id="$1"
     local analysis_type="$2"
     local analyzer_script="$3"
     local analyzer_version="${4:-1.0.0}"
 
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local analysis_path=$(zero_project_analysis_path "$project_id")
     local manifest="$analysis_path/manifest.json"
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -703,14 +702,14 @@ gibson_analysis_start() {
 }
 
 # Record analysis completion
-gibson_analysis_complete() {
+zero_analysis_complete() {
     local project_id="$1"
     local analysis_type="$2"
     local status="$3"  # complete, failed, partial
     local duration_ms="$4"
     local summary="$5"  # JSON object string
 
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local analysis_path=$(zero_project_analysis_path "$project_id")
     local manifest="$analysis_path/manifest.json"
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -738,10 +737,10 @@ gibson_analysis_complete() {
 }
 
 # Finalize analysis manifest
-gibson_finalize_manifest() {
+zero_finalize_manifest() {
     local project_id="$1"
 
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local analysis_path=$(zero_project_analysis_path "$project_id")
     local manifest="$analysis_path/manifest.json"
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -791,7 +790,7 @@ gibson_finalize_manifest() {
 }
 
 # Update manifest summary
-gibson_update_summary() {
+zero_update_summary() {
     local project_id="$1"
     local risk_level="$2"
     local total_deps="$3"
@@ -801,7 +800,7 @@ gibson_update_summary() {
     local license_status="$7"
     local abandoned="$8"
 
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local analysis_path=$(zero_project_analysis_path "$project_id")
     local manifest="$analysis_path/manifest.json"
 
     if [[ ! -f "$manifest" ]]; then
@@ -832,14 +831,14 @@ gibson_update_summary() {
 #############################################################################
 
 # Print Gibson status header
-gibson_print_header() {
+zero_print_header() {
     print_zero_banner
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
 }
 
 # Print status line with checkmark or X
-gibson_print_status() {
+zero_print_status() {
     local message="$1"
     local status="$2"  # ok, fail, warn, running
     local detail="${3:-}"
@@ -879,7 +878,7 @@ gibson_print_status() {
 }
 
 # Get human-readable time ago
-gibson_time_ago() {
+zero_time_ago() {
     local timestamp="$1"
     local now=$(date +%s)
     local then
@@ -912,9 +911,9 @@ gibson_time_ago() {
 }
 
 # Calculate disk usage for a project
-gibson_project_size() {
+zero_project_size() {
     local project_id="$1"
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
 
     if [[ -d "$project_path" ]]; then
         du -sh "$project_path" 2>/dev/null | cut -f1
@@ -924,9 +923,9 @@ gibson_project_size() {
 }
 
 # Calculate total Gibson disk usage
-gibson_total_size() {
-    if [[ -d "$GIBSON_DIR" ]]; then
-        du -sh "$GIBSON_DIR" 2>/dev/null | cut -f1
+zero_total_size() {
+    if [[ -d "$ZERO_DIR" ]]; then
+        du -sh "$ZERO_DIR" 2>/dev/null | cut -f1
     else
         echo "0"
     fi
@@ -938,9 +937,9 @@ gibson_total_size() {
 
 # Check if a cached repo needs updating by comparing local and remote HEAD
 # Returns: "up-to-date", "needs-update", "error", or "no-remote"
-gibson_check_repo_freshness() {
+zero_check_repo_freshness() {
     local project_id="$1"
-    local repo_path=$(gibson_project_repo_path "$project_id")
+    local repo_path=$(zero_project_repo_path "$project_id")
 
     # Check if repo exists
     if [[ ! -d "$repo_path/.git" ]]; then
@@ -1002,9 +1001,9 @@ gibson_check_repo_freshness() {
 }
 
 # Get detailed freshness info as JSON
-gibson_repo_freshness_json() {
+zero_repo_freshness_json() {
     local project_id="$1"
-    local repo_path=$(gibson_project_repo_path "$project_id")
+    local repo_path=$(zero_project_repo_path "$project_id")
 
     if [[ ! -d "$repo_path/.git" ]]; then
         echo '{"status": "error", "message": "not a git repository"}'
@@ -1019,7 +1018,7 @@ gibson_repo_freshness_json() {
     local remote_url=$(git remote get-url origin 2>/dev/null | sed 's/[^@]*@/***@/' | sed 's/github_pat_[^@]*@/***@/')  # Mask tokens
     local last_commit_date=$(git log -1 --format=%ci 2>/dev/null)
 
-    local freshness=$(gibson_check_repo_freshness "$project_id")
+    local freshness=$(zero_check_repo_freshness "$project_id")
     local fresh_status="unknown"
     local remote_head=""
 
@@ -1061,11 +1060,11 @@ gibson_repo_freshness_json() {
 
 # Update cached repo if remote is ahead
 # Returns 0 if updated or already up-to-date, 1 on error
-gibson_update_repo_if_needed() {
+zero_update_repo_if_needed() {
     local project_id="$1"
     local force="${2:-false}"
 
-    local repo_path=$(gibson_project_repo_path "$project_id")
+    local repo_path=$(zero_project_repo_path "$project_id")
 
     if [[ ! -d "$repo_path/.git" ]]; then
         echo -e "${RED}Error: Not a git repository${NC}" >&2
@@ -1074,7 +1073,7 @@ gibson_update_repo_if_needed() {
 
     cd "$repo_path" || return 1
 
-    local freshness=$(gibson_check_repo_freshness "$project_id")
+    local freshness=$(zero_check_repo_freshness "$project_id")
 
     case "$freshness" in
         up-to-date)
@@ -1089,7 +1088,7 @@ gibson_update_repo_if_needed() {
                 echo -e "${GREEN}✓${NC} Updated to $new_head"
 
                 # Update project.json with new commit
-                local project_path=$(gibson_project_path "$project_id")
+                local project_path=$(zero_project_path "$project_id")
                 if [[ -f "$project_path/project.json" ]]; then
                     local tmp=$(mktemp)
                     jq --arg commit "$new_head" '.commit = $commit' "$project_path/project.json" > "$tmp" && mv "$tmp" "$project_path/project.json"
@@ -1125,14 +1124,14 @@ gibson_update_repo_if_needed() {
 }
 
 # Get cached repo path if available and optionally check freshness
-# Usage: gibson_get_cached_repo <source> [--check-fresh]
+# Usage: zero_get_cached_repo <source> [--check-fresh]
 # Returns: path to repo if cached, empty string if not
-gibson_get_cached_repo() {
+zero_get_cached_repo() {
     local source="$1"
     local check_fresh="${2:-}"
 
-    local project_id=$(gibson_project_id "$source")
-    local repo_path=$(gibson_project_repo_path "$project_id")
+    local project_id=$(zero_project_id "$source")
+    local repo_path=$(zero_project_repo_path "$project_id")
 
     if [[ ! -d "$repo_path" ]]; then
         echo ""
@@ -1140,7 +1139,7 @@ gibson_get_cached_repo() {
     fi
 
     if [[ "$check_fresh" == "--check-fresh" ]]; then
-        local freshness=$(gibson_check_repo_freshness "$project_id")
+        local freshness=$(zero_check_repo_freshness "$project_id")
         if [[ "$freshness" == needs-update:* ]]; then
             echo -e "${YELLOW}⚠ Cached repo is behind remote${NC}" >&2
         fi
@@ -1164,7 +1163,7 @@ generate_scan_id() {
 
 # Get full git context from a repository
 # Returns JSON with commit, branch, tag, date info
-gibson_get_git_context() {
+zero_get_git_context() {
     local repo_path="$1"
 
     if [[ ! -d "$repo_path/.git" ]]; then
@@ -1206,9 +1205,9 @@ gibson_get_git_context() {
 #############################################################################
 
 # Initialize history.json for a project
-gibson_init_history() {
+zero_init_history() {
     local project_id="$1"
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local analysis_path=$(zero_project_analysis_path "$project_id")
     local history_file="$analysis_path/history.json"
 
     mkdir -p "$analysis_path"
@@ -1229,7 +1228,7 @@ EOF
 }
 
 # Append a scan record to history
-gibson_append_scan_history() {
+zero_append_scan_history() {
     local project_id="$1"
     local scan_id="$2"
     local commit_hash="$3"
@@ -1243,11 +1242,11 @@ gibson_append_scan_history() {
     local status="${11}"
     local summary="${12}"       # JSON object
 
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local analysis_path=$(zero_project_analysis_path "$project_id")
     local history_file="$analysis_path/history.json"
 
     # Initialize if doesn't exist
-    gibson_init_history "$project_id"
+    zero_init_history "$project_id"
 
     # Create scan record
     local scan_record=$(jq -n \
@@ -1292,11 +1291,11 @@ gibson_append_scan_history() {
 }
 
 # Get scan history for a project
-gibson_get_scan_history() {
+zero_get_scan_history() {
     local project_id="$1"
     local limit="${2:-10}"
 
-    local history_file="$(gibson_project_analysis_path "$project_id")/history.json"
+    local history_file="$(zero_project_analysis_path "$project_id")/history.json"
 
     if [[ -f "$history_file" ]]; then
         jq --argjson limit "$limit" '.scans[:$limit]' "$history_file"
@@ -1306,11 +1305,11 @@ gibson_get_scan_history() {
 }
 
 # Get scans for a specific commit
-gibson_get_scans_for_commit() {
+zero_get_scans_for_commit() {
     local project_id="$1"
     local commit="$2"
 
-    local history_file="$(gibson_project_analysis_path "$project_id")/history.json"
+    local history_file="$(zero_project_analysis_path "$project_id")/history.json"
 
     if [[ -f "$history_file" ]]; then
         jq --arg commit "$commit" '.scans | map(select(.commit_hash == $commit or .commit_short == $commit))' "$history_file"
@@ -1324,13 +1323,13 @@ gibson_get_scans_for_commit() {
 #############################################################################
 
 # Update org-level index after a scan
-gibson_update_org_index() {
+zero_update_org_index() {
     local project_id="$1"
 
     # Extract org from project_id (org/repo format)
     local org=$(echo "$project_id" | cut -d'/' -f1)
     local repo=$(echo "$project_id" | cut -d'/' -f2)
-    local org_dir="$GIBSON_PROJECTS_DIR/$org"
+    local org_dir="$ZERO_PROJECTS_DIR/$org"
     local index_file="$org_dir/_index.json"
 
     # Create org index if doesn't exist
@@ -1353,7 +1352,7 @@ EOF
     fi
 
     # Get data from manifest
-    local manifest="$(gibson_project_analysis_path "$project_id")/manifest.json"
+    local manifest="$(zero_project_analysis_path "$project_id")/manifest.json"
     if [[ ! -f "$manifest" ]]; then
         return 1
     fi
@@ -1366,7 +1365,7 @@ EOF
     local deps=$(jq -r '.summary.total_dependencies // 0' "$manifest" 2>/dev/null)
 
     # Get vuln breakdown from package-vulns.json if available
-    local vulns_file="$(gibson_project_analysis_path "$project_id")/package-vulns.json"
+    local vulns_file="$(zero_project_analysis_path "$project_id")/package-vulns.json"
     local crit=0 high=0
     if [[ -f "$vulns_file" ]]; then
         crit=$(jq -r '.summary.critical // 0' "$vulns_file" 2>/dev/null)
@@ -1400,13 +1399,13 @@ EOF
        ' "$index_file" > "$tmp" && mv "$tmp" "$index_file"
 
     # Recalculate aggregates
-    gibson_recalculate_org_aggregates "$org"
+    zero_recalculate_org_aggregates "$org"
 }
 
 # Recalculate org aggregate stats
-gibson_recalculate_org_aggregates() {
+zero_recalculate_org_aggregates() {
     local org="$1"
-    local index_file="$GIBSON_PROJECTS_DIR/$org/_index.json"
+    local index_file="$ZERO_PROJECTS_DIR/$org/_index.json"
 
     if [[ ! -f "$index_file" ]]; then
         return 1
@@ -1423,9 +1422,9 @@ gibson_recalculate_org_aggregates() {
 }
 
 # Get org index
-gibson_get_org_index() {
+zero_get_org_index() {
     local org="$1"
-    local index_file="$GIBSON_PROJECTS_DIR/$org/_index.json"
+    local index_file="$ZERO_PROJECTS_DIR/$org/_index.json"
 
     if [[ -f "$index_file" ]]; then
         cat "$index_file"
@@ -1439,9 +1438,9 @@ gibson_get_org_index() {
 #############################################################################
 
 # List all projects in an organization
-gibson_list_org_projects() {
+zero_list_org_projects() {
     local org="$1"
-    local org_dir="$GIBSON_PROJECTS_DIR/$org"
+    local org_dir="$ZERO_PROJECTS_DIR/$org"
 
     if [[ ! -d "$org_dir" ]]; then
         return
@@ -1456,9 +1455,9 @@ gibson_list_org_projects() {
 }
 
 # Clean a single project
-gibson_clean_project() {
+zero_clean_project() {
     local project_id="$1"
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
 
     if [[ ! -d "$project_path" ]]; then
         return 1
@@ -1468,11 +1467,11 @@ gibson_clean_project() {
     rm -rf "$project_path"
 
     # Remove from index
-    gibson_index_remove_project "$project_id"
+    zero_index_remove_project "$project_id"
 
     # Extract org and recalculate org index
     local org=$(echo "$project_id" | cut -d'/' -f1)
-    local org_dir="$GIBSON_PROJECTS_DIR/$org"
+    local org_dir="$ZERO_PROJECTS_DIR/$org"
 
     # Remove org directory if empty (except for _index.json)
     local remaining=$(find "$org_dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l)
@@ -1480,16 +1479,16 @@ gibson_clean_project() {
         rm -rf "$org_dir"
     else
         # Recalculate org aggregates
-        gibson_recalculate_org_aggregates "$org"
+        zero_recalculate_org_aggregates "$org"
     fi
 
     return 0
 }
 
 # Clean all projects in an organization
-gibson_clean_org() {
+zero_clean_org() {
     local org="$1"
-    local org_dir="$GIBSON_PROJECTS_DIR/$org"
+    local org_dir="$ZERO_PROJECTS_DIR/$org"
     local count=0
 
     if [[ ! -d "$org_dir" ]]; then
@@ -1497,8 +1496,8 @@ gibson_clean_org() {
     fi
 
     # Clean each project in the org
-    for repo in $(gibson_list_org_projects "$org"); do
-        gibson_clean_project "$org/$repo"
+    for repo in $(zero_list_org_projects "$org"); do
+        zero_clean_project "$org/$repo"
         ((count++))
     done
 
@@ -1509,12 +1508,12 @@ gibson_clean_org() {
 }
 
 # Get list of all orgs
-gibson_list_orgs() {
-    if [[ ! -d "$GIBSON_PROJECTS_DIR" ]]; then
+zero_list_orgs() {
+    if [[ ! -d "$ZERO_PROJECTS_DIR" ]]; then
         return
     fi
 
-    for org_dir in "$GIBSON_PROJECTS_DIR"/*/; do
+    for org_dir in "$ZERO_PROJECTS_DIR"/*/; do
         [[ ! -d "$org_dir" ]] && continue
         basename "$org_dir"
     done

@@ -26,10 +26,10 @@ set -e
 
 REPO_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 UTILS_ROOT="$REPO_ROOT/utils"
-ZERO_DIR="$UTILS_ROOT/zero"
+ZERO_UTILS_DIR="$UTILS_ROOT/zero"
 
 # Load Zero library
-source "$ZERO_DIR/lib/zero-lib.sh"
+source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load .env if available
 if [[ -f "$REPO_ROOT/.env" ]]; then
@@ -44,7 +44,7 @@ fi
 #############################################################################
 
 run_check() {
-    "$ZERO_DIR/scripts/preflight.sh" "$@"
+    "$ZERO_UTILS_DIR/scripts/preflight.sh" "$@"
 }
 
 #############################################################################
@@ -57,7 +57,7 @@ run_status() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
 
-    if [[ ! -d "$GIBSON_PROJECTS_DIR" ]]; then
+    if [[ ! -d "$ZERO_PROJECTS_DIR" ]]; then
         echo -e "${YELLOW}No projects hydrated yet.${NC}"
         echo
         echo "Hydrate a repository:"
@@ -66,7 +66,7 @@ run_status() {
     fi
 
     local count=0
-    for org_dir in "$GIBSON_PROJECTS_DIR"/*/; do
+    for org_dir in "$ZERO_PROJECTS_DIR"/*/; do
         [[ ! -d "$org_dir" ]] && continue
         local org=$(basename "$org_dir")
 
@@ -136,7 +136,7 @@ run_status() {
 #############################################################################
 
 run_report() {
-    exec "$ZERO_DIR/scripts/report.sh" "$@"
+    exec "$ZERO_UTILS_DIR/scripts/report.sh" "$@"
 }
 
 #############################################################################
@@ -153,8 +153,8 @@ run_history() {
         exit 1
     fi
 
-    local project_id=$(gibson_project_id "$target")
-    local history=$(gibson_get_scan_history "$project_id" "$limit")
+    local project_id=$(zero_project_id "$target")
+    local history=$(zero_get_scan_history "$project_id" "$limit")
 
     if [[ -z "$history" ]] || [[ "$history" == "null" ]]; then
         echo -e "${RED}Error: No scan history found for '$project_id'${NC}" >&2
@@ -231,7 +231,7 @@ run_clean() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
 
-    if [[ ! -d "$GIBSON_PROJECTS_DIR" ]]; then
+    if [[ ! -d "$ZERO_PROJECTS_DIR" ]]; then
         echo "No projects to clean."
         return 0
     fi
@@ -239,8 +239,8 @@ run_clean() {
     # Determine what to clean
     if [[ -n "$target" ]]; then
         # Clean single project
-        local project_id=$(gibson_project_id "$target")
-        local project_path=$(gibson_project_path "$project_id")
+        local project_id=$(zero_project_id "$target")
+        local project_path=$(zero_project_path "$project_id")
 
         if [[ ! -d "$project_path" ]]; then
             echo -e "${RED}Error: Project '$project_id' not found${NC}"
@@ -263,19 +263,19 @@ run_clean() {
             [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Cancelled."; return 0; }
         fi
 
-        gibson_clean_project "$project_id"
+        zero_clean_project "$project_id"
         echo -e "${GREEN}✓${NC} Cleaned project: $project_id"
 
     elif [[ -n "$org" ]]; then
         # Clean entire org
-        local projects=$(gibson_list_org_projects "$org")
+        local projects=$(zero_list_org_projects "$org")
         if [[ -z "$projects" ]]; then
             echo -e "${RED}Error: No projects found for org '$org'${NC}"
             exit 1
         fi
 
         local count=$(echo "$projects" | wc -w | tr -d ' ')
-        local size=$(du -sh "$GIBSON_PROJECTS_DIR/$org" 2>/dev/null | cut -f1)
+        local size=$(du -sh "$ZERO_PROJECTS_DIR/$org" 2>/dev/null | cut -f1)
 
         echo "  Organization: $org"
         echo "  Projects: $count"
@@ -288,7 +288,7 @@ run_clean() {
         echo
 
         if [[ "$dry_run" == "true" ]]; then
-            echo -e "${CYAN}[DRY RUN]${NC} Would remove: $GIBSON_PROJECTS_DIR/$org/"
+            echo -e "${CYAN}[DRY RUN]${NC} Would remove: $ZERO_PROJECTS_DIR/$org/"
             return 0
         fi
 
@@ -298,23 +298,23 @@ run_clean() {
             [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Cancelled."; return 0; }
         fi
 
-        gibson_clean_org "$org"
+        zero_clean_org "$org"
         echo -e "${GREEN}✓${NC} Cleaned org: $org ($count projects)"
 
     else
         # Clean everything
-        local count=$(find "$GIBSON_PROJECTS_DIR" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l | tr -d ' ')
-        local size=$(du -sh "$GIBSON_DIR" 2>/dev/null | cut -f1)
+        local count=$(find "$ZERO_PROJECTS_DIR" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l | tr -d ' ')
+        local size=$(du -sh "$ZERO_DIR" 2>/dev/null | cut -f1)
 
         echo -e "${YELLOW}Warning:${NC} This will remove ALL analysis data!"
         echo
         echo "  Projects: $count"
         echo "  Size: $size"
-        echo "  Location: $GIBSON_DIR"
+        echo "  Location: $ZERO_DIR"
         echo
 
         if [[ "$dry_run" == "true" ]]; then
-            echo -e "${CYAN}[DRY RUN]${NC} Would remove: $GIBSON_DIR"
+            echo -e "${CYAN}[DRY RUN]${NC} Would remove: $ZERO_DIR"
             return 0
         fi
 
@@ -324,7 +324,7 @@ run_clean() {
             [[ ! $REPLY =~ ^[Yy]$ ]] && { echo "Cancelled."; return 0; }
         fi
 
-        rm -rf "$GIBSON_DIR"
+        rm -rf "$ZERO_DIR"
         echo -e "${GREEN}✓${NC} Cleaned all data"
     fi
 }
@@ -359,13 +359,13 @@ get_hydration_status() {
     fi
 
     # Check if project exists
-    local project_path="$GIBSON_PROJECTS_DIR/${project_id//\//_}"
-    project_path="$GIBSON_PROJECTS_DIR/$(echo "$project_id" | tr '/' '/')"
+    local project_path="$ZERO_PROJECTS_DIR/${project_id//\//_}"
+    project_path="$ZERO_PROJECTS_DIR/$(echo "$project_id" | tr '/' '/')"
 
     # Parse as org/repo
     local org=$(echo "$project_id" | cut -d'/' -f1)
     local repo=$(echo "$project_id" | cut -d'/' -f2)
-    project_path="$GIBSON_PROJECTS_DIR/$org/$repo"
+    project_path="$ZERO_PROJECTS_DIR/$org/$repo"
 
     if [[ -d "$project_path/analysis" ]]; then
         local manifest="$project_path/analysis/manifest.json"
@@ -397,7 +397,7 @@ get_mode_display() {
 }
 
 # Configuration file path (unified config)
-CONFIG_FILE="$ZERO_DIR/config/zero.config.json"
+CONFIG_FILE="$ZERO_UTILS_DIR/config/zero.config.json"
 
 # Semgrep rules configuration
 SEMGREP_DIR="$UTILS_ROOT/scanners/semgrep"
@@ -773,8 +773,8 @@ show_menu() {
 
         # Get hydrated project count
         local hydrated_count=0
-        if [[ -d "$GIBSON_PROJECTS_DIR" ]]; then
-            hydrated_count=$(find "$GIBSON_PROJECTS_DIR" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l | tr -d ' ')
+        if [[ -d "$ZERO_PROJECTS_DIR" ]]; then
+            hydrated_count=$(find "$ZERO_PROJECTS_DIR" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | wc -l | tr -d ' ')
         fi
 
         echo -e "${BOLD}What would you like to do?${NC}"
@@ -872,7 +872,7 @@ show_menu() {
                         [[ "$depth_choice" != "2" ]] && cmd_args+=("--depth" "1")
 
                         echo
-                        "$ZERO_DIR/scripts/clone.sh" "${cmd_args[@]}" || true
+                        "$ZERO_UTILS_DIR/scripts/clone.sh" "${cmd_args[@]}" || true
                     fi
                 else
                     # Single repo cloning
@@ -891,7 +891,7 @@ show_menu() {
                         cmd_args+=("$target")
 
                         echo
-                        "$ZERO_DIR/scripts/clone.sh" "${cmd_args[@]}" || true
+                        "$ZERO_UTILS_DIR/scripts/clone.sh" "${cmd_args[@]}" || true
                     fi
                 fi
                 echo
@@ -914,7 +914,7 @@ show_menu() {
                     read -p "Enter organization name: " org_name
                     if [[ -n "$org_name" ]]; then
                         # Check if org has cloned repos
-                        if [[ ! -d "$GIBSON_REPOS_DIR/$org_name" ]]; then
+                        if [[ ! -d "$ZERO_REPOS_DIR/$org_name" ]]; then
                             echo -e "${RED}Error: No cloned repos found for org '$org_name'${NC}"
                             echo -e "Clone first with: ${CYAN}./zero.sh clone --org $org_name${NC}"
                         else
@@ -939,7 +939,7 @@ show_menu() {
                             local selected_idx=$((profile_choice - 1))
                             if [[ $selected_idx -ge 0 ]] && [[ $selected_idx -lt ${#profile_keys[@]} ]]; then
                                 local selected_profile="${profile_keys[$selected_idx]}"
-                                "$ZERO_DIR/scripts/scan.sh" --"$selected_profile" --org "$org_name" || true
+                                "$ZERO_UTILS_DIR/scripts/scan.sh" --"$selected_profile" --org "$org_name" || true
                             else
                                 echo -e "${RED}Invalid selection${NC}"
                             fi
@@ -970,7 +970,7 @@ show_menu() {
                         local selected_idx=$((profile_choice - 1))
                         if [[ $selected_idx -ge 0 ]] && [[ $selected_idx -lt ${#profile_keys[@]} ]]; then
                             local selected_profile="${profile_keys[$selected_idx]}"
-                            "$ZERO_DIR/scripts/scan.sh" --"$selected_profile" "$target" || true
+                            "$ZERO_UTILS_DIR/scripts/scan.sh" --"$selected_profile" "$target" || true
                         else
                             echo -e "${RED}Invalid selection${NC}"
                         fi
@@ -1006,7 +1006,7 @@ show_menu() {
                 ;;
             r|R)
                 # Run report generator in interactive mode
-                "$ZERO_DIR/scripts/report.sh" --interactive || true
+                "$ZERO_UTILS_DIR/scripts/report.sh" --interactive || true
                 echo
                 read -p "Press Enter to continue..."
                 ;;
@@ -1180,7 +1180,7 @@ main() {
                 exit 1
             fi
             # Delegate to clone.sh
-            exec "$ZERO_DIR/scripts/clone.sh" "$@"
+            exec "$ZERO_UTILS_DIR/scripts/clone.sh" "$@"
             ;;
         scan)
             shift
@@ -1196,7 +1196,7 @@ main() {
                 echo
             fi
             # Delegate to scan.sh
-            exec "$ZERO_DIR/scripts/scan.sh" "$@"
+            exec "$ZERO_UTILS_DIR/scripts/scan.sh" "$@"
             ;;
         hydrate|bootstrap)
             shift
@@ -1212,7 +1212,7 @@ main() {
                 echo
             fi
             # Delegate to hydrate.sh (clone + scan)
-            exec "$ZERO_DIR/scripts/hydrate.sh" "$@"
+            exec "$ZERO_UTILS_DIR/scripts/hydrate.sh" "$@"
             ;;
         status|list)
             run_status
@@ -1220,11 +1220,11 @@ main() {
         agent|chat)
             # Launch interactive agent chat
             shift
-            exec "$ZERO_DIR/scripts/agent.sh" "$@"
+            exec "$ZERO_UTILS_DIR/scripts/agent.sh" "$@"
             ;;
         ask)
             shift
-            exec "$ZERO_DIR/scripts/agent.sh" "$@"
+            exec "$ZERO_UTILS_DIR/scripts/agent.sh" "$@"
             ;;
         report)
             shift

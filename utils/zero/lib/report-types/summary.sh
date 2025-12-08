@@ -219,7 +219,7 @@ generate_org_report_data() {
     # Aggregate across projects
     for repo in $projects; do
         local project_id="$org/$repo"
-        local analysis_path="$GIBSON_PROJECTS_DIR/$project_id/analysis"
+        local analysis_path="$ZERO_PROJECTS_DIR/$project_id/analysis"
 
         if [[ -d "$analysis_path" ]]; then
             local vulns=$(aggregate_vulns "$analysis_path")

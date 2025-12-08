@@ -18,15 +18,15 @@ set -e
 
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ZERO_DIR="$(dirname "$SCRIPT_DIR")"
-UTILS_DIR="$(dirname "$ZERO_DIR")"
+ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
+UTILS_DIR="$(dirname "$ZERO_UTILS_DIR")"
 REPO_ROOT="$(dirname "$UTILS_DIR")"
 
-# Load Phantom library
-source "$ZERO_DIR/lib/zero-lib.sh"
+# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load Agent loader
-source "$ZERO_DIR/lib/agent-loader.sh"
+source "$ZERO_UTILS_DIR/lib/agent-loader.sh"
 
 #############################################################################
 # Agent Registry (Bash 3.x compatible - no associative arrays)
@@ -185,7 +185,7 @@ select_project() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
 
-    if [[ ! -d "$GIBSON_PROJECTS_DIR" ]]; then
+    if [[ ! -d "$ZERO_PROJECTS_DIR" ]]; then
         echo -e "${YELLOW}No projects hydrated yet.${NC}"
         echo "Run: ./zero.sh hydrate <owner/repo>"
         return 1
@@ -195,7 +195,7 @@ select_project() {
     local project_count=0
     local i=1
 
-    for org_dir in "$GIBSON_PROJECTS_DIR"/*/; do
+    for org_dir in "$ZERO_PROJECTS_DIR"/*/; do
         [[ ! -d "$org_dir" ]] && continue
         local org=$(basename "$org_dir")
 
@@ -244,7 +244,7 @@ generate_context() {
         return 1
     fi
 
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
     if [[ ! -d "$project_path/analysis" ]]; then
         echo -e "${RED}Error: Project '$project_id' not hydrated${NC}" >&2
         return 1
@@ -262,7 +262,7 @@ generate_prompt_file() {
 
     local persona=$(agent_get_persona "$agent_name")
     local agent_dir=$(agent_get_dir "$agent_name")
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
     local repo_path="$project_path/repo"
 
     # Get agent definition
@@ -339,7 +339,7 @@ launch_claude_chat() {
 
     # Add project context if available
     if [[ -n "$project_id" ]]; then
-        local project_path=$(gibson_project_path "$project_id" 2>/dev/null || echo "")
+        local project_path=$(zero_project_path "$project_id" 2>/dev/null || echo "")
         if [[ -n "$project_path" ]] && [[ -d "$project_path/analysis" ]]; then
             local summary=$(get_findings_summary "$agent_name" "$project_id" 2>/dev/null || echo "{}")
             cat >> "$prompt_file" << EOF
@@ -408,7 +408,7 @@ run_interactive() {
 
     # Select project (optional)
     local project=""
-    if [[ -d "$GIBSON_PROJECTS_DIR" ]]; then
+    if [[ -d "$ZERO_PROJECTS_DIR" ]]; then
         echo
         read -p "Load project context? [y/N]: " load_project
         if [[ "$load_project" =~ ^[Yy] ]]; then

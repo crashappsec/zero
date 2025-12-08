@@ -152,7 +152,7 @@ generate_org_report_data() {
 
     for repo in $projects; do
         local project_id="$org/$repo"
-        local analysis_path="$GIBSON_PROJECTS_DIR/$project_id/analysis"
+        local analysis_path="$ZERO_PROJECTS_DIR/$project_id/analysis"
 
         if [[ -d "$analysis_path" ]]; then
             local deps=$(aggregate_deps "$analysis_path")

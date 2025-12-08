@@ -24,7 +24,7 @@ AGENTS_DIR="$REPO_ROOT/agents"
 PERSONAS_DIR="$REPO_ROOT/rag/personas"
 
 # Load zero-lib if not already loaded
-if ! type gibson_project_path &>/dev/null; then
+if ! type zero_project_path &>/dev/null; then
     source "$ZERO_DIR/lib/zero-lib.sh"
 fi
 
@@ -171,7 +171,7 @@ load_scanner_data_for_agent() {
     local project_id="$2"
     local required_data=$(agent_get_required_data "$agent_name")
 
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
     local analysis_path="$project_path/analysis"
     local scanners_path="$analysis_path/scanners"
 
@@ -228,7 +228,7 @@ load_agent_context() {
     local scanner_data=$(load_scanner_data_for_agent "$agent_name" "$project_id")
 
     # Get project info
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
     local repo_path="$project_path/repo"
     local manifest_path="$project_path/analysis/manifest.json"
 
@@ -277,7 +277,7 @@ load_scanner_data_smart() {
     local mode="${3:-full}"
     local required_data=$(agent_get_required_data "$agent_name")
 
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
     local analysis_path="$project_path/analysis"
     local scanners_path="$analysis_path/scanners"
 
@@ -347,7 +347,7 @@ load_scanner_data_smart() {
 # Returns JSON with last_updated timestamps for each scanner
 get_scanner_freshness() {
     local project_id="$1"
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
     local analysis_path="$project_path/analysis"
     local scanners_path="$analysis_path/scanners"
 
@@ -429,7 +429,7 @@ load_agent_context_auto() {
     local freshness=$(get_scanner_freshness "$project_id")
 
     # Get project info
-    local project_path=$(gibson_project_path "$project_id")
+    local project_path=$(zero_project_path "$project_id")
     local repo_path="$project_path/repo"
     local manifest_path="$project_path/analysis/manifest.json"
 

@@ -54,8 +54,8 @@ Route queries to the right specialist:
 ## System Context
 
 Key paths in the Zero system:
-- **Projects:** `~/.phantom/projects/{owner}/{repo}/` - Hydrated project data
-- **Analysis:** `~/.phantom/projects/{owner}/{repo}/analysis/` - Scan results
+- **Projects:** `~/.zero/repos/{owner}/{repo}/` - Hydrated project data
+- **Analysis:** `~/.zero/repos/{owner}/{repo}/analysis/` - Scan results
 - **Scanners:** `utils/scanners/` - Available security scanners
 - **Agents:** `agents/` - Specialist agent definitions
 
@@ -63,7 +63,7 @@ Key paths in the Zero system:
 
 ```bash
 # Clone a repo
-git clone https://github.com/owner/repo ~/.phantom/projects/owner/repo/repo
+git clone https://github.com/owner/repo ~/.zero/repos/owner/repo/repo
 
 # List GitHub repos
 gh repo list [org] --limit 100

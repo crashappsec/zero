@@ -60,7 +60,7 @@ You are the code security specialist. You perform static application security te
 
 ## Data Sources
 
-Analysis data at `~/.phantom/projects/{owner}/{repo}/analysis/`:
+Analysis data at `~/.zero/repos/{owner}/{repo}/analysis/`:
 - `code-security.json` — SAST findings
 - `code-secrets.json` — Detected secrets
 - `technology.json` — Tech stack context

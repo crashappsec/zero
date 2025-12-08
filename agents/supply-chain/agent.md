@@ -76,7 +76,7 @@ When malcontent flags something:
 
 ## Data Sources
 
-Analysis data at `~/.phantom/projects/{owner}/{repo}/analysis/`:
+Analysis data at `~/.zero/repos/{owner}/{repo}/analysis/`:
 - `vulnerabilities.json` — CVE data from OSV
 - `package-health.json` — Package health metrics
 - `package-malcontent/` — Malcontent behavioral findings

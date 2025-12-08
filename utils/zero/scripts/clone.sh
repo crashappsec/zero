@@ -21,13 +21,13 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ZERO_DIR="$(dirname "$SCRIPT_DIR")"
+ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Load Phantom library
-source "$ZERO_DIR/lib/zero-lib.sh"
+# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load .env if available
-UTILS_ROOT="$(dirname "$ZERO_DIR")"
+UTILS_ROOT="$(dirname "$ZERO_UTILS_DIR")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 if [[ -f "$REPO_ROOT/.env" ]]; then
     set -a
@@ -137,6 +137,13 @@ parse_args() {
         echo -e "${RED}Error: No target specified${NC}" >&2
         echo "Usage: $0 <owner/repo> or $0 --org <org-name>"
         exit 1
+    elif [[ ! "$TARGET" =~ ^[^/]+/[^/]+$ ]]; then
+        echo -e "${RED}Error: Invalid target format '${TARGET}'${NC}" >&2
+        echo "Expected format: owner/repo (e.g., expressjs/express)"
+        echo ""
+        echo "Did you mean to use --org mode?"
+        echo "  ./zero.sh hydrate --org $TARGET"
+        exit 1
     fi
 }
 
@@ -200,8 +207,8 @@ format_size() {
 # Clone a single repository
 clone_repo() {
     local repo="$1"
-    local project_id=$(gibson_project_id "$repo")
-    local repo_path="$GIBSON_PROJECTS_DIR/$project_id/repo"
+    local project_id=$(zero_project_id "$repo")
+    local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
 
     # Check if already cloned
     if [[ -d "$repo_path" ]] && [[ "$FORCE" != "true" ]]; then
@@ -216,7 +223,7 @@ clone_repo() {
     fi
 
     # Create project directory
-    mkdir -p "$GIBSON_PROJECTS_DIR/$project_id"
+    mkdir -p "$ZERO_PROJECTS_DIR/$project_id"
 
     # Build clone URL
     local clone_url="https://github.com/$repo.git"
@@ -252,7 +259,7 @@ clone_repo() {
         printf "\r  ${GREEN}✓${NC} Cloned ${DIM}($size, $files files, ${duration}s)${NC}          \n"
 
         # Create analysis directory
-        mkdir -p "$GIBSON_PROJECTS_DIR/$project_id/analysis"
+        mkdir -p "$ZERO_PROJECTS_DIR/$project_id/analysis"
         return 0
     else
         printf "\r  ${RED}✗${NC} Clone failed                    \n"
