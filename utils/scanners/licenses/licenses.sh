@@ -288,7 +288,7 @@ scan_dependency_licenses() {
     fi
 
     if [[ -z "$sbom_file" ]] || [[ ! -f "$sbom_file" ]]; then
-        echo '{"dependencies": [], "by_license": {}, "violations": [], "warnings": []}'
+        echo '{"by_license": {}, "all_packages": [], "denied": [], "review": []}'
         return
     fi
 

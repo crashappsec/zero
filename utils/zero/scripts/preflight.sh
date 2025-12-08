@@ -296,27 +296,27 @@ run_checks() {
     check_tool "curl" "required" "brew install curl" "HTTP requests"
     echo
 
-    # Recommended Tools
+    # Recommended Tools (use || true to not fail on missing optional tools)
     echo -e "${BOLD}Recommended Tools${NC}"
-    check_tool "osv-scanner" "recommended" "brew install osv-scanner" "Vulnerability scanning"
-    check_tool "syft" "recommended" "brew install syft" "SBOM generation"
-    check_tool "gh" "recommended" "brew install gh" "GitHub CLI"
-    check_tool "semgrep" "recommended" "brew install semgrep" "AST-aware code scanning"
-    check_checkov
-    check_malcontent
-    check_tool "trivy" "recommended" "brew install trivy" "Container vulnerability scanning"
-    check_tool "hadolint" "recommended" "brew install hadolint" "Dockerfile linting"
+    check_tool "osv-scanner" "recommended" "brew install osv-scanner" "Vulnerability scanning" || true
+    check_tool "syft" "recommended" "brew install syft" "SBOM generation" || true
+    check_tool "gh" "recommended" "brew install gh" "GitHub CLI" || true
+    check_tool "semgrep" "recommended" "brew install semgrep" "AST-aware code scanning" || true
+    check_checkov || true
+    check_malcontent || true
+    check_tool "trivy" "recommended" "brew install trivy" "Container vulnerability scanning" || true
+    check_tool "hadolint" "recommended" "brew install hadolint" "Dockerfile linting" || true
     echo
 
-    # API Keys
+    # API Keys (use || true to not fail on missing optional keys)
     echo -e "${BOLD}API Keys${NC}"
-    check_api_key "GITHUB_TOKEN" "recommended" "Create at: https://github.com/settings/tokens"
-    check_api_key "ANTHROPIC_API_KEY" "recommended" "Get from: https://console.anthropic.com/"
+    check_api_key "GITHUB_TOKEN" "recommended" "Create at: https://github.com/settings/tokens" || true
+    check_api_key "ANTHROPIC_API_KEY" "recommended" "Get from: https://console.anthropic.com/" || true
     echo
 
     # GitHub Authentication
     echo -e "${BOLD}GitHub Authentication${NC}"
-    check_github_auth
+    check_github_auth || true
     echo
 
     # Phantom Directory (these are auto-created on first run, so just informational)

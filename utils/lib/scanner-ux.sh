@@ -56,6 +56,9 @@ fi
 # Export for subshells
 export SCANNER_RED SCANNER_GREEN SCANNER_YELLOW SCANNER_BLUE SCANNER_CYAN SCANNER_DIM SCANNER_BOLD SCANNER_NC
 
+# Guard variable to prevent infinite recursion with agent-personality.sh
+_SCANNER_UX_LOADED=true
+
 #############################################################################
 # AGENT PERSONALITY (Optional integration)
 # Source agent personality library if available
@@ -64,10 +67,16 @@ export SCANNER_RED SCANNER_GREEN SCANNER_YELLOW SCANNER_BLUE SCANNER_CYAN SCANNE
 _SCANNER_AGENT=""  # Current agent persona
 
 # Try to load agent personality library
+# Note: agent-personality.sh requires bash 4+ for associative arrays
 _UTILS_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [[ -f "$_UTILS_LIB_DIR/agent-personality.sh" ]]; then
-    source "$_UTILS_LIB_DIR/agent-personality.sh"
-    _AGENT_PERSONALITY_LOADED=true
+    # Check bash version - associative arrays require bash 4+
+    if [[ "${BASH_VERSINFO[0]}" -ge 4 ]]; then
+        source "$_UTILS_LIB_DIR/agent-personality.sh"
+        _AGENT_PERSONALITY_LOADED=true
+    else
+        _AGENT_PERSONALITY_LOADED=false
+    fi
 else
     _AGENT_PERSONALITY_LOADED=false
 fi

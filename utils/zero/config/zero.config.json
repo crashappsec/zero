@@ -160,15 +160,6 @@
       "estimated_time": "5-30s",
       "output_file": "digital-certificates.json"
     },
-    "chalk": {
-      "name": "Chalk Build Analysis",
-      "description": "Analyze Chalk build artifacts and provenance",
-      "script": "utils/scanners/chalk.sh",
-      "claude_mode": "optional",
-      "claude_features": ["Build artifact analysis", "Provenance verification insights"],
-      "estimated_time": "10-60s",
-      "output_file": "chalk.json"
-    },
     "containers": {
       "name": "Container Analysis",
       "description": "Analyze container images for security and best practices",
@@ -239,8 +230,8 @@
       "description": "Full analysis with Claude AI-assisted insights",
       "estimated_time": "~10 minutes",
       "claude_mode": "enabled",
-      "claude_scanners": ["package-sbom", "package-health", "package-provenance", "digital-certificates", "chalk", "package-malcontent"],
-      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance", "digital-certificates", "chalk", "package-malcontent", "bundle-analysis", "container-security"]
+      "claude_scanners": ["package-sbom", "package-health", "package-provenance", "package-malcontent"],
+      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance", "package-malcontent", "bundle-analysis", "container-security"]
     },
     "security": {
       "name": "Security Only",
@@ -278,6 +269,33 @@
       "claude_mode": "optional",
       "claude_scanners": ["package-malcontent"],
       "scanners": ["package-sbom", "package-malcontent"]
+    },
+    "all": {
+      "name": "All Scanners",
+      "description": "Run all scanners that support repository analysis",
+      "estimated_time": "~10 minutes",
+      "claude_mode": "optional",
+      "claude_scanners": ["package-sbom", "package-health", "package-provenance", "package-malcontent"],
+      "scanners": [
+        "package-sbom",
+        "tech-discovery",
+        "package-vulns",
+        "package-health",
+        "licenses",
+        "code-security",
+        "iac-security",
+        "code-secrets",
+        "tech-debt",
+        "documentation",
+        "git",
+        "test-coverage",
+        "code-ownership",
+        "dora",
+        "package-provenance",
+        "package-malcontent",
+        "bundle-analysis",
+        "container-security"
+      ]
     }
   }
 }
