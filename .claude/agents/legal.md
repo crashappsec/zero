@@ -1,0 +1,1 @@
+../../agents/legal/agent.md
