@@ -1,7 +1,7 @@
-# Gibson Powers - Claude Code Configuration
+# Zero - Claude Code Configuration
 
-This project provides security analysis tools and specialist agents for repository assessment.
-Named after themes from the movie Hackers (1995) - "Hack the planet!"
+Zero provides security analysis tools and specialist AI agents for repository assessment.
+Named after characters from the movie Hackers (1995) - "Hack the planet!"
 
 ## Orchestrator: Zero
 
@@ -135,7 +135,7 @@ AI-powered security code review. See `.claude/commands/security-review.md` for d
 ## Project Structure
 
 ```
-gibson-powers/
+zero/
 ├── agents/                    # Agent definitions and knowledge
 │   ├── supply-chain/          # Cereal agent
 │   │   ├── agent.md           # Agent definition

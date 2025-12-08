@@ -349,7 +349,7 @@ Tests run automatically on:
 3. **lint**: ShellCheck linting and syntax validation
 4. **coverage**: Test coverage reporting (placeholder)
 
-**View Results**: https://github.com/crashappsec/gibson-powers/actions
+**View Results**: https://github.com/crashappsec/zero/actions
 
 ### CI/CD Prerequisites
 
@@ -624,7 +624,7 @@ chmod +x tests/integration/*.sh
 - [Test Framework Source](./test-framework.sh)
 - [GitHub Actions Workflow](../../../.github/workflows/test-technology-identification.yml)
 - [Analyzer Source](../technology-identification-analyser.sh)
-- [CI/CD Results](https://github.com/crashappsec/gibson-powers/actions)
+- [CI/CD Results](https://github.com/crashappsec/zero/actions)
 
 ## Contributing
 

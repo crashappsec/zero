@@ -10,7 +10,7 @@
 # Named after Zero Cool from the movie Hackers (1995)
 #############################################################################
 
-# Zero root directory - defaults to .zero in the gibson-powers repo root
+# Zero root directory - defaults to .zero in the repo root
 # This makes zero data visible in IDEs and keeps it project-scoped
 # Can be overridden with ZERO_HOME environment variable
 _ZERO_LIB_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"

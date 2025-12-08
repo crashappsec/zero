@@ -193,7 +193,7 @@ Phase 4 AI-enhanced legal analysis with Claude Sonnet for intelligent recommenda
 
 **Reference**: [Content Policy Guide - Security & Privacy](content-policy-guide.md#security--privacy)
 
-## Integration with Gibson Powers
+## Integration with Zero
 
 ### Using with Legal Review Analyser
 
@@ -302,6 +302,6 @@ This documentation is licensed under GPL-3.0. See [LICENSE](../../../LICENSE) fo
 
 ## Support
 
-- [GitHub Issues](https://github.com/crashappsec/gibson-powers/issues)
-- [Discussions](https://github.com/crashappsec/gibson-powers/discussions)
+- [GitHub Issues](https://github.com/crashappsec/zero/issues)
+- [Discussions](https://github.com/crashappsec/zero/discussions)
 - [Main Documentation](../../../README.md)

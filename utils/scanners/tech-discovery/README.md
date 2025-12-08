@@ -721,8 +721,8 @@ GPL-3.0 - See [LICENSE](../../../LICENSE) for details.
 
 ## Support
 
-- Issues: [GitHub Issues](https://github.com/crashappsec/gibson-powers/issues)
-- Documentation: [Wiki](https://github.com/crashappsec/gibson-powers/wiki)
+- Issues: [GitHub Issues](https://github.com/crashappsec/zero/issues)
+- Documentation: [Wiki](https://github.com/crashappsec/zero/wiki)
 
 ## Version
 

@@ -4,9 +4,9 @@ Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 SPDX-License-Identifier: GPL-3.0
 -->
 
-# Gibson Powers Configuration
+# Zero Configuration
 
-Global configuration files for Gibson Powers analysers and tools.
+Global configuration files for Zero analysers and tools.
 
 ## SBOM Configuration
 
@@ -427,5 +427,5 @@ yarn install
 ## Support
 
 For issues or questions:
-- [GitHub Issues](https://github.com/crashappsec/gibson-powers/issues)
+- [GitHub Issues](https://github.com/crashappsec/zero/issues)
 - [Documentation](../README.md)

@@ -396,8 +396,8 @@ GPL-3.0 - See [LICENSE](../../LICENSE) for details.
 
 ## Support
 
-- **Issues**: https://github.com/crashappsec/gibson-powers/issues
-- **Discussions**: https://github.com/crashappsec/gibson-powers/discussions
+- **Issues**: https://github.com/crashappsec/zero/issues
+- **Discussions**: https://github.com/crashappsec/zero/discussions
 - **Email**: mark@crashoverride.com
 
 ---
