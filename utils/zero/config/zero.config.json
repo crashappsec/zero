@@ -201,6 +201,14 @@
       "claude_mode": "none",
       "estimated_time": "30-120s",
       "output_file": "bundle-analysis.json"
+    },
+    "container-security": {
+      "name": "Container Security",
+      "description": "Dockerfile best practices, image vulnerabilities, hardening recommendations",
+      "script": "utils/scanners/container-security/container-security.sh",
+      "claude_mode": "none",
+      "estimated_time": "30-120s",
+      "output_file": "container-security.json"
     }
   },
 
@@ -224,7 +232,7 @@
       "description": "Comprehensive static analysis with health checks",
       "estimated_time": "~5 minutes",
       "claude_mode": "none",
-      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance", "package-malcontent", "bundle-analysis"]
+      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance", "package-malcontent", "bundle-analysis", "container-security"]
     },
     "deep": {
       "name": "Deep",
@@ -232,14 +240,14 @@
       "estimated_time": "~10 minutes",
       "claude_mode": "enabled",
       "claude_scanners": ["package-sbom", "package-health", "package-provenance", "digital-certificates", "chalk", "package-malcontent"],
-      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance", "digital-certificates", "chalk", "package-malcontent", "bundle-analysis"]
+      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance", "digital-certificates", "chalk", "package-malcontent", "bundle-analysis", "container-security"]
     },
     "security": {
       "name": "Security Only",
       "description": "Security-focused analysis for vulnerability assessment",
       "estimated_time": "~3 minutes",
       "claude_mode": "none",
-      "scanners": ["package-sbom", "package-vulns", "licenses", "code-security", "iac-security", "code-secrets", "package-malcontent"]
+      "scanners": ["package-sbom", "package-vulns", "licenses", "code-security", "iac-security", "code-secrets", "package-malcontent", "container-security"]
     },
     "security-deep": {
       "name": "Security Deep",
@@ -247,7 +255,7 @@
       "estimated_time": "~5 minutes",
       "claude_mode": "enabled",
       "claude_scanners": ["package-health", "package-provenance", "digital-certificates", "package-malcontent"],
-      "scanners": ["package-sbom", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "package-provenance", "digital-certificates", "package-malcontent"]
+      "scanners": ["package-sbom", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "package-provenance", "digital-certificates", "package-malcontent", "container-security"]
     },
     "compliance": {
       "name": "Compliance",

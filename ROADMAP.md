@@ -93,11 +93,11 @@ All 10 specialist agents with knowledge bases and Claude Code integration:
 - [ ] Bottleneck identification
 - [ ] Working agreements monitoring
 
-#### Container Security
-- [ ] Dockerfile best practices analysis
-- [ ] Base image vulnerability assessment
-- [ ] Hardened image recommendations (Chainguard, Distroless)
-- [ ] Multi-stage build optimization
+#### Container Security ✅
+- [x] Dockerfile best practices analysis
+- [x] Base image vulnerability assessment
+- [x] Hardened image recommendations (Chainguard, Distroless)
+- [x] Multi-stage build optimization
 
 ### Q3 2025
 
@@ -114,6 +114,13 @@ All 10 specialist agents with knowledge bases and Claude Code integration:
 - [ ] API security analysis
 
 ### Q4 2025
+
+#### Scanner Result Versioning
+- [ ] Embed scan metadata (timestamp, commit SHA, scanner version) in results
+- [ ] Historical result storage strategy (timestamped files vs incremental append)
+- [ ] Trend analysis across scan history
+- [ ] Delta detection (new/fixed findings between scans)
+- [ ] Result pruning/archival for large datasets
 
 #### Predictive Intelligence
 - [ ] AI impact measurement
