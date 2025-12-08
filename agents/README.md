@@ -132,7 +132,7 @@ Joey cares about: Build speed, CI/CD optimization, caching strategies, test para
 
 The Plague controlled all the infrastructure (we reformed him). Orchestrates the journey from code to production and keeps systems running.
 
-Plague cares about: Deployment strategies, infrastructure as code, Kubernetes, observability, disaster recovery.
+Plague cares about: Deployment strategies, infrastructure as code, Kubernetes, container security, observability, disaster recovery.
 
 *"Ask Plague about the deployment" or "Plague, help with this Terraform"*
 
@@ -238,7 +238,7 @@ Task tool with:
 | Flu Shot | technology, code-security |
 | Nikon | technology, dependencies, package-sbom |
 | Joey | technology, dora, code-security |
-| Plague | technology, dora, iac-security |
+| Plague | technology, dora, iac-security, container-security |
 | Gibson | dora, code-ownership, git-insights |
 
 ## Agent Autonomy

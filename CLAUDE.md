@@ -101,9 +101,9 @@ Specializes in CI/CD pipelines, build optimization, caching strategies, and buil
 **subagent_type:** `plague`
 
 The Plague controlled all the infrastructure (we reformed him).
-Specializes in infrastructure, Kubernetes, IaC security, and deployment automation.
+Specializes in infrastructure, Kubernetes, IaC security, container security, and deployment automation.
 
-**Required data:** technology, dora, iac-security
+**Required data:** technology, dora, iac-security, container-security
 
 #### Gibson (Engineering Leader)
 **subagent_type:** `gibson`
@@ -128,10 +128,6 @@ Key commands:
 - `./zero.sh status` - Show hydrated projects
 - `./zero.sh report <repo>` - Generate analysis reports
 
-### /security-review
-
-AI-powered security code review. See `.claude/commands/security-review.md` for details.
-
 ## Project Structure
 
 ```
@@ -148,7 +144,8 @@ zero/
 │   │   └── scripts/           # CLI scripts (hydrate, scan, report)
 │   └── scanners/              # Individual scanners
 │       ├── package-malcontent/
-│       ├── vulnerabilities/
+│       ├── bundle-analysis/
+│       ├── container-security/
 │       └── ...
 ├── rag/                       # Retrieval-Augmented Generation knowledge
 └── .claude/
