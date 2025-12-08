@@ -256,5 +256,5 @@ See [README.md](README.md) for installation and usage instructions.
 
 ---
 
-[1.0.0]: https://github.com/crashappsec/gibson-powers/releases/tag/package-health-v1.0.0
-[Unreleased]: https://github.com/crashappsec/gibson-powers/compare/package-health-v1.0.0...HEAD
+[1.0.0]: https://github.com/crashappsec/zero/releases/tag/package-health-v1.0.0
+[Unreleased]: https://github.com/crashappsec/zero/compare/package-health-v1.0.0...HEAD

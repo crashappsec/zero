@@ -8,7 +8,7 @@ Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 > **"Hack the planet!"** - A unified orchestrator for repository analysis, security scanning, and developer productivity insights powered by AI agents
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Status: Experimental](https://img.shields.io/badge/Status-Experimental-orange.svg)](https://github.com/crashappsec/gibson-powers)
+[![Status: Experimental](https://img.shields.io/badge/Status-Experimental-orange.svg)](https://github.com/crashappsec/zero)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 Named after **Zero Cool** from the movie Hackers (1995), Zero is a team of AI agents that analyze your code for security, compliance, and quality issues.
@@ -27,7 +27,7 @@ Zero is a set of open-source tools for software and security engineers. At its c
 | **Blade** | Blade | Compliance, SOC 2, ISO 27001 auditing |
 | **Phreak** | Phantom Phreak | Legal, licenses, data privacy |
 | **Acid** | Acid Burn | Frontend, React, TypeScript, accessibility |
-| **Dade** | Dade Murphy | Backend, APIs, databases |
+| **Flu Shot** | Flu Shot | Backend, APIs, databases |
 | **Nikon** | Lord Nikon | Architecture, system design |
 | **Joey** | Joey | Build, CI/CD, performance |
 | **Plague** | The Plague | DevOps, infrastructure, Kubernetes |
@@ -60,8 +60,8 @@ Zero is a set of open-source tools for software and security engineers. At its c
 
 ```bash
 # Clone the repository
-git clone https://github.com/crashappsec/gibson-powers.git
-cd gibson-powers
+git clone https://github.com/crashappsec/zero.git
+cd zero
 
 # Check prerequisites (will offer to install missing tools)
 ./zero.sh check --fix
@@ -128,7 +128,7 @@ positives related to legitimate test fixtures...
 | "Are we SOC 2 compliant?" | Blade | Assesses compliance posture |
 | "License conflicts?" | Phreak | Reviews license compatibility |
 | "Frontend architecture?" | Acid | Reviews React/TypeScript patterns |
-| "API security issues?" | Dade | Checks backend security |
+| "API security issues?" | Flu Shot | Checks backend security |
 | "System design concerns?" | Nikon | Architecture review |
 | "CI/CD performance?" | Joey | Build pipeline analysis |
 | "Infrastructure issues?" | Plague | DevOps/K8s review |
@@ -199,7 +199,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 ## Repository Structure
 
 ```
-gibson-powers/
+zero/
 ├── zero.sh                     # Main CLI entry point
 ├── utils/
 │   ├── zero/                   # Zero orchestrator
@@ -212,23 +212,23 @@ gibson-powers/
 │       ├── package-health/
 │       ├── tech-discovery/
 │       └── ...
-├── agents/                     # Specialist agent definitions (Hackers-themed)
-│   ├── cereal/                 # Cereal Killer - supply chain security
-│   ├── razor/                  # Razor - code security
-│   ├── blade/                  # Blade - compliance auditing
-│   ├── phreak/                 # Phantom Phreak - legal counsel
-│   ├── acid/                   # Acid Burn - frontend engineer
-│   ├── dade/                   # Dade Murphy - backend engineer
-│   ├── nikon/                  # Lord Nikon - software architect
-│   ├── joey/                   # Joey - build engineer
-│   ├── plague/                 # The Plague - devops engineer
-│   ├── gibson/                 # The Gibson - engineering metrics
+├── agents/                     # Specialist agent definitions
+│   ├── orchestrator/           # Zero - master orchestrator
+│   ├── supply-chain/           # Cereal Killer - supply chain security
+│   ├── code-security/          # Razor - code security
+│   ├── compliance/             # Blade - compliance auditing
+│   ├── legal/                  # Phantom Phreak - legal counsel
+│   ├── frontend/               # Acid Burn - frontend engineer
+│   ├── backend/                # Flu Shot - backend engineer
+│   ├── architecture/           # Lord Nikon - software architect
+│   ├── build/                  # Joey - build engineer
+│   ├── devops/                 # The Plague - devops engineer
+│   ├── engineering-leader/     # The Gibson - engineering metrics
 │   └── shared/                 # Cross-agent knowledge
 ├── rag/                        # RAG knowledge base
 │   ├── technology-identification/  # 100+ technology patterns
 │   ├── supply-chain/           # Supply chain references
 │   └── ...
-├── prompts/                    # Reusable prompt templates
 └── .claude/
     └── commands/               # Slash commands (/agent, /zero)
 ```
@@ -271,12 +271,12 @@ the Free Software Foundation, either version 3 of the License, or
 
 Zero is maintained by the open source community and sponsored by [Crash Override](https://crashoverride.com).
 
-The agents, knowledge base, and RAG database were built to augment the Crash Override platform. Zero can also be used with [Chalk](https://chalkproject.io) for deep build inspection and [Ocular](https://ocularproject.io) for code syncing at scale.
+The agents, knowledge base, and RAG database were built to augment the Crash Override platform.
 
 ---
 
 **Status**: Experimental Preview
 **Version**: 5.0.0
-**Last Updated**: 2025-12-06
+**Last Updated**: 2025-12-08
 
 *"Hack the planet!"*

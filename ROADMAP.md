@@ -146,7 +146,7 @@ All 10 specialist agents with knowledge bases and Claude Code integration:
 
 ## How to Contribute
 
-1. **Submit Feature Requests**: [Create an issue](https://github.com/crashappsec/gibson-powers/issues/new)
+1. **Submit Feature Requests**: [Create an issue](https://github.com/crashappsec/zero/issues/new)
 2. **Comment on Existing Items**: Add use cases and implementation ideas
 3. **Vote with Reactions**: Use 👍 to help prioritize
 4. **Contribute Code**: Pick up any roadmap item and submit a PR

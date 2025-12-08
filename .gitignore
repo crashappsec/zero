@@ -75,6 +75,9 @@ reports/
 # Zero data directory (cloned repos and analysis results)
 .zero/
 
+# Local settings (may contain paths or API keys)
+**/settings.local.json
+
 # Semgrep community rules (downloaded from registry)
 rag/semgrep/community-rules/
 mcp-server/node_modules/

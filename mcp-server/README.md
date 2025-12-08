@@ -38,11 +38,11 @@ Add to `.claude/mcp.json` in your project:
 ```json
 {
   "mcpServers": {
-    "gibson": {
+    "zero": {
       "command": "node",
-      "args": ["/path/to/gibson-powers/mcp-server/dist/index.js"],
+      "args": ["/path/to/zero/mcp-server/dist/index.js"],
       "env": {
-        "PHANTOM_HOME": "~/.phantom/projects"
+        "ZERO_HOME": "~/.zero"
       }
     }
   }
@@ -56,9 +56,9 @@ Add to `claude_desktop_config.json`:
 ```json
 {
   "mcpServers": {
-    "gibson": {
+    "zero": {
       "command": "node",
-      "args": ["/path/to/gibson-powers/mcp-server/dist/index.js"]
+      "args": ["/path/to/zero/mcp-server/dist/index.js"]
     }
   }
 }

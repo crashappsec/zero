@@ -633,7 +633,7 @@ curl https://api.anthropic.com/v1/messages \
 
 ### Benchmarks
 
-Tested on Gibson Powers repository (88 files, GPL-3.0):
+Tested on Zero repository (88 files, GPL-3.0):
 
 | Scan Type | Time (no AI) | Time (with AI) | Cost |
 |-----------|--------------|----------------|------|
@@ -683,7 +683,7 @@ Potential Phase 5 improvements:
 
 ### Issues & Questions
 
-- **GitHub Issues**: https://github.com/crashappsec/gibson-powers/issues
+- **GitHub Issues**: https://github.com/crashappsec/zero/issues
 - **Documentation**: See `rag/legal-review/` directory
 - **API Documentation**: https://docs.anthropic.com/claude/reference
 
@@ -696,5 +696,5 @@ Potential Phase 5 improvements:
 
 ## License
 
-This documentation is part of Gibson Powers and is licensed under GPL-3.0.
+This documentation is part of Zero and is licensed under GPL-3.0.
 See [LICENSE](../../LICENSE) for details.
