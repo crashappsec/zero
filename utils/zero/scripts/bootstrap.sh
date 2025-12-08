@@ -553,14 +553,17 @@ run_analyzer() {
         containers)
             analyzer_script="containers.sh"
             ;;
-        chalk)
-            analyzer_script="chalk.sh"
-            ;;
         digital-certificates)
             analyzer_script="digital-certificates.sh"
             ;;
         package-malcontent)
             analyzer_script="package-malcontent/package-malcontent.sh"
+            ;;
+        bundle-analysis)
+            analyzer_script="bundle-analysis/bundle-analysis.sh"
+            ;;
+        container-security)
+            analyzer_script="container-security/container-security.sh"
             ;;
     esac
 
@@ -619,14 +622,17 @@ run_analyzer() {
         containers)
             run_container_analyzer "$repo_path" "$output_path"
             ;;
-        chalk)
-            run_chalk_analyzer "$repo_path" "$output_path"
-            ;;
         digital-certificates)
             run_certificate_analyzer "$repo_path" "$output_path"
             ;;
         package-malcontent)
             run_malcontent_analyzer "$repo_path" "$output_path" "$project_id"
+            ;;
+        bundle-analysis)
+            run_bundle_analyzer "$repo_path" "$output_path"
+            ;;
+        container-security)
+            run_container_security_analyzer "$repo_path" "$output_path"
             ;;
         *)
             status="failed"
@@ -1232,37 +1238,6 @@ EOF
     fi
 }
 
-run_chalk_analyzer() {
-    local repo_path="$1"
-    local output_path="$2"
-
-    # Use Claude-enabled analyzer in deep mode, otherwise data-only
-    local script=""
-    if [[ "${USE_CLAUDE:-}" == "true" ]]; then
-        script="$UTILS_ROOT/scanners/chalk/chalk.sh"
-    else
-        script="$UTILS_ROOT/scanners/chalk/chalk.sh"
-    fi
-
-    if [[ -x "$script" ]]; then
-        local claude_arg=""
-        [[ "${USE_CLAUDE:-}" == "true" ]] && claude_arg="--claude"
-        "$script" --local-path "$repo_path" $claude_arg -o "$output_path/chalk.json" 2>/dev/null
-    else
-        cat > "$output_path/chalk.json" << EOF
-{
-  "analyzer": "chalk",
-  "version": "1.0.0",
-  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
-  "status": "analyzer_not_found",
-  "summary": {
-    "artifacts_found": 0
-  }
-}
-EOF
-    fi
-}
-
 run_certificate_analyzer() {
     local repo_path="$1"
     local output_path="$2"
@@ -1325,6 +1300,59 @@ run_malcontent_analyzer() {
     "by_risk": {}
   },
   "findings": []
+}
+EOF
+    fi
+}
+
+run_bundle_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    local script="$UTILS_ROOT/scanners/bundle-analysis/bundle-analysis.sh"
+
+    if [[ -x "$script" ]]; then
+        "$script" --local-path "$repo_path" -o "$output_path/bundle-analysis.json" 2>/dev/null
+    else
+        cat > "$output_path/bundle-analysis.json" << EOF
+{
+  "analyzer": "bundle-analysis",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "total_dependencies": 0,
+    "analyzed": 0,
+    "total_size_bytes": 0
+  },
+  "packages": []
+}
+EOF
+    fi
+}
+
+run_container_security_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    local script="$UTILS_ROOT/scanners/container-security/container-security.sh"
+
+    if [[ -x "$script" ]]; then
+        "$script" --local-path "$repo_path" -o "$output_path/container-security.json" 2>/dev/null
+    else
+        cat > "$output_path/container-security.json" << EOF
+{
+  "analyzer": "container-security",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "dockerfiles_found": 0,
+    "images_analyzed": 0,
+    "total_vulnerabilities": 0
+  },
+  "dockerfiles": [],
+  "images": []
 }
 EOF
     fi

@@ -23,7 +23,8 @@
 #############################################################################
 
 # Source scanner-ux for colors if not already loaded
-if [[ -z "${SCANNER_RED:-}" ]]; then
+# Use a separate guard variable to avoid infinite recursion since SCANNER_RED may be empty string
+if [[ -z "${_SCANNER_UX_LOADED:-}" ]]; then
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     source "$SCRIPT_DIR/scanner-ux.sh" 2>/dev/null || true
 fi

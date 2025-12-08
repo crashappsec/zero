@@ -49,12 +49,19 @@ Zero is a set of open-source tools for software and security engineers. At its c
 
 ### Prerequisites
 
+**Required:**
 - Bash 3.2+ (macOS default works)
 - Git, jq, curl
 - [syft](https://github.com/anchore/syft) - SBOM generation
 - [osv-scanner](https://github.com/google/osv-scanner) - Vulnerability scanning
 - [gh](https://cli.github.com/) - GitHub CLI
+
+**Recommended:**
 - [malcontent](https://github.com/chainguard-dev/malcontent) - Supply chain compromise detection
+- [semgrep](https://github.com/returntocorp/semgrep) - Code security scanning
+- [trivy](https://github.com/aquasecurity/trivy) - Container vulnerability scanning
+- [hadolint](https://github.com/hadolint/hadolint) - Dockerfile linting
+- [checkov](https://github.com/bridgecrewio/checkov) - IaC security scanning
 
 ### Installation
 

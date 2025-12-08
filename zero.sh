@@ -11,14 +11,15 @@
 # who coordinates a team of specialists to hack the planet.
 #
 # Usage:
-#   ./zero.sh                    # Interactive mode
+#   ./zero.sh                    # Quick start guide
 #   ./zero.sh check              # Verify tools and API keys
-#   ./zero.sh clone <repo>       # Clone a repository (no scanning)
-#   ./zero.sh scan <repo>        # Scan an already-cloned repository
 #   ./zero.sh hydrate <repo>     # Clone and scan a repository
 #   ./zero.sh hydrate --org <n>  # Analyze all repos in an org
 #   ./zero.sh status             # Show hydrated projects
-#   ./zero.sh clean              # Remove all analysis data
+#   ./zero.sh scan <repo>        # Re-run scanners on existing project
+#   ./zero.sh help               # Full help with all options
+#
+# After analysis, use Claude Code with /agent to chat with AI agents
 #############################################################################
 
 set -e
@@ -1053,22 +1054,22 @@ Named after Zero Cool from the movie Hackers (1995)
 Usage: $(basename "$0") [command] [options]
 
 COMMANDS:
-    (none)              Chat with Zero Cool - tell him what you need
-    menu                Interactive CLI menu
+    (none)              Show quick start guide
     check               Verify tools and configuration
-    clone <repo>        Clone a repository (no scanning)
-    scan <repo>         Scan an already-cloned repository
     hydrate <repo>      Clone and scan a repository (e.g., expressjs/express)
     hydrate --org <n>   Analyze all repos in an organization
-    agent               Chat with a specialist agent (interactive picker)
-    agent <name>        Chat with a specific agent (cereal, razor, zero, etc.)
     status              Show hydrated projects
+    scan <repo>         Re-run scanners on an existing project
+    clone <repo>        Clone a repository (no scanning)
     report <repo>       Generate summary report for a project
     history <repo>      Show scan history for a project
     clean               Remove analysis data (all, org, or project)
+    menu                Interactive CLI menu (legacy)
+    help                Show this help
+
+ADVANCED:
     update-rules        Update semgrep rules from RAG patterns
     update-malcontent   Update malcontent YARA rules (via brew)
-    help                Show this help
 
 OPTIONS FOR HYDRATE:
     --org <name>        Process all repos in organization
@@ -1100,33 +1101,19 @@ CONFIGURATION:
     See zero.config.example.json for full documentation
     Create custom profiles by adding entries to the profiles section
 
-AGENTS (Hackers movie inspired):
-    cereal    Supply chain, malware detection (Cereal Killer)
-    razor     Code security, SAST, secrets (Razor)
-    blade     Compliance, SOC 2, ISO 27001 (Blade)
-    phreak    Legal, licenses, data privacy (Phantom Phreak)
-    acid      Frontend, React, accessibility (Acid Burn)
-    dade      Backend, APIs, databases (Dade Murphy)
-    nikon     Architecture, system design (Lord Nikon)
-    joey      Build, CI/CD, performance (Joey)
-    plague    DevOps, infrastructure (The Plague)
-    gibson    Engineering metrics, DORA (The Gibson)
-
 EXAMPLES:
-    $(basename "$0")                              # Interactive mode
-    $(basename "$0") setup                        # First-time setup
-    $(basename "$0") hydrate lodash/lodash        # Single repo
-    $(basename "$0") hydrate --org expressjs      # All org repos
-    $(basename "$0") agent                        # Interactive agent selection
-    $(basename "$0") agent cereal                 # Chat with Cereal
-    $(basename "$0") agent cereal expressjs/express # Cereal on specific project
-    $(basename "$0") status                       # List projects
-    $(basename "$0") report expressjs/express     # Project report
-    $(basename "$0") report --org expressjs       # Org report
-    $(basename "$0") history expressjs/express    # Scan history
+    $(basename "$0")                              # Quick start guide
+    $(basename "$0") check                        # Verify tools
+    $(basename "$0") hydrate lodash/lodash        # Analyze a repository
+    $(basename "$0") hydrate --org expressjs      # Analyze all org repos
+    $(basename "$0") hydrate --security owner/repo # Security-focused scan
+    $(basename "$0") status                       # List analyzed projects
+    $(basename "$0") report expressjs/express     # Generate report
     $(basename "$0") clean expressjs/express      # Clean one project
-    $(basename "$0") clean --org expressjs        # Clean org
-    $(basename "$0") update-rules                 # Update semgrep rules from RAG
+
+AI AGENTS:
+    After hydrating, use Claude Code with the /agent slash command to chat
+    with specialist AI agents (Cereal, Razor, Blade, etc.)
 
 STORAGE:
     Analysis data is stored in ~/.zero/projects/
@@ -1142,8 +1129,36 @@ EOF
 main() {
     case "${1:-}" in
         "")
-            # Default: launch Zero chat - the universal orchestrator
-            exec "$ZERO_DIR/scripts/agent.sh" zero
+            # Default: show quick start guide
+            print_zero_banner
+            echo -e "${BOLD}Quick Start${NC}"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo
+            echo -e "  ${CYAN}1.${NC} ${BOLD}./zero.sh check${NC}           Verify tools are installed"
+            echo -e "  ${CYAN}2.${NC} ${BOLD}./zero.sh hydrate <repo>${NC}  Clone & analyze a repository"
+            echo -e "  ${CYAN}3.${NC} Start Claude Code and run ${CYAN}/agent${NC} to chat with AI agents"
+            echo
+            echo -e "${BOLD}Commands${NC}"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo
+            echo -e "  ${CYAN}check${NC}              Verify tools and configuration"
+            echo -e "  ${CYAN}hydrate <repo>${NC}    Clone repository and run all scanners"
+            echo -e "  ${CYAN}status${NC}            Show analyzed projects"
+            echo -e "  ${CYAN}scan <repo>${NC}       Re-run scanners on existing project"
+            echo -e "  ${CYAN}help${NC}              Show full help with all options"
+            echo
+            echo -e "${BOLD}Examples${NC}"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo
+            echo -e "  ${DIM}# Analyze Express.js${NC}"
+            echo -e "  ./zero.sh hydrate expressjs/express"
+            echo
+            echo -e "  ${DIM}# Analyze all repos in an organization${NC}"
+            echo -e "  ./zero.sh hydrate --org lodash"
+            echo
+            echo -e "  ${DIM}# Security-focused scan${NC}"
+            echo -e "  ./zero.sh hydrate --security owner/repo"
+            echo
             ;;
         menu)
             # Interactive menu for CLI browsing
