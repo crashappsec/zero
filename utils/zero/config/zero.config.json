@@ -10,11 +10,14 @@
     "parallel_jobs": 4,
     "scanner_timeout_seconds": 300,
     "cache_ttl_hours": 24,
+    "voice_mode": "full",
     "environment": {
       "github_token_env": "GITHUB_TOKEN",
       "anthropic_key_env": "ANTHROPIC_API_KEY"
     }
   },
+
+  "_voice_mode_docs": "Agent voice mode: 'full' = Full Hackers character voice with quotes/catchphrases, 'minimal' = Keep agent names but remove roleplay, 'neutral' = Professional tone, no character references",
 
   "scanners": {
     "package-sbom": {
