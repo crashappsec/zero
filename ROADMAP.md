@@ -83,7 +83,7 @@ All 10 specialist agents with knowledge bases and Claude Code integration:
 - [x] Bundle size analysis via bundlephobia API
 - [x] Tree-shaking opportunity detection
 - [x] Heavy package identification with recommendations
-- [ ] Code splitting recommendations
+- [ ] Code splitting recommendations (planned enhancement)
 
 ### Q2 2025
 
