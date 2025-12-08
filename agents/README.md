@@ -241,6 +241,57 @@ Task tool with:
 | Plague | technology, dora, iac-security |
 | Gibson | dora, code-ownership, git-insights |
 
+## Agent Autonomy
+
+### Investigation Mode
+
+Agents can autonomously investigate using their assigned tools:
+
+| Tool | Purpose | Agents with Access |
+|------|---------|-------------------|
+| Read | Examine source files | All agents |
+| Grep | Search for patterns | All agents |
+| Glob | Find files by pattern | All agents except Phreak |
+| WebSearch | Research CVEs, advisories | Cereal, Razor |
+| WebFetch | Fetch security bulletins | Cereal, Blade, Phreak |
+| Bash | Execute commands | Joey, Plague |
+| Task | Delegate to other agents | All agents |
+
+### Agent-to-Agent Delegation
+
+Specialists can delegate to other agents for cross-domain expertise:
+
+| Agent | Can Delegate To |
+|-------|-----------------|
+| Cereal | Phreak, Razor, Plague, Nikon |
+| Razor | Cereal, Blade, Nikon, Dade |
+| Blade | Cereal, Razor, Phreak |
+| Phreak | Cereal, Blade |
+| Acid | Dade, Nikon, Razor |
+| Dade | Acid, Nikon, Razor, Plague |
+| Nikon | Acid, Dade, Cereal, Razor, Plague |
+| Joey | Plague, Nikon, Razor |
+| Plague | Joey, Nikon, Razor |
+| Gibson | Nikon, Joey, Plague |
+
+**Example delegation:**
+```
+Cereal investigating supply chain compromise:
+→ Delegates to Phreak: "Is mixing MIT and GPL-3.0 legal?"
+→ Delegates to Razor: "Is this code pattern safe?"
+→ Receives expert responses and synthesizes findings
+```
+
+### Context Loading Modes
+
+Agents receive cached analysis data in intelligent modes:
+
+| Mode | Description | Trigger Keywords |
+|------|-------------|-----------------|
+| `summary` | Only summary sections | (default) |
+| `critical` | Only critical/high findings | "critical", "urgent", "priority" |
+| `full` | Complete data | "investigate", "analyze", "trace" |
+
 ## Versioning
 
 Each agent is independently versioned using [Semantic Versioning](https://semver.org/):

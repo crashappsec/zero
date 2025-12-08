@@ -57,10 +57,10 @@ All 10 specialist agents with knowledge bases and Claude Code integration:
 
 ## In Progress
 
-### Agent Autonomy
-- [ ] Full investigation mode with tool access (Read, Grep, Glob, WebSearch)
-- [ ] Agent-to-agent delegation for complex investigations
-- [ ] Improved context loading from cached analysis data
+### Agent Autonomy ✅
+- [x] Full investigation mode with tool access (Read, Grep, Glob, WebSearch)
+- [x] Agent-to-agent delegation for complex investigations
+- [x] Improved context loading from cached analysis data
 
 ### Report System
 - [ ] HTML report generation with interactive visualizations
