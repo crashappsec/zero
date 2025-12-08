@@ -391,9 +391,10 @@ load_agent_context_auto() {
     local query_lower=$(echo "$query" | tr '[:upper:]' '[:lower:]')
 
     # Determine mode based on query
+    # Priority: full > critical > summary (full mode takes precedence for deep investigation)
     local mode="summary"  # Default to summary for efficiency
 
-    # Full mode triggers - deep investigation keywords
+    # Full mode triggers - deep investigation keywords (highest priority)
     local full_triggers="investigate trace analyze examine deep-dive research explore why how explain detail"
     for trigger in $full_triggers; do
         if [[ "$query_lower" == *"$trigger"* ]]; then
@@ -402,14 +403,16 @@ load_agent_context_auto() {
         fi
     done
 
-    # Critical mode triggers - triage/priority keywords
-    local critical_triggers="critical urgent priority high-risk dangerous malicious security risk"
-    for trigger in $critical_triggers; do
-        if [[ "$query_lower" == *"$trigger"* ]]; then
-            mode="critical"
-            break
-        fi
-    done
+    # Critical mode triggers - triage/priority keywords (only if not already full mode)
+    if [[ "$mode" != "full" ]]; then
+        local critical_triggers="critical urgent priority high-risk dangerous malicious security risk"
+        for trigger in $critical_triggers; do
+            if [[ "$query_lower" == *"$trigger"* ]]; then
+                mode="critical"
+                break
+            fi
+        done
+    fi
 
     # Load context with selected mode
     if ! agent_exists "$agent_name"; then
