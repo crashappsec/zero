@@ -268,6 +268,16 @@ get_profile_claude_scanners() {
     jq -r --arg p "$profile" '.profiles[$p].claude_scanners // [] | .[]' "$PHANTOM_CONFIG" 2>/dev/null | tr '\n' ' '
 }
 
+# Get parallel jobs setting from config
+# Usage: get_parallel_jobs
+get_parallel_jobs() {
+    if [[ ! -f "$PHANTOM_CONFIG" ]]; then
+        echo "4"
+        return
+    fi
+    jq -r '.settings.parallel_jobs // 4' "$PHANTOM_CONFIG" 2>/dev/null
+}
+
 # Get default profile from config
 # Usage: get_default_profile
 get_default_profile() {
@@ -371,6 +381,7 @@ export -f get_profile_estimated_time
 export -f profile_uses_claude
 export -f get_profile_claude_scanners
 export -f get_default_profile
+export -f get_parallel_jobs
 export -f get_all_scanners
 export -f get_scanner_name
 export -f get_scanner_description

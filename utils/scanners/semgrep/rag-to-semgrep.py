@@ -405,7 +405,7 @@ def process_rag_directory(rag_dir: str, output_dir: str):
             base_id = str(rel_path.parent).replace('/', '.').replace('\\', '.')
 
             parser = PatternParser(str(pf))
-            rules = convert_technology(parser, f"gibson.{base_id}")
+            rules = convert_technology(parser, f"zero.{base_id}")
 
             for rule in rules:
                 if 'secret' in rule['id']:
@@ -439,7 +439,7 @@ def add_tech_debt_rules(output_dir: str):
 
     rules = [
         {
-            'id': 'gibson.tech-debt.todo',
+            'id': 'zero.tech-debt.todo',
             'message': 'TODO marker found: $MSG',
             'severity': 'INFO',
             'languages': ['generic'],
@@ -451,7 +451,7 @@ def add_tech_debt_rules(output_dir: str):
             'pattern-regex': r'TODO[:\s]+(.+?)(?:\n|$)'
         },
         {
-            'id': 'gibson.tech-debt.fixme',
+            'id': 'zero.tech-debt.fixme',
             'message': 'FIXME marker found: $MSG',
             'severity': 'WARNING',
             'languages': ['generic'],
@@ -463,7 +463,7 @@ def add_tech_debt_rules(output_dir: str):
             'pattern-regex': r'FIXME[:\s]+(.+?)(?:\n|$)'
         },
         {
-            'id': 'gibson.tech-debt.hack',
+            'id': 'zero.tech-debt.hack',
             'message': 'HACK marker found',
             'severity': 'WARNING',
             'languages': ['generic'],
@@ -475,7 +475,7 @@ def add_tech_debt_rules(output_dir: str):
             'pattern-regex': r'HACK[:\s]+(.+?)(?:\n|$)'
         },
         {
-            'id': 'gibson.tech-debt.xxx',
+            'id': 'zero.tech-debt.xxx',
             'message': 'XXX marker found (needs attention)',
             'severity': 'WARNING',
             'languages': ['generic'],
@@ -487,7 +487,7 @@ def add_tech_debt_rules(output_dir: str):
             'pattern-regex': r'XXX[:\s]+(.+?)(?:\n|$)'
         },
         {
-            'id': 'gibson.tech-debt.deprecated-decorator',
+            'id': 'zero.tech-debt.deprecated-decorator',
             'message': '@deprecated usage found',
             'severity': 'INFO',
             'languages': ['python', 'javascript', 'typescript'],

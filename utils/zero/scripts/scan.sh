@@ -21,16 +21,16 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ZERO_DIR="$(dirname "$SCRIPT_DIR")"
+ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Load Phantom library
-source "$ZERO_DIR/lib/zero-lib.sh"
+# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load config loader for dynamic profiles
-source "$ZERO_DIR/config/config-loader.sh"
+source "$ZERO_UTILS_DIR/config/config-loader.sh"
 
 # Load .env if available
-UTILS_ROOT="$(dirname "$ZERO_DIR")"
+UTILS_ROOT="$(dirname "$ZERO_UTILS_DIR")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 SCANNERS_DIR="$UTILS_ROOT/scanners"
 
@@ -281,8 +281,8 @@ get_scanner_result() {
 # Scan a single repository using bootstrap.sh (which has proven scanner implementations)
 scan_repo() {
     local repo="$1"
-    local project_id=$(gibson_project_id "$repo")
-    local repo_path="$GIBSON_PROJECTS_DIR/$project_id/repo"
+    local project_id=$(zero_project_id "$repo")
+    local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
 
     # Check if repo is cloned
     if [[ ! -d "$repo_path" ]]; then
@@ -338,8 +338,8 @@ update_manifest() {
 
 scan_single() {
     local repo="$1"
-    local project_id=$(gibson_project_id "$repo")
-    local repo_path="$GIBSON_PROJECTS_DIR/$project_id/repo"
+    local project_id=$(zero_project_id "$repo")
+    local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
 
     # Check if repo is cloned
     if [[ ! -d "$repo_path" ]]; then
@@ -366,7 +366,7 @@ scan_org() {
     echo
 
     # Find cloned repos in org
-    local org_path="$GIBSON_PROJECTS_DIR/$org"
+    local org_path="$ZERO_PROJECTS_DIR/$org"
     if [[ ! -d "$org_path" ]]; then
         echo -e "${RED}No cloned repos found for org: $org${NC}" >&2
         echo -e "Clone first with: ${CYAN}./zero.sh clone --org $org${NC}"
@@ -387,32 +387,126 @@ scan_org() {
         exit 1
     fi
 
+    # Get parallel jobs from config
+    local parallel_jobs=$(get_parallel_jobs)
+
     echo -e "Organization: ${CYAN}$org${NC}"
     echo -e "Repositories: ${CYAN}$repo_count${NC}"
     echo -e "Profile:      ${CYAN}$PROFILE${NC}"
+    echo -e "Parallel:     ${CYAN}$parallel_jobs jobs${NC}"
     echo
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    # Check if GNU parallel is available for better parallelization
+    if command -v parallel &> /dev/null && [[ "$parallel_jobs" -gt 1 ]]; then
+        scan_org_parallel "$org" "${repos[@]}"
+    else
+        scan_org_sequential "$org" "${repos[@]}"
+    fi
+}
+
+# Scan org repos in parallel using GNU parallel
+scan_org_parallel() {
+    local org="$1"
+    shift
+    local repos=("$@")
+    local repo_count=${#repos[@]}
+    local parallel_jobs=$(get_parallel_jobs)
+
+    echo -e "${CYAN}Running parallel scan with $parallel_jobs concurrent jobs...${NC}"
+    echo
+
+    # Create temp dir for results
+    local tmp_dir=$(mktemp -d)
+    trap "rm -rf $tmp_dir" EXIT
+
+    # Export variables for parallel
+    export SCRIPT_DIR PROFILE FORCE
+
+    # Run scans in parallel
+    printf '%s\n' "${repos[@]}" | parallel -j "$parallel_jobs" --bar --tag \
+        "$SCRIPT_DIR/bootstrap.sh" --scan-only --"$PROFILE" $([ "$FORCE" == "true" ] && echo "--force") {} \
+        '>' "$tmp_dir/{#}.log" '2>&1' ';' \
+        'echo $? > '"$tmp_dir/{#}.exit"
+
+    # Count results
+    local success=0
+    local failed=0
+    for i in $(seq 1 $repo_count); do
+        if [[ -f "$tmp_dir/$i.exit" ]] && [[ $(cat "$tmp_dir/$i.exit") -eq 0 ]]; then
+            ((success++))
+        else
+            ((failed++))
+        fi
+    done
+
+    echo
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${GREEN}✓ Complete${NC}: $success scanned, $failed failed"
+    echo
+    echo -e "View results: ${CYAN}./zero.sh report --org $org${NC}"
+}
+
+# Scan org repos sequentially with background job parallelization
+scan_org_sequential() {
+    local org="$1"
+    shift
+    local repos=("$@")
+    local repo_count=${#repos[@]}
+    local parallel_jobs=$(get_parallel_jobs)
 
     local success=0
     local failed=0
     local current=0
+    local pids=()
+    local repo_map=()
+
+    # Create temp dir for logs
+    local tmp_dir=$(mktemp -d)
+    trap "rm -rf $tmp_dir" EXIT
 
     for repo in "${repos[@]}"; do
         ((current++))
-        echo
-        echo -e "${BOLD}[$current/$repo_count]${NC} ${CYAN}$repo${NC}"
-        echo
 
         # Build bootstrap args
         local bootstrap_args=("--scan-only" "--$PROFILE")
         [[ "$FORCE" == "true" ]] && bootstrap_args+=("--force")
         bootstrap_args+=("$repo")
 
-        # Run bootstrap.sh for this repo (suppress banner since we show our own header)
-        if "$SCRIPT_DIR/bootstrap.sh" "${bootstrap_args[@]}" 2>&1 | grep -v "^$" | grep -v "██" | grep -v "crashoverride" | grep -v "━━" | grep -v "^Target:" | grep -v "^Project ID:" | grep -v "^Cloning" | grep -v "^Languages:" | grep -v "^Frameworks:" | grep -v "^\s*$"; then
+        # Start background job
+        (
+            "$SCRIPT_DIR/bootstrap.sh" "${bootstrap_args[@]}" > "$tmp_dir/$current.log" 2>&1
+            echo $? > "$tmp_dir/$current.exit"
+        ) &
+
+        pids+=($!)
+        repo_map+=("$repo")
+
+        echo -e "${BOLD}[$current/$repo_count]${NC} ${CYAN}$repo${NC} ${DIM}(started)${NC}"
+
+        # Limit concurrent jobs
+        if [[ ${#pids[@]} -ge $parallel_jobs ]]; then
+            # Wait for oldest job to complete (ignore exit code - we check logs later)
+            wait "${pids[0]}" 2>/dev/null || true
+            pids=("${pids[@]:1}")
+        fi
+    done
+
+    # Wait for remaining jobs
+    echo
+    echo -e "${DIM}Waiting for remaining scans to complete...${NC}"
+    for pid in "${pids[@]}"; do
+        wait "$pid" 2>/dev/null || true
+    done
+
+    # Count results and show summary
+    for i in $(seq 1 $repo_count); do
+        if [[ -f "$tmp_dir/$i.exit" ]] && [[ $(cat "$tmp_dir/$i.exit") -eq 0 ]]; then
             ((success++))
+            echo -e "  ${GREEN}✓${NC} ${repo_map[$((i-1))]}"
         else
             ((failed++))
+            echo -e "  ${RED}✗${NC} ${repo_map[$((i-1))]}"
         fi
     done
 

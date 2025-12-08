@@ -105,7 +105,7 @@ Claude Code / Claude Desktop
          │
     File System
          │
-~/.phantom/projects/
+~/.zero/repos/
   ├── owner/repo/analysis/
   │   ├── malcontent.json
   │   ├── vulnerabilities.json

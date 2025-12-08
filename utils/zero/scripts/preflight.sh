@@ -15,12 +15,12 @@
 set -e
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ZERO_DIR="$(dirname "$SCRIPT_DIR")"
-UTILS_ROOT="$(dirname "$ZERO_DIR")"
+ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
+UTILS_ROOT="$(dirname "$ZERO_UTILS_DIR")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 
-# Load Phantom library for banner
-source "$ZERO_DIR/lib/zero-lib.sh"
+# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load .env if it exists
 if [[ -f "$REPO_ROOT/.env" ]]; then

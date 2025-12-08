@@ -23,7 +23,7 @@ import { glob } from "glob";
 import os from "os";
 
 // Configuration
-const PROJECTS_DIR = process.env.PHANTOM_HOME || path.join(os.homedir(), ".phantom", "projects");
+const PROJECTS_DIR = process.env.ZERO_HOME || path.join(os.homedir(), ".zero", "repos");
 
 // Types for analysis data
 interface Project {

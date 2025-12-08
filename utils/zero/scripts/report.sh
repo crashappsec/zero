@@ -17,13 +17,13 @@ set -e
 
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ZERO_DIR="$(dirname "$SCRIPT_DIR")"
+ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Load Phantom library
-source "$ZERO_DIR/lib/zero-lib.sh"
+# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load report utilities
-source "$ZERO_DIR/lib/report-common.sh"
+source "$ZERO_UTILS_DIR/lib/report-common.sh"
 
 #############################################################################
 # Configuration
@@ -181,7 +181,7 @@ interactive_menu() {
     local projects=()
     local idx=1
 
-    if [[ -d "$GIBSON_PROJECTS_DIR" ]]; then
+    if [[ -d "$ZERO_PROJECTS_DIR" ]]; then
         while IFS= read -r org_dir; do
             local org_name=$(basename "$org_dir")
             while IFS= read -r repo_dir; do
@@ -192,7 +192,7 @@ interactive_menu() {
                     ((idx++))
                 fi
             done < <(find "$org_dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
-        done < <(find "$GIBSON_PROJECTS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+        done < <(find "$ZERO_PROJECTS_DIR" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
     fi
 
     if [[ ${#projects[@]} -eq 0 ]]; then
@@ -296,7 +296,7 @@ generate_report_filename() {
 # Get reports directory for a project
 get_reports_dir() {
     local project_id="$1"
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local analysis_path=$(zero_project_analysis_path "$project_id")
     echo "$analysis_path/reports"
 }
 
@@ -335,7 +335,7 @@ load_format_module() {
 # Generate report for a single project
 generate_project_report() {
     local project_id="$1"
-    local analysis_path=$(gibson_project_analysis_path "$project_id")
+    local analysis_path=$(zero_project_analysis_path "$project_id")
 
     if [[ ! -d "$analysis_path" ]]; then
         echo -e "${RED}Error: No analysis found for '$project_id'${NC}" >&2
@@ -406,7 +406,7 @@ generate_project_report() {
 # Generate report for an organization
 generate_org_report() {
     local org="$1"
-    local projects=$(gibson_list_org_projects "$org")
+    local projects=$(zero_list_org_projects "$org")
 
     if [[ -z "$projects" ]]; then
         echo -e "${RED}Error: No projects found for org '$org'${NC}" >&2
@@ -427,7 +427,7 @@ generate_org_report() {
         if [[ -n "$OUTPUT_FILE" ]]; then
             if [[ "$AUTO_NAME" == "true" ]] && [[ ! "$OUTPUT_FILE" =~ ^/ ]] && [[ ! "$OUTPUT_FILE" =~ ^\.\. ]]; then
                 # Use org-level reports directory
-                local org_reports_dir="$GIBSON_PROJECTS_DIR/$org/reports"
+                local org_reports_dir="$ZERO_PROJECTS_DIR/$org/reports"
                 mkdir -p "$org_reports_dir"
                 local datetime=$(date +"%Y%m%d-%H%M%S")
                 local ext
@@ -444,7 +444,7 @@ generate_org_report() {
             fi
         else
             # No file specified - use standardized naming
-            local org_reports_dir="$GIBSON_PROJECTS_DIR/$org/reports"
+            local org_reports_dir="$ZERO_PROJECTS_DIR/$org/reports"
             mkdir -p "$org_reports_dir"
             local datetime=$(date +"%Y%m%d-%H%M%S")
             local ext
@@ -473,7 +473,7 @@ generate_org_report() {
 
 main() {
     # Ensure Gibson is initialized
-    gibson_ensure_initialized
+    zero_ensure_initialized
 
     # Parse args first (if any)
     if [[ $# -gt 0 ]]; then
@@ -496,7 +496,7 @@ main() {
     if [[ -n "$ORG" ]]; then
         generate_org_report "$ORG"
     else
-        local project_id=$(gibson_project_id "$TARGET")
+        local project_id=$(zero_project_id "$TARGET")
         generate_project_report "$project_id"
     fi
 }

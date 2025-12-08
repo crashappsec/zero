@@ -101,12 +101,12 @@ elif [[ -n "$REPO" ]]; then
     REPO_ORG=$(echo "$REPO" | cut -d'/' -f1)
     REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
     ZERO_CACHE_PATH="$HOME/.zero/projects/$REPO_ORG/$REPO_NAME/repo"
-    GIBSON_PATH="$HOME/.gibson/projects/${REPO_ORG}-${REPO_NAME}/repo"
+    LEGACY_PATH="$HOME/.zero/projects/${REPO_ORG}-${REPO_NAME}/repo"
 
     if [[ -d "$ZERO_CACHE_PATH" ]]; then
         REPO_PATH="$ZERO_CACHE_PATH"
-    elif [[ -d "$GIBSON_PATH" ]]; then
-        REPO_PATH="$GIBSON_PATH"
+    elif [[ -d "$LEGACY_PATH" ]]; then
+        REPO_PATH="$LEGACY_PATH"
     else
         error "Repository not found. Clone it first or use --local-path"
         exit 1

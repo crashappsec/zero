@@ -1,8 +1,8 @@
 {
   "_comment": "=============================================================================",
-  "_comment2": "PHANTOM CONFIGURATION FILE",
+  "_comment2": "ZERO CONFIGURATION FILE",
   "_comment3": "=============================================================================",
-  "_comment4": "Copy this file to phantom.config.json and customize as needed.",
+  "_comment4": "Copy this file to zero.config.json and customize as needed.",
   "_comment5": "All fields starting with underscore (_) are documentation and ignored.",
   "_version": "1.1.0",
 
@@ -13,8 +13,8 @@
     "_default_profile_doc": "Profile to use when none is specified (quick|standard|advanced|deep|security|security-deep|compliance|devops)",
     "default_profile": "standard",
 
-    "_storage_path_doc": "Where Phantom stores cloned repos and analysis data. Use ~ for home directory.",
-    "storage_path": "~/.phantom",
+    "_storage_path_doc": "Where Zero stores cloned repos and analysis data. Use ~ for home directory.",
+    "storage_path": "~/.zero",
 
     "_parallel_jobs_doc": "Number of scanners to run in parallel. Higher = faster but more CPU/memory.",
     "parallel_jobs": 4,
