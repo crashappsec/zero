@@ -85,6 +85,7 @@ agent_get_persona() {
 #############################################################################
 
 usage() {
+    local current_voice=$(get_voice_mode)
     cat << EOF
 Phantom Agent Chat - Interactive agent conversations
 
@@ -94,7 +95,14 @@ OPTIONS:
     -i, --interactive    Interactive mode (select agent and project)
     -l, --list           List available agents
     -c, --context        Generate context file for Claude Code
+    -v, --voice MODE     Set voice mode: full, minimal, neutral (current: $current_voice)
+    --show-voice         Show current voice mode setting
     -h, --help           Show this help
+
+VOICE MODES:
+    full      Full Hackers character voice with quotes and catchphrases (default)
+    minimal   Keep agent names but remove quotes and heavy roleplay
+    neutral   Professional tone with no character references
 
 AGENTS:
 EOF
@@ -308,19 +316,26 @@ EOF
 launch_claude_chat() {
     local agent_name="$1"
     local project_id="${2:-}"
+    local voice_mode="${3:-$(get_voice_mode)}"
 
     local persona=$(agent_get_persona "$agent_name")
 
-    # Build system prompt from agent definition
-    local agent_md="$REPO_ROOT/agents/$agent_name/agent.md"
+    # Get agent directory using the loader (handles both character and functional names)
+    local agent_dir=$(agent_get_dir "$agent_name")
+    if [[ -z "$agent_dir" ]] || [[ ! -d "$agent_dir" ]]; then
+        echo -e "${RED}Error: Agent not found: $agent_name${NC}" >&2
+        exit 1
+    fi
+
+    local agent_md="$agent_dir/agent.md"
     if [[ ! -f "$agent_md" ]]; then
         echo -e "${RED}Error: Agent definition not found: $agent_md${NC}" >&2
         exit 1
     fi
 
-    # Write system prompt to temp file to handle special characters
+    # Write system prompt to temp file, applying voice mode
     local prompt_file=$(mktemp)
-    cat "$agent_md" > "$prompt_file"
+    get_agent_definition_with_voice "$agent_name" "$voice_mode" > "$prompt_file"
 
     # Add project context if available
     if [[ -n "$project_id" ]]; then
@@ -359,6 +374,7 @@ EOF
 
     echo -e "${GREEN}✓${NC} Launching chat with ${BOLD}$persona${NC}..."
     [[ -n "$project_id" ]] && echo -e "  Project: ${CYAN}$project_id${NC}"
+    echo -e "  Voice: ${DIM}$voice_mode${NC}"
     echo
 
     # Launch claude with the system prompt
@@ -373,11 +389,14 @@ EOF
 
 # Interactive chat mode
 run_interactive() {
+    local voice_mode="${1:-}"
+
     print_zero_banner
     echo -e "${BOLD}Agent Chat${NC}"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
     echo "Start a conversation with a specialist agent about your project."
+    echo -e "Voice mode: ${DIM}$(get_voice_mode)${NC}"
     echo
 
     # Select agent
@@ -398,7 +417,7 @@ run_interactive() {
     fi
 
     # Launch Claude with agent
-    launch_claude_chat "$agent" "$project"
+    launch_claude_chat "$agent" "$project" "$voice_mode"
 }
 
 #############################################################################
@@ -409,6 +428,7 @@ main() {
     local agent=""
     local project=""
     local mode="interactive"
+    local voice_mode=""
 
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -424,6 +444,28 @@ main() {
             -c|--context)
                 mode="context"
                 shift
+                ;;
+            -v|--voice)
+                if [[ -z "$2" ]] || [[ "$2" == -* ]]; then
+                    echo -e "${RED}Error: --voice requires a mode (full, minimal, neutral)${NC}" >&2
+                    exit 1
+                fi
+                voice_mode="$2"
+                # Validate voice mode
+                case "$voice_mode" in
+                    full|minimal|neutral) ;;
+                    *)
+                        echo -e "${RED}Error: Invalid voice mode '$voice_mode'. Use: full, minimal, neutral${NC}" >&2
+                        exit 1
+                        ;;
+                esac
+                shift 2
+                ;;
+            --show-voice)
+                local current=$(get_voice_mode)
+                echo "Current voice mode: $current"
+                echo "$(get_voice_mode_description "$current")"
+                exit 0
                 ;;
             -h|--help)
                 usage
@@ -458,9 +500,9 @@ main() {
         interactive)
             if [[ -n "$agent" ]]; then
                 # Agent specified - launch Claude directly
-                launch_claude_chat "$agent" "$project"
+                launch_claude_chat "$agent" "$project" "$voice_mode"
             else
-                run_interactive
+                run_interactive "$voice_mode"
             fi
             ;;
     esac

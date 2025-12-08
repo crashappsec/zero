@@ -34,24 +34,25 @@ fi
 
 # Get the directory for an agent
 # Usage: agent_get_dir "cereal"
+# Accepts both character names (cereal) and functional names (supply-chain)
 agent_get_dir() {
     local agent_name="$1"
     local dir=""
 
     case "$agent_name" in
-        # Primary agents (Hackers movie inspired names - directories match agent names)
-        zero)     dir="zero" ;;      # Zero Cool - master orchestrator, coordinates all agents
-        cereal)   dir="cereal" ;;    # Cereal Killer - paranoid, watches for malware in deps
-        razor)    dir="razor" ;;     # Razor - cuts through code to find vulnerabilities
-        blade)    dir="blade" ;;     # Blade - meticulous, detail-oriented for auditing
-        phreak)   dir="phreak" ;;    # Phantom Phreak - knows the legal angles
-        acid)     dir="acid" ;;      # Acid Burn - sharp, stylish frontend expert
-        dade)     dir="dade" ;;      # Dade Murphy - backend systems expert
-        nikon)    dir="nikon" ;;     # Lord Nikon - photographic memory, sees big picture
-        joey)     dir="joey" ;;      # Joey - builds things, sometimes breaks them
-        plague)   dir="plague" ;;    # The Plague - controls infrastructure (reformed)
-        gibson)   dir="gibson" ;;    # The Gibson - tracks everything
-        *)        dir="" ;;
+        # Functional directory names (primary)
+        orchestrator|zero)           dir="orchestrator" ;;      # Zero Cool - master orchestrator
+        supply-chain|cereal)         dir="supply-chain" ;;      # Cereal Killer - supply chain security
+        code-security|razor)         dir="code-security" ;;     # Razor - code security/SAST
+        compliance|blade)            dir="compliance" ;;        # Blade - compliance/auditor
+        legal|phreak)                dir="legal" ;;             # Phantom Phreak - legal/licenses
+        frontend|acid)               dir="frontend" ;;          # Acid Burn - frontend engineer
+        backend|dade|flushot)        dir="backend" ;;           # Flu Shot - backend engineer
+        architecture|nikon)          dir="architecture" ;;      # Lord Nikon - software architect
+        build|joey)                  dir="build" ;;             # Joey - build/CI engineer
+        devops|plague)               dir="devops" ;;            # The Plague - devops engineer
+        engineering-leader|gibson)   dir="engineering-leader" ;;# The Gibson - engineering metrics
+        *)                           dir="" ;;
     esac
 
     if [[ -n "$dir" ]]; then
@@ -442,6 +443,134 @@ load_agent_context_with_persona() {
 }
 
 #############################################################################
+# Voice Mode Functions
+#############################################################################
+
+# Get the current voice mode from config
+# Usage: get_voice_mode
+# Returns: "full", "minimal", or "neutral" (default: "full")
+get_voice_mode() {
+    local config_file="$ZERO_DIR/config/zero.config.json"
+    if [[ -f "$config_file" ]]; then
+        local mode=$(jq -r '.settings.voice_mode // "full"' "$config_file" 2>/dev/null)
+        # Validate mode
+        case "$mode" in
+            full|minimal|neutral) echo "$mode" ;;
+            *) echo "full" ;;
+        esac
+    else
+        echo "full"
+    fi
+}
+
+# Set the voice mode in config
+# Usage: set_voice_mode "minimal"
+set_voice_mode() {
+    local mode="$1"
+    local config_file="$ZERO_DIR/config/zero.config.json"
+
+    # Validate mode
+    case "$mode" in
+        full|minimal|neutral) ;;
+        *)
+            echo "Error: Invalid voice mode '$mode'. Use: full, minimal, or neutral" >&2
+            return 1
+            ;;
+    esac
+
+    if [[ ! -f "$config_file" ]]; then
+        echo "Error: Config file not found: $config_file" >&2
+        return 1
+    fi
+
+    # Update config file
+    local tmp=$(mktemp)
+    if jq --arg mode "$mode" '.settings.voice_mode = $mode' "$config_file" > "$tmp" 2>/dev/null; then
+        mv "$tmp" "$config_file"
+        echo "Voice mode set to: $mode"
+    else
+        rm -f "$tmp"
+        echo "Error: Failed to update config" >&2
+        return 1
+    fi
+}
+
+# Extract agent definition with voice mode applied
+# Usage: get_agent_definition_with_voice "supply-chain" "minimal"
+# The agent.md file should have voice sections marked with:
+#   <!-- VOICE:full -->  ... content ...  <!-- /VOICE:full -->
+#   <!-- VOICE:minimal --> ... content ... <!-- /VOICE:minimal -->
+#   <!-- VOICE:neutral --> ... content ... <!-- /VOICE:neutral -->
+get_agent_definition_with_voice() {
+    local agent_name="$1"
+    local voice_mode="${2:-$(get_voice_mode)}"
+    local agent_dir=$(agent_get_dir "$agent_name")
+    local agent_md="$agent_dir/agent.md"
+
+    if [[ ! -f "$agent_md" ]]; then
+        echo ""
+        return 1
+    fi
+
+    local content=$(cat "$agent_md")
+
+    # Check if file has voice markers
+    if ! grep -q '<!-- VOICE:' "$agent_md" 2>/dev/null; then
+        # No voice markers - return full content (legacy support)
+        echo "$content"
+        return 0
+    fi
+
+    # Extract base content (everything outside voice sections)
+    # Then append the selected voice section
+    local base_content=""
+    local in_voice_section=false
+    local current_voice=""
+    local selected_voice_content=""
+
+    while IFS= read -r line; do
+        # Check for voice section start
+        if [[ "$line" =~ \<!--\ VOICE:([a-z]+)\ --\> ]]; then
+            in_voice_section=true
+            current_voice="${BASH_REMATCH[1]}"
+            continue
+        fi
+
+        # Check for voice section end
+        if [[ "$line" =~ \<!--\ /VOICE:[a-z]+\ --\> ]]; then
+            in_voice_section=false
+            current_voice=""
+            continue
+        fi
+
+        # Collect content
+        if [[ "$in_voice_section" == true ]]; then
+            if [[ "$current_voice" == "$voice_mode" ]]; then
+                selected_voice_content+="$line"$'\n'
+            fi
+        else
+            base_content+="$line"$'\n'
+        fi
+    done < "$agent_md"
+
+    # Output base content + selected voice content
+    echo "$base_content"
+    echo "$selected_voice_content"
+}
+
+# Get voice mode description
+# Usage: get_voice_mode_description "minimal"
+get_voice_mode_description() {
+    local mode="${1:-$(get_voice_mode)}"
+    case "$mode" in
+        full)    echo "Full Hackers character voice with quotes, catchphrases, and roleplay" ;;
+        minimal) echo "Agent names retained, but no quotes, catchphrases, or heavy roleplay" ;;
+        neutral) echo "Professional tone with no character references" ;;
+        *)       echo "Unknown voice mode" ;;
+    esac
+}
+
+#############################################################################
 # Export functions
 #############################################################################
 
@@ -464,3 +593,7 @@ export -f load_persona
 export -f load_persona_overlay
 export -f build_persona_context
 export -f load_agent_context_with_persona
+export -f get_voice_mode
+export -f set_voice_mode
+export -f get_agent_definition_with_voice
+export -f get_voice_mode_description
