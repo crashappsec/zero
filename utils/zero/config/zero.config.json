@@ -193,6 +193,14 @@
       "claude_features": ["AI-enhanced threat analysis", "Risk prioritization", "Remediation guidance"],
       "estimated_time": "10-60s",
       "output_file": "package-malcontent.json"
+    },
+    "bundle-analysis": {
+      "name": "Bundle Analysis",
+      "description": "Analyze npm bundle sizes, identify heavy packages, detect tree-shaking issues",
+      "script": "utils/scanners/bundle-analysis/bundle-analysis.sh",
+      "claude_mode": "none",
+      "estimated_time": "30-120s",
+      "output_file": "bundle-analysis.json"
     }
   },
 
@@ -216,7 +224,7 @@
       "description": "Comprehensive static analysis with health checks",
       "estimated_time": "~5 minutes",
       "claude_mode": "none",
-      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance", "package-malcontent"]
+      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance", "package-malcontent", "bundle-analysis"]
     },
     "deep": {
       "name": "Deep",
@@ -224,7 +232,7 @@
       "estimated_time": "~10 minutes",
       "claude_mode": "enabled",
       "claude_scanners": ["package-sbom", "package-health", "package-provenance", "digital-certificates", "chalk", "package-malcontent"],
-      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance", "digital-certificates", "chalk", "package-malcontent"]
+      "scanners": ["package-sbom", "tech-discovery", "package-vulns", "package-health", "licenses", "code-security", "iac-security", "code-secrets", "tech-debt", "documentation", "git", "test-coverage", "code-ownership", "dora", "package-provenance", "digital-certificates", "chalk", "package-malcontent", "bundle-analysis"]
     },
     "security": {
       "name": "Security Only",
