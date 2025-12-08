@@ -8,22 +8,37 @@ All agents are named after characters from the movie **Hackers (1995)** - "Hack 
 
 | Agent | Character | Role | Directory |
 |-------|-----------|------|-----------|
-| **Zero** | Zero Cool | Master orchestrator | (Claude Code) |
-| **Cereal** | Cereal Killer | Supply chain security | [cereal/](cereal/) |
-| **Razor** | Razor | Code security | [razor/](razor/) |
-| **Blade** | Blade | Compliance auditor | [blade/](blade/) |
-| **Phreak** | Phantom Phreak | Legal counsel | [phreak/](phreak/) |
-| **Acid** | Acid Burn | Frontend engineer | [acid/](acid/) |
-| **Dade** | Dade Murphy | Backend engineer | [dade/](dade/) |
-| **Nikon** | Lord Nikon | Software architect | [nikon/](nikon/) |
-| **Joey** | Joey | Build engineer | [joey/](joey/) |
-| **Plague** | The Plague | DevOps engineer | [plague/](plague/) |
-| **Gibson** | The Gibson | Engineering leader | [gibson/](gibson/) |
+| **Zero** | Zero Cool | Master orchestrator | [orchestrator/](orchestrator/) |
+| **Cereal** | Cereal Killer | Supply chain security | [supply-chain/](supply-chain/) |
+| **Razor** | Razor | Code security | [code-security/](code-security/) |
+| **Blade** | Blade | Compliance auditor | [compliance/](compliance/) |
+| **Phreak** | Phantom Phreak | Legal counsel | [legal/](legal/) |
+| **Acid** | Acid Burn | Frontend engineer | [frontend/](frontend/) |
+| **Flu Shot** | Flu Shot | Backend engineer | [backend/](backend/) |
+| **Nikon** | Lord Nikon | Software architect | [architecture/](architecture/) |
+| **Joey** | Joey | Build engineer | [build/](build/) |
+| **Plague** | The Plague | DevOps engineer | [devops/](devops/) |
+| **Gibson** | The Gibson | Engineering leader | [engineering-leader/](engineering-leader/) |
+
+## Voice Modes
+
+Each agent supports three voice modes, configurable via `utils/zero/config/zero.config.json`:
+
+| Mode | Description |
+|------|-------------|
+| `full` | Full Hackers character voice with quotes, catchphrases, and roleplay (default) |
+| `minimal` | Agent names retained (Cereal, Razor, etc.) but professional tone |
+| `neutral` | No character references, purely functional output |
+
+Configure with:
+```bash
+./utils/zero/scripts/agent.sh --voice full|minimal|neutral
+```
 
 ## Security Agents
 
 ### Cereal - Supply Chain Security
-**Agent:** [cereal/](cereal/) | **Character:** Cereal Killer
+**Agent:** [supply-chain/](supply-chain/) | **Character:** Cereal Killer
 
 Cereal Killer was paranoid about surveillance - perfect for watching for malware hiding in dependencies. Cereal hunts down hidden risks in your software supply chain, obsessing over package health, vulnerability exposure, and license compliance.
 
@@ -34,7 +49,7 @@ Cereal cares about: CVEs and vulnerability severity, malcontent (supply chain co
 ---
 
 ### Razor - Code Security
-**Agent:** [razor/](razor/) | **Character:** Razor
+**Agent:** [code-security/](code-security/) | **Character:** Razor
 
 Razor cuts through code to find vulnerabilities. Stands guard over your codebase, watching for security issues before they reach production. Thinks like an attacker to find weaknesses—injection flaws, hardcoded secrets, insecure configurations.
 
@@ -45,7 +60,7 @@ Razor cares about: OWASP Top 10, CWE classifications, secret exposure, input val
 ---
 
 ### Blade - Compliance Auditor
-**Agent:** [blade/](blade/) | **Character:** Blade
+**Agent:** [compliance/](compliance/) | **Character:** Blade
 
 Blade is meticulous and detail-oriented - perfect for auditing. Ensures your systems meet compliance requirements for SOC 2, ISO 27001, and other standards.
 
@@ -56,7 +71,7 @@ Blade cares about: Control testing, evidence collection, audit preparation, comp
 ---
 
 ### Phreak - Legal Counsel
-**Agent:** [phreak/](phreak/) | **Character:** Phantom Phreak
+**Agent:** [legal/](legal/) | **Character:** Phantom Phreak
 
 Phantom Phreak knew the legal angles and how systems really work. Analyzes license compatibility, data privacy requirements, and legal risks.
 
@@ -69,7 +84,7 @@ Phreak cares about: License compatibility, GPL concerns, data privacy, contract 
 ## Engineering Agents
 
 ### Acid - Frontend Engineer
-**Agent:** [acid/](acid/) | **Character:** Acid Burn
+**Agent:** [frontend/](frontend/) | **Character:** Acid Burn
 
 Acid Burn - sharp, stylish, the elite frontend hacker. Lives and breathes component architecture, TypeScript, and modern frontend patterns.
 
@@ -79,19 +94,19 @@ Acid cares about: React best practices, bundle size, Core Web Vitals, WCAG acces
 
 ---
 
-### Dade - Backend Engineer
-**Agent:** [dade/](dade/) | **Character:** Dade Murphy
+### Flu Shot - Backend Engineer
+**Agent:** [backend/](backend/) | **Character:** Flu Shot
 
-Dade Murphy - the person behind Zero Cool, backend systems expert. Builds the backbone of your application—APIs, databases, and data pipelines.
+Flu Shot - one of the underground hackers, methodical and reliable. Builds the backbone of your application—APIs, databases, and data pipelines.
 
-Dade cares about: REST/GraphQL design, database optimization, data pipelines, caching strategies, error handling.
+Flu Shot cares about: REST/GraphQL design, database optimization, data pipelines, caching strategies, error handling.
 
-*"Ask Dade about the API design" or "Dade, optimize this query"*
+*"Ask Flu Shot about the API design" or "Flu Shot, optimize this query"*
 
 ---
 
 ### Nikon - Software Architect
-**Agent:** [nikon/](nikon/) | **Character:** Lord Nikon
+**Agent:** [architecture/](architecture/) | **Character:** Lord Nikon
 
 Lord Nikon had photographic memory - sees the big picture. Designs systems that balance competing concerns—scalability vs. simplicity, security vs. usability.
 
@@ -102,7 +117,7 @@ Nikon cares about: System design patterns, service boundaries, data architecture
 ---
 
 ### Joey - Build Engineer
-**Agent:** [joey/](joey/) | **Character:** Joey
+**Agent:** [build/](build/) | **Character:** Joey
 
 Joey was learning the ropes - builds things, sometimes breaks them. Makes your builds fast and reliable, hates waiting for CI.
 
@@ -113,7 +128,7 @@ Joey cares about: Build speed, CI/CD optimization, caching strategies, test para
 ---
 
 ### Plague - DevOps Engineer
-**Agent:** [plague/](plague/) | **Character:** The Plague
+**Agent:** [devops/](devops/) | **Character:** The Plague
 
 The Plague controlled all the infrastructure (we reformed him). Orchestrates the journey from code to production and keeps systems running.
 
@@ -124,7 +139,7 @@ Plague cares about: Deployment strategies, infrastructure as code, Kubernetes, o
 ---
 
 ### Gibson - Engineering Leader
-**Agent:** [gibson/](gibson/) | **Character:** The Gibson
+**Agent:** [engineering-leader/](engineering-leader/) | **Character:** The Gibson
 
 The Gibson - the ultimate system that tracks everything. Sees engineering through a business lens, tracking the metrics that matter.
 
@@ -142,32 +157,53 @@ Gibson cares about: DORA metrics, developer experience, cloud costs, team effect
 
 ## Agent Architecture
 
-Each agent is self-contained:
+Each agent is self-contained with functional directory names:
 
 ```
-cereal/                    # Directory named after agent
-├── agent.md               # Agent definition and behavior
+supply-chain/              # Functional directory name
+├── agent.md               # Agent definition with voice sections
 ├── VERSION                # Semantic version
 ├── CHANGELOG.md           # Version history
 ├── knowledge/
 │   ├── patterns/          # Detection patterns (what things ARE)
 │   └── guidance/          # Analysis guidance (what things MEAN)
-└── prompts/               # Role-specific output prompts (optional)
+└── prompts/               # Task-specific prompt templates
 ```
 
 ### Key Concepts
 
 | Component | Purpose | Example |
 |-----------|---------|---------|
-| `agent.md` | Defines agent identity, capabilities, behavior | "You are Cereal, a supply chain security analyst..." |
+| `agent.md` | Defines agent identity, capabilities, voice modes | Core definition + VOICE:full/minimal/neutral sections |
 | `patterns/` | Detection signatures, regex, file patterns | npm package patterns, secret regexes |
 | `guidance/` | Interpretation frameworks, scoring, remediation | CVSS interpretation, remediation workflows |
-| `prompts/` | Role-specific output formatting | Security engineer vs auditor output |
+| `prompts/` | Task-specific prompt templates | vulnerability-scan.md, security-review.md |
 
 ### Patterns vs Guidance
 
 - **Patterns** answer: "What is this?" (detection/identification)
 - **Guidance** answers: "What does this mean?" (interpretation/action)
+
+### Voice Sections
+
+Each `agent.md` contains three voice sections marked with HTML comments:
+
+```markdown
+<!-- VOICE:full -->
+## Voice & Personality
+[Full character voice with quotes and catchphrases]
+<!-- /VOICE:full -->
+
+<!-- VOICE:minimal -->
+## Communication Style
+[Agent name retained, professional tone]
+<!-- /VOICE:minimal -->
+
+<!-- VOICE:neutral -->
+## Communication Style
+[No character references, purely functional]
+<!-- /VOICE:neutral -->
+```
 
 ## Invoking Agents
 
@@ -199,7 +235,7 @@ Task tool with:
 | Blade | vulnerabilities, licenses, package-sbom, iac-security, code-security |
 | Phreak | licenses, dependencies, package-sbom |
 | Acid | technology, code-security |
-| Dade | technology, code-security |
+| Flu Shot | technology, code-security |
 | Nikon | technology, dependencies, package-sbom |
 | Joey | technology, dora, code-security |
 | Plague | technology, dora, iac-security |
@@ -224,15 +260,18 @@ Each agent is independently versioned using [Semantic Versioning](https://semver
    - Agent identity and purpose
    - Capabilities and limitations
    - Knowledge references
-   - Default behavior
+   - Three voice sections (full, minimal, neutral)
 
 3. Add knowledge:
    - `patterns/` - Detection patterns as JSON
    - `guidance/` - Interpretation docs as Markdown
 
-4. Register in `utils/zero/lib/agent-loader.sh`
+4. Add prompts:
+   - `prompts/` - Task-specific prompt templates
 
-5. Create `VERSION` (start at `0.1.0`) and `CHANGELOG.md`
+5. Register in `utils/zero/lib/agent-loader.sh`
+
+6. Create `VERSION` (start at `0.1.0`) and `CHANGELOG.md`
 
 ---
 
