@@ -87,22 +87,23 @@ agent_get_required_data() {
 
 # Get allowed tools for an agent
 # Usage: agent_get_tools "cereal"
+# Note: Task tool enables agent-to-agent delegation for complex investigations
 agent_get_tools() {
     local agent_name="$1"
 
     case "$agent_name" in
         zero)         echo "Read Grep Glob Bash WebSearch WebFetch Task" ;;  # Full orchestrator capability
-        cereal)       echo "Read Grep Glob WebSearch WebFetch" ;;  # Full investigation capability
+        cereal)       echo "Read Grep Glob WebSearch WebFetch Task" ;;       # Full investigation + delegation
         cereal-basic) echo "Read Grep Glob" ;;
-        razor)        echo "Read Grep Glob WebSearch" ;;           # Security research
-        blade)        echo "Read Grep Glob WebFetch" ;;            # Compliance docs
-        phreak)       echo "Read Grep WebFetch" ;;                 # Legal research
-        acid)         echo "Read Grep Glob" ;;                     # Frontend code review
-        dade)         echo "Read Grep Glob" ;;                     # Backend code review
-        nikon)        echo "Read Grep Glob" ;;                     # Architecture review
-        joey)         echo "Read Grep Glob Bash" ;;                # Build/CI testing
-        plague)       echo "Read Grep Glob Bash" ;;                # Infrastructure commands
-        gibson)       echo "Read Grep Glob" ;;                     # Metrics analysis
+        razor)        echo "Read Grep Glob WebSearch Task" ;;                # Security research + delegation
+        blade)        echo "Read Grep Glob WebFetch Task" ;;                 # Compliance docs + delegation
+        phreak)       echo "Read Grep WebFetch Task" ;;                      # Legal research + delegation
+        acid)         echo "Read Grep Glob Task" ;;                          # Frontend code review + delegation
+        dade)         echo "Read Grep Glob Task" ;;                          # Backend code review + delegation
+        nikon)        echo "Read Grep Glob Task" ;;                          # Architecture review + delegation
+        joey)         echo "Read Grep Glob Bash Task" ;;                     # Build/CI testing + delegation
+        plague)       echo "Read Grep Glob Bash Task" ;;                     # Infrastructure commands + delegation
+        gibson)       echo "Read Grep Glob Task" ;;                          # Metrics analysis + delegation
         *)            echo "Read" ;;
     esac
 }
@@ -259,6 +260,212 @@ load_agent_context() {
                 id: $project_id,
                 repo_path: $repo_path,
                 info: $project_info
+            },
+            scanner_data: $scanner_data
+        }' 2>/dev/null || echo '{"error": "Failed to build context"}'
+}
+
+# Load scanner data with intelligent summarization
+# Usage: load_scanner_data_smart "cereal" "expressjs/express" "full|summary|critical"
+# Modes:
+#   full     - Load all scanner data (default, for deep investigation)
+#   summary  - Load only summary sections (for quick Q&A)
+#   critical - Load only critical/high severity findings (for triage)
+load_scanner_data_smart() {
+    local agent_name="$1"
+    local project_id="$2"
+    local mode="${3:-full}"
+    local required_data=$(agent_get_required_data "$agent_name")
+
+    local project_path=$(gibson_project_path "$project_id")
+    local analysis_path="$project_path/analysis"
+    local scanners_path="$analysis_path/scanners"
+
+    local result='{}'
+
+    for scanner in $required_data; do
+        local data_file=""
+
+        # Check scanners directory first (new structure)
+        if [[ -d "$scanners_path/$scanner" ]]; then
+            data_file=$(find "$scanners_path/$scanner" -name "*.json" -type f 2>/dev/null | head -1)
+        fi
+
+        # Fall back to analysis root (old structure)
+        if [[ -z "$data_file" ]] && [[ -f "$analysis_path/${scanner}.json" ]]; then
+            data_file="$analysis_path/${scanner}.json"
+        fi
+
+        # Also check without hyphens
+        local scanner_alt="${scanner//-/_}"
+        if [[ -z "$data_file" ]] && [[ -f "$analysis_path/${scanner_alt}.json" ]]; then
+            data_file="$analysis_path/${scanner_alt}.json"
+        fi
+
+        if [[ -n "$data_file" ]] && [[ -f "$data_file" ]]; then
+            local scanner_data=$(cat "$data_file" 2>/dev/null)
+            if [[ -n "$scanner_data" ]] && echo "$scanner_data" | jq . &>/dev/null; then
+                case "$mode" in
+                    summary)
+                        # Extract only summary section
+                        local summary_data=$(echo "$scanner_data" | jq '{summary: .summary, metadata: .metadata}' 2>/dev/null || echo '{}')
+                        result=$(echo "$result" | jq --arg key "$scanner" --argjson data "$summary_data" '. + {($key): $data}' 2>/dev/null || echo "$result")
+                        ;;
+                    critical)
+                        # Extract only critical/high severity findings
+                        local critical_data=$(echo "$scanner_data" | jq '
+                            if .findings then
+                                {
+                                    summary: .summary,
+                                    findings: [.findings[] | select(.severity == "critical" or .severity == "high" or .risk == "critical" or .risk == "high")]
+                                }
+                            elif .vulnerabilities then
+                                {
+                                    summary: .summary,
+                                    vulnerabilities: [.vulnerabilities[] | select(.severity == "critical" or .severity == "high")]
+                                }
+                            else
+                                {summary: .summary}
+                            end
+                        ' 2>/dev/null || echo '{}')
+                        result=$(echo "$result" | jq --arg key "$scanner" --argjson data "$critical_data" '. + {($key): $data}' 2>/dev/null || echo "$result")
+                        ;;
+                    full|*)
+                        # Load complete data
+                        result=$(echo "$result" | jq --arg key "$scanner" --argjson data "$scanner_data" '. + {($key): $data}' 2>/dev/null || echo "$result")
+                        ;;
+                esac
+            fi
+        fi
+    done
+
+    echo "$result"
+}
+
+# Get scanner data freshness information
+# Usage: get_scanner_freshness "expressjs/express"
+# Returns JSON with last_updated timestamps for each scanner
+get_scanner_freshness() {
+    local project_id="$1"
+    local project_path=$(gibson_project_path "$project_id")
+    local analysis_path="$project_path/analysis"
+    local scanners_path="$analysis_path/scanners"
+
+    local result='{}'
+
+    # Check manifest for timestamps
+    if [[ -f "$analysis_path/manifest.json" ]]; then
+        local manifest=$(cat "$analysis_path/manifest.json" 2>/dev/null)
+        local last_scan=$(echo "$manifest" | jq -r '.last_scan // empty' 2>/dev/null)
+        if [[ -n "$last_scan" ]]; then
+            result=$(echo "$result" | jq --arg ts "$last_scan" '. + {manifest_last_scan: $ts}' 2>/dev/null || echo "$result")
+        fi
+    fi
+
+    # Check individual scanner timestamps
+    if [[ -d "$scanners_path" ]]; then
+        for scanner_dir in "$scanners_path"/*/; do
+            if [[ -d "$scanner_dir" ]]; then
+                local scanner_name=$(basename "$scanner_dir")
+                local json_file=$(find "$scanner_dir" -name "*.json" -type f 2>/dev/null | head -1)
+                if [[ -f "$json_file" ]]; then
+                    local mtime=$(stat -f "%m" "$json_file" 2>/dev/null || stat -c "%Y" "$json_file" 2>/dev/null)
+                    if [[ -n "$mtime" ]]; then
+                        result=$(echo "$result" | jq --arg key "$scanner_name" --arg ts "$mtime" '.scanners[$key] = ($ts | tonumber)' 2>/dev/null || echo "$result")
+                    fi
+                fi
+            fi
+        done
+    fi
+
+    echo "$result"
+}
+
+# Load context with automatic mode selection based on query
+# Usage: load_agent_context_auto "cereal" "expressjs/express" "What CVEs affect this project?"
+# Automatically selects summary/critical/full mode based on query keywords
+load_agent_context_auto() {
+    local agent_name="$1"
+    local project_id="$2"
+    local query="$3"
+    local query_lower=$(echo "$query" | tr '[:upper:]' '[:lower:]')
+
+    # Determine mode based on query
+    local mode="summary"  # Default to summary for efficiency
+
+    # Full mode triggers - deep investigation keywords
+    local full_triggers="investigate trace analyze examine deep-dive research explore why how explain detail"
+    for trigger in $full_triggers; do
+        if [[ "$query_lower" == *"$trigger"* ]]; then
+            mode="full"
+            break
+        fi
+    done
+
+    # Critical mode triggers - triage/priority keywords
+    local critical_triggers="critical urgent priority high-risk dangerous malicious security risk"
+    for trigger in $critical_triggers; do
+        if [[ "$query_lower" == *"$trigger"* ]]; then
+            mode="critical"
+            break
+        fi
+    done
+
+    # Load context with selected mode
+    if ! agent_exists "$agent_name"; then
+        echo '{"error": "Agent not found: '"$agent_name"'"}'
+        return 1
+    fi
+
+    local agent_dir=$(agent_get_dir "$agent_name")
+    local definition=$(agent_get_definition "$agent_name")
+    local tools=$(agent_get_tools "$agent_name")
+    local delegation_targets=$(agent_get_delegation_targets "$agent_name")
+    local knowledge_paths=$(agent_get_knowledge_paths "$agent_name" | jq -R . 2>/dev/null | jq -s . 2>/dev/null || echo '[]')
+    local scanner_data=$(load_scanner_data_smart "$agent_name" "$project_id" "$mode")
+    local freshness=$(get_scanner_freshness "$project_id")
+
+    # Get project info
+    local project_path=$(gibson_project_path "$project_id")
+    local repo_path="$project_path/repo"
+    local manifest_path="$project_path/analysis/manifest.json"
+
+    local project_info='{}'
+    if [[ -f "$manifest_path" ]]; then
+        project_info=$(cat "$manifest_path" 2>/dev/null || echo '{}')
+    fi
+
+    # Build context JSON with autonomy metadata
+    jq -n \
+        --arg agent "$agent_name" \
+        --arg agent_dir "$agent_dir" \
+        --arg definition "$definition" \
+        --arg tools "$tools" \
+        --arg delegation_targets "$delegation_targets" \
+        --arg mode "$mode" \
+        --argjson knowledge_paths "$knowledge_paths" \
+        --argjson scanner_data "$scanner_data" \
+        --argjson freshness "$freshness" \
+        --arg project_id "$project_id" \
+        --arg repo_path "$repo_path" \
+        --argjson project_info "$project_info" \
+        '{
+            agent: {
+                name: $agent,
+                directory: $agent_dir,
+                definition: $definition,
+                tools_allowed: ($tools | split(" ")),
+                delegation_targets: ($delegation_targets | split(" ") | map(select(. != ""))),
+                knowledge_paths: $knowledge_paths
+            },
+            project: {
+                id: $project_id,
+                repo_path: $repo_path,
+                info: $project_info
+            },
+            context: {
+                mode: $mode,
+                freshness: $freshness
             },
             scanner_data: $scanner_data
         }' 2>/dev/null || echo '{"error": "Failed to build context"}'
@@ -443,6 +650,103 @@ load_agent_context_with_persona() {
 }
 
 #############################################################################
+# Agent Delegation Functions
+#############################################################################
+
+# Get list of agents that a given agent can delegate to
+# Usage: agent_get_delegation_targets "cereal"
+# Returns space-separated list of agent names this agent can delegate to
+agent_get_delegation_targets() {
+    local agent_name="$1"
+
+    case "$agent_name" in
+        zero)         echo "cereal razor blade phreak acid dade nikon joey plague gibson" ;;  # Can delegate to all
+        cereal)       echo "phreak razor plague nikon" ;;       # Legal, security, devops, architecture
+        razor)        echo "cereal blade nikon dade" ;;         # Supply chain, compliance, architecture, backend
+        blade)        echo "cereal razor phreak" ;;             # Supply chain, security, legal
+        phreak)       echo "cereal blade" ;;                    # Supply chain, compliance
+        acid)         echo "dade nikon razor" ;;                # Backend, architecture, security
+        dade)         echo "acid nikon razor plague" ;;         # Frontend, architecture, security, devops
+        nikon)        echo "acid dade cereal razor plague" ;;   # All technical domains
+        joey)         echo "plague nikon razor" ;;              # DevOps, architecture, security
+        plague)       echo "joey nikon razor" ;;                # Build, architecture, security
+        gibson)       echo "nikon joey plague" ;;               # Architecture, build, devops
+        *)            echo "" ;;
+    esac
+}
+
+# Check if agent A can delegate to agent B
+# Usage: agent_can_delegate "cereal" "phreak"
+# Returns 0 (true) if delegation is allowed, 1 (false) otherwise
+agent_can_delegate() {
+    local from_agent="$1"
+    local to_agent="$2"
+    local targets=$(agent_get_delegation_targets "$from_agent")
+
+    for target in $targets; do
+        if [[ "$target" == "$to_agent" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Get delegation prompt for agent-to-agent communication
+# Usage: get_delegation_prompt "cereal" "phreak" "Check license compatibility of MIT and GPL-3.0"
+get_delegation_prompt() {
+    local from_agent="$1"
+    local to_agent="$2"
+    local query="$3"
+
+    # Get agent display names
+    local from_name=$(get_agent_display_name "$from_agent")
+    local to_name=$(get_agent_display_name "$to_agent")
+
+    cat <<EOF
+## Delegated Investigation Request
+
+**From:** $from_name ($from_agent)
+**To:** $to_name ($to_agent)
+
+### Request
+$query
+
+### Instructions
+- Provide your expert analysis on this specific question
+- Include confidence level (High/Medium/Low) with your assessment
+- Cite specific evidence or file:line references where applicable
+- Keep response focused and actionable
+
+### Response Format
+1. **Assessment:** Your expert opinion
+2. **Evidence:** Supporting data or references
+3. **Confidence:** High/Medium/Low
+4. **Recommendations:** Next steps if any
+EOF
+}
+
+# Get display name for an agent
+# Usage: get_agent_display_name "cereal"
+get_agent_display_name() {
+    local agent_name="$1"
+
+    case "$agent_name" in
+        zero)         echo "Zero (Orchestrator)" ;;
+        cereal)       echo "Cereal (Supply Chain Security)" ;;
+        razor)        echo "Razor (Code Security)" ;;
+        blade)        echo "Blade (Compliance)" ;;
+        phreak)       echo "Phreak (Legal)" ;;
+        acid)         echo "Acid (Frontend)" ;;
+        dade)         echo "Dade (Backend)" ;;
+        nikon)        echo "Nikon (Architecture)" ;;
+        joey)         echo "Joey (Build)" ;;
+        plague)       echo "Plague (DevOps)" ;;
+        gibson)       echo "Gibson (Engineering Leader)" ;;
+        *)            echo "$agent_name" ;;
+    esac
+}
+
+#############################################################################
 # Voice Mode Functions
 #############################################################################
 
@@ -582,7 +886,10 @@ export -f agent_get_knowledge_paths
 export -f agent_get_required_data
 export -f agent_get_tools
 export -f load_scanner_data_for_agent
+export -f load_scanner_data_smart
+export -f get_scanner_freshness
 export -f load_agent_context
+export -f load_agent_context_auto
 export -f get_findings_summary
 export -f should_investigate
 export -f persona_list
@@ -597,3 +904,7 @@ export -f get_voice_mode
 export -f set_voice_mode
 export -f get_agent_definition_with_voice
 export -f get_voice_mode_description
+export -f agent_get_delegation_targets
+export -f agent_can_delegate
+export -f get_delegation_prompt
+export -f get_agent_display_name
