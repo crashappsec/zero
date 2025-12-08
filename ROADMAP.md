@@ -125,6 +125,33 @@ All 10 specialist agents with knowledge bases and Claude Code integration:
 
 ## Integration Roadmap
 
+### Ocular Integration (ocularproject.io)
+Ocular is a Crash Override project that provides robust code synchronization and tool orchestration. By integrating with Ocular, Zero can focus purely on analysis while delegating infrastructure concerns.
+
+**Phase 1: Code Synchronization**
+- [ ] Replace Zero's hydration with Ocular's code sync
+- [ ] Leverage Ocular's repository caching and versioning
+- [ ] Support for monorepos and multi-repo projects
+- [ ] Incremental sync for large codebases
+
+**Phase 2: Tool Orchestration**
+- [ ] Delegate scanner execution to Ocular's orchestration layer
+- [ ] Parallel scanner execution with resource management
+- [ ] Scanner result caching and invalidation
+- [ ] Support for custom scanner plugins via Ocular
+
+**Phase 3: Agent Integration**
+- [ ] Zero agents consume Ocular-orchestrated findings
+- [ ] Real-time analysis as Ocular syncs changes
+- [ ] Cross-repository analysis for organization-wide insights
+- [ ] Shared analysis cache across Zero instances
+
+**Benefits:**
+- Zero focuses on AI-powered analysis, not infrastructure
+- Ocular handles scale, caching, and orchestration
+- Unified platform for code intelligence across Crash Override products
+- Enterprise-ready deployment via Ocular's infrastructure
+
 ### Chalk Integration
 - Build-time security analysis
 - Attestation enrichment with Zero findings
@@ -155,7 +182,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-*Last Updated: 2025-12-06*
+*Last Updated: 2025-12-08*
 *Version: 5.0.0*
 
 *"Hack the planet!"*
