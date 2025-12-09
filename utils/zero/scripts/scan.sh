@@ -644,6 +644,7 @@ scan_org_sequential() {
     # Create temp dirs
     local tmp_dir=$(mktemp -d)
     local buffer_dir=$(init_output_buffer)
+    local status_dir=$(mktemp -d)
 
     # Track completed repos
     local displayed_repos=""
@@ -671,7 +672,7 @@ scan_org_sequential() {
             kill -9 "$pid" 2>/dev/null || true
         done
         # Clean up temp directories
-        rm -rf "$tmp_dir" "$buffer_dir" 2>/dev/null || true
+        rm -rf "$tmp_dir" "$buffer_dir" "$status_dir" 2>/dev/null || true
     }
 
     # Handle Ctrl+C gracefully
@@ -695,21 +696,32 @@ scan_org_sequential() {
         # Initialize buffer for this repo
         start_buffer "$buffer_dir" "$repo"
 
-        # Build bootstrap args
-        local bootstrap_args=("--scan-only" "--$PROFILE")
-        [[ "$FORCE" == "true" ]] && bootstrap_args+=("--force")
-        bootstrap_args+=("$repo")
+        # Initialize status for this repo
+        update_repo_scan_status "$status_dir" "$repo" "running" "scanning" "" "0"
 
-        # Start background job - capture output
+        # Start background job - capture output and update status
         (
             local scan_output=$(mktemp)
-            "$SCRIPT_DIR/bootstrap.sh" "${bootstrap_args[@]}" > "$scan_output" 2>&1
+            local start_time=$(date +%s)
+
+            "$SCRIPT_DIR/bootstrap.sh" --scan-only --"$PROFILE" $([ "$FORCE" == "true" ] && echo "--force") "$repo" > "$scan_output" 2>&1
             local exit_code=$?
+
+            local end_time=$(date +%s)
+            local duration=$((end_time - start_time))
 
             # Store output in buffer
             append_buffer "$buffer_dir" "$repo" "$(cat "$scan_output")"
-            rm -f "$scan_output"
 
+            # Update final status
+            if [[ $exit_code -eq 0 ]]; then
+                local summary=$(grep -E "✓|complete" "$scan_output" 2>/dev/null | wc -l | tr -d ' ')
+                update_repo_scan_status "$status_dir" "$repo" "complete" "" "${summary} scanners" "$duration"
+            else
+                update_repo_scan_status "$status_dir" "$repo" "failed" "" "" "$duration"
+            fi
+
+            rm -f "$scan_output"
             echo $exit_code > "$tmp_dir/$current.exit"
         ) &
 
@@ -722,8 +734,34 @@ scan_org_sequential() {
             while kill -0 "${pids[0]}" 2>/dev/null; do
                 local elapsed=$(($(date +%s) - scan_start_time))
                 local spinner_frame=$(get_spinner_frame)
-                clear_progress_line
-                render_progress_bar "$completed_count" "$repo_count" 50 "${spinner_frame} Scanning (${#repo_map[@]} active, ${elapsed}s)"
+
+                # Clear previous output (up to 6 lines: status + 4 repos + progress bar)
+                printf "\r\033[K"  # Clear current line
+                for ((i=0; i<5; i++)); do
+                    printf "\033[1A\033[K"  # Move up and clear
+                done
+
+                # Show currently scanning repos with status
+                printf "${spinner_frame} Scanning %d repos (${elapsed}s):\n" "${#repo_map[@]}"
+                for repo in "${repo_map[@]}"; do
+                    local safe_name=$(sanitize_repo_name "$repo")
+                    local status_file="$status_dir/$safe_name.status"
+                    local status_info=""
+
+                    if [[ -f "$status_file" ]]; then
+                        IFS='|' read -r status current_scanner progress duration < "$status_file"
+                        if [[ -n "$current_scanner" ]] && [[ "$current_scanner" != "scanning" ]]; then
+                            status_info=" ${DIM}- $current_scanner${NC}"
+                        elif [[ -n "$progress" ]]; then
+                            status_info=" ${DIM}- $progress${NC}"
+                        fi
+                    fi
+
+                    printf "  ${DIM}•${NC} %s%s\n" "$repo" "$status_info"
+                done
+
+                # Show progress bar
+                render_progress_bar "$completed_count" "$repo_count" 50
                 sleep 0.3
             done
             wait "${pids[0]}" 2>/dev/null || true
@@ -749,7 +787,28 @@ scan_org_sequential() {
             if [[ ${#repo_map[@]} -gt 0 ]]; then
                 local elapsed=$(($(date +%s) - scan_start_time))
                 local spinner_frame=$(get_spinner_frame)
-                render_progress_bar "$completed_count" "$repo_count" 50 "${spinner_frame} Scanning (${#repo_map[@]} active, ${elapsed}s)"
+
+                # Show currently scanning repos with status
+                printf "${spinner_frame} Scanning %d repos (${elapsed}s):\n" "${#repo_map[@]}"
+                for repo in "${repo_map[@]}"; do
+                    local safe_name=$(sanitize_repo_name "$repo")
+                    local status_file="$status_dir/$safe_name.status"
+                    local status_info=""
+
+                    if [[ -f "$status_file" ]]; then
+                        IFS='|' read -r status current_scanner progress duration < "$status_file"
+                        if [[ -n "$current_scanner" ]] && [[ "$current_scanner" != "scanning" ]]; then
+                            status_info=" ${DIM}- $current_scanner${NC}"
+                        elif [[ -n "$progress" ]]; then
+                            status_info=" ${DIM}- $progress${NC}"
+                        fi
+                    fi
+
+                    printf "  ${DIM}•${NC} %s%s\n" "$repo" "$status_info"
+                done
+
+                # Show progress bar
+                render_progress_bar "$completed_count" "$repo_count" 50
             fi
         fi
     done
@@ -790,8 +849,21 @@ scan_org_sequential() {
         if [[ ${#pids[@]} -gt 0 ]]; then
             local elapsed=$(($(date +%s) - scan_start_time))
             local spinner_frame=$(get_spinner_frame)
-            clear_progress_line
-            render_progress_bar "$completed_count" "$repo_count" 50 "${spinner_frame} Scanning (${#repo_map[@]} active, ${elapsed}s)"
+
+            # Clear previous output
+            printf "\r\033[K"
+            for ((i=0; i<${#repo_map[@]}+1; i++)); do
+                printf "\033[1A\033[K"
+            done
+
+            # Show currently scanning repos
+            printf "${spinner_frame} Scanning %d repos (${elapsed}s):\n" "${#repo_map[@]}"
+            for repo in "${repo_map[@]}"; do
+                printf "  ${DIM}•${NC} %s\n" "$repo"
+            done
+
+            # Show progress bar
+            render_progress_bar "$completed_count" "$repo_count" 50
             sleep 0.3
         fi
     done
