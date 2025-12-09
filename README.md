@@ -261,6 +261,8 @@ We've created the [phantom-tests](https://github.com/phantom-tests) organization
 
 Contributions are welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
+**Important:** All contributors must complete our [Contributor License Agreement](https://crashoverride.com/docs/other/contributing) before their contributions can be merged. This ensures the project remains properly licensed and protects both contributors and users.
+
 ## License
 
 Zero is licensed under the [GNU General Public License v3.0](./LICENSE).
