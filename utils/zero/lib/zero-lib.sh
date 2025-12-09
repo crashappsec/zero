@@ -10,11 +10,11 @@
 # Named after Zero Cool from the movie Hackers (1995)
 #############################################################################
 
-# Zero root directory - defaults to ~/.zero in user home
+# Zero root directory - defaults to .zero in project root
 # Can be overridden with ZERO_HOME environment variable
 _ZERO_LIB_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 _ZERO_REPO_ROOT="$(dirname "$(dirname "$(dirname "$_ZERO_LIB_DIR")")")"
-export ZERO_DIR="${ZERO_HOME:-$HOME/.zero}"
+export ZERO_DIR="${ZERO_HOME:-$_ZERO_REPO_ROOT/.zero}"
 export ZERO_REPOS_DIR="$ZERO_DIR/repos"
 # Legacy alias for compatibility
 export ZERO_PROJECTS_DIR="$ZERO_REPOS_DIR"
@@ -124,7 +124,7 @@ print_phantom_banner_animated() { print_zero_banner_animated "$@"; }
 # Directory Initialization
 #############################################################################
 
-# Initialize ~/.zero/ directory structure
+# Initialize .zero/ directory structure
 # Creates all necessary directories and config files if they don't exist
 zero_init() {
     local force="${1:-false}"
@@ -134,7 +134,7 @@ zero_init() {
         return 0
     fi
 
-    echo -e "${CYAN}Initializing Zero directory at ~/.zero...${NC}"
+    echo -e "${CYAN}Initializing Zero directory at $ZERO_DIR...${NC}"
 
     # Create directory structure
     mkdir -p "$ZERO_DIR"
@@ -204,7 +204,7 @@ EOF
 EOF
     fi
 
-    echo -e "${GREEN}✓${NC} Zero initialized at ~/.zero"
+    echo -e "${GREEN}✓${NC} Zero initialized at $ZERO_DIR"
     return 0
 }
 
@@ -928,6 +928,536 @@ zero_total_size() {
         du -sh "$ZERO_DIR" 2>/dev/null | cut -f1
     else
         echo "0"
+    fi
+}
+
+#############################################################################
+# Dynamic Status Display for Parallel Scanners
+#############################################################################
+
+# Spinner characters for running scanners
+SPINNER_CHARS=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+
+# Get spinner character based on iteration
+get_spinner_char() {
+    local iteration=$1
+    local index=$((iteration % ${#SPINNER_CHARS[@]}))
+    echo "${SPINNER_CHARS[$index]}"
+}
+
+# Initialize scanner status display
+# Usage: init_scanner_status_display <scanner_list>
+# Creates a status file for tracking scanner states
+init_scanner_status_display() {
+    local scanners="$1"
+    local status_dir=$(mktemp -d)
+
+    # Create status file for each scanner
+    for scanner in $scanners; do
+        echo "queued" > "$status_dir/$scanner.status"
+    done
+
+    echo "$status_dir"
+}
+
+# Update scanner status
+# Usage: update_scanner_status <status_dir> <scanner> <status> [result] [duration]
+update_scanner_status() {
+    local status_dir="$1"
+    local scanner="$2"
+    local status="$3"
+    local result="${4:-}"
+    local duration="${5:-0}"
+
+    echo "$status|$result|$duration" > "$status_dir/$scanner.status"
+}
+
+# Render single scanner status line
+# Usage: render_scanner_line <scanner> <display_name> <status> <result> <duration> <spinner_iteration>
+render_scanner_line() {
+    local scanner="$1"
+    local display_name="$2"
+    local status="$3"
+    local result="$4"
+    local duration="$5"
+    local spinner_iter="${6:-0}"
+
+    local icon=""
+    local color=""
+    local status_text=""
+
+    case "$status" in
+        queued)
+            icon="${WHITE}○${NC}"
+            status_text="${DIM}queued...${NC}"
+            ;;
+        running)
+            local spinner=$(get_spinner_char "$spinner_iter")
+            icon="${CYAN}${spinner}${NC}"
+            status_text="${DIM}running...${NC}"
+            ;;
+        complete)
+            icon="${GREEN}✓${NC}"
+            status_text="${GREEN}${result}${NC}"
+            if [[ "$duration" != "0" ]]; then
+                status_text="$status_text ${DIM}${duration}s${NC}"
+            fi
+            ;;
+        failed)
+            icon="${RED}✗${NC}"
+            status_text="${RED}failed${NC}"
+            if [[ "$duration" != "0" ]]; then
+                status_text="$status_text ${DIM}${duration}s${NC}"
+            fi
+            ;;
+        *)
+            icon="${DIM}○${NC}"
+            status_text="${DIM}unknown${NC}"
+            ;;
+    esac
+
+    printf "  %b %-24s %b\n" "$icon" "$display_name" "$status_text"
+}
+
+# Render all scanner status lines
+# Usage: render_all_scanner_lines <status_dir> <scanner_list> <display_names> <spinner_iteration>
+render_all_scanner_lines() {
+    local status_dir="$1"
+    local scanners="$2"
+    local spinner_iter="${3:-0}"
+
+    for scanner in $scanners; do
+        local status_file="$status_dir/$scanner.status"
+        if [[ -f "$status_file" ]]; then
+            IFS='|' read -r status result duration < "$status_file"
+        else
+            status="queued"
+            result=""
+            duration="0"
+        fi
+
+        # Get display name dynamically
+        local display_name=$(get_scanner_display_name "$scanner" 2>/dev/null || echo "$scanner")
+
+        render_scanner_line "$scanner" "$display_name" "$status" "$result" "$duration" "$spinner_iter"
+    done
+}
+
+# Move cursor up N lines
+move_cursor_up() {
+    local lines=$1
+    printf "\033[%dA" "$lines"
+}
+
+# Clear current line
+clear_line() {
+    printf "\r\033[K"
+}
+
+# Save cursor position
+save_cursor() {
+    printf "\033[s"
+}
+
+# Restore cursor position
+restore_cursor() {
+    printf "\033[u"
+}
+
+# Check if any scanners are still running
+# Usage: scanners_still_running <status_dir> <scanner_list>
+scanners_still_running() {
+    local status_dir="$1"
+    local scanners="$2"
+
+    for scanner in $scanners; do
+        local status_file="$status_dir/$scanner.status"
+        if [[ -f "$status_file" ]]; then
+            local status=$(cut -d'|' -f1 "$status_file")
+            if [[ "$status" == "running" ]] || [[ "$status" == "queued" ]]; then
+                return 0
+            fi
+        fi
+    done
+
+    return 1
+}
+
+#############################################################################
+# Org Scan Dashboard Display
+#############################################################################
+
+# Sanitize repo name for use as filename (replace / with --)
+# Usage: sanitize_repo_name <repo>
+sanitize_repo_name() {
+    echo "$1" | sed 's/\//__/g'
+}
+
+# Initialize org scan dashboard
+# Usage: init_org_scan_dashboard <repo_list> <status_dir>
+init_org_scan_dashboard() {
+    local repos="$1"
+    local status_dir="$2"
+
+    # Create status file for each repo
+    for repo in $repos; do
+        local safe_name=$(sanitize_repo_name "$repo")
+        # Format: status|current_scanner|progress|duration
+        echo "queued|||0" > "$status_dir/$safe_name.status"
+    done
+}
+
+# Update repo scan status
+# Usage: update_repo_scan_status <status_dir> <repo> <status> <current_scanner> <progress> <duration>
+update_repo_scan_status() {
+    local status_dir="$1"
+    local repo="$2"
+    local status="$3"
+    local current_scanner="${4:-}"
+    local progress="${5:-}"
+    local duration="${6:-0}"
+
+    local safe_name=$(sanitize_repo_name "$repo")
+    echo "$status|$current_scanner|$progress|$duration" > "$status_dir/$safe_name.status"
+}
+
+# Render single repo status line for dashboard
+# Usage: render_repo_dashboard_line <repo> <status> <current_scanner> <progress> <duration> <spinner_iter>
+render_repo_dashboard_line() {
+    local repo="$1"
+    local status="$2"
+    local current_scanner="$3"
+    local progress="$4"
+    local duration="$5"
+    local spinner_iter="${6:-0}"
+
+    # Truncate repo name if too long
+    local repo_display="$repo"
+    if [[ ${#repo_display} -gt 30 ]]; then
+        repo_display="${repo_display:0:27}..."
+    fi
+
+    local icon=""
+    local status_text=""
+
+    case "$status" in
+        queued)
+            icon="${WHITE}○${NC}"
+            status_text="${DIM}queued...${NC}"
+            ;;
+        running)
+            local spinner=$(get_spinner_char "$spinner_iter")
+            icon="${CYAN}${spinner}${NC}"
+            if [[ -n "$current_scanner" ]]; then
+                status_text="${CYAN}$current_scanner${NC} ${DIM}$progress${NC}"
+            else
+                status_text="${DIM}running...${NC}"
+            fi
+            ;;
+        complete)
+            icon="${GREEN}✓${NC}"
+            status_text="${GREEN}complete${NC} ${DIM}${duration}s${NC}"
+            if [[ -n "$progress" ]]; then
+                status_text="$status_text ${DIM}• $progress${NC}"
+            fi
+            ;;
+        failed)
+            icon="${RED}✗${NC}"
+            status_text="${RED}failed${NC}"
+            ;;
+        *)
+            icon="${DIM}○${NC}"
+            status_text="${DIM}unknown${NC}"
+            ;;
+    esac
+
+    printf "  %b %-30s %b\n" "$icon" "$repo_display" "$status_text"
+}
+
+# Render full org scan dashboard
+# Usage: render_org_scan_dashboard <status_dir> <repo_list> <spinner_iteration>
+render_org_scan_dashboard() {
+    local status_dir="$1"
+    local repos="$2"
+    local spinner_iter="${3:-0}"
+
+    for repo in $repos; do
+        local safe_name=$(sanitize_repo_name "$repo")
+        local status_file="$status_dir/$safe_name.status"
+        if [[ -f "$status_file" ]]; then
+            IFS='|' read -r status current_scanner progress duration < "$status_file"
+        else
+            status="queued"
+            current_scanner=""
+            progress=""
+            duration="0"
+        fi
+
+        render_repo_dashboard_line "$repo" "$status" "$current_scanner" "$progress" "$duration" "$spinner_iter"
+    done
+}
+
+# Check if any repos are still scanning
+# Usage: repos_still_scanning <status_dir> <repo_list>
+repos_still_scanning() {
+    local status_dir="$1"
+    local repos="$2"
+
+    for repo in $repos; do
+        local safe_name=$(sanitize_repo_name "$repo")
+        local status_file="$status_dir/$safe_name.status"
+        if [[ -f "$status_file" ]]; then
+            local status=$(cut -d'|' -f1 "$status_file")
+            if [[ "$status" == "running" ]] || [[ "$status" == "queued" ]]; then
+                return 0
+            fi
+        fi
+    done
+
+    return 1
+}
+
+#############################################################################
+# Progress Bar Display
+#############################################################################
+
+# Render a progress bar
+# Usage: render_progress_bar <current> <total> <width> [label]
+render_progress_bar() {
+    local current=$1
+    local total=$2
+    local width=${3:-50}
+    local label="${4:-}"
+
+    local pct=0
+    if [[ $total -gt 0 ]]; then
+        pct=$((current * 100 / total))
+    fi
+
+    local filled=$((current * width / total))
+    [[ $filled -gt $width ]] && filled=$width
+    local empty=$((width - filled))
+
+    # Build progress bar
+    local bar=""
+    for ((i=0; i<filled; i++)); do bar+="="; done
+    if [[ $filled -lt $width ]]; then
+        bar+=">"
+        ((empty--))
+    fi
+    for ((i=0; i<empty; i++)); do bar+=" "; done
+
+    # Print progress bar
+    if [[ -n "$label" ]]; then
+        printf "\r%s [%s] %d%% (%d/%d)" "$label" "$bar" "$pct" "$current" "$total"
+    else
+        printf "\r[%s] %d%% (%d/%d)" "$bar" "$pct" "$current" "$total"
+    fi
+}
+
+# Clear current line and move to beginning
+clear_progress_line() {
+    printf "\r\033[K"
+}
+
+#############################################################################
+# Dashboard Display for Parallel Scans
+#############################################################################
+
+# Spinner frames for animated progress
+SPINNER_FRAMES=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+SPINNER_FRAME=0
+
+# Get next spinner frame
+get_spinner_frame() {
+    echo "${SPINNER_FRAMES[$SPINNER_FRAME]}"
+    SPINNER_FRAME=$(( (SPINNER_FRAME + 1) % ${#SPINNER_FRAMES[@]} ))
+}
+
+# ANSI cursor control
+move_cursor_up() {
+    local lines=$1
+    printf "\033[%dA" "$lines"
+}
+
+clear_lines() {
+    local lines=$1
+    for ((i=0; i<lines; i++)); do
+        printf "\033[K\n"
+    done
+    move_cursor_up "$lines"
+}
+
+# Render dashboard showing parallel scan progress
+# Usage: render_scan_dashboard <status_dir> <total_scanners> <repos...>
+render_scan_dashboard() {
+    local status_dir="$1"
+    local total_scanners="$2"
+    shift 2
+    local all_repos=("$@")
+
+    # Dashboard config
+    local max_slots=4  # Show up to 4 active scans
+    local bar_width=30
+
+    # Find running and queued repos
+    local running_repos=()
+    local queued_repos=()
+    local completed_repos=()
+
+    for repo in "${all_repos[@]}"; do
+        local safe_name=$(sanitize_repo_name "$repo")
+        local status_file="$status_dir/$safe_name.status"
+
+        if [[ -f "$status_file" ]]; then
+            local status=$(cut -d'|' -f1 "$status_file")
+            case "$status" in
+                running)
+                    running_repos+=("$repo")
+                    ;;
+                complete|failed)
+                    completed_repos+=("$repo")
+                    ;;
+            esac
+        else
+            queued_repos+=("$repo")
+        fi
+    done
+
+    # Clear previous dashboard
+    if [[ -n "${DASHBOARD_LINES:-}" ]]; then
+        clear_lines "$DASHBOARD_LINES"
+    fi
+
+    local lines_printed=0
+
+    # Render active scan slots
+    for ((slot=0; slot<max_slots; slot++)); do
+        if [[ $slot -lt ${#running_repos[@]} ]]; then
+            # Render active scan
+            local repo="${running_repos[$slot]}"
+            local safe_name=$(sanitize_repo_name "$repo")
+            local status_file="$status_dir/$safe_name.status"
+
+            if [[ -f "$status_file" ]]; then
+                IFS='|' read -r status current_scanner progress duration < "$status_file"
+
+                # Parse progress (e.g., "10/18")
+                local current=0
+                local total=$total_scanners
+                if [[ "$progress" =~ ^([0-9]+)/([0-9]+)$ ]]; then
+                    current="${BASH_REMATCH[1]}"
+                    total="${BASH_REMATCH[2]}"
+                fi
+
+                # Calculate percentage
+                local pct=0
+                if [[ $total -gt 0 ]]; then
+                    pct=$((current * 100 / total))
+                fi
+
+                # Build mini progress bar
+                local filled=$((current * bar_width / total))
+                [[ $filled -gt $bar_width ]] && filled=$bar_width
+                local empty=$((bar_width - filled))
+                local bar=""
+                for ((i=0; i<filled; i++)); do bar+="="; done
+                if [[ $filled -lt $bar_width ]]; then
+                    bar+=">"
+                    ((empty--))
+                fi
+                for ((i=0; i<empty; i++)); do bar+=" "; done
+
+                # Print scan line with spinner
+                local spinner=$(get_spinner_frame)
+                printf "[%s] %-35s [%s] %3d%% %s\n" \
+                    "${CYAN}${spinner}${NC}" \
+                    "${repo:0:35}" \
+                    "$bar" \
+                    "$pct" \
+                    "${DIM}${current_scanner}${NC}"
+            fi
+        elif [[ $slot -lt $((${#running_repos[@]} + ${#queued_repos[@]})) ]]; then
+            # Show queued repo
+            local queue_idx=$((slot - ${#running_repos[@]}))
+            local repo="${queued_repos[$queue_idx]}"
+            printf "[${DIM}⋯${NC}] %-35s ${DIM}queued...${NC}\n" "${repo:0:35}"
+        else
+            # Empty slot
+            printf "${DIM}[−] (empty)${NC}\n"
+        fi
+        ((lines_printed++))
+    done
+
+    # Show overall progress
+    local total_repos=${#all_repos[@]}
+    local completed_count=${#completed_repos[@]}
+    local overall_pct=0
+    if [[ $total_repos -gt 0 ]]; then
+        overall_pct=$((completed_count * 100 / total_repos))
+    fi
+
+    echo
+    printf "${BOLD}Overall:${NC} %d/%d repos complete (%d%%) " \
+        "$completed_count" "$total_repos" "$overall_pct"
+
+    # Show queued count if any
+    if [[ ${#queued_repos[@]} -gt $((max_slots - ${#running_repos[@]})) ]]; then
+        local hidden=$((${#queued_repos[@]} - (max_slots - ${#running_repos[@]})))
+        printf "${DIM}(+%d queued)${NC}" "$hidden"
+    fi
+
+    echo
+    ((lines_printed+=2))
+
+    # Store line count for next clear
+    export DASHBOARD_LINES=$lines_printed
+}
+
+#############################################################################
+# Buffered Output System
+#############################################################################
+
+# Initialize output buffer directory
+# Returns: path to buffer directory
+init_output_buffer() {
+    local buffer_dir=$(mktemp -d)
+    echo "$buffer_dir"
+}
+
+# Start buffering output for a specific item
+# Usage: start_buffer <buffer_dir> <item_id>
+start_buffer() {
+    local buffer_dir="$1"
+    local item_id="$2"
+
+    # Sanitize item_id for filename
+    local safe_id=$(echo "$item_id" | sed 's/[^a-zA-Z0-9_-]/_/g')
+    echo "" > "$buffer_dir/$safe_id.output"
+}
+
+# Append to buffer
+# Usage: append_buffer <buffer_dir> <item_id> <text>
+append_buffer() {
+    local buffer_dir="$1"
+    local item_id="$2"
+    local text="$3"
+
+    local safe_id=$(echo "$item_id" | sed 's/[^a-zA-Z0-9_-]/_/g')
+    echo "$text" >> "$buffer_dir/$safe_id.output"
+}
+
+# Flush buffer to stdout
+# Usage: flush_buffer <buffer_dir> <item_id>
+flush_buffer() {
+    local buffer_dir="$1"
+    local item_id="$2"
+
+    local safe_id=$(echo "$item_id" | sed 's/[^a-zA-Z0-9_-]/_/g')
+    local buffer_file="$buffer_dir/$safe_id.output"
+
+    if [[ -f "$buffer_file" ]]; then
+        cat "$buffer_file"
     fi
 }
 
