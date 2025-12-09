@@ -11,6 +11,7 @@ Thank you for your interest in contributing to Zero! This document provides guid
 ## Table of Contents
 
 - [Code of Conduct](#code-of-conduct)
+- [Contributor License Agreement](#contributor-license-agreement)
 - [How Can I Contribute?](#how-can-i-contribute)
 - [Development Process](#development-process)
 - [Skill Guidelines](#skill-guidelines)
@@ -22,6 +23,25 @@ Thank you for your interest in contributing to Zero! This document provides guid
 ## Code of Conduct
 
 This project adheres to a Code of Conduct that all contributors are expected to follow. Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before contributing.
+
+## Contributor License Agreement
+
+**All contributors must complete a Contributor License Agreement (CLA) before their contributions can be merged.**
+
+By contributing to Zero, you agree to the terms of the [Crash Override Contributor License Agreement](https://crashoverride.com/docs/other/contributing). This CLA ensures that:
+
+- Your contributions can be safely integrated into the project
+- The project remains properly licensed and legally protected
+- Your rights as a contributor are clearly defined
+
+You only need to sign the CLA once - it covers all Crash Override open source projects including Zero, Chalk, and others.
+
+**How to complete the CLA:**
+1. Review the CLA at https://crashoverride.com/docs/other/contributing
+2. Follow the signing process outlined on that page
+3. Once signed, you're ready to contribute!
+
+If you have questions about the CLA, please contact hello@crashoverride.com.
 
 ## How Can I Contribute?
 
