@@ -634,6 +634,9 @@ scan_org_sequential() {
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
 
+    # Reset progress display flag for this scan
+    SCAN_STATUS_RENDERED=0
+
     local success=0
     local failed=0
     local current=0
