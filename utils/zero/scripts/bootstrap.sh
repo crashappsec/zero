@@ -57,6 +57,7 @@ ENRICH=false      # Incremental enrichment - only run missing collectors
 CLONE_ONLY=false  # Just clone, don't scan
 SCAN_ONLY=false   # Just scan existing clone, don't clone
 PARALLEL=true     # Run scanners in parallel (default: true)
+STATUS_DIR=""     # Optional status directory for progress tracking
 
 # Canonical list of ALL scanners - loaded from config for display
 # This ensures consistent output format across all profiles
@@ -178,6 +179,10 @@ parse_args() {
             --no-parallel)
                 PARALLEL=false
                 shift
+                ;;
+            --status-dir)
+                STATUS_DIR="$2"
+                shift 2
                 ;;
             --*)
                 # Try to match as a dynamic profile name from config
@@ -1566,6 +1571,10 @@ run_all_analyzers() {
     local requested_analyzers=$(get_analyzers_for_mode "$mode")
     local analyzers_to_run="$requested_analyzers"
 
+    # Track progress for status updates
+    local scanner_index=0
+    local total_to_run=0
+
     # In enrich mode, only run missing analyzers
     if [[ "$enrich" == "true" ]]; then
         local completed=$(get_completed_analyzers "$output_path")
@@ -1580,6 +1589,9 @@ run_all_analyzers() {
 
     local profile_count=$(echo "$requested_analyzers" | wc -w | tr -d ' ')
     local total_scanners=$(echo "$ALL_SCANNERS" | wc -w | tr -d ' ')
+
+    # Count total scanners that will actually run
+    total_to_run=$(echo "$analyzers_to_run" | wc -w | tr -d ' ')
 
     # Show mode in header
     local mode_display=""
@@ -1615,6 +1627,12 @@ run_all_analyzers() {
         else
             # Run this analyzer - show waiting indicator
             printf "  ${WHITE}○${NC} %-24s ${DIM}running...${NC}" "$display_name"
+
+            # Update status if status dir provided
+            ((scanner_index++))
+            if [[ -n "$STATUS_DIR" ]]; then
+                update_repo_scan_status "$STATUS_DIR" "$project_id" "running" "$analyzer" "$scanner_index/$total_to_run" "0"
+            fi
 
             local start_time=$(date +%s)
             run_analyzer "$analyzer" "$repo_path" "$output_path" "$project_id"
@@ -1988,9 +2006,19 @@ run_all_analyzers_parallel() {
         fi
     done
 
+    # Track total scanners for progress (will be calculated after remaining_scanners)
+    local scanner_index=0
+    local total_scanners_to_run=$(echo "$analyzers_to_run" | wc -w | tr -d ' ')
+
     if [[ "$has_sbom_scanner" == "true" ]]; then
         local display_name=$(get_scanner_display_name "package-sbom")
         printf "  ${WHITE}○${NC} %-24s ${DIM}running...${NC}" "$display_name"
+
+        # Update global STATUS_DIR for scan.sh
+        ((scanner_index++))
+        if [[ -n "$STATUS_DIR" ]]; then
+            update_repo_scan_status "$STATUS_DIR" "$project_id" "running" "package-sbom" "$scanner_index/$total_scanners_to_run" "0"
+        fi
 
         local start_time=$(date +%s)
         run_analyzer "package-sbom" "$repo_path" "$output_path" "$project_id"
@@ -2045,8 +2073,14 @@ run_all_analyzers_parallel() {
         local analyzer="${analyzer_array[$next_analyzer_idx]}"
         local start_time=$(date +%s)
 
-        # Update status to running
+        # Update status to running (local status_dir for this bootstrap run)
         update_scanner_status "$status_dir" "$analyzer" "running"
+
+        # Update global STATUS_DIR for scan.sh
+        ((scanner_index++))
+        if [[ -n "$STATUS_DIR" ]]; then
+            update_repo_scan_status "$STATUS_DIR" "$project_id" "running" "$analyzer" "$scanner_index/$total_scanners_to_run" "0"
+        fi
 
         # Start scanner in background
         (
@@ -2110,8 +2144,14 @@ run_all_analyzers_parallel() {
                     local analyzer="${analyzer_array[$next_analyzer_idx]}"
                     local start_time=$(date +%s)
 
-                    # Update status to running
+                    # Update status to running (local status_dir for this bootstrap run)
                     update_scanner_status "$status_dir" "$analyzer" "running"
+
+                    # Update global STATUS_DIR for scan.sh
+                    ((scanner_index++))
+                    if [[ -n "$STATUS_DIR" ]]; then
+                        update_repo_scan_status "$STATUS_DIR" "$project_id" "running" "$analyzer" "$scanner_index/$total_scanners_to_run" "0"
+                    fi
 
                     # Start scanner in background
                     (
