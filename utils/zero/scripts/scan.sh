@@ -23,7 +23,7 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+# Load Zero library (sets ZERO_DIR to .zero data directory in project root)
 source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load config loader for dynamic profiles
@@ -405,7 +405,7 @@ scan_org() {
     fi
 }
 
-# Scan org repos in parallel using GNU parallel
+# Scan org repos with progress bar and grouped output
 scan_org_parallel() {
     local org="$1"
     shift
@@ -413,26 +413,200 @@ scan_org_parallel() {
     local repo_count=${#repos[@]}
     local parallel_jobs=$(get_parallel_jobs)
 
-    echo -e "${CYAN}Running parallel scan with $parallel_jobs concurrent jobs...${NC}"
+    echo -e "${CYAN}Scanning $repo_count repositories with $parallel_jobs concurrent jobs${NC}"
+    echo -e "${DIM}Progress bar mode • Grouped output • Press Ctrl+C to cancel${NC}"
+    echo
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
 
-    # Create temp dir for results
+    # Create temp dirs
     local tmp_dir=$(mktemp -d)
-    trap "rm -rf $tmp_dir" EXIT
+    local status_dir=$(mktemp -d)
+    local buffer_dir=$(init_output_buffer)
 
-    # Export variables for parallel
-    export SCRIPT_DIR PROFILE FORCE
+    # Initialize dashboard
+    init_org_scan_dashboard "${repos[*]}" "$status_dir"
 
-    # Run scans in parallel
-    printf '%s\n' "${repos[@]}" | parallel -j "$parallel_jobs" --bar --tag \
-        "$SCRIPT_DIR/bootstrap.sh" --scan-only --"$PROFILE" $([ "$FORCE" == "true" ] && echo "--force") {} \
-        '>' "$tmp_dir/{#}.log" '2>&1' ';' \
-        'echo $? > '"$tmp_dir/{#}.exit"
+    local completed_count=0
+
+    # Start background scans with status tracking
+    local pids=()
+    local running=0
+    local next_idx=0
+
+    # Setup cleanup handler for background processes
+    cleanup_org_scan() {
+        local exit_code=$?
+
+        # Clear any progress bar
+        clear_progress_line 2>/dev/null || true
+
+        # If interrupted (Ctrl+C), show cancellation message
+        if [[ $exit_code -eq 130 ]] || [[ "${SCAN_INTERRUPTED:-}" == "true" ]]; then
+            echo -e "\n${YELLOW}⚠${NC} Scan cancelled by user" >&2
+        fi
+
+        # Kill all background scan jobs
+        for pid in "${pids[@]}"; do
+            kill "$pid" 2>/dev/null || true
+        done
+        # Wait briefly for jobs to terminate
+        sleep 0.2
+        # Force kill any remaining jobs
+        for pid in "${pids[@]}"; do
+            kill -9 "$pid" 2>/dev/null || true
+        done
+        # Clean up temp directories
+        rm -rf "$tmp_dir" "$status_dir" "$buffer_dir" 2>/dev/null || true
+    }
+
+    # Handle Ctrl+C gracefully
+    handle_interrupt() {
+        SCAN_INTERRUPTED=true
+        exit 130
+    }
+
+    trap cleanup_org_scan EXIT
+    trap handle_interrupt INT TERM
+
+    # Function to monitor a scan and buffer output
+    monitor_scan() {
+        local repo="$1"
+        local tmp_dir="$2"
+        local status_dir="$3"
+        local buffer_dir="$4"
+        local idx="$5"
+
+        local start_time=$(date +%s)
+        update_repo_scan_status "$status_dir" "$repo" "running" "starting" "" "0"
+
+        # Initialize buffer for this repo
+        start_buffer "$buffer_dir" "$repo"
+
+        # Run scan and capture output
+        local scan_output=$(mktemp)
+        "$SCRIPT_DIR/bootstrap.sh" --scan-only --"$PROFILE" $([ "$FORCE" == "true" ] && echo "--force") "$repo" > "$scan_output" 2>&1
+        local exit_code=$?
+
+        local end_time=$(date +%s)
+        local duration=$((end_time - start_time))
+
+        # Store output in buffer
+        append_buffer "$buffer_dir" "$repo" "$(cat "$scan_output")"
+
+        # Parse output for final summary
+        local summary=""
+        if [[ $exit_code -eq 0 ]]; then
+            summary=$(grep -E "✓|complete" "$scan_output" 2>/dev/null | wc -l | tr -d ' ')
+            summary="${summary} scanners"
+            update_repo_scan_status "$status_dir" "$repo" "complete" "" "$summary" "$duration"
+        else
+            update_repo_scan_status "$status_dir" "$repo" "failed" "" "" "$duration"
+        fi
+
+        rm -f "$scan_output"
+        echo "$exit_code" > "$tmp_dir/$idx.exit"
+    }
+
+    # Start initial batch
+    while [[ $next_idx -lt ${#repos[@]} ]] && [[ $running -lt $parallel_jobs ]]; do
+        local repo="${repos[$next_idx]}"
+        monitor_scan "$repo" "$tmp_dir" "$status_dir" "$buffer_dir" "$next_idx" &
+        pids+=($!)
+        ((running++))
+        ((next_idx++))
+    done
+
+    # Get total scanner count for the profile
+    local profile_scanners=$(get_profile_scanners "$PROFILE")
+    local total_scanners=$(echo "$profile_scanners" | wc -w | tr -d ' ')
+
+    # Track which repos have been displayed
+    local displayed_repos=""
+
+    # Monitor with dashboard and display completed repos
+    echo  # Initial spacing
+    while repos_still_scanning "$status_dir" "${repos[*]}"; do
+        # Count completed scanners
+        completed_count=0
+        for repo in "${repos[@]}"; do
+            local safe_name=$(echo "$repo" | sed 's/\//__/g')
+            local status_file="$status_dir/$safe_name.status"
+            if [[ -f "$status_file" ]]; then
+                local status=$(cut -d'|' -f1 "$status_file")
+                if [[ "$status" == "complete" ]] || [[ "$status" == "failed" ]]; then
+                    ((completed_count++))
+
+                    # Display repo output if not already displayed
+                    if [[ ! " $displayed_repos " =~ " $repo " ]]; then
+                        # Clear dashboard before showing repo output
+                        if [[ -n "${DASHBOARD_LINES:-}" ]]; then
+                            clear_lines "$DASHBOARD_LINES"
+                        fi
+
+                        echo
+                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                        echo -e "${BOLD}${CYAN}$repo${NC}"
+                        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                        flush_buffer "$buffer_dir" "$repo"
+                        echo
+                        displayed_repos="$displayed_repos $repo"
+
+                        # Reset dashboard line tracking
+                        unset DASHBOARD_LINES
+                    fi
+                fi
+            fi
+        done
+
+        # Render dashboard
+        render_scan_dashboard "$status_dir" "$total_scanners" "${repos[@]}"
+
+        # Check for completed jobs and start new ones
+        for i in "${!pids[@]}"; do
+            local pid="${pids[$i]}"
+            if ! kill -0 "$pid" 2>/dev/null; then
+                unset 'pids[$i]'
+                ((running--))
+
+                # Start next scan if available
+                if [[ $next_idx -lt ${#repos[@]} ]]; then
+                    local repo="${repos[$next_idx]}"
+                    monitor_scan "$repo" "$tmp_dir" "$status_dir" "$buffer_dir" "$next_idx" &
+                    pids+=($!)
+                    ((running++))
+                    ((next_idx++))
+                fi
+            fi
+        done
+
+        # Compact pids array
+        pids=("${pids[@]}")
+
+        sleep 0.3
+    done
+
+    # Clear dashboard
+    if [[ -n "${DASHBOARD_LINES:-}" ]]; then
+        clear_lines "$DASHBOARD_LINES"
+    fi
+
+    # Display any remaining repos that haven't been shown yet
+    for repo in "${repos[@]}"; do
+        if [[ ! " $displayed_repos " =~ " $repo " ]]; then
+            echo
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo -e "${BOLD}${CYAN}$repo${NC}"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            flush_buffer "$buffer_dir" "$repo"
+            echo
+        fi
+    done
 
     # Count results
     local success=0
     local failed=0
-    for i in $(seq 1 $repo_count); do
+    for i in $(seq 0 $((repo_count - 1))); do
         if [[ -f "$tmp_dir/$i.exit" ]] && [[ $(cat "$tmp_dir/$i.exit") -eq 0 ]]; then
             ((success++))
         else
@@ -440,14 +614,13 @@ scan_org_parallel() {
         fi
     done
 
-    echo
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo -e "${GREEN}✓ Complete${NC}: $success scanned, $failed failed"
     echo
     echo -e "View results: ${CYAN}./zero.sh report --org $org${NC}"
 }
 
-# Scan org repos sequentially with background job parallelization
+# Scan org repos sequentially with grouped output
 scan_org_sequential() {
     local org="$1"
     shift
@@ -455,62 +628,185 @@ scan_org_sequential() {
     local repo_count=${#repos[@]}
     local parallel_jobs=$(get_parallel_jobs)
 
+    echo -e "${CYAN}Scanning $repo_count repositories with $parallel_jobs concurrent jobs${NC}"
+    echo -e "${DIM}Progress bar mode • Grouped output${NC}"
+    echo
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo
+
     local success=0
     local failed=0
     local current=0
+    local completed_count=0
     local pids=()
     local repo_map=()
 
-    # Create temp dir for logs
+    # Create temp dirs
     local tmp_dir=$(mktemp -d)
-    trap "rm -rf $tmp_dir" EXIT
+    local buffer_dir=$(init_output_buffer)
+
+    # Track completed repos
+    local displayed_repos=""
+
+    # Setup cleanup handler for background processes
+    cleanup_seq_scan() {
+        local exit_code=$?
+
+        # Clear any progress bar
+        clear_progress_line 2>/dev/null || true
+
+        # If interrupted (Ctrl+C), show cancellation message
+        if [[ $exit_code -eq 130 ]] || [[ "${SCAN_INTERRUPTED:-}" == "true" ]]; then
+            echo -e "\n${YELLOW}⚠${NC} Scan cancelled by user" >&2
+        fi
+
+        # Kill all background scan jobs
+        for pid in "${pids[@]}"; do
+            kill "$pid" 2>/dev/null || true
+        done
+        # Wait briefly for jobs to terminate
+        sleep 0.2
+        # Force kill any remaining jobs
+        for pid in "${pids[@]}"; do
+            kill -9 "$pid" 2>/dev/null || true
+        done
+        # Clean up temp directories
+        rm -rf "$tmp_dir" "$buffer_dir" 2>/dev/null || true
+    }
+
+    # Handle Ctrl+C gracefully
+    handle_interrupt() {
+        SCAN_INTERRUPTED=true
+        exit 130
+    }
+
+    trap cleanup_seq_scan EXIT
+    trap handle_interrupt INT TERM
+
+    # Show initial progress bar
+    render_progress_bar 0 "$repo_count" 50 "Scanning repos"
+
+    # Track start time for elapsed counter
+    local scan_start_time=$(date +%s)
 
     for repo in "${repos[@]}"; do
         ((current++))
+
+        # Initialize buffer for this repo
+        start_buffer "$buffer_dir" "$repo"
 
         # Build bootstrap args
         local bootstrap_args=("--scan-only" "--$PROFILE")
         [[ "$FORCE" == "true" ]] && bootstrap_args+=("--force")
         bootstrap_args+=("$repo")
 
-        # Start background job
+        # Start background job - capture output
         (
-            "$SCRIPT_DIR/bootstrap.sh" "${bootstrap_args[@]}" > "$tmp_dir/$current.log" 2>&1
-            echo $? > "$tmp_dir/$current.exit"
+            local scan_output=$(mktemp)
+            "$SCRIPT_DIR/bootstrap.sh" "${bootstrap_args[@]}" > "$scan_output" 2>&1
+            local exit_code=$?
+
+            # Store output in buffer
+            append_buffer "$buffer_dir" "$repo" "$(cat "$scan_output")"
+            rm -f "$scan_output"
+
+            echo $exit_code > "$tmp_dir/$current.exit"
         ) &
 
         pids+=($!)
         repo_map+=("$repo")
 
-        echo -e "${BOLD}[$current/$repo_count]${NC} ${CYAN}$repo${NC} ${DIM}(started)${NC}"
-
         # Limit concurrent jobs
         if [[ ${#pids[@]} -ge $parallel_jobs ]]; then
-            # Wait for oldest job to complete (ignore exit code - we check logs later)
+            # Poll for oldest job completion with progress updates
+            while kill -0 "${pids[0]}" 2>/dev/null; do
+                local elapsed=$(($(date +%s) - scan_start_time))
+                local spinner_frame=$(get_spinner_frame)
+                clear_progress_line
+                render_progress_bar "$completed_count" "$repo_count" 50 "${spinner_frame} Scanning (${#repo_map[@]} active, ${elapsed}s)"
+                sleep 0.3
+            done
             wait "${pids[0]}" 2>/dev/null || true
+
+            # Display completed repo
+            local completed_repo="${repo_map[0]}"
+            ((completed_count++))
+
+            clear_progress_line
+            echo
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo -e "${BOLD}${CYAN}$completed_repo${NC}"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            flush_buffer "$buffer_dir" "$completed_repo"
+            echo
+            displayed_repos="$displayed_repos $completed_repo"
+
+            # Show remaining active scans
             pids=("${pids[@]:1}")
+            repo_map=("${repo_map[@]:1}")
+
+            # Update progress display
+            if [[ ${#repo_map[@]} -gt 0 ]]; then
+                local elapsed=$(($(date +%s) - scan_start_time))
+                local spinner_frame=$(get_spinner_frame)
+                render_progress_bar "$completed_count" "$repo_count" 50 "${spinner_frame} Scanning (${#repo_map[@]} active, ${elapsed}s)"
+            fi
         fi
     done
 
-    # Wait for remaining jobs
-    echo
-    echo -e "${DIM}Waiting for remaining scans to complete...${NC}"
-    for pid in "${pids[@]}"; do
-        wait "$pid" 2>/dev/null || true
+    # Wait for remaining jobs and display their output
+    while [[ ${#pids[@]} -gt 0 ]]; do
+        # Check each remaining job
+        for i in "${!pids[@]}"; do
+            local pid="${pids[$i]}"
+            if ! kill -0 "$pid" 2>/dev/null; then
+                # Job completed
+                wait "$pid" 2>/dev/null || true
+                local completed_repo="${repo_map[$i]}"
+                ((completed_count++))
+
+                if [[ ! " $displayed_repos " =~ " $completed_repo " ]]; then
+                    clear_progress_line
+                    echo
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    echo -e "${BOLD}${CYAN}$completed_repo${NC}"
+                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                    flush_buffer "$buffer_dir" "$completed_repo"
+                    echo
+                    displayed_repos="$displayed_repos $completed_repo"
+                fi
+
+                # Remove from arrays
+                unset 'pids[$i]'
+                unset 'repo_map[$i]'
+            fi
+        done
+
+        # Compact arrays
+        pids=("${pids[@]}")
+        repo_map=("${repo_map[@]}")
+
+        # Update progress bar
+        if [[ ${#pids[@]} -gt 0 ]]; then
+            local elapsed=$(($(date +%s) - scan_start_time))
+            local spinner_frame=$(get_spinner_frame)
+            clear_progress_line
+            render_progress_bar "$completed_count" "$repo_count" 50 "${spinner_frame} Scanning (${#repo_map[@]} active, ${elapsed}s)"
+            sleep 0.3
+        fi
     done
 
-    # Count results and show summary
+    clear_progress_line
+
+    # Count results
     for i in $(seq 1 $repo_count); do
         if [[ -f "$tmp_dir/$i.exit" ]] && [[ $(cat "$tmp_dir/$i.exit") -eq 0 ]]; then
             ((success++))
-            echo -e "  ${GREEN}✓${NC} ${repo_map[$((i-1))]}"
         else
             ((failed++))
-            echo -e "  ${RED}✗${NC} ${repo_map[$((i-1))]}"
         fi
     done
 
-    echo
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo -e "${GREEN}✓ Complete${NC}: $success scanned, $failed failed"
     echo
