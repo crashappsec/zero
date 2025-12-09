@@ -19,7 +19,7 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+# Load Zero library (sets ZERO_DIR to .zero data directory in project root)
 source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load report utilities
@@ -261,7 +261,7 @@ interactive_menu() {
     # For non-terminal output, reports are auto-saved with standardized names
     if [[ "$OUTPUT_FORMAT" != "terminal" ]]; then
         echo
-        echo -e "${DIM}Reports will be saved to: ~/.zero/projects/<org>/<repo>/analysis/reports/${NC}"
+        echo -e "${DIM}Reports will be saved to: .zero/repos/<org>/<repo>/analysis/reports/${NC}"
         echo -e "${DIM}Naming format: ${REPORT_TYPE}_<scanID>_<datetime>.<ext>${NC}"
     fi
 

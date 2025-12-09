@@ -22,7 +22,7 @@ ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
 UTILS_DIR="$(dirname "$ZERO_UTILS_DIR")"
 REPO_ROOT="$(dirname "$UTILS_DIR")"
 
-# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+# Load Zero library (sets ZERO_DIR to .zero data directory in project root)
 source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load Agent loader

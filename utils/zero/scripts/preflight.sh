@@ -19,7 +19,7 @@ ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
 UTILS_ROOT="$(dirname "$ZERO_UTILS_DIR")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 
-# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+# Load Zero library (sets ZERO_DIR to .zero data directory in project root)
 source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load .env if it exists
@@ -319,10 +319,10 @@ run_checks() {
     check_github_auth || true
     echo
 
-    # Phantom Directory (these are auto-created on first run, so just informational)
-    echo -e "${BOLD}Phantom Storage${NC}"
-    check_directory "$HOME/.zero" "~/.zero" || true
-    check_directory "$HOME/.zero/projects" "projects" || true
+    # Zero Directory (these are auto-created on first run, so just informational)
+    echo -e "${BOLD}Zero Storage${NC}"
+    check_directory "$ZERO_DIR" ".zero" || true
+    check_directory "$ZERO_DIR/repos" "repos" || true
     echo
 
     # Offer to install missing tools
