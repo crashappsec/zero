@@ -1260,8 +1260,155 @@ clear_progress_line() {
     printf "\r\033[K"
 }
 
+# Format duration in seconds to human-readable format (e.g., "3m 24s")
+format_duration() {
+    local seconds=$1
+    local minutes=$((seconds / 60))
+    local secs=$((seconds % 60))
+
+    if [[ $minutes -gt 0 ]]; then
+        echo "${minutes}m ${secs}s"
+    else
+        echo "${secs}s"
+    fi
+}
+
+# Calculate progress including partial repo completion
+calculate_partial_progress() {
+    local status_dir="$1"
+    local completed_count="$2"
+    shift 2
+    local all_repos=("$@")
+
+    local total_progress=0
+
+    for repo in "${all_repos[@]}"; do
+        local safe_name=$(sanitize_repo_name "$repo")
+        local status_file="$status_dir/$safe_name.status"
+
+        if [[ -f "$status_file" ]]; then
+            IFS='|' read -r status current_scanner progress duration < "$status_file"
+
+            if [[ "$progress" =~ ^([0-9]+)/([0-9]+)$ ]]; then
+                local current="${BASH_REMATCH[1]}"
+                local total="${BASH_REMATCH[2]}"
+                if [[ $total -gt 0 ]]; then
+                    total_progress=$((total_progress + (current * 100 / total)))
+                fi
+            fi
+        fi
+    done
+
+    local partial=$((total_progress / 100))
+    echo $((completed_count + partial))
+}
+
+# Render single-line scan status with aggregated counts
+# Shows: spinner + counts + elapsed + progress bar + running repo details
+render_scan_status_line() {
+    local status_dir="$1"
+    local repo_count="$2"
+    local completed_count="$3"
+    local elapsed="$4"
+    shift 4
+    local all_repos=("$@")
+
+    # Count repos by status
+    local running_count=0
+    local queued_count=0
+    local running_repos=()
+
+    for repo in "${all_repos[@]}"; do
+        local safe_name=$(sanitize_repo_name "$repo")
+        local status_file="$status_dir/$safe_name.status"
+
+        if [[ -f "$status_file" ]]; then
+            IFS='|' read -r status current_scanner progress duration < "$status_file"
+            if [[ "$status" == "running" ]]; then
+                ((running_count++))
+                running_repos+=("$repo|$current_scanner|$progress")
+            fi
+        else
+            ((queued_count++))
+        fi
+    done
+
+    # Get spinner frame
+    local spinner=$(get_spinner_frame)
+
+    # Calculate partial progress
+    local display_progress=$(calculate_partial_progress "$status_dir" "$completed_count" "${all_repos[@]}")
+    if [[ $repo_count -eq 0 ]]; then
+        local pct=0
+    else
+        local pct=$((display_progress * 100 / repo_count))
+    fi
+
+    # Build progress bar
+    local bar_width=50
+    if [[ $repo_count -eq 0 ]]; then
+        local filled=0
+    else
+        local filled=$((display_progress * bar_width / repo_count))
+    fi
+    [[ $filled -gt $bar_width ]] && filled=$bar_width
+    local empty=$((bar_width - filled))
+    local bar=""
+    for ((i=0; i<filled; i++)); do bar+="="; done
+    if [[ $filled -lt $bar_width ]] && [[ $filled -gt 0 ]]; then
+        bar+=">"
+        ((empty--))
+    fi
+    for ((i=0; i<empty; i++)); do bar+=" "; done
+
+    # Clear previous 2 lines (status + details)
+    printf "\r\033[K\033[1A\033[K"
+
+    # Line 1: Status summary
+    printf "%s Scanning: %d running • %d complete • %d queued (%ds) [%s] %d%% (%d/%d)\n" \
+        "$spinner" "$running_count" "$completed_count" "$queued_count" "$elapsed" \
+        "$bar" "$pct" "$completed_count" "$repo_count"
+
+    # Line 2: Running repo details (if any running)
+    if [[ ${#running_repos[@]} -gt 0 ]]; then
+        printf "  └─ Running: "
+        local first=true
+        local shown=0
+        for repo_info in "${running_repos[@]}"; do
+            [[ $shown -ge 4 ]] && break  # Limit to 4 running repos
+
+            IFS='|' read -r repo scanner progress <<< "$repo_info"
+
+            if [[ "$first" == "true" ]]; then
+                first=false
+            else
+                printf " • "
+            fi
+
+            # Show short repo name (last component)
+            local short_repo="${repo##*/}"
+
+            if [[ -n "$progress" ]]; then
+                printf "%s (%s %s)" "$short_repo" "$scanner" "$progress"
+            else
+                printf "%s (%s)" "$short_repo" "$scanner"
+            fi
+
+            ((shown++))
+        done
+
+        # Show +N more if truncated
+        if [[ ${#running_repos[@]} -gt 4 ]]; then
+            printf " +%d more" $((${#running_repos[@]} - 4))
+        fi
+        printf "\n"
+    else
+        printf "\n"  # Empty line 2
+    fi
+}
+
 #############################################################################
-# Dashboard Display for Parallel Scans
+# Dashboard Display for Parallel Scans (DEPRECATED - use render_scan_status_line)
 #############################################################################
 
 # Spinner frames for animated progress

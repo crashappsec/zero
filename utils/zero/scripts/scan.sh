@@ -733,61 +733,10 @@ scan_org_sequential() {
             # Poll for oldest job completion with progress updates
             while kill -0 "${pids[0]}" 2>/dev/null; do
                 local elapsed=$(($(date +%s) - scan_start_time))
-                local spinner_frame=$(get_spinner_frame)
 
-                # Build output buffer to reduce flashing
-                local output_buffer=""
-                output_buffer+="${spinner_frame} Scanning ${#repo_map[@]} repos (${elapsed}s):\n"
+                # Render single-line status
+                render_scan_status_line "$status_dir" "$repo_count" "$completed_count" "$elapsed" "${repo_map[@]}"
 
-                # Calculate partial progress based on scanner completion
-                local total_progress=0
-                local scanners_per_repo=4  # Approximate for quick mode
-
-                for repo in "${repo_map[@]}"; do
-                    local safe_name=$(sanitize_repo_name "$repo")
-                    local status_file="$status_dir/$safe_name.status"
-                    local status_info=""
-                    local repo_progress=0
-
-                    if [[ -f "$status_file" ]]; then
-                        IFS='|' read -r status current_scanner progress duration < "$status_file"
-                        if [[ -n "$current_scanner" ]] && [[ "$current_scanner" != "scanning" ]]; then
-                            # Show scanner name with progress if available
-                            if [[ -n "$progress" ]]; then
-                                status_info=" - $current_scanner ($progress)"
-                                # Calculate partial repo progress (e.g., "2/4" = 0.5)
-                                if [[ "$progress" =~ ^([0-9]+)/([0-9]+)$ ]]; then
-                                    local current="${BASH_REMATCH[1]}"
-                                    local total="${BASH_REMATCH[2]}"
-                                    if [[ $total -gt 0 ]]; then
-                                        repo_progress=$((current * 100 / total))
-                                    fi
-                                fi
-                            else
-                                status_info=" - $current_scanner"
-                            fi
-                        elif [[ -n "$progress" ]]; then
-                            status_info=" - $progress"
-                        fi
-                    fi
-
-                    output_buffer+="  • ${repo}${status_info}\n"
-                    total_progress=$((total_progress + repo_progress))
-                done
-
-                # Calculate overall progress including partial repos
-                local partial_completed=$((total_progress / 100))
-                local display_progress=$((completed_count + partial_completed))
-
-                # Clear previous output and write buffered output at once
-                printf "\r\033[K"  # Clear current line
-                for ((i=0; i<5; i++)); do
-                    printf "\033[1A\033[K"  # Move up and clear
-                done
-                printf "%b" "$output_buffer"
-
-                # Show progress bar with partial progress
-                render_progress_bar "$display_progress" "$repo_count" 50
                 sleep 0.5
             done
             wait "${pids[0]}" 2>/dev/null || true
@@ -812,50 +761,7 @@ scan_org_sequential() {
             # Update progress display
             if [[ ${#repo_map[@]} -gt 0 ]]; then
                 local elapsed=$(($(date +%s) - scan_start_time))
-                local spinner_frame=$(get_spinner_frame)
-
-                # Build output buffer
-                local output_buffer=""
-                output_buffer+="${spinner_frame} Scanning ${#repo_map[@]} repos (${elapsed}s):\n"
-
-                # Calculate partial progress
-                local total_progress=0
-                for repo in "${repo_map[@]}"; do
-                    local safe_name=$(sanitize_repo_name "$repo")
-                    local status_file="$status_dir/$safe_name.status"
-                    local status_info=""
-                    local repo_progress=0
-
-                    if [[ -f "$status_file" ]]; then
-                        IFS='|' read -r status current_scanner progress duration < "$status_file"
-                        if [[ -n "$current_scanner" ]] && [[ "$current_scanner" != "scanning" ]]; then
-                            if [[ -n "$progress" ]]; then
-                                status_info=" - $current_scanner ($progress)"
-                                if [[ "$progress" =~ ^([0-9]+)/([0-9]+)$ ]]; then
-                                    local current="${BASH_REMATCH[1]}"
-                                    local total="${BASH_REMATCH[2]}"
-                                    if [[ $total -gt 0 ]]; then
-                                        repo_progress=$((current * 100 / total))
-                                    fi
-                                fi
-                            else
-                                status_info=" - $current_scanner"
-                            fi
-                        elif [[ -n "$progress" ]]; then
-                            status_info=" - $progress"
-                        fi
-                    fi
-
-                    output_buffer+="  • ${repo}${status_info}\n"
-                    total_progress=$((total_progress + repo_progress))
-                done
-
-                # Calculate overall progress including partial repos
-                local partial_completed=$((total_progress / 100))
-                local display_progress=$((completed_count + partial_completed))
-
-                printf "%b" "$output_buffer"
-                render_progress_bar "$display_progress" "$repo_count" 50
+                render_scan_status_line "$status_dir" "$repo_count" "$completed_count" "$elapsed" "${repo_map[@]}"
             fi
         fi
     done
@@ -895,56 +801,7 @@ scan_org_sequential() {
         # Update progress bar
         if [[ ${#pids[@]} -gt 0 ]]; then
             local elapsed=$(($(date +%s) - scan_start_time))
-            local spinner_frame=$(get_spinner_frame)
-
-            # Build output buffer
-            local output_buffer=""
-            output_buffer+="${spinner_frame} Scanning ${#repo_map[@]} repos (${elapsed}s):\n"
-
-            # Calculate partial progress
-            local total_progress=0
-            for repo in "${repo_map[@]}"; do
-                local safe_name=$(sanitize_repo_name "$repo")
-                local status_file="$status_dir/$safe_name.status"
-                local status_info=""
-                local repo_progress=0
-
-                if [[ -f "$status_file" ]]; then
-                    IFS='|' read -r status current_scanner progress duration < "$status_file"
-                    if [[ -n "$current_scanner" ]] && [[ "$current_scanner" != "scanning" ]]; then
-                        if [[ -n "$progress" ]]; then
-                            status_info=" - $current_scanner ($progress)"
-                            if [[ "$progress" =~ ^([0-9]+)/([0-9]+)$ ]]; then
-                                local current="${BASH_REMATCH[1]}"
-                                local total="${BASH_REMATCH[2]}"
-                                if [[ $total -gt 0 ]]; then
-                                    repo_progress=$((current * 100 / total))
-                                fi
-                            fi
-                        else
-                            status_info=" - $current_scanner"
-                        fi
-                    elif [[ -n "$progress" ]]; then
-                        status_info=" - $progress"
-                    fi
-                fi
-
-                output_buffer+="  • ${repo}${status_info}\n"
-                total_progress=$((total_progress + repo_progress))
-            done
-
-            # Calculate overall progress including partial repos
-            local partial_completed=$((total_progress / 100))
-            local display_progress=$((completed_count + partial_completed))
-
-            # Clear previous output
-            printf "\r\033[K"
-            for ((i=0; i<${#repo_map[@]}+1; i++)); do
-                printf "\033[1A\033[K"
-            done
-
-            printf "%b" "$output_buffer"
-            render_progress_bar "$display_progress" "$repo_count" 50
+            render_scan_status_line "$status_dir" "$repo_count" "$completed_count" "$elapsed" "${repo_map[@]}"
             sleep 0.5
         fi
     done
@@ -960,8 +817,15 @@ scan_org_sequential() {
         fi
     done
 
+    # Calculate total duration
+    local total_elapsed=$(($(date +%s) - scan_start_time))
+    local duration=$(format_duration $total_elapsed)
+
+    echo
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${GREEN}✓ Complete${NC}: $success scanned, $failed failed"
+    echo -e "${GREEN}✓ Scanning complete${NC}: $repo_count repos scanned in $duration"
+    echo -e "   Success: $success • Failed: $failed"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo
     echo -e "View results: ${CYAN}./zero.sh report --org $org${NC}"
 }
