@@ -704,7 +704,7 @@ scan_org_sequential() {
             local scan_output=$(mktemp)
             local start_time=$(date +%s)
 
-            "$SCRIPT_DIR/bootstrap.sh" --scan-only --"$PROFILE" $([ "$FORCE" == "true" ] && echo "--force") "$repo" > "$scan_output" 2>&1
+            "$SCRIPT_DIR/bootstrap.sh" --scan-only --"$PROFILE" $([ "$FORCE" == "true" ] && echo "--force") --status-dir "$status_dir" "$repo" > "$scan_output" 2>&1
             local exit_code=$?
 
             local end_time=$(date +%s)
@@ -751,7 +751,12 @@ scan_org_sequential() {
                     if [[ -f "$status_file" ]]; then
                         IFS='|' read -r status current_scanner progress duration < "$status_file"
                         if [[ -n "$current_scanner" ]] && [[ "$current_scanner" != "scanning" ]]; then
-                            status_info=" ${DIM}- $current_scanner${NC}"
+                            # Show scanner name with progress if available
+                            if [[ -n "$progress" ]]; then
+                                status_info=" ${DIM}- $current_scanner ($progress)${NC}"
+                            else
+                                status_info=" ${DIM}- $current_scanner${NC}"
+                            fi
                         elif [[ -n "$progress" ]]; then
                             status_info=" ${DIM}- $progress${NC}"
                         fi
@@ -798,7 +803,12 @@ scan_org_sequential() {
                     if [[ -f "$status_file" ]]; then
                         IFS='|' read -r status current_scanner progress duration < "$status_file"
                         if [[ -n "$current_scanner" ]] && [[ "$current_scanner" != "scanning" ]]; then
-                            status_info=" ${DIM}- $current_scanner${NC}"
+                            # Show scanner name with progress if available
+                            if [[ -n "$progress" ]]; then
+                                status_info=" ${DIM}- $current_scanner ($progress)${NC}"
+                            else
+                                status_info=" ${DIM}- $current_scanner${NC}"
+                            fi
                         elif [[ -n "$progress" ]]; then
                             status_info=" ${DIM}- $progress${NC}"
                         fi
