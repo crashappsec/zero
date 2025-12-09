@@ -13,8 +13,8 @@
     "_default_profile_doc": "Profile to use when none is specified (quick|standard|advanced|deep|security|security-deep|compliance|devops)",
     "default_profile": "standard",
 
-    "_storage_path_doc": "Where Zero stores cloned repos and analysis data. Use ~ for home directory.",
-    "storage_path": "~/.zero",
+    "_storage_path_doc": "Where Zero stores cloned repos and analysis data. Defaults to .zero/ in project root.",
+    "storage_path": ".zero",
 
     "_parallel_jobs_doc": "Number of scanners to run in parallel. Higher = faster but more CPU/memory.",
     "parallel_jobs": 4,

@@ -23,7 +23,7 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+# Load Zero library (sets ZERO_DIR to .zero data directory in project root)
 source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load shared config if available
@@ -101,8 +101,8 @@ EXAMPLES:
     $0 ./local-project --security           # Security-focused scan
 
 FLOW:
-    1. Clone repository to ~/.zero/projects/<id>/repo/
-    2. Run analyzers and store JSON in ~/.zero/projects/<id>/analysis/
+    1. Clone repository to .zero/repos/<id>/repo/
+    2. Run analyzers and store JSON in .zero/repos/<id>/analysis/
     3. Set as active project for agent queries
 
 EOF
@@ -531,14 +531,42 @@ run_scanner_background() {
     echo "$exit_code $duration" > "$result_dir/$analyzer.result"
 }
 
-# Display scanner result from temp file
-# Usage: display_scanner_result <analyzer> <output_path> <result_dir>
+# Display scanner result from temp file or status file
+# Usage: display_scanner_result <analyzer> <output_path> <result_dir> [status_dir] [error_dir]
 display_scanner_result() {
     local analyzer="$1"
     local output_path="$2"
     local result_dir="$3"
+    local status_dir="${4:-}"
+    local error_dir="${5:-}"
     local display_name=$(get_scanner_display_name "$analyzer")
 
+    # Try status file first (new parallel scan method)
+    if [[ -n "$status_dir" ]] && [[ -f "$status_dir/$analyzer.status" ]]; then
+        local status_file="$status_dir/$analyzer.status"
+        IFS='|' read -r status result duration < "$status_file"
+
+        if [[ "$status" == "complete" ]]; then
+            printf "  ${GREEN}✓${NC} %-24s %s ${DIM}%ds${NC}\n" "$display_name" "$result" "$duration"
+            return 0
+        elif [[ "$status" == "failed" ]]; then
+            printf "  ${RED}✗${NC} %-24s ${RED}failed${NC} ${DIM}%ds${NC}\n" "$display_name" "$duration"
+            # Show error message if available
+            if [[ -n "$result" ]]; then
+                printf "      ${DIM}└─ %s${NC}\n" "$result"
+            fi
+            # Check for full error log
+            if [[ -n "$error_dir" ]] && [[ -f "$error_dir/$analyzer.err" ]]; then
+                local error_log="$error_dir/$analyzer.err"
+                if [[ -s "$error_log" ]]; then
+                    printf "      ${DIM}└─ See log: %s${NC}\n" "$error_log"
+                fi
+            fi
+            return 1
+        fi
+    fi
+
+    # Fall back to old result file method
     local result_file="$result_dir/$analyzer.result"
     if [[ ! -f "$result_file" ]]; then
         printf "  ${RED}✗${NC} %-24s ${RED}no result${NC}\n" "$display_name"
@@ -1911,7 +1939,41 @@ run_all_analyzers_parallel() {
 
     # Create temp directory for results
     local result_dir=$(mktemp -d)
-    trap "rm -rf $result_dir" EXIT
+
+    # Setup cleanup handler for background processes
+    cleanup_parallel_scan() {
+        local exit_code=$?
+
+        # Clear any progress bar
+        clear_progress_line 2>/dev/null || true
+
+        # If interrupted (Ctrl+C), show cancellation message
+        if [[ $exit_code -eq 130 ]] || [[ "${SCAN_INTERRUPTED:-}" == "true" ]]; then
+            echo -e "\n${YELLOW}⚠${NC} Scan cancelled by user" >&2
+        fi
+
+        # Kill all background scanner jobs
+        for pid in "${pids[@]}"; do
+            kill "$pid" 2>/dev/null || true
+        done
+        # Wait briefly for jobs to terminate
+        sleep 0.2
+        # Force kill any remaining jobs
+        for pid in "${pids[@]}"; do
+            kill -9 "$pid" 2>/dev/null || true
+        done
+        # Clean up temp directories
+        rm -rf "$result_dir" "$status_dir" "$buffer_dir" "$error_dir" 2>/dev/null || true
+    }
+
+    # Handle Ctrl+C gracefully
+    handle_interrupt() {
+        SCAN_INTERRUPTED=true
+        exit 130
+    }
+
+    trap cleanup_parallel_scan EXIT
+    trap handle_interrupt INT TERM
 
     # Phase 1: Run package-sbom first if needed (other scanners depend on it)
     local needs_sbom=false
@@ -1959,64 +2021,146 @@ run_all_analyzers_parallel() {
         return 0
     fi
 
-    # Show "running..." for all remaining scanners
-    local scanner_lines=()
-    for analyzer in $remaining_scanners; do
-        local display_name=$(get_scanner_display_name "$analyzer")
-        printf "  ${WHITE}○${NC} %-24s ${DIM}queued...${NC}\n" "$display_name"
-        scanner_lines+=("$analyzer")
-    done
+    # Initialize status display and output buffer
+    local status_dir=$(init_scanner_status_display "$remaining_scanners")
+    local buffer_dir=$(init_output_buffer)
+    local error_dir=$(mktemp -d)
 
-    # Move cursor back up to overwrite status lines
-    local line_count=${#scanner_lines[@]}
-    printf "\033[%dA" "$line_count"
+    echo -e "${DIM}• Progress bar mode • Overall progress displayed •${NC}"
+    echo
+
+    local total_scanners=$(echo "$remaining_scanners" | wc -w | tr -d ' ')
+    local completed_count=0
 
     # Phase 2: Run remaining scanners in parallel batches
     local pids=()
     local pid_to_analyzer=()
+    local analyzer_start_times=()
     local running=0
+    local next_analyzer_idx=0
+    local analyzer_array=($remaining_scanners)
 
-    for analyzer in $remaining_scanners; do
-        local display_name=$(get_scanner_display_name "$analyzer")
+    # Start initial batch of scanners
+    while [[ $next_analyzer_idx -lt ${#analyzer_array[@]} ]] && [[ $running -lt $parallel_jobs ]]; do
+        local analyzer="${analyzer_array[$next_analyzer_idx]}"
+        local start_time=$(date +%s)
 
-        # Update status line
-        printf "\r\033[K  ${CYAN}●${NC} %-24s ${DIM}running...${NC}\n" "$display_name"
+        # Update status to running
+        update_scanner_status "$status_dir" "$analyzer" "running"
 
         # Start scanner in background
         (
-            local start_time=$(date +%s)
-            run_analyzer "$analyzer" "$repo_path" "$output_path" "$project_id" 2>/dev/null
+            local error_log="$error_dir/$analyzer.err"
+            run_analyzer "$analyzer" "$repo_path" "$output_path" "$project_id" 2>"$error_log"
             local exit_code=$?
             local end_time=$(date +%s)
             local duration=$((end_time - start_time))
-            echo "$exit_code $duration" > "$result_dir/$analyzer.result"
+
+            # Get result summary
+            local summary=$(display_scanner_summary "$analyzer" "$output_path" 2>/dev/null || echo "complete")
+
+            if [[ $exit_code -eq 0 ]]; then
+                update_scanner_status "$status_dir" "$analyzer" "complete" "$summary" "$duration"
+            else
+                # Capture last few lines of error for status
+                local error_msg=""
+                if [[ -s "$error_log" ]]; then
+                    error_msg=$(tail -3 "$error_log" | tr '\n' ' ' | head -c 100)
+                fi
+                update_scanner_status "$status_dir" "$analyzer" "failed" "$error_msg" "$duration"
+            fi
         ) &
 
         pids+=($!)
         pid_to_analyzer+=("$analyzer")
+        analyzer_start_times+=("$start_time")
         ((running++))
-
-        # Limit concurrent jobs
-        if [[ $running -ge $parallel_jobs ]]; then
-            # Wait for oldest job to complete (ignore exit code - we check results later)
-            wait "${pids[0]}" 2>/dev/null || true
-            pids=("${pids[@]:1}")
-            pid_to_analyzer=("${pid_to_analyzer[@]:1}")
-            ((running--))
-        fi
+        ((next_analyzer_idx++))
     done
 
-    # Wait for remaining jobs
-    for pid in "${pids[@]}"; do
-        wait "$pid" 2>/dev/null || true
+    # Monitor and update progress bar
+    while scanners_still_running "$status_dir" "$remaining_scanners"; do
+        # Count completed scanners
+        completed_count=0
+        for analyzer in $remaining_scanners; do
+            local status_file="$status_dir/$analyzer.status"
+            if [[ -f "$status_file" ]]; then
+                local status=$(cut -d'|' -f1 "$status_file")
+                if [[ "$status" == "complete" ]] || [[ "$status" == "failed" ]]; then
+                    ((completed_count++))
+                fi
+            fi
+        done
+
+        # Render progress bar
+        render_progress_bar "$completed_count" "$total_scanners" 50 "${CYAN}Scanning${NC}"
+
+        # Check for completed jobs and start new ones
+        for i in "${!pids[@]}"; do
+            local pid="${pids[$i]}"
+            if ! kill -0 "$pid" 2>/dev/null; then
+                # Job completed, remove from tracking
+                unset 'pids[$i]'
+                unset 'pid_to_analyzer[$i]'
+                unset 'analyzer_start_times[$i]'
+                ((running--))
+
+                # Start next scanner if available
+                if [[ $next_analyzer_idx -lt ${#analyzer_array[@]} ]]; then
+                    local analyzer="${analyzer_array[$next_analyzer_idx]}"
+                    local start_time=$(date +%s)
+
+                    # Update status to running
+                    update_scanner_status "$status_dir" "$analyzer" "running"
+
+                    # Start scanner in background
+                    (
+                        local error_log="$error_dir/$analyzer.err"
+                        run_analyzer "$analyzer" "$repo_path" "$output_path" "$project_id" 2>"$error_log"
+                        local exit_code=$?
+                        local end_time=$(date +%s)
+                        local duration=$((end_time - start_time))
+
+                        # Get result summary
+                        local summary=$(display_scanner_summary "$analyzer" "$output_path" 2>/dev/null || echo "complete")
+
+                        if [[ $exit_code -eq 0 ]]; then
+                            update_scanner_status "$status_dir" "$analyzer" "complete" "$summary" "$duration"
+                        else
+                            # Capture last few lines of error for status
+                            local error_msg=""
+                            if [[ -s "$error_log" ]]; then
+                                error_msg=$(tail -3 "$error_log" | tr '\n' ' ' | head -c 100)
+                            fi
+                            update_scanner_status "$status_dir" "$analyzer" "failed" "$error_msg" "$duration"
+                        fi
+                    ) &
+
+                    pids+=($!)
+                    pid_to_analyzer+=("$analyzer")
+                    analyzer_start_times+=("$start_time")
+                    ((running++))
+                    ((next_analyzer_idx++))
+                fi
+            fi
+        done
+
+        # Compact arrays (remove empty slots)
+        pids=("${pids[@]}")
+        pid_to_analyzer=("${pid_to_analyzer[@]}")
+        analyzer_start_times=("${analyzer_start_times[@]}")
+
+        sleep 0.1
     done
 
-    # Move cursor back up to beginning of scanner list
-    printf "\033[%dA" "$line_count"
+    # Clear progress bar and show completed results
+    clear_progress_line
+    echo -e "${GREEN}✓${NC} Scanning complete"
+    echo
 
-    # Display all results
+    # Display all scanner results in grouped format
     for analyzer in $remaining_scanners; do
-        display_scanner_result "$analyzer" "$output_path" "$result_dir"
+        display_scanner_result "$analyzer" "$output_path" "$result_dir" "$status_dir" "$error_dir"
     done
 
     # Show scanners not in profile
@@ -2207,7 +2351,7 @@ print_final_summary() {
 
     echo
     local size=$(zero_project_size "$project_id")
-    echo -e "Storage: ${CYAN}~/.zero/projects/$project_id/${NC} ($size)"
+    echo -e "Storage: ${CYAN}$ZERO_DIR/repos/$project_id/${NC} ($size)"
 }
 
 #############################################################################

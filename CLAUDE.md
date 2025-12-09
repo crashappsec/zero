@@ -159,9 +159,9 @@ zero/
 ```
 ./zero.sh hydrate <repo>
          │
-         ├─► Clone repository to ~/.zero/repos/<project>/repo/
+         ├─► Clone repository to .zero/repos/<project>/repo/
          │
-         └─► Run scanners, store JSON in ~/.zero/repos/<project>/analysis/
+         └─► Run scanners, store JSON in .zero/repos/<project>/analysis/
                   │
                   ├─► vulnerabilities.json
                   ├─► package-malcontent/ (malcontent findings)
@@ -250,4 +250,4 @@ load_scanner_data_smart "cereal" "org/repo" "critical"
 
 - `GITHUB_TOKEN` - Required for GitHub API access
 - `ANTHROPIC_API_KEY` - Required for Claude-assisted analysis
-- `ZERO_HOME` - Override default `~/.zero/` location
+- `ZERO_HOME` - Override default `.zero/` location (defaults to project root)

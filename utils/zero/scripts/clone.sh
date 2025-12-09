@@ -23,7 +23,7 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
 
-# Load Zero library (sets ZERO_DIR to ~/.zero data directory)
+# Load Zero library (sets ZERO_DIR to .zero data directory in project root)
 source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
 
 # Load .env if available
