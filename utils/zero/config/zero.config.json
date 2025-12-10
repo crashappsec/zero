@@ -1,7 +1,12 @@
 {
   "$schema": "./zero.config.schema.json",
   "_version": "1.1.0",
-  "_docs": "Zero configuration file. See zero.config.example.json for full documentation.",
+  "_docs": "===================================================================================",
+  "_docs2": "ACTIVE CONFIGURATION FILE - This is the config Zero uses",
+  "_docs3": "===================================================================================",
+  "_docs4": "Edit this file to customize Zero's behavior.",
+  "_docs5": "See zero.config.example.json for detailed documentation on all settings.",
+  "_docs6": "===================================================================================",
   "_claude_mode_docs": "claude_mode: 'none' = no Claude support, 'optional' = Claude enhances output, 'required' = Claude is mandatory",
 
   "settings": {
@@ -10,14 +15,11 @@
     "parallel_jobs": 4,
     "scanner_timeout_seconds": 300,
     "cache_ttl_hours": 24,
-    "voice_mode": "full",
     "environment": {
       "github_token_env": "GITHUB_TOKEN",
       "anthropic_key_env": "ANTHROPIC_API_KEY"
     }
   },
-
-  "_voice_mode_docs": "Agent voice mode: 'full' = Full Hackers character voice with quotes/catchphrases, 'minimal' = Keep agent names but remove roleplay, 'neutral' = Professional tone, no character references",
 
   "scanners": {
     "package-sbom": {
