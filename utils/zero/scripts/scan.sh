@@ -628,14 +628,12 @@ scan_org_sequential() {
     local repo_count=${#repos[@]}
     local parallel_jobs=$(get_parallel_jobs)
 
-    echo -e "${CYAN}Scanning $repo_count repositories with $parallel_jobs concurrent jobs${NC}"
-    echo -e "${DIM}Progress bar mode • Grouped output${NC}"
-    echo
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo
+    # Initialize todo-style display
+    init_todo_display "$org" "${repos[@]}"
 
     # Reset progress display flag for this scan
     SCAN_STATUS_RENDERED=0
+    TODO_DISPLAY_LINES=0
 
     local success=0
     local failed=0
@@ -687,8 +685,8 @@ scan_org_sequential() {
     trap cleanup_seq_scan EXIT
     trap handle_interrupt INT TERM
 
-    # Show initial progress bar
-    render_progress_bar 0 "$repo_count" 50 "Scanning repos"
+    # Show initial todo display
+    render_todo_display "$status_dir" "$org" "0" "${repos[@]}"
 
     # Track start time for elapsed counter
     local scan_start_time=$(date +%s)
@@ -741,7 +739,7 @@ scan_org_sequential() {
             # Poll with progress updates until any job completes
             while true; do
                 local elapsed=$(($(date +%s) - scan_start_time))
-                render_scan_status_line "$status_dir" "$repo_count" "$completed_count" "$elapsed" "${repo_map[@]}"
+                render_todo_display "$status_dir" "$org" "$elapsed" "${repos[@]}"
 
                 # Check if any PID has completed
                 for i in "${!pids[@]}"; do
@@ -758,17 +756,9 @@ scan_org_sequential() {
             # Wait for the completed job to clean up
             wait "$completed_pid" 2>/dev/null || true
 
-            # Display completed repo
+            # Track completion (todo display shows it automatically)
             local completed_repo="${repo_map[$completed_index]}"
             ((completed_count++))
-
-            clear_progress_line
-            echo
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo -e "${BOLD}${CYAN}$completed_repo${NC}"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            flush_buffer "$buffer_dir" "$completed_repo"
-            echo
             displayed_repos="$displayed_repos $completed_repo"
 
             # Remove completed job from arrays
@@ -779,8 +769,11 @@ scan_org_sequential() {
         fi
     done
 
-    # Wait for remaining jobs and display their output
+    # Wait for remaining jobs
     while [[ ${#pids[@]} -gt 0 ]]; do
+        local elapsed=$(($(date +%s) - scan_start_time))
+        render_todo_display "$status_dir" "$org" "$elapsed" "${repos[@]}"
+
         # Check each remaining job
         for i in "${!pids[@]}"; do
             local pid="${pids[$i]}"
@@ -789,17 +782,7 @@ scan_org_sequential() {
                 wait "$pid" 2>/dev/null || true
                 local completed_repo="${repo_map[$i]}"
                 ((completed_count++))
-
-                if [[ ! " $displayed_repos " =~ " $completed_repo " ]]; then
-                    clear_progress_line
-                    echo
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    echo -e "${BOLD}${CYAN}$completed_repo${NC}"
-                    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-                    flush_buffer "$buffer_dir" "$completed_repo"
-                    echo
-                    displayed_repos="$displayed_repos $completed_repo"
-                fi
+                displayed_repos="$displayed_repos $completed_repo"
 
                 # Remove from arrays
                 unset 'pids[$i]'
@@ -811,15 +794,8 @@ scan_org_sequential() {
         pids=("${pids[@]}")
         repo_map=("${repo_map[@]}")
 
-        # Update progress bar
-        if [[ ${#pids[@]} -gt 0 ]]; then
-            local elapsed=$(($(date +%s) - scan_start_time))
-            render_scan_status_line "$status_dir" "$repo_count" "$completed_count" "$elapsed" "${repo_map[@]}"
-            sleep 0.5
-        fi
+        sleep 0.5
     done
-
-    clear_progress_line
 
     # Count results
     for i in $(seq 1 $repo_count); do
@@ -834,13 +810,8 @@ scan_org_sequential() {
     local total_elapsed=$(($(date +%s) - scan_start_time))
     local duration=$(format_duration $total_elapsed)
 
-    echo
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${GREEN}✓ Scanning complete${NC}: $repo_count repos scanned in $duration"
-    echo -e "   Success: $success • Failed: $failed"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo
-    echo -e "View results: ${CYAN}./zero.sh report --org $org${NC}"
+    # Show final summary with todo-style
+    finalize_todo_display "$org" "$repo_count" "$success" "$failed" "$duration"
 }
 
 #############################################################################

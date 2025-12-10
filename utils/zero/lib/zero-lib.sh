@@ -1108,7 +1108,7 @@ init_org_scan_dashboard() {
 }
 
 # Update repo scan status
-# Usage: update_repo_scan_status <status_dir> <repo> <status> <current_scanner> <progress> <duration>
+# Usage: update_repo_scan_status <status_dir> <repo> <status> <current_scanner> <progress> <duration> [clone_status]
 update_repo_scan_status() {
     local status_dir="$1"
     local repo="$2"
@@ -1116,9 +1116,19 @@ update_repo_scan_status() {
     local current_scanner="${4:-}"
     local progress="${5:-}"
     local duration="${6:-0}"
+    local clone_status="${7:-}"
 
     local safe_name=$(sanitize_repo_name "$repo")
-    echo "$status|$current_scanner|$progress|$duration" > "$status_dir/$safe_name.status"
+    local status_file="$status_dir/$safe_name.status"
+
+    # Preserve existing clone_status if not provided
+    if [[ -z "$clone_status" ]] && [[ -f "$status_file" ]]; then
+        local existing_clone_status
+        existing_clone_status=$(cut -d'|' -f5 "$status_file" 2>/dev/null)
+        [[ -n "$existing_clone_status" ]] && clone_status="$existing_clone_status"
+    fi
+
+    echo "$status|$current_scanner|$progress|$duration|$clone_status" > "$status_file"
 }
 
 # Render single repo status line for dashboard
@@ -1411,13 +1421,384 @@ render_scan_status_line() {
         local duration_str="${duration}s"
 
         # Print repo line with colored active scanner
-        printf "  └─ %s (\033[0;36m%s: %s\033[0m) \033[0;32m%d complete\033[0m, %d queued\n" \
+        printf "  └─ %s (${CYAN}%s: %s${NC}) ${GREEN}%d complete${NC}, %d queued\n" \
             "$short_repo" "$scanner" "$duration_str" "$scanners_complete" "$scanners_queued"
     done
 }
 
 #############################################################################
-# Dashboard Display for Parallel Scans (DEPRECATED - use render_scan_status_line)
+# Todo-Style Progress Display
+# Clean, Claude Code-inspired todo list format for org scans
+#############################################################################
+
+# Track line count for clearing (Bash 3 compatible - no associative arrays)
+TODO_DISPLAY_LINES=0
+
+# Initialize todo display with header
+# Usage: init_todo_display [org_name] [repo_count] [profile] [parallel_jobs]
+init_todo_display() {
+    TODO_DISPLAY_LINES=0
+
+    local org_name="${1:-}"
+    local repo_count="${2:-}"
+    local profile="${3:-}"
+    local parallel_jobs="${4:-}"
+
+    # Print header if org info provided
+    if [[ -n "$org_name" ]]; then
+        printf "\n"
+        printf "${BOLD}Scan Organization${NC}\n"
+        printf "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        printf "\n"
+        printf "Organization: ${CYAN}%s${NC}\n" "$org_name"
+        [[ -n "$repo_count" ]] && printf "Repositories: ${CYAN}%s${NC}\n" "$repo_count"
+        [[ -n "$profile" ]] && printf "Profile:      ${CYAN}%s${NC}\n" "$profile"
+        [[ -n "$parallel_jobs" ]] && printf "Parallel:     ${CYAN}%s jobs${NC}\n" "$parallel_jobs"
+        printf "\n"
+    fi
+}
+
+# Render todo-style progress display with separate clone and scan sections
+# Usage: render_todo_display status_dir org_name elapsed_seconds repo1 repo2 ...
+# Status file format: status|scanner|progress|duration|clone_status
+# clone_status: cloned|skipped|pending (optional field)
+render_todo_display() {
+    local status_dir="$1"
+    local org_name="$2"
+    local elapsed="$3"
+    shift 3
+    local all_repos=("$@")
+
+    local total=${#all_repos[@]}
+
+    # Arrays for clone status
+    local clone_complete=()
+    local clone_running=()
+    local clone_waiting=()
+
+    # Arrays for scan status
+    local scan_running=()
+    local scan_complete=()
+    local scan_waiting=()
+
+    local complete_count=0
+
+    for current_repo in "${all_repos[@]}"; do
+        local safe_name=$(sanitize_repo_name "$current_repo")
+        local short="${current_repo##*/}"
+        local status_file="$status_dir/$safe_name.status"
+
+        if [[ -f "$status_file" ]]; then
+            IFS='|' read -r status scanner progress duration clone_status < "$status_file"
+
+            # Clone status
+            if [[ "$clone_status" == "cloned" ]]; then
+                clone_complete+=("$short|Cloned")
+            elif [[ "$clone_status" == "skipped" ]]; then
+                clone_complete+=("$short|Already cloned")
+            elif [[ "$scanner" == "cloning" ]]; then
+                clone_running+=("$short")
+            fi
+
+            # Scan status
+            if [[ "$status" == "complete" ]]; then
+                ((complete_count++))
+                scan_complete+=("$short|$duration")
+            elif [[ "$status" == "running" ]] && [[ "$scanner" != "cloning" ]]; then
+                scan_running+=("$short|$scanner|$progress")
+            elif [[ "$status" == "pending" ]] || [[ -z "$status" ]]; then
+                scan_waiting+=("$short")
+            fi
+        else
+            # No status file yet - check if repo is already cloned on disk
+            local project_id=$(zero_project_id "$current_repo")
+            local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
+            if [[ -d "$repo_path" ]]; then
+                clone_complete+=("$short|Already cloned")
+            else
+                clone_waiting+=("$short")
+            fi
+            scan_waiting+=("$short")
+        fi
+    done
+
+    # Clear previous lines
+    if [[ $TODO_DISPLAY_LINES -gt 0 ]]; then
+        for ((i=0; i<$TODO_DISPLAY_LINES; i++)); do
+            printf "\033[1A\033[2K"
+        done
+    fi
+
+    local spinner=$(get_spinner_frame)
+    local line_count=0
+
+    # Clone section
+    printf "\n"
+    local clone_total=${#clone_complete[@]}
+    local clone_running_count=${#clone_running[@]}
+    local clone_waiting_count=${#clone_waiting[@]}
+
+    # If all cloning is done (no running, no waiting), show summary
+    if [[ $clone_running_count -eq 0 ]] && [[ $clone_waiting_count -eq 0 ]] && [[ $clone_total -gt 0 ]]; then
+        printf "  ${GREEN}✓${NC} ${BOLD}Cloning complete${NC} (%d repos already cloned)\n" "$clone_total"
+        printf "\n"
+        ((line_count+=3))
+    else
+        printf "  ${BOLD}%s Cloning repos${NC}\n" "$spinner"
+        printf "\n"
+        ((line_count+=3))
+
+        # Show clone running
+        for short in "${clone_running[@]}"; do
+            printf "    ${YELLOW}*${NC} ${BOLD}%-28s${NC} ${CYAN}Cloning...${NC}\n" "$short"
+            ((line_count++))
+        done
+
+        # Show clone complete (last 3)
+        local clone_start=0
+        [[ $clone_total -gt 3 ]] && clone_start=$((clone_total - 3))
+        for ((i=clone_start; i<clone_total; i++)); do
+            local info="${clone_complete[$i]}"
+            IFS='|' read -r short clone_msg <<< "$info"
+            printf "    ${GREEN}✓${NC} ${DIM}%-28s${NC} ${GREEN}%s${NC}\n" "$short" "$clone_msg"
+            ((line_count++))
+        done
+
+        # Show clone waiting (max 2)
+        local shown=0
+        for short in "${clone_waiting[@]}"; do
+            if [[ $shown -lt 2 ]]; then
+                printf "    ${DIM}○ %-28s Waiting${NC}\n" "$short"
+                ((shown++))
+                ((line_count++))
+            fi
+        done
+        if [[ $clone_waiting_count -gt 2 ]]; then
+            printf "    ${DIM}  ... and %d more waiting${NC}\n" "$((clone_waiting_count - 2))"
+            ((line_count++))
+        fi
+    fi
+
+    # Scan section
+    local pct=0
+    [[ $total -gt 0 ]] && pct=$((complete_count * 100 / total))
+
+    printf "\n"
+    printf "  ${BOLD}%s Scanning %s${NC} (%d/%d repos, %d%%, %ds)\n" \
+        "$spinner" "$org_name" "$complete_count" "$total" "$pct" "$elapsed"
+    printf "\n"
+    ((line_count+=3))
+
+    # Show scan running
+    for repo_info in "${scan_running[@]}"; do
+        IFS='|' read -r short scanner progress <<< "$repo_info"
+        local prog_text=""
+        if [[ "$progress" =~ ^([0-9]+)/([0-9]+)$ ]]; then
+            prog_text="(${BASH_REMATCH[1]}/${BASH_REMATCH[2]})"
+        fi
+        printf "    ${YELLOW}*${NC} ${BOLD}%-28s${NC} ${CYAN}%-18s${NC} %s\n" \
+            "$short" "$scanner" "$prog_text"
+        ((line_count++))
+    done
+
+    # Show scan complete (last 3)
+    local scan_total=${#scan_complete[@]}
+    local scan_start=0
+    [[ $scan_total -gt 3 ]] && scan_start=$((scan_total - 3))
+    for ((i=scan_start; i<scan_total; i++)); do
+        local info="${scan_complete[$i]}"
+        IFS='|' read -r short duration <<< "$info"
+        printf "    ${GREEN}✓${NC} ${DIM}%-28s${NC} ${GREEN}Complete${NC} (%ss)\n" "$short" "$duration"
+        ((line_count++))
+    done
+
+    # Show scan waiting (max 2)
+    shown=0
+    for short in "${scan_waiting[@]}"; do
+        if [[ $shown -lt 2 ]]; then
+            printf "    ${DIM}○ %-28s Waiting${NC}\n" "$short"
+            ((shown++))
+            ((line_count++))
+        fi
+    done
+    if [[ ${#scan_waiting[@]} -gt 2 ]]; then
+        printf "    ${DIM}  ... and %d more waiting${NC}\n" "$((${#scan_waiting[@]} - 2))"
+        ((line_count++))
+    fi
+
+    TODO_DISPLAY_LINES=$line_count
+}
+
+# Finalize todo display - show final summary
+finalize_todo_display() {
+    local org_name="$1"
+    local total="$2"
+    local success="$3"
+    local failed="$4"
+    local duration="$5"
+
+    # Clear the last progress display
+    if [[ $TODO_DISPLAY_LINES -gt 0 ]]; then
+        for ((i=0; i<$TODO_DISPLAY_LINES; i++)); do
+            printf "\033[1A\033[2K"
+        done
+    fi
+    TODO_DISPLAY_LINES=0
+
+    printf "\n"
+    printf "${GREEN}${BOLD}✓ Hydrate complete${NC}\n"
+    printf "\n"
+    printf "  Organization: ${CYAN}%s${NC}\n" "$org_name"
+    printf "  Repositories: %d processed in %s\n" "$total" "$duration"
+    printf "  Results: ${GREEN}%d success${NC}" "$success"
+    [[ $failed -gt 0 ]] && printf " • ${RED}%d failed${NC}" "$failed"
+    printf "\n"
+    printf "\n"
+    printf "  ${DIM}View results: ./zero.sh report --org %s${NC}\n" "$org_name"
+    printf "\n"
+}
+
+#############################################################################
+# Todo-Style Clone Display
+# Consistent display format for org cloning
+#############################################################################
+
+# Track line count for clone display
+CLONE_DISPLAY_LINES=0
+
+# Initialize clone display
+init_clone_display() {
+    CLONE_DISPLAY_LINES=0
+}
+
+# Render todo-style clone progress display
+# Usage: render_clone_display org_name total_count completed_count cloned_count skipped_count failed_count elapsed repos_status_string
+# repos_status_string format: "repo1:status1:info1,repo2:status2:info2,..."
+# status: pending|cloning|complete|skipped|failed
+render_clone_display() {
+    local org_name="$1"
+    local total="$2"
+    local completed="$3"
+    local cloned="$4"
+    local skipped="$5"
+    local failed="$6"
+    local elapsed="$7"
+    local current_repo="$8"
+    local current_status="$9"
+    local current_progress="${10}"
+    shift 10
+    local completed_repos=("$@")
+
+    # Calculate percentage
+    local pct=0
+    [[ $total -gt 0 ]] && pct=$((completed * 100 / total))
+
+    # Get spinner
+    local spinner=$(get_spinner_frame)
+
+    # Clear previous lines
+    if [[ $CLONE_DISPLAY_LINES -gt 0 ]]; then
+        for ((i=0; i<$CLONE_DISPLAY_LINES; i++)); do
+            printf "\033[1A\033[2K"
+        done
+    fi
+
+    # Header
+    printf "\n"
+    printf "${BOLD}%s Cloning %s${NC} (%d/%d repos, %d%%, %ds)\n" \
+        "$spinner" "$org_name" "$completed" "$total" "$pct" "$elapsed"
+    printf "\n"
+
+    local line_count=3
+
+    # Show current repo being cloned
+    if [[ -n "$current_repo" ]]; then
+        local short="${current_repo##*/}"
+        if [[ "$current_status" == "cloning" ]]; then
+            if [[ -n "$current_progress" ]]; then
+                printf "  ${YELLOW}*${NC} ${BOLD}%-30s${NC} ${CYAN}%s${NC}\n" "$short" "$current_progress"
+            else
+                printf "  ${YELLOW}*${NC} ${BOLD}%-30s${NC} ${CYAN}cloning...${NC}\n" "$short"
+            fi
+            ((line_count++))
+        fi
+    fi
+
+    # Show completed repos (last 5)
+    local show_count=0
+    local total_completed=${#completed_repos[@]}
+    local start_idx=0
+    [[ $total_completed -gt 5 ]] && start_idx=$((total_completed - 5))
+
+    for ((i=start_idx; i<total_completed; i++)); do
+        local repo_info="${completed_repos[$i]}"
+        IFS='|' read -r repo status info <<< "$repo_info"
+        local short="${repo##*/}"
+
+        if [[ "$status" == "cloned" ]]; then
+            printf "  ${GREEN}✓${NC} ${DIM}%-30s${NC} ${GREEN}cloned${NC} %s\n" "$short" "$info"
+        elif [[ "$status" == "skipped" ]]; then
+            printf "  ${GREEN}✓${NC} ${DIM}%-30s${NC} ${DIM}already cloned${NC} %s\n" "$short" "$info"
+        elif [[ "$status" == "failed" ]]; then
+            printf "  ${RED}✗${NC} ${DIM}%-30s${NC} ${RED}failed${NC}\n" "$short"
+        fi
+        ((line_count++))
+        ((show_count++))
+    done
+
+    # Show how many more completed if we truncated
+    if [[ $start_idx -gt 0 ]]; then
+        printf "  ${DIM}  ... and %d more completed${NC}\n" "$start_idx"
+        ((line_count++))
+    fi
+
+    # Show pending count
+    local pending=$((total - completed))
+    if [[ $pending -gt 0 ]] && [[ -z "$current_repo" || "$current_status" != "cloning" ]]; then
+        printf "  ${DIM}○ %d repos waiting...${NC}\n" "$pending"
+        ((line_count++))
+    elif [[ $pending -gt 1 ]]; then
+        printf "  ${DIM}○ %d more repos waiting...${NC}\n" "$((pending - 1))"
+        ((line_count++))
+    fi
+
+    CLONE_DISPLAY_LINES=$line_count
+}
+
+# Finalize clone display
+finalize_clone_display() {
+    local org_name="$1"
+    local total="$2"
+    local cloned="$3"
+    local skipped="$4"
+    local failed="$5"
+    local duration="$6"
+
+    # Clear the last progress display
+    if [[ $CLONE_DISPLAY_LINES -gt 0 ]]; then
+        for ((i=0; i<$CLONE_DISPLAY_LINES; i++)); do
+            printf "\033[1A\033[2K"
+        done
+    fi
+    CLONE_DISPLAY_LINES=0
+
+    printf "\n"
+    printf "${GREEN}${BOLD}✓ Clone complete${NC}\n"
+    printf "\n"
+    printf "  Organization: ${CYAN}%s${NC}\n" "$org_name"
+    printf "  Repositories: %d total" "$total"
+    [[ $cloned -gt 0 ]] && printf ", ${GREEN}%d cloned${NC}" "$cloned"
+    [[ $skipped -gt 0 ]] && printf ", %d skipped" "$skipped"
+    [[ $failed -gt 0 ]] && printf ", ${RED}%d failed${NC}" "$failed"
+    printf "\n"
+    printf "  Duration: %s\n" "$duration"
+    printf "\n"
+    printf "  ${DIM}Run scanners: ./zero.sh scan --org %s${NC}\n" "$org_name"
+    printf "\n"
+}
+
+#############################################################################
+# Dashboard Display for Parallel Scans (DEPRECATED - use render_todo_display)
 #############################################################################
 
 # Spinner frames for animated progress

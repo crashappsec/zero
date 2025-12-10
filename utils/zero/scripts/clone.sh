@@ -300,11 +300,6 @@ clone_org() {
 
     check_gh_cli
 
-    print_zero_banner
-    echo -e "${BOLD}Clone Organization${NC}"
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo
-
     echo -e "${BLUE}Fetching repositories for ${CYAN}$org${BLUE}...${NC}"
     local repos_json=$(fetch_org_repos "$org" "$LIMIT")
 
@@ -318,40 +313,87 @@ clone_org() {
     local total_size_kb=$(echo "$repos_json" | jq '[.[].diskUsage // 0] | add')
     local total_size=$(format_size $((total_size_kb * 1024)))
 
-    echo
-    echo -e "${BOLD}Organization Summary${NC}"
-    echo -e "  Repositories: ${CYAN}$repo_count${NC}"
-    echo -e "  Total Size:   ${CYAN}$total_size${NC}"
-    echo
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${DIM}Found $repo_count repositories ($total_size total)${NC}"
     echo
 
-    # Clone each repo
-    local success=0
-    local failed=0
+    # Initialize todo-style display
+    init_clone_display
+
+    # Track progress
+    local cloned=0
     local skipped=0
+    local failed=0
+    local completed=0
     local current=0
+    local completed_repos=()
+    local start_time=$(date +%s)
 
-    echo "$repos_json" | jq -r '.[].nameWithOwner' | while IFS= read -r repo; do
-        [[ -z "$repo" ]] && continue
+    # Get repos into array
+    local repos=()
+    while IFS= read -r r; do
+        [[ -n "$r" ]] && repos+=("$r")
+    done < <(echo "$repos_json" | jq -r '.[].nameWithOwner')
+
+    for current_repo in "${repos[@]}"; do
         ((current++))
 
-        local lang=$(echo "$repos_json" | jq -r --arg r "$repo" '.[] | select(.nameWithOwner == $r) | .primaryLanguage.name // "Unknown"')
+        local elapsed=$(($(date +%s) - start_time))
 
-        echo -e "${BOLD}[$current/$repo_count]${NC} $repo ${DIM}($lang)${NC}"
+        # Show progress with current repo as cloning
+        render_clone_display "$org" "$repo_count" "$completed" "$cloned" "$skipped" "$failed" "$elapsed" \
+            "$current_repo" "cloning" "" "${completed_repos[@]}"
 
-        if clone_repo "$repo"; then
-            ((success++))
+        # Attempt clone
+        local project_id=$(zero_project_id "$current_repo")
+        local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
+
+        if [[ -d "$repo_path" ]] && [[ "$FORCE" != "true" ]]; then
+            # Already cloned
+            local size=$(du -sh "$repo_path" 2>/dev/null | cut -f1)
+            ((skipped++))
+            ((completed++))
+            completed_repos+=("$current_repo|skipped|($size)")
         else
-            ((failed++))
+            # Need to clone
+            if [[ -d "$repo_path" ]]; then
+                rm -rf "$repo_path"
+            fi
+            mkdir -p "$ZERO_PROJECTS_DIR/$project_id"
+
+            local clone_url="https://github.com/$current_repo.git"
+            if [[ -n "${GITHUB_TOKEN:-}" ]]; then
+                clone_url="https://${GITHUB_TOKEN}@github.com/$current_repo.git"
+            fi
+
+            local clone_args=("-q")
+            [[ -n "$BRANCH" ]] && clone_args+=("--branch" "$BRANCH")
+            [[ -n "$DEPTH" ]] && clone_args+=("--depth" "$DEPTH")
+
+            local clone_start=$(date +%s)
+            if git clone "${clone_args[@]}" "$clone_url" "$repo_path" 2>/dev/null; then
+                local clone_duration=$(($(date +%s) - clone_start))
+                local size=$(du -sh "$repo_path" 2>/dev/null | cut -f1)
+                mkdir -p "$ZERO_PROJECTS_DIR/$project_id/analysis"
+                ((cloned++))
+                ((completed++))
+                completed_repos+=("$current_repo|cloned|($size, ${clone_duration}s)")
+            else
+                ((failed++))
+                ((completed++))
+                completed_repos+=("$current_repo|failed|")
+            fi
         fi
-        echo
+
+        # Update display
+        elapsed=$(($(date +%s) - start_time))
+        render_clone_display "$org" "$repo_count" "$completed" "$cloned" "$skipped" "$failed" "$elapsed" \
+            "" "" "" "${completed_repos[@]}"
     done
 
-    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo -e "${GREEN}✓ Complete${NC}: $success cloned, $failed failed"
-    echo
-    echo -e "Run scanners with: ${CYAN}./zero.sh scan --org $org${NC}"
+    # Finalize
+    local total_elapsed=$(($(date +%s) - start_time))
+    local duration=$(format_duration $total_elapsed)
+    finalize_clone_display "$org" "$repo_count" "$cloned" "$skipped" "$failed" "$duration"
 }
 
 #############################################################################
