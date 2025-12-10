@@ -1484,8 +1484,13 @@ run_malcontent_analyzer() {
             sbom_arg="--sbom $output_path/sbom.cdx.json"
         fi
 
-        # Run with verbose mode and show-findings for detailed terminal output
-        "$script" --local-path "$repo_path" $sbom_arg --verbose --show-findings --repo-name "$project_id" -o "$output_path/package-malcontent.json" 2>&1
+        # Run with verbose mode and show-findings only when not in org scan mode
+        local verbose_args=""
+        if [[ -z "$STATUS_DIR" ]]; then
+            verbose_args="--verbose --show-findings"
+        fi
+
+        "$script" --local-path "$repo_path" $sbom_arg $verbose_args --repo-name "$project_id" -o "$output_path/package-malcontent.json" 2>&1
     else
         cat > "$output_path/package-malcontent.json" << EOF
 {
@@ -1948,12 +1953,15 @@ run_all_analyzers_parallel() {
         custom)   mode_display=" ${DIM}(custom selection)${NC}" ;;
     esac
 
-    if [[ "$enrich" == "true" ]]; then
-        echo -e "\n${BOLD}Running $profile_count analyzers${mode_display}${NC} ${CYAN}(enrichment, $parallel_jobs parallel)${NC}"
-    else
-        echo -e "\n${BOLD}Running $profile_count analyzers${mode_display}${NC} ${CYAN}($parallel_jobs parallel)${NC}"
+    # Only show header when not in org scan mode
+    if [[ -z "$STATUS_DIR" ]]; then
+        if [[ "$enrich" == "true" ]]; then
+            echo -e "\n${BOLD}Running $profile_count analyzers${mode_display}${NC} ${CYAN}(enrichment, $parallel_jobs parallel)${NC}"
+        else
+            echo -e "\n${BOLD}Running $profile_count analyzers${mode_display}${NC} ${CYAN}($parallel_jobs parallel)${NC}"
+        fi
+        echo
     fi
-    echo
 
     # Create temp directory for results
     local result_dir=$(mktemp -d)
@@ -2012,7 +2020,11 @@ run_all_analyzers_parallel() {
 
     if [[ "$has_sbom_scanner" == "true" ]]; then
         local display_name=$(get_scanner_display_name "package-sbom")
-        printf "  ${WHITE}○${NC} %-24s ${DIM}running...${NC}" "$display_name"
+
+        # Only show inline progress when not in org scan mode
+        if [[ -z "$STATUS_DIR" ]]; then
+            printf "  ${WHITE}○${NC} %-24s ${DIM}running...${NC}" "$display_name"
+        fi
 
         # Update global STATUS_DIR for scan.sh
         ((scanner_index++))
@@ -2026,13 +2038,16 @@ run_all_analyzers_parallel() {
         local end_time=$(date +%s)
         local duration=$((end_time - start_time))
 
-        printf "\r\033[K"
-        if [[ $exit_code -eq 0 ]]; then
-            printf "  ${GREEN}✓${NC} %-24s " "$display_name"
-            display_scanner_summary "package-sbom" "$output_path"
-            printf " ${DIM}%ds${NC}\n" "$duration"
-        else
-            printf "  ${RED}✗${NC} %-24s ${RED}failed${NC} ${DIM}%ds${NC}\n" "$display_name" "$duration"
+        # Only show result line when not in org scan mode
+        if [[ -z "$STATUS_DIR" ]]; then
+            printf "\r\033[K"
+            if [[ $exit_code -eq 0 ]]; then
+                printf "  ${GREEN}✓${NC} %-24s " "$display_name"
+                display_scanner_summary "package-sbom" "$output_path"
+                printf " ${DIM}%ds${NC}\n" "$duration"
+            else
+                printf "  ${RED}✗${NC} %-24s ${RED}failed${NC} ${DIM}%ds${NC}\n" "$display_name" "$duration"
+            fi
         fi
     fi
 
@@ -2054,8 +2069,11 @@ run_all_analyzers_parallel() {
     local buffer_dir=$(init_output_buffer)
     local error_dir=$(mktemp -d)
 
-    echo -e "${DIM}• Progress bar mode • Overall progress displayed •${NC}"
-    echo
+    # Only show progress bar mode message when not in org scan mode
+    if [[ -z "$STATUS_DIR" ]]; then
+        echo -e "${DIM}• Progress bar mode • Overall progress displayed •${NC}"
+        echo
+    fi
 
     local total_scanners=$(echo "$remaining_scanners" | wc -w | tr -d ' ')
     local completed_count=0
@@ -2126,8 +2144,10 @@ run_all_analyzers_parallel() {
             fi
         done
 
-        # Render progress bar
-        render_progress_bar "$completed_count" "$total_scanners" 50 "${CYAN}Scanning${NC}"
+        # Render progress bar (only when not in org scan mode)
+        if [[ -z "$STATUS_DIR" ]]; then
+            render_progress_bar "$completed_count" "$total_scanners" 50 "${CYAN}Scanning${NC}"
+        fi
 
         # Check for completed jobs and start new ones
         for i in "${!pids[@]}"; do
@@ -2193,25 +2213,30 @@ run_all_analyzers_parallel() {
         sleep 0.1
     done
 
-    # Clear progress bar and show completed results
-    clear_progress_line
-    echo -e "${GREEN}✓${NC} Scanning complete"
-    echo
+    # Clear progress bar and show completed results (only when not in org scan mode)
+    if [[ -z "$STATUS_DIR" ]]; then
+        clear_progress_line
+        echo -e "${GREEN}✓${NC} Scanning complete"
+        echo
+    fi
 
-    # Display all scanner results in grouped format
-    for analyzer in $remaining_scanners; do
-        display_scanner_result "$analyzer" "$output_path" "$result_dir" "$status_dir" "$error_dir"
-    done
+    # Display all scanner results in grouped format (only when not in org scan mode)
+    if [[ -z "$STATUS_DIR" ]]; then
+        for analyzer in $remaining_scanners; do
+            display_scanner_result "$analyzer" "$output_path" "$result_dir" "$status_dir" "$error_dir"
+        done
+    fi
 
-    # Show scanners not in profile
-    for analyzer in $ALL_SCANNERS; do
-        if ! scanner_in_list "$analyzer" "$requested_analyzers"; then
-            local display_name=$(get_scanner_display_name "$analyzer")
-            printf "  ${DIM}○ %-24s not in profile${NC}\n" "$display_name"
-        fi
-    done
-
-    echo
+    # Show scanners not in profile (only when not in org scan mode)
+    if [[ -z "$STATUS_DIR" ]]; then
+        for analyzer in $ALL_SCANNERS; do
+            if ! scanner_in_list "$analyzer" "$requested_analyzers"; then
+                local display_name=$(get_scanner_display_name "$analyzer")
+                printf "  ${DIM}○ %-24s not in profile${NC}\n" "$display_name"
+            fi
+        done
+        echo
+    fi
 }
 
 #############################################################################
@@ -2527,12 +2552,14 @@ main() {
             git_context=$(zero_get_git_context "$repo_path")
         fi
 
-        # Print header for scan
-        zero_print_header
-        echo -e "Scanning: ${CYAN}$TARGET${NC}"
-        echo -e "Project ID: ${CYAN}$project_id${NC}"
-        echo -e "Mode: ${CYAN}$MODE${NC}"
-        echo -e "Scan ID: ${DIM}$scan_id${NC}"
+        # Print header for scan (suppress in org scan mode - STATUS_DIR is set)
+        if [[ -z "$STATUS_DIR" ]]; then
+            zero_print_header
+            echo -e "Scanning: ${CYAN}$TARGET${NC}"
+            echo -e "Project ID: ${CYAN}$project_id${NC}"
+            echo -e "Mode: ${CYAN}$MODE${NC}"
+            echo -e "Scan ID: ${DIM}$scan_id${NC}"
+        fi
 
         # Create analysis directory if needed
         mkdir -p "$analysis_path"
@@ -2575,7 +2602,10 @@ main() {
         zero_update_org_index "$project_id"
         zero_index_update_status "$project_id" "ready"
         zero_set_active_project "$project_id"
-        print_final_summary "$project_id" "$analysis_path"
+        # Only show final summary when not in org scan mode
+        if [[ -z "$STATUS_DIR" ]]; then
+            print_final_summary "$project_id" "$analysis_path"
+        fi
         return 0
     fi
 
