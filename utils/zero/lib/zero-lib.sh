@@ -20,17 +20,17 @@ export ZERO_REPOS_DIR="$ZERO_DIR/repos"
 export ZERO_PROJECTS_DIR="$ZERO_REPOS_DIR"
 export ZERO_VERSION="1.0.0"
 
-# Color codes
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-MAGENTA='\033[0;35m'
-WHITE='\033[0;37m'
-BOLD='\033[1m'
-DIM='\033[2m'
-NC='\033[0m'
+# Color codes (using ANSI-C quoting for proper escape sequence interpretation)
+RED=$'\033[0;31m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[1;33m'
+BLUE=$'\033[0;34m'
+CYAN=$'\033[0;36m'
+MAGENTA=$'\033[0;35m'
+WHITE=$'\033[0;37m'
+BOLD=$'\033[1m'
+DIM=$'\033[2m'
+NC=$'\033[0m'
 
 #############################################################################
 # ZERO Banner
