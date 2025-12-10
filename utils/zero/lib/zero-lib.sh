@@ -1304,7 +1304,7 @@ calculate_partial_progress() {
 }
 
 # Track if first render for clearing
-SCAN_STATUS_RENDERED=0
+SCAN_STATUS_FIRST_RENDER=1
 
 # Render two-line scan status with aggregated counts
 # Line 1: spinner + counts + elapsed + progress bar
@@ -1368,8 +1368,15 @@ render_scan_status_line() {
     # Get terminal width (default 120 if can't detect)
     local term_width=$(tput cols 2>/dev/null || echo 120)
 
-    # Clear previous 2 lines (move up 1, clear, then clear current)
-    printf "\r\033[K\033[1A\033[K"
+    # Clear previous 2 lines only if not first render
+    if [[ $SCAN_STATUS_FIRST_RENDER -eq 0 ]]; then
+        # Move up 1 line, clear it, then clear current line
+        printf "\033[1A\033[2K\r\033[2K"
+    else
+        # First render - just clear current line
+        printf "\r\033[2K"
+        SCAN_STATUS_FIRST_RENDER=0
+    fi
 
     # Line 1: Status summary
     printf "%s Scanning: %d running • %d complete • %d queued (%ds) [%s] %d%%\n" \
