@@ -1305,10 +1305,11 @@ calculate_partial_progress() {
 
 # Track if first render for clearing
 SCAN_STATUS_FIRST_RENDER=1
+SCAN_STATUS_PREV_LINES=0
 
-# Render two-line scan status with aggregated counts
-# Line 1: spinner + counts + elapsed + progress bar
-# Line 2: Running repo details with scanner and progress
+# Render multi-line scan status with one line per running repo
+# Line 1: spinner + overall progress (repos)
+# Lines 2+: Each running repo with scanner, duration, completed/queued scanners
 render_scan_status_line() {
     local status_dir="$1"
     local repo_count="$2"
@@ -1317,7 +1318,7 @@ render_scan_status_line() {
     shift 4
     local all_repos=("$@")
 
-    # Count repos by status
+    # Count repos by status and collect running repo info
     local running_count=0
     local queued_count=0
     local running_repos=()
@@ -1330,7 +1331,8 @@ render_scan_status_line() {
             IFS='|' read -r status current_scanner progress duration < "$status_file"
             if [[ "$status" == "running" ]]; then
                 ((running_count++))
-                running_repos+=("$repo|$current_scanner|$progress")
+                # Store: repo|scanner|progress|duration
+                running_repos+=("$repo|$current_scanner|$progress|$duration")
             fi
         else
             ((queued_count++))
@@ -1365,60 +1367,53 @@ render_scan_status_line() {
     fi
     for ((i=0; i<empty; i++)); do bar+=" "; done
 
-    # Get terminal width (default 120 if can't detect)
-    local term_width=$(tput cols 2>/dev/null || echo 120)
+    # Calculate number of lines we'll draw
+    local new_lines=$((1 + ${#running_repos[@]}))  # 1 header + N repos
 
-    # Clear previous 2 lines only if not first render
-    if [[ $SCAN_STATUS_FIRST_RENDER -eq 0 ]]; then
-        # Move to start of line 2, clear it, move up to line 1, clear it
-        printf "\r\033[2K\033[1A\r\033[2K"
-    else
-        # First render - just clear current line
+    # Clear previous lines if not first render
+    if [[ $SCAN_STATUS_FIRST_RENDER -eq 0 ]] && [[ $SCAN_STATUS_PREV_LINES -gt 0 ]]; then
+        # Move up and clear all previous lines
+        for ((i=0; i<$SCAN_STATUS_PREV_LINES; i++)); do
+            printf "\r\033[2K\033[1A"
+        done
+        printf "\r\033[2K"
+    elif [[ $SCAN_STATUS_FIRST_RENDER -eq 1 ]]; then
         printf "\r\033[2K"
         SCAN_STATUS_FIRST_RENDER=0
     fi
 
-    # Line 1: Status summary
+    # Store line count for next render
+    SCAN_STATUS_PREV_LINES=$new_lines
+
+    # Line 1: Status summary (repo counts)
     printf "%s Scanning: %d running • %d complete • %d queued (%ds) [%s] %d%%\n" \
         "$spinner" "$running_count" "$completed_count" "$queued_count" "$elapsed" \
         "$bar" "$pct"
 
-    # Line 2: Running repo details (if any)
-    if [[ ${#running_repos[@]} -gt 0 ]]; then
-        printf "  └─ "
-        local first=true
-        local shown=0
-        local max_repos=6  # Show up to 6 repos
+    # Lines 2+: One line per running repo
+    for repo_info in "${running_repos[@]}"; do
+        IFS='|' read -r repo scanner progress duration <<< "$repo_info"
+        local short_repo="${repo##*/}"
 
-        for repo_info in "${running_repos[@]}"; do
-            [[ $shown -ge $max_repos ]] && break
-
-            IFS='|' read -r repo scanner progress <<< "$repo_info"
-            local short_repo="${repo##*/}"
-
-            if [[ "$first" != "true" ]]; then
-                printf " • "
-            fi
-            first=false
-
-            # Show repo name with scanner and progress
-            if [[ -n "$progress" ]]; then
-                printf "%s (%s %s)" "$short_repo" "$scanner" "$progress"
-            else
-                printf "%s (%s)" "$short_repo" "$scanner"
-            fi
-
-            ((shown++))
-        done
-
-        # Show +N more if truncated
-        if [[ $shown -lt ${#running_repos[@]} ]]; then
-            printf " +%d" $((${#running_repos[@]} - shown))
+        # Parse progress to get completed and queued scanners
+        local scanners_complete=0
+        local scanners_queued=0
+        if [[ "$progress" =~ ^([0-9]+)/([0-9]+)$ ]]; then
+            local current="${BASH_REMATCH[1]}"
+            local total="${BASH_REMATCH[2]}"
+            # Current scanner is running, so complete = current - 1
+            scanners_complete=$((current - 1))
+            # Queued = total - current
+            scanners_queued=$((total - current))
         fi
-    else
-        # Empty line 2 if no running repos
-        printf " "
-    fi
+
+        # Format duration
+        local duration_str="${duration}s"
+
+        # Print repo line
+        printf "  └─ %s (%s: %s) %d complete, %d queued\n" \
+            "$short_repo" "$scanner" "$duration_str" "$scanners_complete" "$scanners_queued"
+    done
 }
 
 #############################################################################
