@@ -1370,8 +1370,8 @@ render_scan_status_line() {
 
     # Clear previous 2 lines only if not first render
     if [[ $SCAN_STATUS_FIRST_RENDER -eq 0 ]]; then
-        # Move up 1 line, clear it, then clear current line
-        printf "\033[1A\033[2K\r\033[2K"
+        # Move to start of line 2, clear it, move up to line 1, clear it
+        printf "\r\033[2K\033[1A\r\033[2K"
     else
         # First render - just clear current line
         printf "\r\033[2K"
