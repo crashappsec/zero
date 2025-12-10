@@ -761,11 +761,8 @@ scan_org_sequential() {
             pids=("${pids[@]:1}")
             repo_map=("${repo_map[@]:1}")
 
-            # Update progress display
-            if [[ ${#repo_map[@]} -gt 0 ]]; then
-                local elapsed=$(($(date +%s) - scan_start_time))
-                render_scan_status_line "$status_dir" "$repo_count" "$completed_count" "$elapsed" "${repo_map[@]}"
-            fi
+            # Don't update progress here - let the next iteration show the full set
+            # This avoids showing "3 running" between completing one and starting the next
         fi
     done
 
