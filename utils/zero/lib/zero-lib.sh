@@ -1320,7 +1320,6 @@ render_scan_status_line() {
 
     # Count repos by status and collect running repo info
     local running_count=0
-    local queued_count=0
     local running_repos=()
 
     for repo in "${all_repos[@]}"; do
@@ -1334,10 +1333,11 @@ render_scan_status_line() {
                 # Store: repo|scanner|progress|duration
                 running_repos+=("$repo|$current_scanner|$progress|$duration")
             fi
-        else
-            ((queued_count++))
         fi
     done
+
+    # Calculate queued count: total - running - completed
+    local queued_count=$((repo_count - running_count - completed_count))
 
     # Get spinner frame
     local spinner=$(get_spinner_frame)
@@ -1410,8 +1410,8 @@ render_scan_status_line() {
         # Format duration
         local duration_str="${duration}s"
 
-        # Print repo line
-        printf "  └─ %s (%s: %s) %d complete, %d queued\n" \
+        # Print repo line with colored active scanner
+        printf "  └─ %s (\033[0;36m%s: %s\033[0m) \033[0;32m%d complete\033[0m, %d queued\n" \
             "$short_repo" "$scanner" "$duration_str" "$scanners_complete" "$scanners_queued"
     done
 }
