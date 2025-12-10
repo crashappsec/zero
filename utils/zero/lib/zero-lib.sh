@@ -1306,8 +1306,9 @@ calculate_partial_progress() {
 # Track if first render for clearing
 SCAN_STATUS_RENDERED=0
 
-# Render single-line scan status with aggregated counts
-# Shows: spinner + counts + elapsed + progress bar + running repo details
+# Render two-line scan status with aggregated counts
+# Line 1: spinner + counts + elapsed + progress bar
+# Line 2: Running repo details with scanner and progress
 render_scan_status_line() {
     local status_dir="$1"
     local repo_count="$2"
@@ -1367,55 +1368,50 @@ render_scan_status_line() {
     # Get terminal width (default 120 if can't detect)
     local term_width=$(tput cols 2>/dev/null || echo 120)
 
-    # Build single-line status with running repos
-    local status_line="${spinner} Scanning: ${running_count} running • ${completed_count} complete • ${queued_count} queued (${elapsed}s) [${bar}] ${pct}%"
+    # Clear previous 2 lines (move up 1, clear, then clear current)
+    printf "\r\033[K\033[1A\033[K"
 
-    # Add running repos if any
+    # Line 1: Status summary
+    printf "%s Scanning: %d running • %d complete • %d queued (%ds) [%s] %d%%\n" \
+        "$spinner" "$running_count" "$completed_count" "$queued_count" "$elapsed" \
+        "$bar" "$pct"
+
+    # Line 2: Running repo details (if any)
     if [[ ${#running_repos[@]} -gt 0 ]]; then
-        local repos_part=" │ "
+        printf "  └─ "
         local first=true
         local shown=0
+        local max_repos=6  # Show up to 6 repos
 
         for repo_info in "${running_repos[@]}"; do
+            [[ $shown -ge $max_repos ]] && break
+
             IFS='|' read -r repo scanner progress <<< "$repo_info"
             local short_repo="${repo##*/}"
 
-            local item=""
-            if [[ "$first" == "true" ]]; then
-                first=false
-                if [[ -n "$progress" ]]; then
-                    item="${short_repo} (${progress})"
-                else
-                    item="${short_repo}"
-                fi
+            if [[ "$first" != "true" ]]; then
+                printf " • "
+            fi
+            first=false
+
+            # Show repo name with scanner and progress
+            if [[ -n "$progress" ]]; then
+                printf "%s (%s %s)" "$short_repo" "$scanner" "$progress"
             else
-                if [[ -n "$progress" ]]; then
-                    item=" • ${short_repo} (${progress})"
-                else
-                    item=" • ${short_repo}"
-                fi
+                printf "%s (%s)" "$short_repo" "$scanner"
             fi
 
-            # Check if adding this item would exceed width
-            local test_line="${status_line}${repos_part}${item}"
-            if [[ ${#test_line} -gt $((term_width - 20)) ]]; then
-                break
-            fi
-
-            repos_part+="$item"
             ((shown++))
         done
 
         # Show +N more if truncated
         if [[ $shown -lt ${#running_repos[@]} ]]; then
-            repos_part+=" +$((${#running_repos[@]} - shown))"
+            printf " +%d" $((${#running_repos[@]} - shown))
         fi
-
-        status_line+="$repos_part"
+    else
+        # Empty line 2 if no running repos
+        printf " "
     fi
-
-    # Output single line with \r to overwrite previous
-    printf "\r%-${term_width}s" "$status_line"
 }
 
 #############################################################################
