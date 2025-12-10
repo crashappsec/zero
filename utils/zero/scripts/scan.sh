@@ -733,19 +733,33 @@ scan_org_sequential() {
 
         # Limit concurrent jobs
         if [[ ${#pids[@]} -ge $parallel_jobs ]]; then
-            # Poll for oldest job completion with progress updates
-            while kill -0 "${pids[0]}" 2>/dev/null; do
-                local elapsed=$(($(date +%s) - scan_start_time))
+            # Wait for ANY job to complete (not just the first one)
+            # This ensures we maintain full parallelism
+            local completed_pid=""
+            local completed_index=-1
 
-                # Render single-line status
+            # Poll with progress updates until any job completes
+            while true; do
+                local elapsed=$(($(date +%s) - scan_start_time))
                 render_scan_status_line "$status_dir" "$repo_count" "$completed_count" "$elapsed" "${repo_map[@]}"
+
+                # Check if any PID has completed
+                for i in "${!pids[@]}"; do
+                    if ! kill -0 "${pids[$i]}" 2>/dev/null; then
+                        completed_pid="${pids[$i]}"
+                        completed_index=$i
+                        break 2  # Break out of both loops
+                    fi
+                done
 
                 sleep 0.5
             done
-            wait "${pids[0]}" 2>/dev/null || true
+
+            # Wait for the completed job to clean up
+            wait "$completed_pid" 2>/dev/null || true
 
             # Display completed repo
-            local completed_repo="${repo_map[0]}"
+            local completed_repo="${repo_map[$completed_index]}"
             ((completed_count++))
 
             clear_progress_line
@@ -757,12 +771,11 @@ scan_org_sequential() {
             echo
             displayed_repos="$displayed_repos $completed_repo"
 
-            # Show remaining active scans
-            pids=("${pids[@]:1}")
-            repo_map=("${repo_map[@]:1}")
-
-            # Don't update progress here - let the next iteration show the full set
-            # This avoids showing "3 running" between completing one and starting the next
+            # Remove completed job from arrays
+            unset 'pids[$completed_index]'
+            unset 'repo_map[$completed_index]'
+            pids=("${pids[@]}")  # Re-index array
+            repo_map=("${repo_map[@]}")  # Re-index array
         fi
     done
 
