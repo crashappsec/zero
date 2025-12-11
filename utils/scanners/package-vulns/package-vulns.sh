@@ -152,18 +152,68 @@ clone_repository() {
     fi
 }
 
+# Find lockfiles in directory
+find_lockfiles() {
+    local target_path="$1"
+    local lockfiles=()
+
+    # Common lockfile patterns
+    local patterns=(
+        "package-lock.json"
+        "yarn.lock"
+        "pnpm-lock.yaml"
+        "Gemfile.lock"
+        "Cargo.lock"
+        "poetry.lock"
+        "Pipfile.lock"
+        "composer.lock"
+        "go.sum"
+        "requirements.txt"
+        "gradle.lockfile"
+        "pom.xml"
+        "packages.lock.json"
+    )
+
+    for pattern in "${patterns[@]}"; do
+        while IFS= read -r -d '' file; do
+            lockfiles+=("$file")
+        done < <(find "$target_path" -name "$pattern" -type f -print0 2>/dev/null)
+    done
+
+    printf '%s\n' "${lockfiles[@]}"
+}
+
 # Run osv-scanner and get JSON
 run_osv_scan() {
     local target_path="$1"
     local temp_output=$(mktemp)
-    local scan_cmd="osv-scanner --recursive"
+
+    # Find all lockfiles
+    local lockfiles=()
+    while IFS= read -r file; do
+        [[ -n "$file" ]] && lockfiles+=("$file")
+    done < <(find_lockfiles "$target_path")
+
+    if [[ ${#lockfiles[@]} -eq 0 ]]; then
+        echo '{"results":[]}'
+        rm -f "$temp_output"
+        return
+    fi
+
+    # Build scan command with lockfile flags
+    # osv-scanner v2+ uses: osv-scanner scan source -L file1 -L file2 ...
+    local scan_cmd="osv-scanner scan source --format=json"
+
+    for lockfile in "${lockfiles[@]}"; do
+        scan_cmd="$scan_cmd -L \"$lockfile\""
+    done
 
     if [[ "$TAINT_ANALYSIS" == true ]]; then
-        scan_cmd="osv-scanner --call-analysis=all"
+        scan_cmd="$scan_cmd --call-analysis=all"
     fi
 
     # Run scan (exit 1 when vulns found is normal)
-    eval "$scan_cmd --format=json \"$target_path\"" > "$temp_output" 2>/dev/null || true
+    eval "$scan_cmd" > "$temp_output" 2>/dev/null || true
 
     # Extract JSON (skip any non-JSON prefix)
     if grep -q "^{" "$temp_output"; then
@@ -312,13 +362,16 @@ process_results() {
         vulns_array=$(echo "$vulns_array" | jq --argjson v "$vuln_obj" '. + [$v]')
 
     done < <(echo "$raw_json" | jq -r '.results[]? | .packages[]? | select(.vulnerabilities) |
-        .package as $pkg | .vulnerabilities[] |
+        .package as $pkg | .groups as $groups | .vulnerabilities[] |
+        . as $vuln |
+        # Find max_severity from groups that contain this vuln id
+        ($groups | map(select(.ids[]? == $vuln.id)) | .[0].max_severity // "0") as $cvss |
         {
             id: (.id // "N/A"),
             package: ($pkg.name // "N/A"),
             version: ($pkg.version // "N/A"),
             ecosystem: ($pkg.ecosystem // "N/A"),
-            cvss: ((.database_specific.cvss // .database_specific.severity // "0") | tostring),
+            cvss: ($cvss | tostring),
             summary: (.summary // .details // "No description")
         } | @json' 2>/dev/null)
 
