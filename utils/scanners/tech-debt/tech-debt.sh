@@ -214,71 +214,67 @@ scan_debt_markers() {
 # Scan for @deprecated annotations
 scan_deprecated() {
     local repo_dir="$1"
-    local deprecated="[]"
+    local tmp_file=$(mktemp)
 
-    # Find files with @deprecated
-    local files=$(grep -rl "@deprecated\|@Deprecated\|DEPRECATED" "$repo_dir" \
+    # Single grep call to find all deprecated items (fast!)
+    grep -rn -i "@deprecated\|DEPRECATED" "$repo_dir" \
         --include="*.py" --include="*.js" --include="*.ts" --include="*.java" \
         --include="*.go" --include="*.rb" --include="*.php" \
-        ! --include="*node_modules*" ! --include="*vendor*" 2>/dev/null | head -50)
+        --exclude-dir=node_modules --exclude-dir=vendor --exclude-dir=.git \
+        2>/dev/null | head -100 > "$tmp_file" || true
 
-    while IFS= read -r file; do
-        [[ -z "$file" ]] && continue
-        local rel_path="${file#$repo_dir/}"
+    # Convert to JSON with awk (single process, no loops)
+    awk -F: -v repo_dir="$repo_dir" '
+    BEGIN { ORS="" }
+    {
+        file = $1
+        line = $2
+        context = ""
+        for (i=3; i<=NF; i++) {
+            if (i > 3) context = context ":"
+            context = context $i
+        }
+        sub("^" repo_dir "/", "", file)
+        # Escape JSON chars
+        gsub(/\\/, "\\\\", context)
+        gsub(/"/, "\\\"", context)
+        gsub(/\t/, "\\t", context)
+        gsub(/\r/, "", context)
+        print "{\"file\":\"" file "\",\"line\":" line ",\"context\":\"" context "\"}\n"
+    }
+    ' "$tmp_file" | jq -s '.' 2>/dev/null || echo "[]"
 
-        # Get line numbers and context
-        while IFS=: read -r line_num content; do
-            [[ -z "$line_num" ]] && continue
-
-            deprecated=$(echo "$deprecated" | jq \
-                --arg file "$rel_path" \
-                --argjson line "$line_num" \
-                --arg context "$content" \
-                '. + [{
-                    "file": $file,
-                    "line": $line,
-                    "context": $context
-                }]')
-        done < <(grep -n -i "@deprecated\|DEPRECATED" "$file" 2>/dev/null | head -20)
-
-    done <<< "$files"
-
-    echo "$deprecated"
+    rm -f "$tmp_file"
 }
 
 # Find long files
 find_long_files() {
     local repo_dir="$1"
     local threshold="$2"
-    local long_files="[]"
 
-    local source_files=$(find "$repo_dir" -type f \( \
+    # Use wc -l with find -exec (much faster than looping in bash)
+    # Then filter and convert to JSON with awk
+    find "$repo_dir" -type f \( \
         -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" \
         -o -name "*.java" -o -name "*.go" -o -name "*.rb" -o -name "*.php" \
         -o -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" \
         -o -name "*.cs" -o -name "*.swift" -o -name "*.kt" -o -name "*.rs" \
-    \) ! -path "*node_modules*" ! -path "*vendor*" ! -path "*.git*" ! -path "*dist*" ! -path "*build*" 2>/dev/null)
-
-    while IFS= read -r file; do
-        [[ -z "$file" ]] && continue
-
-        local line_count=$(wc -l < "$file" 2>/dev/null | tr -d ' ')
-        if [[ "$line_count" -gt "$threshold" ]]; then
-            local rel_path="${file#$repo_dir/}"
-            long_files=$(echo "$long_files" | jq \
-                --arg file "$rel_path" \
-                --argjson lines "$line_count" \
-                --argjson threshold "$threshold" \
-                '. + [{
-                    "file": $file,
-                    "lines": $lines,
-                    "threshold": $threshold,
-                    "excess": ($lines - $threshold)
-                }]')
-        fi
-    done <<< "$source_files"
-
-    echo "$long_files"
+    \) ! -path "*node_modules*" ! -path "*vendor*" ! -path "*.git*" ! -path "*dist*" ! -path "*build*" \
+        -exec wc -l {} + 2>/dev/null | \
+    awk -v repo_dir="$repo_dir" -v threshold="$threshold" '
+    BEGIN { ORS="" }
+    {
+        # wc -l output format: "  123 /path/to/file"
+        lines = $1
+        file = $2
+        # Skip the "total" line from wc
+        if (file == "total" || file == "") next
+        if (lines > threshold) {
+            sub("^" repo_dir "/", "", file)
+            print "{\"file\":\"" file "\",\"lines\":" lines ",\"threshold\":" threshold ",\"excess\":" (lines - threshold) "}\n"
+        }
+    }
+    ' | head -100 | jq -s '.' 2>/dev/null || echo "[]"
 }
 
 # Calculate code statistics
@@ -542,72 +538,78 @@ analyze_target() {
 
     echo -e "${BLUE}Scanning for debt markers (TODO/FIXME/HACK/XXX)...${NC}" >&2
 
-    # Create file descriptors for counts
-    exec 3>&1 4>&1 5>&1 6>&1
-
-    # Scan markers - capture both output and counts
-    local todo_count=0
-    local fixme_count=0
-    local hack_count=0
-    local xxx_count=0
-
-    local markers="[]"
+    # Use a single recursive grep instead of iterating files - MUCH faster
+    # grep -r with --include is orders of magnitude faster than find + per-file grep
     local patterns="TODO|FIXME|HACK|XXX|BUG|KLUDGE|OPTIMIZE|REFACTOR"
+    local markers_tmp=$(mktemp)
 
-    # Find all source files
-    local source_files=$(find "$repo_dir" -type f \( \
-        -name "*.py" -o -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" \
-        -o -name "*.java" -o -name "*.go" -o -name "*.rb" -o -name "*.php" \
-        -o -name "*.c" -o -name "*.cpp" -o -name "*.h" -o -name "*.hpp" \
-        -o -name "*.cs" -o -name "*.swift" -o -name "*.kt" -o -name "*.rs" \
-        -o -name "*.scala" -o -name "*.sh" -o -name "*.bash" \
-    \) ! -path "*node_modules*" ! -path "*vendor*" ! -path "*.git*" ! -path "*dist*" ! -path "*build*" 2>/dev/null)
+    # Single grep call across all source files (fast!)
+    grep -rn -E "($patterns)" "$repo_dir" \
+        --include="*.py" --include="*.js" --include="*.ts" --include="*.jsx" --include="*.tsx" \
+        --include="*.java" --include="*.go" --include="*.rb" --include="*.php" \
+        --include="*.c" --include="*.cpp" --include="*.h" --include="*.hpp" \
+        --include="*.cs" --include="*.swift" --include="*.kt" --include="*.rs" \
+        --include="*.scala" --include="*.sh" --include="*.bash" \
+        --exclude-dir=node_modules --exclude-dir=vendor --exclude-dir=.git \
+        --exclude-dir=dist --exclude-dir=build 2>/dev/null | head -1000 > "$markers_tmp" || true
 
-    while IFS= read -r file; do
-        [[ -z "$file" ]] && continue
+    # Count markers by type using grep -c (fast, no loops)
+    local todo_count=$(grep -ci "TODO" "$markers_tmp" 2>/dev/null || echo "0")
+    local fixme_count=$(grep -ci "FIXME" "$markers_tmp" 2>/dev/null || echo "0")
+    local hack_count=$(grep -ci "HACK" "$markers_tmp" 2>/dev/null || echo "0")
+    local xxx_count=$(grep -ci "XXX" "$markers_tmp" 2>/dev/null || echo "0")
 
-        while IFS=: read -r line_num content; do
-            [[ -z "$line_num" ]] && continue
+    # Convert grep output to JSON using awk (single process, no loops)
+    local markers_json_tmp=$(mktemp)
+    awk -F: -v repo_dir="$repo_dir" '
+    BEGIN { ORS="" }
+    {
+        # Parse file:line:content
+        file = $1
+        line = $2
+        # Content is everything after second colon
+        content = ""
+        for (i=3; i<=NF; i++) {
+            if (i > 3) content = content ":"
+            content = content $i
+        }
 
-            local rel_path="${file#$repo_dir/}"
-            local marker_type=""
+        # Remove repo_dir prefix from file path
+        sub("^" repo_dir "/", "", file)
 
-            if echo "$content" | grep -qi "TODO"; then
-                marker_type="TODO"
-                ((todo_count++))
-            elif echo "$content" | grep -qi "FIXME"; then
-                marker_type="FIXME"
-                ((fixme_count++))
-            elif echo "$content" | grep -qi "HACK"; then
-                marker_type="HACK"
-                ((hack_count++))
-            elif echo "$content" | grep -qi "XXX"; then
-                marker_type="XXX"
-                ((xxx_count++))
-            else
-                marker_type="OTHER"
-            fi
+        # Determine marker type (case insensitive)
+        upper_content = toupper(content)
+        if (index(upper_content, "TODO") > 0) type = "TODO"
+        else if (index(upper_content, "FIXME") > 0) type = "FIXME"
+        else if (index(upper_content, "HACK") > 0) type = "HACK"
+        else if (index(upper_content, "XXX") > 0) type = "XXX"
+        else type = "OTHER"
 
-            local clean_text=$(echo "$content" | sed 's/^[[:space:]]*[#/*-]*[[:space:]]*//' | sed 's/^\/\///')
-            if [[ ${#clean_text} -gt 200 ]]; then
-                clean_text="${clean_text:0:197}..."
-            fi
+        # Clean the content - remove leading comment chars
+        gsub(/^[[:space:]]*[#\/*-]*[[:space:]]*/, "", content)
+        gsub(/^\/\/[[:space:]]*/, "", content)
 
-            markers=$(echo "$markers" | jq \
-                --arg type "$marker_type" \
-                --arg file "$rel_path" \
-                --argjson line "$line_num" \
-                --arg text "$clean_text" \
-                '. + [{
-                    "type": $type,
-                    "text": $text,
-                    "file": $file,
-                    "line": $line
-                }]')
+        # Truncate long content
+        if (length(content) > 200) content = substr(content, 1, 197) "..."
 
-        done < <(grep -n -E "($patterns)" "$file" 2>/dev/null | head -100)
+        # Escape JSON special chars
+        gsub(/\\/, "\\\\", content)
+        gsub(/"/, "\\\"", content)
+        gsub(/\t/, "\\t", content)
+        gsub(/\r/, "", content)
 
-    done <<< "$source_files"
+        # Output JSON line
+        print "{\"type\":\"" type "\",\"text\":\"" content "\",\"file\":\"" file "\",\"line\":" line "}\n"
+    }
+    ' "$markers_tmp" > "$markers_json_tmp"
+
+    # Convert to JSON array with single jq call
+    local markers="[]"
+    if [[ -s "$markers_json_tmp" ]]; then
+        markers=$(jq -s '.' "$markers_json_tmp" 2>/dev/null || echo "[]")
+    fi
+
+    rm -f "$markers_tmp" "$markers_json_tmp"
 
     local total_markers=$((todo_count + fixme_count + hack_count + xxx_count))
     echo -e "${GREEN}✓ Found $total_markers debt markers${NC}" >&2

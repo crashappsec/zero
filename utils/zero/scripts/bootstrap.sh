@@ -19,29 +19,39 @@
 
 set -e
 
+[[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Script started" >&2
+
 # Get script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ZERO_UTILS_DIR="$(dirname "$SCRIPT_DIR")"
 
+[[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Loading zero-lib.sh..." >&2
 # Load Zero library (sets ZERO_DIR to .zero data directory in project root)
 source "$ZERO_UTILS_DIR/lib/zero-lib.sh"
+[[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] zero-lib.sh loaded" >&2
 
 # Load shared config if available
 UTILS_ROOT="$(dirname "$ZERO_UTILS_DIR")"
 REPO_ROOT="$(dirname "$UTILS_ROOT")"
 
 if [[ -f "$UTILS_ROOT/lib/config.sh" ]]; then
+    [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Loading config.sh..." >&2
     source "$UTILS_ROOT/lib/config.sh"
+    [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] config.sh loaded" >&2
 fi
 
+[[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Loading config-loader.sh..." >&2
 # Load config loader for dynamic profiles
 source "$ZERO_UTILS_DIR/config/config-loader.sh"
+[[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] config-loader.sh loaded" >&2
 
 # Load .env if it exists
 if [[ -f "$REPO_ROOT/.env" ]]; then
+    [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Loading .env..." >&2
     set -a
     source "$REPO_ROOT/.env"
     set +a
+    [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] .env loaded" >&2
 fi
 
 #############################################################################
@@ -51,7 +61,9 @@ fi
 TARGET=""
 BRANCH=""
 DEPTH=""
+[[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Getting default profile..." >&2
 MODE="$(get_default_profile)"  # Load default from config
+[[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Default profile: $MODE" >&2
 FORCE=false
 ENRICH=false      # Incremental enrichment - only run missing collectors
 CLONE_ONLY=false  # Just clone, don't scan
@@ -61,7 +73,9 @@ STATUS_DIR=""     # Optional status directory for progress tracking
 
 # Canonical list of ALL scanners - loaded from config for display
 # This ensures consistent output format across all profiles
+[[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Getting all scanners..." >&2
 ALL_SCANNERS="$(get_all_scanners)"
+[[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Scanners: $ALL_SCANNERS" >&2
 
 #############################################################################
 # Usage
@@ -2131,7 +2145,23 @@ run_all_analyzers_parallel() {
     done
 
     # Monitor and update progress bar
+    local loop_counter=0
+    local max_loops=6000  # 10 minutes at 0.1s sleep = 6000 iterations
     while scanners_still_running "$status_dir" "$remaining_scanners"; do
+        ((loop_counter++))
+        if [[ $loop_counter -gt $max_loops ]]; then
+            echo -e "\n${RED}ERROR: Scan timeout after $((max_loops / 10)) seconds${NC}" >&2
+            echo -e "${YELLOW}Status dir: $status_dir${NC}" >&2
+            echo -e "${YELLOW}Remaining scanners: $remaining_scanners${NC}" >&2
+            for analyzer in $remaining_scanners; do
+                local status_file="$status_dir/$analyzer.status"
+                if [[ -f "$status_file" ]]; then
+                    echo -e "  $analyzer: $(cat "$status_file")" >&2
+                fi
+            done
+            break
+        fi
+
         # Count completed scanners
         completed_count=0
         for analyzer in $remaining_scanners; do
@@ -2424,14 +2454,18 @@ print_final_summary() {
 #############################################################################
 
 main() {
+    [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] main() started" >&2
     parse_args "$@"
+    [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] parse_args() completed" >&2
 
     # Run preflight check (silent unless errors)
     if [[ -x "$SCRIPT_DIR/preflight.sh" ]]; then
+        [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Running preflight check..." >&2
         if ! "$SCRIPT_DIR/preflight.sh" > /dev/null 2>&1; then
             echo -e "${RED}Preflight check failed. Run ./utils/zero/preflight.sh to see details.${NC}"
             exit 1
         fi
+        [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Preflight check passed" >&2
     fi
 
     # Regenerate Semgrep rules from RAG patterns (ensures latest rules)
@@ -2440,14 +2474,18 @@ main() {
     local semgrep_rules_dir="$UTILS_ROOT/scanners/semgrep/rules"
     if [[ -x "$rag_to_semgrep" ]] || [[ -f "$rag_to_semgrep" ]]; then
         if command -v python3 &> /dev/null && [[ -d "$rag_dir" ]]; then
+            [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Regenerating Semgrep rules..." >&2
             python3 "$rag_to_semgrep" "$rag_dir" "$semgrep_rules_dir" > /dev/null 2>&1 || true
+            [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Semgrep rules regenerated" >&2
         fi
     fi
 
     # Sync Semgrep community rules (cached, only updates if stale)
     local community_rules="$UTILS_ROOT/scanners/semgrep/community-rules.sh"
     if [[ -x "$community_rules" ]] && command -v semgrep &> /dev/null; then
+        [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Syncing Semgrep community rules..." >&2
         "$community_rules" sync default > /dev/null 2>&1 || true
+        [[ -n "${DEBUG_BOOTSTRAP:-}" ]] && echo "[DEBUG] Semgrep community rules synced" >&2
     fi
 
     # Ensure Gibson is initialized

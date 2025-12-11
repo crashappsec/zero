@@ -464,6 +464,20 @@ zero_list_projects() {
     done
 }
 
+# Ensure index.json exists
+zero_ensure_index() {
+    if [[ ! -f "$ZERO_DIR/index.json" ]]; then
+        mkdir -p "$ZERO_DIR"
+        cat > "$ZERO_DIR/index.json" << 'EOF'
+{
+  "version": "1.0.0",
+  "projects": {},
+  "active": null
+}
+EOF
+    fi
+}
+
 # Get active project
 zero_active_project() {
     if [[ ! -f "$ZERO_DIR/index.json" ]]; then
@@ -477,9 +491,7 @@ zero_active_project() {
 zero_set_active_project() {
     local project_id="$1"
 
-    if [[ ! -f "$ZERO_DIR/index.json" ]]; then
-        return 1
-    fi
+    zero_ensure_index
 
     local tmp=$(mktemp)
     jq --arg id "$project_id" '.active = $id' "$ZERO_DIR/index.json" > "$tmp" && mv "$tmp" "$ZERO_DIR/index.json"
@@ -490,6 +502,8 @@ zero_index_add_project() {
     local project_id="$1"
     local source="$2"
     local status="${3:-bootstrapping}"
+
+    zero_ensure_index
 
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
@@ -511,6 +525,8 @@ zero_index_update_status() {
     local project_id="$1"
     local status="$2"
 
+    zero_ensure_index
+
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
     local tmp=$(mktemp)
@@ -524,6 +540,8 @@ zero_index_update_status() {
 # Remove project from index
 zero_index_remove_project() {
     local project_id="$1"
+
+    zero_ensure_index
 
     local tmp=$(mktemp)
     jq --arg id "$project_id" 'del(.projects[$id])' "$ZERO_DIR/index.json" > "$tmp" && mv "$tmp" "$ZERO_DIR/index.json"
@@ -1283,6 +1301,68 @@ format_duration() {
     fi
 }
 
+# Format bytes to human readable (e.g., "245mb", "1.1gb")
+format_size_lower() {
+    local bytes=$1
+    if [[ $bytes -ge 1073741824 ]]; then
+        local gb=$((bytes / 1073741824))
+        local remainder_bytes=$((bytes % 1073741824))
+        # Divide first to avoid overflow, then get single decimal digit
+        local decimal=$(( remainder_bytes / 107374182 ))  # 1073741824/10
+        if [[ $decimal -gt 0 ]]; then
+            echo "${gb}.${decimal}gb"
+        else
+            echo "${gb}gb"
+        fi
+    elif [[ $bytes -ge 1048576 ]]; then
+        echo "$(( bytes / 1048576 ))mb"
+    elif [[ $bytes -ge 1024 ]]; then
+        echo "$(( bytes / 1024 ))kb"
+    else
+        echo "${bytes}b"
+    fi
+}
+
+# Get repo stats (size in bytes and file count) for a cloned repo
+# Usage: get_repo_stats <repo_path>
+# Returns: "size_bytes|file_count" or "0|0" if not found
+get_repo_stats() {
+    local repo_path="$1"
+
+    if [[ ! -d "$repo_path" ]]; then
+        echo "0|0"
+        return
+    fi
+
+    # Get size in bytes (excluding .git for accuracy)
+    local size_bytes=$(du -sk "$repo_path" 2>/dev/null | cut -f1)
+    size_bytes=$((size_bytes * 1024))  # Convert KB to bytes
+
+    # Get file count (excluding .git directory)
+    local file_count=$(find "$repo_path" -type f ! -path '*/.git/*' 2>/dev/null | wc -l | tr -d ' ')
+
+    echo "${size_bytes}|${file_count}"
+}
+
+# Format repo stats for display
+# Usage: format_repo_stats <repo_path>
+# Returns: "245mb, 900 files" or empty if not found
+format_repo_stats() {
+    local repo_path="$1"
+    local stats=$(get_repo_stats "$repo_path")
+
+    local size_bytes="${stats%%|*}"
+    local file_count="${stats##*|}"
+
+    if [[ "$size_bytes" == "0" ]] && [[ "$file_count" == "0" ]]; then
+        echo ""
+        return
+    fi
+
+    local size_str=$(format_size_lower "$size_bytes")
+    printf "%s, %s files" "$size_str" "$file_count"
+}
+
 # Calculate progress including partial repo completion
 calculate_partial_progress() {
     local status_dir="$1"
@@ -1491,11 +1571,11 @@ render_todo_display() {
         if [[ -f "$status_file" ]]; then
             IFS='|' read -r status scanner progress duration clone_status < "$status_file"
 
-            # Clone status
+            # Clone status - include full repo name for stats lookup
             if [[ "$clone_status" == "cloned" ]]; then
-                clone_complete+=("$short|Cloned")
+                clone_complete+=("$short|Cloned|$current_repo")
             elif [[ "$clone_status" == "skipped" ]]; then
-                clone_complete+=("$short|Already cloned")
+                clone_complete+=("$short|Already cloned|$current_repo")
             elif [[ "$scanner" == "cloning" ]]; then
                 clone_running+=("$short")
             fi
@@ -1514,7 +1594,7 @@ render_todo_display() {
             local project_id=$(zero_project_id "$current_repo")
             local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
             if [[ -d "$repo_path" ]]; then
-                clone_complete+=("$short|Already cloned")
+                clone_complete+=("$short|Already cloned|$current_repo")
             else
                 clone_waiting+=("$short")
             fi
@@ -1532,110 +1612,143 @@ render_todo_display() {
     local spinner=$(get_spinner_frame)
     local line_count=0
 
-    # Clone section
-    printf "\n"
+    # Clone section - show all repos with status and stats
     local clone_total=${#clone_complete[@]}
     local clone_running_count=${#clone_running[@]}
     local clone_waiting_count=${#clone_waiting[@]}
 
-    # If all cloning is done (no running, no waiting), show summary
+    # If all cloning is done (no running, no waiting), show full list with summary
     if [[ $clone_running_count -eq 0 ]] && [[ $clone_waiting_count -eq 0 ]] && [[ $clone_total -gt 0 ]]; then
-        printf "  ${GREEN}✓${NC} ${BOLD}Cloning complete${NC} (%d repos already cloned)\n" "$clone_total"
-        printf "\n"
-        ((line_count+=3))
-    else
-        printf "  ${BOLD}%s Cloning repos${NC}\n" "$spinner"
-        printf "\n"
-        ((line_count+=3))
+        printf "\n"; ((line_count++))
 
-        # Show clone running
-        for short in "${clone_running[@]}"; do
-            printf "    ${YELLOW}*${NC} ${BOLD}%-28s${NC} ${CYAN}Cloning...${NC}\n" "$short"
+        # Show all cloned repos (no stats in live display - too slow)
+        for info in "${clone_complete[@]}"; do
+            IFS='|' read -r short clone_msg repo_full <<< "$info"
+
+            if [[ "$clone_msg" == "Cloned" ]]; then
+                printf "    ${GREEN}✓${NC}  %-24s ${GREEN}Complete${NC}\n" "$short"
+            else
+                printf "    ${GREEN}✓${NC}  %-24s ${DIM}Previously complete${NC}\n" "$short"
+            fi
             ((line_count++))
         done
 
-        # Show clone complete (last 3)
-        local clone_start=0
-        [[ $clone_total -gt 3 ]] && clone_start=$((clone_total - 3))
-        for ((i=clone_start; i<clone_total; i++)); do
-            local info="${clone_complete[$i]}"
-            IFS='|' read -r short clone_msg <<< "$info"
-            printf "    ${GREEN}✓${NC} ${DIM}%-28s${NC} ${GREEN}%s${NC}\n" "$short" "$clone_msg"
-            ((line_count++))
-        done
+        printf "\n"; ((line_count++))
 
-        # Show clone waiting (max 2)
-        local shown=0
-        for short in "${clone_waiting[@]}"; do
-            if [[ $shown -lt 2 ]]; then
-                printf "    ${DIM}○ %-28s Waiting${NC}\n" "$short"
-                ((shown++))
-                ((line_count++))
+        # Count cloned vs skipped
+        local freshly_cloned=0
+        local already_cloned=0
+        for info in "${clone_complete[@]}"; do
+            IFS='|' read -r short clone_msg repo_full <<< "$info"
+            if [[ "$clone_msg" == "Cloned" ]]; then
+                ((freshly_cloned++))
+            else
+                ((already_cloned++))
             fi
         done
-        if [[ $clone_waiting_count -gt 2 ]]; then
-            printf "    ${DIM}  ... and %d more waiting${NC}\n" "$((clone_waiting_count - 2))"
-            ((line_count++))
+
+        printf "  ${GREEN}✓${NC} ${BOLD}Cloning complete${NC}"
+        local clone_parts=()
+        [[ $freshly_cloned -gt 0 ]] && clone_parts+=("${freshly_cloned} cloned")
+        [[ $already_cloned -gt 0 ]] && clone_parts+=("${already_cloned} already cloned")
+        if [[ ${#clone_parts[@]} -gt 0 ]]; then
+            printf " ("
+            local first=true
+            for part in "${clone_parts[@]}"; do
+                [[ "$first" != "true" ]] && printf ", "
+                printf "%s" "$part"
+                first=false
+            done
+            printf ")"
         fi
+        printf "\n"; ((line_count++))
+        printf "\n"; ((line_count++))
+    else
+        printf "\n"; ((line_count++))
+        printf "  ${BOLD}%s Cloning repos${NC}\n" "$spinner"; ((line_count++))
+        printf "\n"; ((line_count++))
+
+        # Show ALL repos in order: running, complete, waiting
+        # Show clone running
+        for short in "${clone_running[@]}"; do
+            printf "    ${YELLOW}*${NC}  %-24s ${CYAN}Cloning...${NC}\n" "$short"; ((line_count++))
+        done
+
+        # Show clone complete (no stats in live display - too slow)
+        for info in "${clone_complete[@]}"; do
+            IFS='|' read -r short clone_msg repo_full <<< "$info"
+
+            if [[ "$clone_msg" == "Cloned" ]]; then
+                printf "    ${GREEN}✓${NC}  %-24s ${GREEN}Complete${NC}\n" "$short"
+            else
+                printf "    ${GREEN}✓${NC}  %-24s ${DIM}Previously complete${NC}\n" "$short"
+            fi
+            ((line_count++))
+        done
+
+        # Show clone waiting
+        for short in "${clone_waiting[@]}"; do
+            printf "    ${DIM}○${NC}  ${DIM}%-24s Waiting${NC}\n" "$short"; ((line_count++))
+        done
     fi
 
-    # Scan section
-    local pct=0
-    [[ $total -gt 0 ]] && pct=$((complete_count * 100 / total))
+    # Scan section - simple stable list, one line per repo
+    printf "\n"; ((line_count++))
 
-    printf "\n"
-    printf "  ${BOLD}%s Scanning %s${NC} (%d/%d repos, %d%%, %ds)\n" \
-        "$spinner" "$org_name" "$complete_count" "$total" "$pct" "$elapsed"
-    printf "\n"
-    ((line_count+=3))
+    for current_repo in "${all_repos[@]}"; do
+        local short="${current_repo##*/}"
+        local found_status="waiting"
+        local found_info=""
 
-    # Show scan running
-    for repo_info in "${scan_running[@]}"; do
-        IFS='|' read -r short scanner progress <<< "$repo_info"
-        local prog_text=""
-        if [[ "$progress" =~ ^([0-9]+)/([0-9]+)$ ]]; then
-            prog_text="(${BASH_REMATCH[1]}/${BASH_REMATCH[2]})"
+        # Check if complete
+        for repo_info in "${scan_complete[@]}"; do
+            IFS='|' read -r check_short duration <<< "$repo_info"
+            if [[ "$check_short" == "$short" ]]; then
+                found_status="complete"
+                found_info="$duration"
+                break
+            fi
+        done
+
+        # Check if running
+        if [[ "$found_status" == "waiting" ]]; then
+            for repo_info in "${scan_running[@]}"; do
+                IFS='|' read -r check_short scanner progress <<< "$repo_info"
+                if [[ "$check_short" == "$short" ]]; then
+                    found_status="running"
+                    found_info="$scanner"
+                    break
+                fi
+            done
         fi
-        printf "    ${YELLOW}*${NC} ${BOLD}%-28s${NC} ${CYAN}%-18s${NC} %s\n" \
-            "$short" "$scanner" "$prog_text"
-        ((line_count++))
-    done
 
-    # Show scan complete (last 3)
-    local scan_total=${#scan_complete[@]}
-    local scan_start=0
-    [[ $scan_total -gt 3 ]] && scan_start=$((scan_total - 3))
-    for ((i=scan_start; i<scan_total; i++)); do
-        local info="${scan_complete[$i]}"
-        IFS='|' read -r short duration <<< "$info"
-        printf "    ${GREEN}✓${NC} ${DIM}%-28s${NC} ${GREEN}Complete${NC} (%ss)\n" "$short" "$duration"
+        case "$found_status" in
+            complete)
+                printf "  ${GREEN}✓${NC} ${DIM}%-20s${NC} ${DIM}done (%ss)${NC}\n" "$short" "$found_info"
+                ;;
+            running)
+                printf "  ${YELLOW}○${NC} %-20s ${CYAN}%s${NC}\n" "$short" "$found_info"
+                ;;
+            waiting)
+                printf "  ${DIM}○ %-20s pending${NC}\n" "$short"
+                ;;
+        esac
         ((line_count++))
     done
-
-    # Show scan waiting (max 2)
-    shown=0
-    for short in "${scan_waiting[@]}"; do
-        if [[ $shown -lt 2 ]]; then
-            printf "    ${DIM}○ %-28s Waiting${NC}\n" "$short"
-            ((shown++))
-            ((line_count++))
-        fi
-    done
-    if [[ ${#scan_waiting[@]} -gt 2 ]]; then
-        printf "    ${DIM}  ... and %d more waiting${NC}\n" "$((${#scan_waiting[@]} - 2))"
-        ((line_count++))
-    fi
 
     TODO_DISPLAY_LINES=$line_count
 }
 
-# Finalize todo display - show final summary
+# Finalize todo display - show final summary with repo stats
+# Usage: finalize_todo_display org_name total success failed duration repos_array
 finalize_todo_display() {
     local org_name="$1"
     local total="$2"
     local success="$3"
     local failed="$4"
     local duration="$5"
+    shift 5
+    local repos=("$@")
 
     # Clear the last progress display
     if [[ $TODO_DISPLAY_LINES -gt 0 ]]; then
@@ -1646,6 +1759,22 @@ finalize_todo_display() {
     TODO_DISPLAY_LINES=0
 
     printf "\n"
+
+    # Show all repos with stats (only calculated once at the end)
+    if [[ ${#repos[@]} -gt 0 ]]; then
+        for repo in "${repos[@]}"; do
+            local short="${repo##*/}"
+            local project_id=$(zero_project_id "$repo")
+            local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
+            local stats=$(format_repo_stats "$repo_path")
+
+            printf "    ${GREEN}✓${NC}  %-24s" "$short"
+            [[ -n "$stats" ]] && printf " ${DIM}(%s)${NC}" "$stats"
+            printf "\n"
+        done
+        printf "\n"
+    fi
+
     printf "${GREEN}${BOLD}✓ Hydrate complete${NC}\n"
     printf "\n"
     printf "  Organization: ${CYAN}%s${NC}\n" "$org_name"
@@ -1671,23 +1800,34 @@ init_clone_display() {
     CLONE_DISPLAY_LINES=0
 }
 
-# Render todo-style clone progress display
-# Usage: render_clone_display org_name total_count completed_count cloned_count skipped_count failed_count elapsed repos_status_string
-# repos_status_string format: "repo1:status1:info1,repo2:status2:info2,..."
-# status: pending|cloning|complete|skipped|failed
+# Render todo-style clone progress display showing ALL repos
+# Usage: render_clone_display org_name elapsed all_repos_array
+# all_repos_array format: "repo1|status1|stats1" where status is pending|cloning|complete|skipped|failed
+# stats format: "245mb, 900 files" (empty for pending/failed)
 render_clone_display() {
     local org_name="$1"
-    local total="$2"
-    local completed="$3"
-    local cloned="$4"
-    local skipped="$5"
-    local failed="$6"
-    local elapsed="$7"
-    local current_repo="$8"
-    local current_status="$9"
-    local current_progress="${10}"
-    shift 10
-    local completed_repos=("$@")
+    local elapsed="$2"
+    shift 2
+    local all_repos=("$@")
+
+    local total=${#all_repos[@]}
+
+    # Count statuses
+    local completed=0
+    local cloned=0
+    local skipped=0
+    local failed=0
+    local cloning=0
+
+    for repo_info in "${all_repos[@]}"; do
+        IFS='|' read -r repo status stats <<< "$repo_info"
+        case "$status" in
+            complete) ((completed++)); ((cloned++)) ;;
+            skipped) ((completed++)); ((skipped++)) ;;
+            failed) ((completed++)); ((failed++)) ;;
+            cloning) ((cloning++)) ;;
+        esac
+    done
 
     # Calculate percentage
     local pct=0
@@ -1703,76 +1843,72 @@ render_clone_display() {
         done
     fi
 
-    # Header
-    printf "\n"
+    # Count lines as we print them
+    local line_count=0
+
+    # Header (3 lines: blank, header text, blank)
+    printf "\n"; ((line_count++))
     printf "${BOLD}%s Cloning %s${NC} (%d/%d repos, %d%%, %ds)\n" \
-        "$spinner" "$org_name" "$completed" "$total" "$pct" "$elapsed"
-    printf "\n"
+        "$spinner" "$org_name" "$completed" "$total" "$pct" "$elapsed"; ((line_count++))
+    printf "\n"; ((line_count++))
 
-    local line_count=3
-
-    # Show current repo being cloned
-    if [[ -n "$current_repo" ]]; then
-        local short="${current_repo##*/}"
-        if [[ "$current_status" == "cloning" ]]; then
-            if [[ -n "$current_progress" ]]; then
-                printf "  ${YELLOW}*${NC} ${BOLD}%-30s${NC} ${CYAN}%s${NC}\n" "$short" "$current_progress"
-            else
-                printf "  ${YELLOW}*${NC} ${BOLD}%-30s${NC} ${CYAN}cloning...${NC}\n" "$short"
-            fi
-            ((line_count++))
-        fi
-    fi
-
-    # Show completed repos (last 5)
-    local show_count=0
-    local total_completed=${#completed_repos[@]}
-    local start_idx=0
-    [[ $total_completed -gt 5 ]] && start_idx=$((total_completed - 5))
-
-    for ((i=start_idx; i<total_completed; i++)); do
-        local repo_info="${completed_repos[$i]}"
-        IFS='|' read -r repo status info <<< "$repo_info"
+    # Show ALL repos with their status
+    for repo_info in "${all_repos[@]}"; do
+        IFS='|' read -r repo status stats <<< "$repo_info"
         local short="${repo##*/}"
 
-        if [[ "$status" == "cloned" ]]; then
-            printf "  ${GREEN}✓${NC} ${DIM}%-30s${NC} ${GREEN}cloned${NC} %s\n" "$short" "$info"
-        elif [[ "$status" == "skipped" ]]; then
-            printf "  ${GREEN}✓${NC} ${DIM}%-30s${NC} ${DIM}already cloned${NC} %s\n" "$short" "$info"
-        elif [[ "$status" == "failed" ]]; then
-            printf "  ${RED}✗${NC} ${DIM}%-30s${NC} ${RED}failed${NC}\n" "$short"
-        fi
+        case "$status" in
+            complete)
+                printf "    ${GREEN}✓${NC}  %-24s ${GREEN}Complete${NC}" "$short"
+                [[ -n "$stats" ]] && printf " ${DIM}(%s)${NC}" "$stats"
+                printf "\n"
+                ;;
+            skipped)
+                printf "    ${GREEN}✓${NC}  %-24s ${DIM}Previously complete${NC}" "$short"
+                [[ -n "$stats" ]] && printf " ${DIM}(%s)${NC}" "$stats"
+                printf "\n"
+                ;;
+            failed)
+                printf "    ${RED}✗${NC}  %-24s ${RED}Failed${NC}\n" "$short"
+                ;;
+            cloning)
+                printf "    ${YELLOW}*${NC}  %-24s ${CYAN}Cloning...${NC}\n" "$short"
+                ;;
+            pending)
+                printf "    ${DIM}○${NC}  ${DIM}%-24s Waiting${NC}" "$short"
+                [[ -n "$stats" ]] && printf " ${DIM}(%s)${NC}" "$stats"
+                printf "\n"
+                ;;
+        esac
         ((line_count++))
-        ((show_count++))
     done
-
-    # Show how many more completed if we truncated
-    if [[ $start_idx -gt 0 ]]; then
-        printf "  ${DIM}  ... and %d more completed${NC}\n" "$start_idx"
-        ((line_count++))
-    fi
-
-    # Show pending count
-    local pending=$((total - completed))
-    if [[ $pending -gt 0 ]] && [[ -z "$current_repo" || "$current_status" != "cloning" ]]; then
-        printf "  ${DIM}○ %d repos waiting...${NC}\n" "$pending"
-        ((line_count++))
-    elif [[ $pending -gt 1 ]]; then
-        printf "  ${DIM}○ %d more repos waiting...${NC}\n" "$((pending - 1))"
-        ((line_count++))
-    fi
 
     CLONE_DISPLAY_LINES=$line_count
 }
 
-# Finalize clone display
+# Finalize clone display - show full list then summary
+# Usage: finalize_clone_display org_name duration all_repos_array
 finalize_clone_display() {
     local org_name="$1"
-    local total="$2"
-    local cloned="$3"
-    local skipped="$4"
-    local failed="$5"
-    local duration="$6"
+    local duration="$2"
+    shift 2
+    local all_repos=("$@")
+
+    local total=${#all_repos[@]}
+
+    # Count statuses
+    local cloned=0
+    local skipped=0
+    local failed=0
+
+    for repo_info in "${all_repos[@]}"; do
+        IFS='|' read -r repo status stats <<< "$repo_info"
+        case "$status" in
+            complete) ((cloned++)) ;;
+            skipped) ((skipped++)) ;;
+            failed) ((failed++)) ;;
+        esac
+    done
 
     # Clear the last progress display
     if [[ $CLONE_DISPLAY_LINES -gt 0 ]]; then
@@ -1783,15 +1919,50 @@ finalize_clone_display() {
     CLONE_DISPLAY_LINES=0
 
     printf "\n"
-    printf "${GREEN}${BOLD}✓ Clone complete${NC}\n"
+
+    # Show ALL repos with their final status
+    for repo_info in "${all_repos[@]}"; do
+        IFS='|' read -r repo status stats <<< "$repo_info"
+        local short="${repo##*/}"
+
+        case "$status" in
+            complete)
+                printf "    ${GREEN}✓${NC}  %-24s ${GREEN}Complete${NC}" "$short"
+                [[ -n "$stats" ]] && printf " ${DIM}(%s)${NC}" "$stats"
+                printf "\n"
+                ;;
+            skipped)
+                printf "    ${GREEN}✓${NC}  %-24s ${DIM}Previously complete${NC}" "$short"
+                [[ -n "$stats" ]] && printf " ${DIM}(%s)${NC}" "$stats"
+                printf "\n"
+                ;;
+            failed)
+                printf "    ${RED}✗${NC}  %-24s ${RED}Failed${NC}\n" "$short"
+                ;;
+        esac
+    done
+
     printf "\n"
-    printf "  Organization: ${CYAN}%s${NC}\n" "$org_name"
-    printf "  Repositories: %d total" "$total"
-    [[ $cloned -gt 0 ]] && printf ", ${GREEN}%d cloned${NC}" "$cloned"
-    [[ $skipped -gt 0 ]] && printf ", %d skipped" "$skipped"
-    [[ $failed -gt 0 ]] && printf ", ${RED}%d failed${NC}" "$failed"
+    printf "${GREEN}${BOLD}✓ Cloning complete${NC}"
+
+    # Build summary parts
+    local summary_parts=()
+    [[ $cloned -gt 0 ]] && summary_parts+=("${cloned} cloned")
+    [[ $skipped -gt 0 ]] && summary_parts+=("${skipped} already cloned")
+    [[ $failed -gt 0 ]] && summary_parts+=("${failed} failed")
+
+    if [[ ${#summary_parts[@]} -gt 0 ]]; then
+        printf " ("
+        local first=true
+        for part in "${summary_parts[@]}"; do
+            [[ "$first" != "true" ]] && printf ", "
+            printf "%s" "$part"
+            first=false
+        done
+        printf ")"
+    fi
     printf "\n"
-    printf "  Duration: %s\n" "$duration"
+
     printf "\n"
     printf "  ${DIM}Run scanners: ./zero.sh scan --org %s${NC}\n" "$org_name"
     printf "\n"
