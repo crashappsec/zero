@@ -632,7 +632,16 @@ main() {
         print_findings "$findings" "$REPO_NAME" "$REPO_PATH"
     fi
 
-    # Build final output
+    # Build final output using temp files to avoid "Argument list too long" error
+    # when findings are large (can exceed ARG_MAX with thousands of findings)
+    local temp_findings=$(mktemp)
+    local temp_summary=$(mktemp)
+    local temp_sbom=$(mktemp)
+
+    echo "$findings" > "$temp_findings"
+    echo "$summary" > "$temp_summary"
+    echo "$sbom_results" > "$temp_sbom"
+
     local output=$(jq -n \
         --arg analyzer "malcontent" \
         --arg version "1.0.0" \
@@ -642,9 +651,9 @@ main() {
         --arg profile "$PROFILE" \
         --arg min_risk "$MIN_RISK" \
         --argjson duration "$duration" \
-        --argjson summary "$summary" \
-        --argjson findings "$findings" \
-        --argjson sbom "$sbom_results" \
+        --slurpfile summary "$temp_summary" \
+        --slurpfile findings "$temp_findings" \
+        --slurpfile sbom "$temp_sbom" \
         '{
             analyzer: $analyzer,
             version: $version,
@@ -654,10 +663,12 @@ main() {
             profile: $profile,
             min_risk: $min_risk,
             duration_seconds: $duration,
-            summary: $summary,
-            findings: $findings,
-            sbom_analysis: $sbom
+            summary: $summary[0],
+            findings: $findings[0],
+            sbom_analysis: $sbom[0]
         }')
+
+    rm -f "$temp_findings" "$temp_summary" "$temp_sbom"
 
     # Output
     if [[ -n "$OUTPUT_FILE" ]]; then

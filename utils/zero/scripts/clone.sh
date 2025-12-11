@@ -319,13 +319,6 @@ clone_org() {
     # Initialize todo-style display
     init_clone_display
 
-    # Track progress
-    local cloned=0
-    local skipped=0
-    local failed=0
-    local completed=0
-    local current=0
-    local completed_repos=()
     local start_time=$(date +%s)
 
     # Get repos into array
@@ -334,25 +327,30 @@ clone_org() {
         [[ -n "$r" ]] && repos+=("$r")
     done < <(echo "$repos_json" | jq -r '.[].nameWithOwner')
 
+    # Initialize all repos as pending (with estimated stats if available from API)
+    local all_repo_status=()
     for current_repo in "${repos[@]}"; do
-        ((current++))
+        all_repo_status+=("$current_repo|pending|")
+    done
+
+    # Process each repo
+    for i in "${!repos[@]}"; do
+        local current_repo="${repos[$i]}"
+
+        # Mark current repo as cloning
+        all_repo_status[$i]="$current_repo|cloning|"
 
         local elapsed=$(($(date +%s) - start_time))
-
-        # Show progress with current repo as cloning
-        render_clone_display "$org" "$repo_count" "$completed" "$cloned" "$skipped" "$failed" "$elapsed" \
-            "$current_repo" "cloning" "" "${completed_repos[@]}"
+        render_clone_display "$org" "$elapsed" "${all_repo_status[@]}"
 
         # Attempt clone
         local project_id=$(zero_project_id "$current_repo")
         local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
 
         if [[ -d "$repo_path" ]] && [[ "$FORCE" != "true" ]]; then
-            # Already cloned
-            local size=$(du -sh "$repo_path" 2>/dev/null | cut -f1)
-            ((skipped++))
-            ((completed++))
-            completed_repos+=("$current_repo|skipped|($size)")
+            # Already cloned - get stats from existing repo
+            local stats=$(format_repo_stats "$repo_path")
+            all_repo_status[$i]="$current_repo|skipped|$stats"
         else
             # Need to clone
             if [[ -d "$repo_path" ]]; then
@@ -369,31 +367,24 @@ clone_org() {
             [[ -n "$BRANCH" ]] && clone_args+=("--branch" "$BRANCH")
             [[ -n "$DEPTH" ]] && clone_args+=("--depth" "$DEPTH")
 
-            local clone_start=$(date +%s)
             if git clone "${clone_args[@]}" "$clone_url" "$repo_path" 2>/dev/null; then
-                local clone_duration=$(($(date +%s) - clone_start))
-                local size=$(du -sh "$repo_path" 2>/dev/null | cut -f1)
                 mkdir -p "$ZERO_PROJECTS_DIR/$project_id/analysis"
-                ((cloned++))
-                ((completed++))
-                completed_repos+=("$current_repo|cloned|($size, ${clone_duration}s)")
+                local stats=$(format_repo_stats "$repo_path")
+                all_repo_status[$i]="$current_repo|complete|$stats"
             else
-                ((failed++))
-                ((completed++))
-                completed_repos+=("$current_repo|failed|")
+                all_repo_status[$i]="$current_repo|failed|"
             fi
         fi
 
-        # Update display
+        # Update display after each repo
         elapsed=$(($(date +%s) - start_time))
-        render_clone_display "$org" "$repo_count" "$completed" "$cloned" "$skipped" "$failed" "$elapsed" \
-            "" "" "" "${completed_repos[@]}"
+        render_clone_display "$org" "$elapsed" "${all_repo_status[@]}"
     done
 
     # Finalize
     local total_elapsed=$(($(date +%s) - start_time))
     local duration=$(format_duration $total_elapsed)
-    finalize_clone_display "$org" "$repo_count" "$cloned" "$skipped" "$failed" "$duration"
+    finalize_clone_display "$org" "$duration" "${all_repo_status[@]}"
 }
 
 #############################################################################

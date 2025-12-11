@@ -290,7 +290,7 @@ hydrate_org() {
         exit 1
     fi
 
-    echo -e "${BLUE}Fetching repositories for ${CYAN}$org${BLUE}...${NC}"
+    echo -e "Fetching repositories for ${CYAN}$org${NC}..."
     local repos_json=$(fetch_org_repos "$org" "$LIMIT")
 
     if [[ -z "$repos_json" ]] || [[ "$repos_json" == "[]" ]]; then
@@ -307,176 +307,394 @@ hydrate_org() {
     done < <(echo "$repos_json" | jq -r '.[].nameWithOwner')
 
     local parallel_jobs=$(get_parallel_jobs)
+    local scan_id="scan-$(date +%Y%m%d-%H%M%S)"
 
-    # Initialize display with header
-    init_todo_display "$org" "$repo_count" "$PROFILE" "$parallel_jobs"
+    # Print header
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${BOLD}Hydrate Organization: ${CYAN}$org${NC}"
+    echo -e "Scan ID:      ${DIM}$scan_id${NC}"
+    echo -e "Repositories: ${CYAN}$repo_count${NC}"
+    echo -e "Profile:      ${CYAN}$PROFILE${NC}"
+    echo -e "Parallel:     ${CYAN}$parallel_jobs jobs${NC}"
+    echo ""
 
-    local success=0
-    local failed=0
-    local pids=()
-    local repo_map=()
-
-    # Create temp dirs
+    # Create temp dir for tracking
     local tmp_dir=$(mktemp -d)
-    local buffer_dir=$(init_output_buffer)
-    local status_dir=$(mktemp -d)
 
     # Setup cleanup handler
     cleanup_hydrate() {
-        for pid in "${pids[@]}"; do
-            kill "$pid" 2>/dev/null || true
-        done
-        sleep 0.2
-        for pid in "${pids[@]}"; do
-            kill -9 "$pid" 2>/dev/null || true
-        done
-        rm -rf "$tmp_dir" "$buffer_dir" "$status_dir" 2>/dev/null || true
+        rm -rf "$tmp_dir" 2>/dev/null || true
     }
-
     trap cleanup_hydrate EXIT
-    trap 'exit 130' INT TERM
 
-    # Show initial display
     local start_time=$(date +%s)
-    render_todo_display "$status_dir" "$org" "0" "${repos[@]}"
+    local clone_success=0
+    local clone_failed=0
+    local scan_success=0
+    local scan_failed=0
+    local total_disk_size=0
+    local total_file_count=0
 
-    local current=0
+    #---------------------------------------------------------------------------
+    # PHASE 1: Cloning
+    #---------------------------------------------------------------------------
+    echo -e "${BOLD}Cloning${NC}"
+    echo ""
+
     for current_repo in "${repos[@]}"; do
-        ((current++))
+        local short="${current_repo##*/}"
+        local project_id=$(zero_project_id "$current_repo")
+        local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
 
-        # Initialize buffer
-        start_buffer "$buffer_dir" "$current_repo"
+        if [[ -d "$repo_path" ]] && [[ "$FORCE" != "true" ]]; then
+            local stats=$(format_repo_stats "$repo_path")
+            echo -e "  ${GREEN}✓${NC} ${short} ${DIM}(previously cloned)${NC} ${DIM}${stats}${NC}"
+            clone_success=$((clone_success + 1))
+        else
+            printf "  ${YELLOW}*${NC} %s ${DIM}cloning...${NC}" "$short"
 
-        # Start background job: clone then scan
-        (
-            local scan_output=$(mktemp)
-            local job_start=$(date +%s)
+            [[ -d "$repo_path" ]] && rm -rf "$repo_path"
+            mkdir -p "$ZERO_PROJECTS_DIR/$project_id"
 
-            # First clone
-            local clone_status="skipped"
-            local project_id=$(zero_project_id "$current_repo")
-            local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
+            local clone_url="https://github.com/$current_repo.git"
+            [[ -n "${GITHUB_TOKEN:-}" ]] && clone_url="https://${GITHUB_TOKEN}@github.com/$current_repo.git"
 
-            if [[ ! -d "$repo_path" ]] || [[ "$FORCE" == "true" ]]; then
-                [[ -d "$repo_path" ]] && rm -rf "$repo_path"
-                mkdir -p "$ZERO_PROJECTS_DIR/$project_id"
+            local clone_args=("-q")
+            [[ -n "$BRANCH" ]] && clone_args+=("--branch" "$BRANCH")
+            [[ -n "$DEPTH" ]] && clone_args+=("--depth" "$DEPTH")
 
-                local clone_url="https://github.com/$current_repo.git"
-                [[ -n "${GITHUB_TOKEN:-}" ]] && clone_url="https://${GITHUB_TOKEN}@github.com/$current_repo.git"
-
-                local clone_args=("-q")
-                [[ -n "$BRANCH" ]] && clone_args+=("--branch" "$BRANCH")
-                [[ -n "$DEPTH" ]] && clone_args+=("--depth" "$DEPTH")
-
-                if git clone "${clone_args[@]}" "$clone_url" "$repo_path" 2>/dev/null; then
-                    mkdir -p "$ZERO_PROJECTS_DIR/$project_id/analysis"
-                    clone_status="cloned"
-                else
-                    clone_status="failed"
-                fi
-            fi
-
-            # Update status with clone info
-            update_repo_scan_status "$status_dir" "$current_repo" "running" "cloning" "" "0" "$clone_status"
-
-            # If clone failed, mark as failed
-            if [[ "$clone_status" == "failed" ]]; then
-                local duration=$(($(date +%s) - job_start))
-                update_repo_scan_status "$status_dir" "$current_repo" "failed" "" "" "$duration" "$clone_status"
-                echo "1" > "$tmp_dir/$current.exit"
-                exit 1
-            fi
-
-            # Skip scan if clone-only
-            if [[ "$CLONE_ONLY" == "true" ]]; then
-                local duration=$(($(date +%s) - job_start))
-                update_repo_scan_status "$status_dir" "$current_repo" "complete" "" "cloned" "$duration" "$clone_status"
-                echo "0" > "$tmp_dir/$current.exit"
-                exit 0
-            fi
-
-            # Update status to scanning
-            update_repo_scan_status "$status_dir" "$current_repo" "running" "scanning" "" "0" "$clone_status"
-
-            # Run scan
-            local force_arg=""
-            [[ "$FORCE" == "true" ]] && force_arg="--force"
-            "$SCRIPT_DIR/bootstrap.sh" --scan-only --"$PROFILE" $force_arg --status-dir "$status_dir" "$current_repo" > "$scan_output" 2>&1
-            local exit_code=$?
-
-            local duration=$(($(date +%s) - job_start))
-
-            # Store output
-            append_buffer "$buffer_dir" "$current_repo" "$(cat "$scan_output")"
-
-            # Update final status
-            if [[ $exit_code -eq 0 ]]; then
-                local summary=$(grep -E "✓|complete" "$scan_output" 2>/dev/null | wc -l | tr -d ' ')
-                update_repo_scan_status "$status_dir" "$current_repo" "complete" "" "${summary} scanners" "$duration" "$clone_status"
+            if git clone "${clone_args[@]}" "$clone_url" "$repo_path" 2>/dev/null; then
+                mkdir -p "$ZERO_PROJECTS_DIR/$project_id/analysis"
+                local stats=$(format_repo_stats "$repo_path")
+                printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC}                    \n" "$short" "$stats"
+                clone_success=$((clone_success + 1))
             else
-                update_repo_scan_status "$status_dir" "$current_repo" "failed" "" "" "$duration" "$clone_status"
+                printf "\r  ${RED}✗${NC} %s ${RED}clone failed${NC}           \n" "$short"
+                echo "$current_repo" >> "$tmp_dir/failed_repos"
+                clone_failed=$((clone_failed + 1))
             fi
-
-            rm -f "$scan_output"
-            echo $exit_code > "$tmp_dir/$current.exit"
-        ) &
-
-        pids+=($!)
-        repo_map+=("$current_repo")
-
-        # Limit concurrent jobs
-        if [[ ${#pids[@]} -ge $parallel_jobs ]]; then
-            while true; do
-                local elapsed=$(($(date +%s) - start_time))
-                render_todo_display "$status_dir" "$org" "$elapsed" "${repos[@]}"
-
-                for i in "${!pids[@]}"; do
-                    if ! kill -0 "${pids[$i]}" 2>/dev/null; then
-                        wait "${pids[$i]}" 2>/dev/null || true
-                        local exit_file="$tmp_dir/$((i+1)).exit"
-                        if [[ -f "$exit_file" ]] && [[ "$(cat "$exit_file")" == "0" ]]; then
-                            ((success++))
-                        else
-                            ((failed++))
-                        fi
-                        unset 'pids[i]'
-                        pids=("${pids[@]}")
-                        unset 'repo_map[i]'
-                        repo_map=("${repo_map[@]}")
-                        break 2
-                    fi
-                done
-                sleep 0.3
-            done
         fi
     done
 
-    # Wait for remaining jobs
-    while [[ ${#pids[@]} -gt 0 ]]; do
-        local elapsed=$(($(date +%s) - start_time))
-        render_todo_display "$status_dir" "$org" "$elapsed" "${repos[@]}"
+    echo ""
+    echo -e "${GREEN}✓${NC} ${BOLD}Cloning complete${NC} ${DIM}($clone_success repos now available locally)${NC}"
+    echo ""
 
-        for i in "${!pids[@]}"; do
-            if ! kill -0 "${pids[$i]}" 2>/dev/null; then
-                wait "${pids[$i]}" 2>/dev/null || true
-                local exit_file="$tmp_dir/$((i+1)).exit"
-                if [[ -f "$exit_file" ]] && [[ "$(cat "$exit_file")" == "0" ]]; then
-                    ((success++))
-                else
-                    ((failed++))
-                fi
-                unset 'pids[i]'
-                pids=("${pids[@]}")
-                break
-            fi
-        done
-        sleep 0.3
+    # Skip scanning if clone-only
+    if [[ "$CLONE_ONLY" == "true" ]]; then
+        local total_elapsed=$(($(date +%s) - start_time))
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo -e "${GREEN}${BOLD}✓ Hydrate complete${NC} (clone only, $(format_duration $total_elapsed))"
+        return 0
+    fi
+
+    #---------------------------------------------------------------------------
+    # PHASE 2: Scanning with real-time per-scanner progress
+    #---------------------------------------------------------------------------
+    echo -e "${BOLD}Scanning Organization:${NC} ${CYAN}$org${NC} ${DIM}with profile ${PROFILE}${NC}"
+    echo ""
+
+    # Build list of repos to scan
+    local scan_repos=()
+    for current_repo in "${repos[@]}"; do
+        if [[ -f "$tmp_dir/failed_repos" ]] && grep -q "^$current_repo$" "$tmp_dir/failed_repos" 2>/dev/null; then
+            continue
+        fi
+        scan_repos+=("$current_repo")
     done
 
-    # Final display
+    local total_to_scan=${#scan_repos[@]}
+    local scanned=0
+    local pids=()
+    local pid_to_repo=()
+
+    # Helper to extract scanner summary from JSON
+    get_scanner_summary() {
+        local json_file="$1"
+        local scanner_name=$(basename "$json_file" .json)
+        local summary=""
+
+        case "$scanner_name" in
+            package-vulns)
+                local total=$(jq -r '.summary.total // 0' "$json_file" 2>/dev/null)
+                local critical=$(jq -r '.summary.critical // 0' "$json_file" 2>/dev/null)
+                local high=$(jq -r '.summary.high // 0' "$json_file" 2>/dev/null)
+                if [[ "$total" -gt 0 ]]; then
+                    summary="${RED}$critical critical${NC}, ${YELLOW}$high high${NC}"
+                fi
+                ;;
+            code-security)
+                local count=$(jq '.findings | length' "$json_file" 2>/dev/null || echo "0")
+                [[ "$count" -gt 0 ]] && summary="${YELLOW}$count issues${NC}"
+                ;;
+            code-secrets)
+                local count=$(jq '.findings | length' "$json_file" 2>/dev/null || echo "0")
+                [[ "$count" -gt 0 ]] && summary="${RED}$count secrets${NC}"
+                ;;
+            iac-security)
+                local count=$(jq '.findings | length' "$json_file" 2>/dev/null || echo "0")
+                [[ "$count" -gt 0 ]] && summary="${YELLOW}$count issues${NC}"
+                ;;
+            licenses)
+                local violations=$(jq -r '.summary.license_violations // 0' "$json_file" 2>/dev/null)
+                local deps=$(jq -r '.summary.total_dependencies_with_licenses // 0' "$json_file" 2>/dev/null)
+                [[ "$violations" -gt 0 ]] && summary="${RED}$violations violations${NC}" || summary="${DIM}$deps deps${NC}"
+                ;;
+            package-malcontent)
+                local critical=$(jq '[.packages[]?.findings[]? | select(.severity == "critical")] | length' "$json_file" 2>/dev/null || echo "0")
+                local high=$(jq '[.packages[]?.findings[]? | select(.severity == "high")] | length' "$json_file" 2>/dev/null || echo "0")
+                [[ "$critical" -gt 0 || "$high" -gt 0 ]] && summary="${RED}$critical critical${NC}, ${YELLOW}$high high${NC}"
+                ;;
+            container-security)
+                local count=$(jq '.vulnerabilities | length' "$json_file" 2>/dev/null || echo "0")
+                [[ "$count" -gt 0 ]] && summary="${YELLOW}$count vulns${NC}"
+                ;;
+        esac
+
+        echo "$summary"
+    }
+
+    # Track which scanners we've already printed for each repo
+    # Format: "repo:scanner repo:scanner ..."
+    local printed_scanners=""
+
+    # Print scanner result as it completes (called during polling)
+    print_scanner_result() {
+        local repo="$1"
+        local json_file="$2"
+        local scanner_name=$(basename "$json_file" .json)
+
+        # Skip manifest and sbom.cdx
+        [[ "$scanner_name" == "manifest" || "$scanner_name" == "sbom.cdx" ]] && return
+
+        # Check if already printed
+        [[ "$printed_scanners" =~ "$repo:$scanner_name " ]] && return
+
+        # Mark as printed
+        printed_scanners+="$repo:$scanner_name "
+
+        local summary=$(get_scanner_summary "$json_file")
+        if [[ -n "$summary" ]]; then
+            echo -e "      ${DIM}└─${NC} ${DIM}${repo}/${NC}$scanner_name ${summary}"
+        else
+            echo -e "      ${DIM}└─${NC} ${DIM}${repo}/${NC}$scanner_name ${GREEN}no findings${NC}"
+        fi
+    }
+
+    # Check for new scanner completions across all active repos
+    print_scanner_progress() {
+        for i in "${!pids[@]}"; do
+            local repo="${pid_to_repo[$i]}"
+            local short="${repo##*/}"
+            local project_id=$(zero_project_id "$repo")
+            local analysis_dir="$ZERO_PROJECTS_DIR/$project_id/analysis"
+
+            # Check for any new JSON files
+            if [[ -d "$analysis_dir" ]]; then
+                for json_file in "$analysis_dir"/*.json; do
+                    [[ -f "$json_file" ]] || continue
+                    print_scanner_result "$short" "$json_file"
+                done
+            fi
+        done
+    }
+
+    # Function to check and print completed jobs
+    print_completed() {
+        local new_pids=()
+        local new_pid_to_repo=()
+
+        for i in "${!pids[@]}"; do
+            local pid="${pids[$i]}"
+            local repo="${pid_to_repo[$i]}"
+
+            if ! kill -0 "$pid" 2>/dev/null; then
+                wait "$pid" 2>/dev/null || true
+                local short="${repo##*/}"
+                local project_id=$(zero_project_id "$repo")
+                local exit_code=$(cat "$tmp_dir/${short}.exit" 2>/dev/null || echo "1")
+                local analysis_dir="$ZERO_PROJECTS_DIR/$project_id/analysis"
+
+                # Print any remaining scanners that weren't caught in progress
+                if [[ -d "$analysis_dir" ]]; then
+                    for json_file in "$analysis_dir"/*.json; do
+                        [[ -f "$json_file" ]] || continue
+                        print_scanner_result "$short" "$json_file"
+                    done
+                fi
+
+                if [[ "$exit_code" == "0" ]]; then
+                    echo -e "  ${GREEN}✓${NC} ${BOLD}${short}${NC} ${DIM}complete${NC}"
+                    scan_success=$((scan_success + 1))
+                else
+                    echo -e "  ${RED}✗${NC} ${short} ${RED}(scan failed)${NC}"
+                    scan_failed=$((scan_failed + 1))
+                fi
+                scanned=$((scanned + 1))
+            else
+                new_pids+=("$pid")
+                new_pid_to_repo+=("$repo")
+            fi
+        done
+
+        pids=("${new_pids[@]}")
+        pid_to_repo=("${new_pid_to_repo[@]}")
+    }
+
+    # Launch and manage parallel jobs
+    for current_repo in "${scan_repos[@]}"; do
+        local short="${current_repo##*/}"
+        local project_id=$(zero_project_id "$current_repo")
+
+        # Show immediate feedback that scan is starting
+        echo -e "  ${YELLOW}◐${NC} ${BOLD}${short}${NC} ${DIM}scanning...${NC}"
+
+        # Start scan in background
+        (
+            local force_arg=""
+            [[ "$FORCE" == "true" ]] && force_arg="--force"
+            "$SCRIPT_DIR/bootstrap.sh" --scan-only --"$PROFILE" $force_arg "$current_repo" > "$tmp_dir/${short}.out" 2>&1
+            echo $? > "$tmp_dir/${short}.exit"
+        ) &
+
+        pids+=($!)
+        pid_to_repo+=("$current_repo")
+
+        # If at capacity, wait for one to finish while showing scanner progress
+        while [[ ${#pids[@]} -ge $parallel_jobs ]]; do
+            sleep 0.5
+            print_scanner_progress
+            print_completed
+        done
+    done
+
+    # Wait for remaining jobs while showing scanner progress
+    while [[ ${#pids[@]} -gt 0 ]]; do
+        sleep 0.5
+        print_scanner_progress
+        print_completed
+    done
+
+    echo ""
+    echo -e "${GREEN}✓${NC} ${BOLD}Scanning complete${NC}"
+    echo ""
+
+    #---------------------------------------------------------------------------
+    # SUMMARY REPORT
+    #---------------------------------------------------------------------------
     local total_elapsed=$(($(date +%s) - start_time))
-    local duration=$(format_duration $total_elapsed)
-    finalize_todo_display "$org" "$repo_count" "$success" "$failed" "$duration"
+
+    # Calculate totals across all repos
+    local total_vulns_critical=0
+    local total_vulns_high=0
+    local total_vulns_medium=0
+    local total_vulns_low=0
+    local total_secrets=0
+    local total_code_issues=0
+    local total_iac_issues=0
+    local total_license_violations=0
+    local total_packages=0
+    local total_malcontent_critical=0
+    local total_malcontent_high=0
+    local scanners_used=""
+
+    for current_repo in "${scan_repos[@]}"; do
+        local project_id=$(zero_project_id "$current_repo")
+        local analysis_dir="$ZERO_PROJECTS_DIR/$project_id/analysis"
+
+        [[ -d "$analysis_dir" ]] || continue
+
+        # Package vulnerabilities
+        if [[ -f "$analysis_dir/package-vulns.json" ]]; then
+            total_vulns_critical=$((total_vulns_critical + $(jq -r '.summary.critical // 0' "$analysis_dir/package-vulns.json" 2>/dev/null || echo 0)))
+            total_vulns_high=$((total_vulns_high + $(jq -r '.summary.high // 0' "$analysis_dir/package-vulns.json" 2>/dev/null || echo 0)))
+            total_vulns_medium=$((total_vulns_medium + $(jq -r '.summary.medium // 0' "$analysis_dir/package-vulns.json" 2>/dev/null || echo 0)))
+            total_vulns_low=$((total_vulns_low + $(jq -r '.summary.low // 0' "$analysis_dir/package-vulns.json" 2>/dev/null || echo 0)))
+            [[ ! "$scanners_used" =~ "package-vulns" ]] && scanners_used+=" package-vulns"
+        fi
+
+        # Secrets
+        if [[ -f "$analysis_dir/code-secrets.json" ]]; then
+            total_secrets=$((total_secrets + $(jq '.findings | length' "$analysis_dir/code-secrets.json" 2>/dev/null || echo 0)))
+            [[ ! "$scanners_used" =~ "code-secrets" ]] && scanners_used+=" code-secrets"
+        fi
+
+        # Code security
+        if [[ -f "$analysis_dir/code-security.json" ]]; then
+            total_code_issues=$((total_code_issues + $(jq '.findings | length' "$analysis_dir/code-security.json" 2>/dev/null || echo 0)))
+            [[ ! "$scanners_used" =~ "code-security" ]] && scanners_used+=" code-security"
+        fi
+
+        # IaC security
+        if [[ -f "$analysis_dir/iac-security.json" ]]; then
+            total_iac_issues=$((total_iac_issues + $(jq '.findings | length' "$analysis_dir/iac-security.json" 2>/dev/null || echo 0)))
+            [[ ! "$scanners_used" =~ "iac-security" ]] && scanners_used+=" iac-security"
+        fi
+
+        # Licenses
+        if [[ -f "$analysis_dir/licenses.json" ]]; then
+            total_license_violations=$((total_license_violations + $(jq -r '.summary.license_violations // 0' "$analysis_dir/licenses.json" 2>/dev/null || echo 0)))
+            total_packages=$((total_packages + $(jq -r '.summary.total_dependencies_with_licenses // 0' "$analysis_dir/licenses.json" 2>/dev/null || echo 0)))
+            [[ ! "$scanners_used" =~ "licenses" ]] && scanners_used+=" licenses"
+        fi
+
+        # Malcontent
+        if [[ -f "$analysis_dir/package-malcontent.json" ]]; then
+            total_malcontent_critical=$((total_malcontent_critical + $(jq '[.packages[]?.findings[]? | select(.severity == "critical")] | length' "$analysis_dir/package-malcontent.json" 2>/dev/null || echo 0)))
+            total_malcontent_high=$((total_malcontent_high + $(jq '[.packages[]?.findings[]? | select(.severity == "high")] | length' "$analysis_dir/package-malcontent.json" 2>/dev/null || echo 0)))
+            [[ ! "$scanners_used" =~ "package-malcontent" ]] && scanners_used+=" package-malcontent"
+        fi
+
+        # Container security
+        if [[ -f "$analysis_dir/container-security.json" ]]; then
+            [[ ! "$scanners_used" =~ "container-security" ]] && scanners_used+=" container-security"
+        fi
+    done
+
+    # Calculate disk usage
+    local disk_usage=$(du -sh "$ZERO_PROJECTS_DIR" 2>/dev/null | awk '{print $1}')
+    local file_count=$(find "$ZERO_PROJECTS_DIR" -type f 2>/dev/null | wc -l | tr -d ' ')
+    local scanner_count=$(echo $scanners_used | wc -w | tr -d ' ')
+
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo -e "${GREEN}${BOLD}✓ Hydrate Complete${NC}"
+    echo ""
+    echo -e "${BOLD}Summary${NC}"
+    echo -e "  Organization:    ${CYAN}$org${NC}"
+    echo -e "  Duration:        $(format_duration $total_elapsed)"
+    echo -e "  Repos scanned:   ${GREEN}$scan_success success${NC}$([[ $scan_failed -gt 0 ]] && echo -e ", ${RED}$scan_failed failed${NC}")"
+    echo -e "  Disk usage:      ${disk_usage}"
+    echo -e "  Total files:     ${file_count}"
+    echo -e "  Scanners ran:    $scanner_count (${DIM}${scanners_used# }${NC})"
+    echo ""
+
+    # Only show findings section if there are findings
+    local has_findings=false
+    [[ $total_vulns_critical -gt 0 || $total_vulns_high -gt 0 || $total_secrets -gt 0 || $total_code_issues -gt 0 || $total_malcontent_critical -gt 0 || $total_malcontent_high -gt 0 ]] && has_findings=true
+
+    echo -e "${BOLD}Findings Summary${NC}"
+    echo -e "  Package vulnerabilities: $((total_vulns_critical + total_vulns_high + total_vulns_medium + total_vulns_low)) total"
+    [[ $total_vulns_critical -gt 0 ]] && echo -e "    ${RED}● $total_vulns_critical critical${NC}"
+    [[ $total_vulns_high -gt 0 ]] && echo -e "    ${YELLOW}● $total_vulns_high high${NC}"
+    [[ $total_vulns_medium -gt 0 ]] && echo -e "    ${DIM}● $total_vulns_medium medium${NC}"
+    [[ $total_vulns_low -gt 0 ]] && echo -e "    ${DIM}● $total_vulns_low low${NC}"
+
+    echo -e "  Secrets detected:        $total_secrets$([[ $total_secrets -gt 0 ]] && echo -e " ${RED}⚠${NC}")"
+    echo -e "  Code security issues:    $total_code_issues"
+    echo -e "  IaC security issues:     $total_iac_issues"
+    echo -e "  License violations:      $total_license_violations"
+    echo -e "  Packages analyzed:       $total_packages"
+
+    if [[ $total_malcontent_critical -gt 0 || $total_malcontent_high -gt 0 ]]; then
+        echo -e "  Supply chain risks:"
+        [[ $total_malcontent_critical -gt 0 ]] && echo -e "    ${RED}● $total_malcontent_critical critical${NC}"
+        [[ $total_malcontent_high -gt 0 ]] && echo -e "    ${YELLOW}● $total_malcontent_high high${NC}"
+    fi
+
+    echo ""
+    echo -e "${DIM}Full details written to: ${NC}${CYAN}.zero/repos/${NC}"
+    echo -e "${DIM}View detailed report:    ${NC}${CYAN}./zero.sh report --org $org${NC}"
+    echo ""
 }
 
 #############################################################################
