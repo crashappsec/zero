@@ -258,6 +258,14 @@
       ],
       "estimated_time": "10-30s",
       "output_file": "crypto-tls.json"
+    },
+    "api-security": {
+      "name": "API Security",
+      "description": "OWASP API Security Top 10 analysis - auth, injection, data exposure, SSRF, mass assignment",
+      "script": "utils/scanners/api-security/api-security.sh",
+      "claude_mode": "none",
+      "estimated_time": "30-120s",
+      "output_file": "api-security.json"
     }
   },
   "profiles": {
@@ -353,7 +361,7 @@
     "security": {
       "name": "Security Only",
       "description": "Security-focused analysis for vulnerability assessment",
-      "estimated_time": "~3 minutes",
+      "estimated_time": "~4 minutes",
       "claude_mode": "none",
       "sbom_generator": "cdxgen",
       "scanners": [
@@ -366,6 +374,7 @@
         "crypto-ciphers",
         "crypto-keys",
         "crypto-tls",
+        "api-security",
         "package-malcontent",
         "container-security"
       ]
@@ -373,7 +382,7 @@
     "security-deep": {
       "name": "Security Deep",
       "description": "Security-focused analysis with AI-enhanced insights",
-      "estimated_time": "~5 minutes",
+      "estimated_time": "~6 minutes",
       "claude_mode": "enabled",
       "sbom_generator": "cdxgen",
       "claude_scanners": [
@@ -396,6 +405,7 @@
         "crypto-keys",
         "crypto-random",
         "crypto-tls",
+        "api-security",
         "package-provenance",
         "digital-certificates",
         "package-malcontent",
@@ -466,7 +476,7 @@
     "all": {
       "name": "All Scanners",
       "description": "Run all scanners that support repository analysis",
-      "estimated_time": "~12 minutes",
+      "estimated_time": "~15 minutes",
       "claude_mode": "optional",
       "sbom_generator": "cdxgen",
       "claude_scanners": [
@@ -490,6 +500,7 @@
         "crypto-keys",
         "crypto-random",
         "crypto-tls",
+        "api-security",
         "tech-debt",
         "documentation",
         "git",
