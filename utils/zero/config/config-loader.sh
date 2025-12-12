@@ -268,6 +268,23 @@ get_profile_claude_scanners() {
     jq -r --arg p "$profile" '.profiles[$p].claude_scanners // [] | .[]' "$PHANTOM_CONFIG" 2>/dev/null | tr '\n' ' '
 }
 
+# Get SBOM generator for a profile
+# Usage: get_profile_sbom_generator <profile_name>
+# Returns: "cdxgen" (default), "syft", or "auto"
+get_profile_sbom_generator() {
+    local profile="$1"
+    if [[ ! -f "$PHANTOM_CONFIG" ]]; then
+        echo "cdxgen"
+        return
+    fi
+    local generator=$(jq -r --arg p "$profile" '.profiles[$p].sbom_generator // "cdxgen"' "$PHANTOM_CONFIG" 2>/dev/null)
+    # Validate the value
+    case "$generator" in
+        syft|cdxgen|auto) echo "$generator" ;;
+        *) echo "cdxgen" ;;
+    esac
+}
+
 # Get parallel jobs setting from config
 # Usage: get_parallel_jobs
 get_parallel_jobs() {
@@ -390,6 +407,7 @@ export -f get_profile_description
 export -f get_profile_estimated_time
 export -f profile_uses_claude
 export -f get_profile_claude_scanners
+export -f get_profile_sbom_generator
 export -f get_default_profile
 export -f get_parallel_jobs
 export -f get_scanner_timeout

@@ -32,6 +32,7 @@ TAINT_ANALYSIS=false
 OUTPUT_FORMAT="json"  # Always JSON for data collection
 OUTPUT_FILE=""
 LOCAL_PATH=""
+SBOM_FILE=""           # Path to SBOM file (CycloneDX JSON)
 CLEANUP=true
 PRIORITIZE=true  # Always prioritize for structured output
 KEV_CACHE=""
@@ -51,6 +52,7 @@ TARGET:
 
 OPTIONS:
     --local-path PATH       Use pre-cloned repository (skips cloning)
+    --sbom FILE             Use existing SBOM file (CycloneDX JSON)
     -t, --taint-analysis    Enable call graph analysis (Go projects)
     -o, --output FILE       Write JSON to file (default: stdout)
     -k, --keep-clone        Keep cloned repository
@@ -186,7 +188,33 @@ find_lockfiles() {
 # Run osv-scanner and get JSON
 run_osv_scan() {
     local target_path="$1"
+    local sbom_path="$2"  # Optional SBOM file path
     local temp_output=$(mktemp)
+
+    # If SBOM provided, use it directly
+    if [[ -n "$sbom_path" ]] && [[ -f "$sbom_path" ]]; then
+        echo -e "${BLUE}Using SBOM: $sbom_path${NC}" >&2
+
+        # osv-scanner v2+ with SBOM: osv-scanner scan source -L sbom:path/to/sbom.json
+        local scan_cmd="osv-scanner scan source --format=json -L \"sbom:$sbom_path\""
+
+        if [[ "$TAINT_ANALYSIS" == true ]]; then
+            scan_cmd="$scan_cmd --call-analysis=all"
+        fi
+
+        # Run scan (exit 1 when vulns found is normal)
+        eval "$scan_cmd" > "$temp_output" 2>/dev/null || true
+
+        # Extract JSON (skip any non-JSON prefix)
+        if grep -q "^{" "$temp_output"; then
+            grep -A 999999 "^{" "$temp_output"
+        else
+            echo '{"results":[]}'
+        fi
+
+        rm -f "$temp_output"
+        return
+    fi
 
     # Find all lockfiles
     local lockfiles=()
@@ -495,6 +523,10 @@ while [[ $# -gt 0 ]]; do
             LOCAL_PATH="$2"
             shift 2
             ;;
+        --sbom)
+            SBOM_FILE="$2"
+            shift 2
+            ;;
         -t|--taint-analysis)
             TAINT_ANALYSIS=true
             shift
@@ -525,8 +557,22 @@ fetch_kev_catalog
 # Determine scan path
 scan_path=""
 repo_name=""
+use_sbom=""
 
-if [[ -n "$LOCAL_PATH" ]]; then
+# If --sbom was provided, validate and use it
+if [[ -n "$SBOM_FILE" ]]; then
+    if [[ ! -f "$SBOM_FILE" ]]; then
+        echo '{"error": "SBOM file does not exist: '"$SBOM_FILE"'"}'
+        exit 1
+    fi
+    use_sbom="$SBOM_FILE"
+    repo_name="sbom:$(basename "$SBOM_FILE")"
+    # Still need a scan_path for the repo_name extraction if LOCAL_PATH given
+    if [[ -n "$LOCAL_PATH" ]]; then
+        scan_path="$LOCAL_PATH"
+        repo_name=$(extract_repo_name "$LOCAL_PATH")
+    fi
+elif [[ -n "$LOCAL_PATH" ]]; then
     if [[ ! -d "$LOCAL_PATH" ]]; then
         echo '{"error": "Local path does not exist"}'
         exit 1
@@ -542,8 +588,8 @@ elif [[ -n "$TARGET" ]]; then
         scan_path="$TARGET"
         repo_name=$(extract_repo_name "$TARGET")
     elif is_sbom_file "$TARGET"; then
-        # For SBOM, run osv-scanner directly with -L flag
-        scan_path="$TARGET"
+        # For SBOM passed as target, use it directly
+        use_sbom="$TARGET"
         repo_name="sbom:$(basename "$TARGET")"
     else
         echo '{"error": "Invalid target - must be URL, directory, or SBOM file"}'
@@ -556,8 +602,8 @@ fi
 
 echo -e "${BLUE}Scanning: $repo_name${NC}" >&2
 
-# Run scan and process
-raw_results=$(run_osv_scan "$scan_path")
+# Run scan and process (pass SBOM if provided)
+raw_results=$(run_osv_scan "$scan_path" "$use_sbom")
 final_json=$(process_results "$raw_results" "$TARGET" "$repo_name")
 
 # Output

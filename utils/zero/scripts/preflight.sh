@@ -63,7 +63,8 @@ CHECKS:
 
     Recommended Tools:
       • osv-scanner - Vulnerability scanning (Google OSV)
-      • syft        - SBOM generation (Anchore)
+      • syft        - SBOM generation - fast (Anchore)
+      • cdxgen      - SBOM generation - accurate (CycloneDX)
       • gh          - GitHub CLI for enhanced features
       • semgrep     - AST-aware code scanning
       • checkov     - IaC security scanning
@@ -172,6 +173,24 @@ check_malcontent() {
     fi
 }
 
+# Special check for cdxgen (npm global install)
+MISSING_NPM_TOOLS=()
+check_cdxgen() {
+    printf "  %-16s " "cdxgen"
+
+    if command -v cdxgen &> /dev/null; then
+        local version=$(cdxgen --version 2>/dev/null | head -1 | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
+        echo -e "${GREEN}✓${NC} ${version:-installed}"
+        return 0
+    else
+        echo -e "${YELLOW}○ missing${NC}"
+        echo -e "    ${CYAN}Install: npm install -g @cyclonedx/cdxgen${NC}"
+        MISSING_NPM_TOOLS+=("@cyclonedx/cdxgen")
+        ((WARNINGS++))
+        return 1
+    fi
+}
+
 # Offer to install missing tools
 offer_install() {
     # Only offer if running interactively
@@ -204,6 +223,24 @@ offer_install() {
             for tool in "${MISSING_PIP_TOOLS[@]}"; do
                 echo -e "  ${BLUE}Installing $tool...${NC}"
                 if pip3 install --user "$tool" 2>/dev/null; then
+                    echo -e "  ${GREEN}✓${NC} $tool installed"
+                    ((WARNINGS--))
+                else
+                    echo -e "  ${RED}✗${NC} Failed to install $tool"
+                fi
+            done
+        fi
+    fi
+
+    if [[ ${#MISSING_NPM_TOOLS[@]} -gt 0 ]] && command -v npm &> /dev/null; then
+        echo
+        echo -e "${BOLD}Missing npm tools: ${MISSING_NPM_TOOLS[*]}${NC}"
+        read -p "Install via npm? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            for tool in "${MISSING_NPM_TOOLS[@]}"; do
+                echo -e "  ${BLUE}Installing $tool...${NC}"
+                if npm install -g "$tool" 2>/dev/null; then
                     echo -e "  ${GREEN}✓${NC} $tool installed"
                     ((WARNINGS--))
                 else
@@ -299,7 +336,8 @@ run_checks() {
     # Recommended Tools (use || true to not fail on missing optional tools)
     echo -e "${BOLD}Recommended Tools${NC}"
     check_tool "osv-scanner" "recommended" "brew install osv-scanner" "Vulnerability scanning" || true
-    check_tool "syft" "recommended" "brew install syft" "SBOM generation" || true
+    check_tool "syft" "recommended" "brew install syft" "SBOM generation (fast)" || true
+    check_cdxgen || true  # SBOM generation (accurate, for deep scans)
     check_tool "gh" "recommended" "brew install gh" "GitHub CLI" || true
     check_tool "semgrep" "recommended" "brew install semgrep" "AST-aware code scanning" || true
     check_checkov || true

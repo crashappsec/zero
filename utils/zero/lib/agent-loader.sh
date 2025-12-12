@@ -52,6 +52,7 @@ agent_get_dir() {
         build|joey)                  dir="build" ;;             # Joey - build/CI engineer
         devops|plague)               dir="devops" ;;            # The Plague - devops engineer
         engineering-leader|gibson)   dir="engineering-leader" ;;# The Gibson - engineering metrics
+        cryptography|gill)           dir="cryptography" ;;      # Gill Bates - cryptography specialist
         *)                           dir="" ;;
     esac
 
@@ -79,8 +80,9 @@ agent_get_required_data() {
         dade)         echo "technology code-security" ;;
         nikon)        echo "technology dependencies package-sbom" ;;
         joey)         echo "technology dora code-security" ;;
-        plague)       echo "technology dora iac-security" ;;
+        plague)       echo "technology dora iac-security container-security" ;;
         gibson)       echo "dora code-ownership git-insights" ;;
+        gill)         echo "crypto-ciphers crypto-keys crypto-random crypto-tls code-secrets code-vulns" ;;
         *)            echo "" ;;
     esac
 }
@@ -104,6 +106,7 @@ agent_get_tools() {
         joey)         echo "Read Grep Glob Bash Task" ;;                     # Build/CI testing + delegation
         plague)       echo "Read Grep Glob Bash Task" ;;                     # Infrastructure commands + delegation
         gibson)       echo "Read Grep Glob Task" ;;                          # Metrics analysis + delegation
+        gill)         echo "Read Grep Glob WebSearch Task" ;;                # Crypto research + delegation
         *)            echo "Read" ;;
     esac
 }
@@ -124,7 +127,7 @@ agent_exists() {
 # List all available agents
 # Usage: agent_list
 agent_list() {
-    local agents="cereal razor blade phreak acid dade nikon joey plague gibson"
+    local agents="cereal razor blade phreak acid dade nikon joey plague gibson gill"
     for agent in $agents; do
         if agent_exists "$agent"; then
             echo "$agent"
@@ -663,17 +666,18 @@ agent_get_delegation_targets() {
     local agent_name="$1"
 
     case "$agent_name" in
-        zero)         echo "cereal razor blade phreak acid dade nikon joey plague gibson" ;;  # Can delegate to all
-        cereal)       echo "phreak razor plague nikon" ;;       # Legal, security, devops, architecture
-        razor)        echo "cereal blade nikon dade" ;;         # Supply chain, compliance, architecture, backend
-        blade)        echo "cereal razor phreak" ;;             # Supply chain, security, legal
+        zero)         echo "cereal razor blade phreak acid dade nikon joey plague gibson gill" ;;  # Can delegate to all
+        cereal)       echo "phreak razor plague nikon gill" ;;  # Legal, security, devops, architecture, crypto
+        razor)        echo "cereal blade nikon dade gill" ;;    # Supply chain, compliance, architecture, backend, crypto
+        blade)        echo "cereal razor phreak gill" ;;        # Supply chain, security, legal, crypto
         phreak)       echo "cereal blade" ;;                    # Supply chain, compliance
         acid)         echo "dade nikon razor" ;;                # Backend, architecture, security
         dade)         echo "acid nikon razor plague" ;;         # Frontend, architecture, security, devops
-        nikon)        echo "acid dade cereal razor plague" ;;   # All technical domains
+        nikon)        echo "acid dade cereal razor plague gill" ;;  # All technical domains
         joey)         echo "plague nikon razor" ;;              # DevOps, architecture, security
-        plague)       echo "joey nikon razor" ;;                # Build, architecture, security
+        plague)       echo "joey nikon razor gill" ;;           # Build, architecture, security, crypto (TLS)
         gibson)       echo "nikon joey plague" ;;               # Architecture, build, devops
+        gill)         echo "razor cereal plague blade" ;;       # Security, supply chain, devops, compliance
         *)            echo "" ;;
     esac
 }
@@ -745,6 +749,7 @@ get_agent_display_name() {
         joey)         echo "Joey (Build)" ;;
         plague)       echo "Plague (DevOps)" ;;
         gibson)       echo "Gibson (Engineering Leader)" ;;
+        gill)         echo "Gill (Cryptography)" ;;
         *)            echo "$agent_name" ;;
     esac
 }

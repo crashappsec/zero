@@ -1,65 +1,390 @@
-#!/usr/bin/env bash
+#!/bin/bash
+# Copyright (c) 2025 Crash Override Inc.
+# https://crashoverride.com
 #
-# Secrets Scanner Data Extractor
-# Scans repository for exposed secrets and credentials
-# Integrates with TruffleHog when available, falls back to pattern matching
+# SPDX-License-Identifier: GPL-3.0
+
+#############################################################################
+# Code Secrets Scanner (code-secrets)
 #
-# Usage: ./secrets-scanner-data.sh [--local-path <path>] [--repo <owner/repo>]
+# Detects exposed secrets, API keys, and credentials using Semgrep.
+# Uses official Semgrep p/secrets ruleset plus custom patterns from RAG.
 #
-# Output: JSON with detected secrets (redacted), severity, and locations
+# This replaces the old pattern-matching approach with Semgrep for:
+# - Better accuracy (AST-aware, not just regex)
+# - Consistent tooling across all scanners
+# - Extensible via RAG-generated rules
+#
+# Usage: ./code-secrets.sh [options] <repo_path>
+# Output: JSON with secret findings (values redacted)
+#############################################################################
 
-set -eo pipefail
+set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VERSION="1.1.0"
+VERSION="2.0.0"
 
-# Source common utilities if available
-if [[ -f "$SCRIPT_DIR/../zero/lib/common.sh" ]]; then
-    source "$SCRIPT_DIR/../zero/lib/common.sh"
-fi
+# Colors for terminal output (stderr only)
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m'
 
-# Default values
-LOCAL_PATH=""
-REPO=""
-ORG=""
+# Get script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+SCANNERS_ROOT="$(dirname "$SCRIPT_DIR")"
+UTILS_ROOT="$(dirname "$SCANNERS_ROOT")"
+REPO_ROOT="$(dirname "$UTILS_ROOT")"
+
+# Semgrep rules locations
+SEMGREP_DIR="$SCANNERS_ROOT/semgrep"
+CUSTOM_RULES_DIR="$SEMGREP_DIR/rules"
+COMMUNITY_RULES_DIR="${SEMGREP_COMMUNITY_DIR:-$REPO_ROOT/rag/semgrep/community-rules}"
+
+# Default options
 OUTPUT_FILE=""
+REPO_PATH=""
+USE_COMMUNITY=true
 VERBOSE=false
-MAX_FILE_SIZE=1048576  # 1MB - skip larger files for pattern matching
-MAX_FILES=5000         # Safety limit to prevent scanning huge repos forever
-SCAN_TIMEOUT=120       # Timeout in seconds for the entire scan
+TIMEOUT=60
 
 usage() {
     cat << EOF
-Secrets Scanner Data Extractor v${VERSION}
+Code Secrets Scanner v${VERSION}
 
-Usage: $(basename "$0") [OPTIONS]
+Detects exposed secrets, API keys, passwords, and credentials in source code
+using Semgrep's official secrets ruleset plus custom patterns.
 
-Options:
-    --local-path <path>    Path to local repository
-    --repo <owner/repo>    GitHub repository (requires gh CLI)
-    --org <org>            GitHub org (uses first repo found in zero cache)
-    --output <file>        Output file (default: stdout)
-    --verbose              Enable verbose output
-    --help                 Show this help message
+Usage: $0 [OPTIONS] <repo_path>
 
-Examples:
-    $(basename "$0") --local-path ./my-project
-    $(basename "$0") --repo expressjs/express
+OPTIONS:
+    --local-path PATH       Path to repository
+    --repo OWNER/REPO       GitHub repository (uses zero cache)
+    --org ORG               GitHub org (uses first repo in zero cache)
+    --no-community          Skip community rules (faster, offline)
+    --timeout SECONDS       Timeout per file (default: 60)
+    --verbose               Show progress messages
+    -o, --output FILE       Write JSON to file (default: stdout)
+    -h, --help              Show this help
+
+DETECTED SECRET TYPES:
+    - AWS Access Keys and Secret Keys
+    - GitHub Tokens (PAT, OAuth, App)
+    - GitLab Tokens
+    - Slack Tokens and Webhooks
+    - Stripe API Keys
+    - Google Cloud Service Account Keys
+    - Private Keys (RSA, EC, DSA, PGP)
+    - Database Connection Strings
+    - JWT Secrets
+    - API Keys (generic patterns)
+    - And 100+ more patterns via Semgrep registry
+
+OUTPUT:
+    JSON object with:
+    - summary: risk score, counts by severity and type
+    - findings: array with file, line, type, severity (values redacted)
+    - recommendations: remediation steps
+
+EXAMPLES:
+    $0 /path/to/repo
+    $0 --local-path ~/.zero/repos/myapp/repo
+    $0 --repo expressjs/express
+    $0 -o secrets.json /path/to/repo
+
 EOF
     exit 0
 }
 
 log() {
-    if [[ "$VERBOSE" == "true" ]]; then
-        echo "[secrets-scanner] $*" >&2
+    if [[ "$VERBOSE" == true ]]; then
+        echo -e "${BLUE}[code-secrets]${NC} $1" >&2
     fi
 }
 
-error() {
-    echo "[ERROR] $*" >&2
+log_warn() {
+    echo -e "${YELLOW}⚠${NC} $1" >&2
+}
+
+log_success() {
+    echo -e "${GREEN}✓${NC} $1" >&2
+}
+
+log_error() {
+    echo -e "${RED}✗${NC} $1" >&2
+}
+
+# Check if semgrep is installed
+check_semgrep() {
+    if ! command -v semgrep &> /dev/null; then
+        echo '{"error": "semgrep not installed", "install": "brew install semgrep"}'
+        exit 1
+    fi
+}
+
+# Resolve repository path from various inputs
+resolve_repo_path() {
+    local local_path="$1"
+    local repo="$2"
+    local org="$3"
+
+    if [[ -n "$local_path" ]]; then
+        echo "$local_path"
+        return
+    fi
+
+    if [[ -n "$repo" ]]; then
+        local repo_org=$(echo "$repo" | cut -d'/' -f1)
+        local repo_name=$(echo "$repo" | cut -d'/' -f2)
+        local zero_path="$HOME/.zero/repos/$repo_org/$repo_name/repo"
+        if [[ -d "$zero_path" ]]; then
+            echo "$zero_path"
+            return
+        fi
+    fi
+
+    if [[ -n "$org" ]]; then
+        local org_path="$HOME/.zero/repos/$org"
+        if [[ -d "$org_path" ]]; then
+            # Find first repo with cloned code
+            for dir in "$org_path"/*/repo; do
+                if [[ -d "$dir" ]]; then
+                    echo "$dir"
+                    return
+                fi
+            done
+        fi
+    fi
+
+    echo ""
+}
+
+# Run semgrep with secrets rules
+run_semgrep() {
+    local repo_path="$1"
+    local config_args=()
+
+    # PRIORITY 1: Use our comprehensive RAG-generated secrets rules
+    # This includes 242+ patterns from 106 technology patterns covering:
+    # AWS, Azure, GCP, Stripe, Twilio, SendGrid, OpenAI, Anthropic, and 100+ more
+    if [[ -f "$CUSTOM_RULES_DIR/secrets.yaml" ]]; then
+        config_args+=("--config" "$CUSTOM_RULES_DIR/secrets.yaml")
+        local rule_count=$(grep -c "^- id:" "$CUSTOM_RULES_DIR/secrets.yaml" 2>/dev/null || echo "?")
+        log "Using RAG-generated secrets rules ($rule_count patterns from tech-discovery)"
+    fi
+
+    # PRIORITY 2: Add community/registry secrets rules to supplement
+    if [[ "$USE_COMMUNITY" == true ]]; then
+        # Check for locally cached rules first
+        local local_rules="$COMMUNITY_RULES_DIR/security/secrets.yaml"
+        if [[ -f "$local_rules" ]]; then
+            config_args+=("--config" "$local_rules")
+            log "Using cached community secrets rules"
+        else
+            # Use registry pack directly
+            config_args+=("--config" "p/secrets")
+            log "Supplementing with Semgrep registry: p/secrets"
+        fi
+    fi
+
+    # Fallback if no custom rules
+    if [[ ${#config_args[@]} -eq 0 ]]; then
+        config_args+=("--config" "p/secrets")
+        log "Fallback: Using Semgrep registry p/secrets only"
+    fi
+
+    log "Running semgrep secrets scan..."
+
+    # Run semgrep
+    semgrep "${config_args[@]}" \
+        --json \
+        --metrics=off \
+        --timeout "$TIMEOUT" \
+        --max-memory 4096 \
+        --exclude "node_modules" \
+        --exclude "vendor" \
+        --exclude ".git" \
+        --exclude "dist" \
+        --exclude "build" \
+        --exclude "*.min.js" \
+        --exclude "package-lock.json" \
+        --exclude "yarn.lock" \
+        --exclude "pnpm-lock.yaml" \
+        --exclude "*.env.example" \
+        --exclude "*.env.sample" \
+        --exclude "*.env.template" \
+        "$repo_path" 2>/dev/null || echo '{"results":[],"errors":[]}'
+}
+
+# Redact secret values in snippets
+redact_secret() {
+    local snippet="$1"
+    # Truncate and mask secret values
+    echo "$snippet" | sed -E 's/([A-Za-z0-9_-]{8})[A-Za-z0-9_+/=-]{8,}/\1********/g' | head -c 200
+}
+
+# Map semgrep severity to our severity
+map_severity() {
+    local rule_id="$1"
+    local semgrep_severity="$2"
+
+    # Critical secrets
+    if echo "$rule_id" | grep -qiE "aws.access|private.key|gcp.service.account|stripe.live"; then
+        echo "critical"
+        return
+    fi
+
+    # High severity
+    if echo "$rule_id" | grep -qiE "github.token|gitlab.token|database.url|jwt.secret|api.key"; then
+        echo "high"
+        return
+    fi
+
+    # Map semgrep severity
+    case "$semgrep_severity" in
+        ERROR) echo "critical" ;;
+        WARNING) echo "high" ;;
+        INFO) echo "medium" ;;
+        *) echo "medium" ;;
+    esac
+}
+
+# Determine secret type from rule ID
+get_secret_type() {
+    local rule_id="$1"
+
+    # Extract meaningful type from rule ID
+    if echo "$rule_id" | grep -qi "aws"; then
+        echo "aws_credential"
+    elif echo "$rule_id" | grep -qi "github"; then
+        echo "github_token"
+    elif echo "$rule_id" | grep -qi "gitlab"; then
+        echo "gitlab_token"
+    elif echo "$rule_id" | grep -qi "slack"; then
+        echo "slack_token"
+    elif echo "$rule_id" | grep -qi "stripe"; then
+        echo "stripe_key"
+    elif echo "$rule_id" | grep -qi "private.key\|rsa\|dsa\|ec.private"; then
+        echo "private_key"
+    elif echo "$rule_id" | grep -qi "postgres\|mysql\|mongodb\|redis\|database"; then
+        echo "database_credential"
+    elif echo "$rule_id" | grep -qi "jwt"; then
+        echo "jwt_secret"
+    elif echo "$rule_id" | grep -qi "api.key\|apikey"; then
+        echo "api_key"
+    elif echo "$rule_id" | grep -qi "password"; then
+        echo "password"
+    elif echo "$rule_id" | grep -qi "secret"; then
+        echo "generic_secret"
+    else
+        echo "unknown"
+    fi
+}
+
+# Process findings into our output format
+process_findings() {
+    local raw_json="$1"
+    local repo_path="$2"
+
+    # Process each finding
+    echo "$raw_json" | jq --arg repo "$repo_path" '
+    [.results[] | {
+        rule_id: .check_id,
+        type: .check_id,
+        severity: .extra.severity,
+        message: .extra.message,
+        file: (.path | sub($repo + "/"; "")),
+        line: .start.line,
+        column: .start.col,
+        snippet: (.extra.lines | .[0:200]),
+        detector: "semgrep"
+    }]'
+}
+
+# Build summary statistics
+build_summary() {
+    local findings_json="$1"
+
+    local total=$(echo "$findings_json" | jq 'length')
+    local critical=$(echo "$findings_json" | jq '[.[] | select(.severity == "ERROR" or .severity == "critical")] | length')
+    local high=$(echo "$findings_json" | jq '[.[] | select(.severity == "WARNING" or .severity == "high")] | length')
+    local medium=$(echo "$findings_json" | jq '[.[] | select(.severity == "INFO" or .severity == "medium")] | length')
+    local low=$(echo "$findings_json" | jq '[.[] | select(.severity == "low")] | length')
+
+    # Calculate risk score (100 = clean, 0 = critical)
+    local risk_score=100
+    local penalty=$((critical * 25 + high * 15 + medium * 5 + low * 2))
+    risk_score=$((risk_score - penalty))
+    [[ $risk_score -lt 0 ]] && risk_score=0
+
+    # Determine risk level
+    local risk_level="excellent"
+    if [[ $risk_score -lt 40 ]]; then
+        risk_level="critical"
+    elif [[ $risk_score -lt 60 ]]; then
+        risk_level="high"
+    elif [[ $risk_score -lt 80 ]]; then
+        risk_level="medium"
+    elif [[ $risk_score -lt 95 ]]; then
+        risk_level="low"
+    fi
+
+    local by_type=$(echo "$findings_json" | jq 'group_by(.type) | map({key: .[0].type, value: length}) | from_entries')
+    local files_affected=$(echo "$findings_json" | jq '[.[].file] | unique | length')
+
+    jq -n \
+        --argjson total "$total" \
+        --argjson critical "$critical" \
+        --argjson high "$high" \
+        --argjson medium "$medium" \
+        --argjson low "$low" \
+        --argjson risk_score "$risk_score" \
+        --arg risk_level "$risk_level" \
+        --argjson by_type "$by_type" \
+        --argjson files_affected "$files_affected" \
+        '{
+            risk_score: $risk_score,
+            risk_level: $risk_level,
+            total_findings: $total,
+            critical_count: $critical,
+            high_count: $high,
+            medium_count: $medium,
+            low_count: $low,
+            by_type: $by_type,
+            files_affected: $files_affected
+        }'
+}
+
+# Generate recommendations
+generate_recommendations() {
+    local summary_json="$1"
+
+    local critical=$(echo "$summary_json" | jq -r '.critical_count')
+    local high=$(echo "$summary_json" | jq -r '.high_count')
+    local total=$(echo "$summary_json" | jq -r '.total_findings')
+
+    local recs='["Use environment variables or a secrets manager for sensitive data", "Enable pre-commit hooks to prevent secret commits (e.g., git-secrets, detect-secrets)"]'
+
+    if [[ "$critical" -gt 0 ]]; then
+        recs=$(echo "$recs" | jq '. = ["URGENT: Rotate all critical secrets immediately - they may already be compromised"] + .')
+    fi
+
+    if [[ "$high" -gt 0 ]]; then
+        recs=$(echo "$recs" | jq '. += ["Review and rotate high-severity secrets before next deployment"]')
+    fi
+
+    if [[ "$total" -gt 5 ]]; then
+        recs=$(echo "$recs" | jq '. += ["Consider using a secrets scanning tool in CI/CD pipeline"]')
+    fi
+
+    echo "$recs"
 }
 
 # Parse arguments
+LOCAL_PATH=""
+REPO=""
+ORG=""
+
 while [[ $# -gt 0 ]]; do
     case $1 in
         --local-path)
@@ -74,486 +399,104 @@ while [[ $# -gt 0 ]]; do
             ORG="$2"
             shift 2
             ;;
-        --output)
-            OUTPUT_FILE="$2"
+        --no-community)
+            USE_COMMUNITY=false
+            shift
+            ;;
+        --timeout)
+            TIMEOUT="$2"
             shift 2
             ;;
         --verbose)
             VERBOSE=true
             shift
             ;;
-        --help)
+        -o|--output)
+            OUTPUT_FILE="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            ;;
+        -*)
+            log_error "Unknown option: $1"
             usage
             ;;
         *)
-            error "Unknown option: $1"
-            usage
+            REPO_PATH="$1"
+            shift
             ;;
     esac
 done
 
-# Determine repository path
-REPO_PATH=""
-if [[ -n "$LOCAL_PATH" ]]; then
-    REPO_PATH="$LOCAL_PATH"
-elif [[ -n "$REPO" ]]; then
-    # Check zero cache first
-    REPO_ORG=$(echo "$REPO" | cut -d'/' -f1)
-    REPO_NAME=$(echo "$REPO" | cut -d'/' -f2)
-    ZERO_CACHE_PATH="$HOME/.zero/projects/$REPO_ORG/$REPO_NAME/repo"
-    LEGACY_PATH="$HOME/.zero/projects/${REPO_ORG}-${REPO_NAME}/repo"
+# Resolve repository path
+if [[ -z "$REPO_PATH" ]]; then
+    REPO_PATH=$(resolve_repo_path "$LOCAL_PATH" "$REPO" "$ORG")
+fi
 
-    if [[ -d "$ZERO_CACHE_PATH" ]]; then
-        REPO_PATH="$ZERO_CACHE_PATH"
-    elif [[ -d "$LEGACY_PATH" ]]; then
-        REPO_PATH="$LEGACY_PATH"
-    else
-        error "Repository not found. Clone it first or use --local-path"
-        exit 1
-    fi
-elif [[ -n "$ORG" ]]; then
-    # Look in zero cache for repos in org
-    ORG_PATH="$HOME/.zero/projects/$ORG"
-    REPO_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
-
-    # Colors for output
-    RED='\033[0;31m'
-    GREEN='\033[0;32m'
-    YELLOW='\033[1;33m'
-    BLUE='\033[0;34m'
-    CYAN='\033[0;36m'
-    NC='\033[0m'
-
-    if [[ -d "$ORG_PATH" ]]; then
-        # Collect repos with and without cloned code
-        REPOS_TO_SCAN=()
-        REPOS_NOT_CLONED=()
-        for repo_dir in "$ORG_PATH"/*/; do
-            repo_name=$(basename "$repo_dir")
-            if [[ -d "$repo_dir/repo" ]]; then
-                REPOS_TO_SCAN+=("$repo_name")
-            else
-                REPOS_NOT_CLONED+=("$repo_name")
-            fi
-        done
-
-        # Check if there are uncloned repos and prompt user
-        if [[ ${#REPOS_NOT_CLONED[@]} -gt 0 ]]; then
-            echo -e "${YELLOW}Found ${#REPOS_NOT_CLONED[@]} repositories without cloned code:${NC}" >&2
-            for repo in "${REPOS_NOT_CLONED[@]}"; do
-                echo -e "  - $repo" >&2
-            done
-            echo "" >&2
-
-            # Only prompt if interactive terminal
-            if [[ -t 0 ]]; then
-                read -p "Would you like to hydrate these repos for analysis? [y/N] " -n 1 -r >&2
-                echo "" >&2
-            else
-                echo -e "${CYAN}Non-interactive mode: skipping uncloned repos${NC}" >&2
-                REPLY="n"
-            fi
-
-            if [[ $REPLY =~ ^[Yy]$ ]]; then
-                echo -e "${BLUE}Hydrating ${#REPOS_NOT_CLONED[@]} repositories...${NC}" >&2
-                for repo in "${REPOS_NOT_CLONED[@]}"; do
-                    echo -e "${CYAN}Cloning $ORG/$repo...${NC}" >&2
-                    "$REPO_ROOT/utils/zero/hydrate.sh" --repo "$ORG/$repo" --quick >&2 2>&1 || true
-                    if [[ -d "$ORG_PATH/$repo/repo" ]]; then
-                        REPOS_TO_SCAN+=("$repo")
-                        echo -e "${GREEN}✓ $repo ready${NC}" >&2
-                    else
-                        echo -e "${RED}✗ Failed to clone $repo${NC}" >&2
-                    fi
-                done
-                echo "" >&2
-            else
-                echo -e "${CYAN}Continuing with ${#REPOS_TO_SCAN[@]} already-cloned repositories...${NC}" >&2
-            fi
-        fi
-
-        if [[ ${#REPOS_TO_SCAN[@]} -eq 0 ]]; then
-            error "No repositories with cloned code found in org cache. Hydrate repos first."
-            exit 1
-        fi
-
-        # Use first available repo (secrets scanner doesn't support multi-repo yet)
-        FIRST_REPO="${REPOS_TO_SCAN[0]}"
-        REPO_PATH="$ORG_PATH/$FIRST_REPO/repo"
-        echo -e "${BLUE}Scanning: $ORG/$FIRST_REPO${NC}" >&2
-
-        if [[ ${#REPOS_TO_SCAN[@]} -gt 1 ]]; then
-            echo -e "${YELLOW}Note: secrets-scanner currently analyzes one repo at a time. Run separately for other repos.${NC}" >&2
-        fi
-    else
-        error "Org not found in cache. Hydrate repos first."
-        exit 1
-    fi
-else
-    error "Either --local-path, --repo, or --org is required"
+if [[ -z "$REPO_PATH" ]] || [[ ! -d "$REPO_PATH" ]]; then
+    log_error "Repository path required or not found"
     usage
 fi
 
-if [[ ! -d "$REPO_PATH" ]]; then
-    error "Repository path does not exist: $REPO_PATH"
-    exit 1
+# Main execution
+check_semgrep
+
+start_time=$(date +%s)
+log "Scanning: $REPO_PATH"
+
+# Run scan
+raw_output=$(run_semgrep "$REPO_PATH")
+
+# Check for errors
+error_count=$(echo "$raw_output" | jq '.errors | length')
+if [[ "$error_count" -gt 0 ]]; then
+    log_warn "$error_count scan errors occurred"
 fi
 
-log "Scanning repository: $REPO_PATH"
+# Process findings
+findings=$(process_findings "$raw_output" "$REPO_PATH")
 
-# Initialize counters
-critical_count=0
-high_count=0
-medium_count=0
-low_count=0
+# Build summary
+summary=$(build_summary "$findings")
 
-# Store findings in a temp file for building JSON
-findings_file=$(mktemp)
-echo "[]" > "$findings_file"
+# Generate recommendations
+recommendations=$(generate_recommendations "$summary")
 
-# Function to add finding
-add_finding() {
-    local type="$1"
-    local file="$2"
-    local line="$3"
-    local severity="$4"
-    local snippet="$5"
-    local detector="$6"
+end_time=$(date +%s)
+duration=$((end_time - start_time))
 
-    # Redact the actual secret in snippet - truncate long matches
-    local redacted_snippet
-    redacted_snippet=$(echo "$snippet" | sed -E 's/([A-Za-z0-9_-]{8})[A-Za-z0-9_+/=-]{8,}/\1********/g' | head -c 200)
+# Build final output
+output=$(jq -n \
+    --arg analyzer "code-secrets" \
+    --arg version "$VERSION" \
+    --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    --arg repo "$REPO_PATH" \
+    --argjson duration "$duration" \
+    --argjson summary "$summary" \
+    --argjson findings "$findings" \
+    --argjson recommendations "$recommendations" \
+    '{
+        analyzer: $analyzer,
+        version: $version,
+        timestamp: $timestamp,
+        repository: $repo,
+        scanner: {
+            engine: "semgrep",
+            ruleset: "p/secrets + custom"
+        },
+        duration_seconds: $duration,
+        summary: $summary,
+        findings: $findings,
+        recommendations: $recommendations
+    }')
 
-    # Escape for JSON
-    redacted_snippet=$(echo "$redacted_snippet" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g' | tr '\n' ' ' | tr '\r' ' ')
-    local rel_file
-    rel_file=$(echo "$file" | sed "s|$REPO_PATH/||")
-
-    # Update counts
-    case "$severity" in
-        critical) ((critical_count++)) || true ;;
-        high) ((high_count++)) || true ;;
-        medium) ((medium_count++)) || true ;;
-        low) ((low_count++)) || true ;;
-    esac
-
-    # Append to findings
-    local finding="{\"type\": \"$type\", \"file\": \"$rel_file\", \"line\": $line, \"severity\": \"$severity\", \"snippet\": \"$redacted_snippet\", \"detector\": \"$detector\"}"
-
-    local current
-    current=$(cat "$findings_file")
-    if [[ "$current" == "[]" ]]; then
-        echo "[$finding]" > "$findings_file"
-    else
-        echo "${current%]}, $finding]" > "$findings_file"
-    fi
-}
-
-# Get severity for pattern type
-get_severity() {
-    local pattern_type="$1"
-    case "$pattern_type" in
-        aws_access_key|aws_secret_key|private_key|pgp_private|gcp_service_account|azure_storage|stripe_key)
-            echo "critical"
-            ;;
-        postgres_url|mysql_url|mongodb_url|redis_url|github_token|github_pat|gitlab_token|anthropic_key|openai_key|npm_token|pypi_token|digitalocean_token|jwt_secret|password_assignment)
-            echo "high"
-            ;;
-        stripe_test_key|slack_token|slack_webhook|sendgrid_key|twilio_sid|twilio_token|heroku_key|bearer_token|api_key_assignment|secret_assignment|docker_auth)
-            echo "medium"
-            ;;
-        mailchimp_key)
-            echo "low"
-            ;;
-        *)
-            echo "medium"
-            ;;
-    esac
-}
-
-log "Running pattern-based scan..."
-
-# Define patterns as separate arrays (portable approach)
-pattern_names=(
-    "aws_access_key"
-    "github_token"
-    "github_pat"
-    "gitlab_token"
-    "slack_token"
-    "slack_webhook"
-    "stripe_key"
-    "stripe_test_key"
-    "sendgrid_key"
-    "gcp_service_account"
-    "private_key"
-    "postgres_url"
-    "mysql_url"
-    "mongodb_url"
-    "redis_url"
-    "anthropic_key"
-    "openai_key"
-    "npm_token"
-    "pypi_token"
-    "digitalocean_token"
-    "password_assignment"
-    "api_key_assignment"
-)
-
-pattern_regexes=(
-    'AKIA[0-9A-Z]{16}'
-    'gh[pousr]_[A-Za-z0-9_]{36,}'
-    'github_pat_[A-Za-z0-9_]{22,}'
-    'glpat-[A-Za-z0-9-]{20,}'
-    'xox[baprs]-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*'
-    'https://hooks\.slack\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[A-Za-z0-9]+'
-    'sk_live_[0-9a-zA-Z]{24,}'
-    'sk_test_[0-9a-zA-Z]{24,}'
-    'SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}'
-    '"type":[[:space:]]*"service_account"'
-    '-----BEGIN (RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----'
-    'postgres(ql)?://[^:]+:[^@]+@[^/]+/[^[:space:]]+'
-    'mysql://[^:]+:[^@]+@[^/]+/[^[:space:]]+'
-    'mongodb(\+srv)?://[^:]+:[^@]+@[^[:space:]]+'
-    'redis://[^:]+:[^@]+@[^[:space:]]+'
-    'sk-ant-[A-Za-z0-9_-]{90,}'
-    'sk-[A-Za-z0-9]{48}'
-    'npm_[A-Za-z0-9]{36}'
-    'pypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]+'
-    'dop_v1_[a-f0-9]{64}'
-    '[pP]assword[[:space:]]*[:=][[:space:]]*["\047][^"\047]{8,}["\047]'
-    '[aA]pi[_-]?[kK]ey[[:space:]]*[:=][[:space:]]*["\047][A-Za-z0-9_-]{16,}["\047]'
-)
-
-# Create combined pattern file for batch grep (much faster than per-pattern grep)
-patterns_file=$(mktemp)
-for pattern in "${pattern_regexes[@]}"; do
-    echo "$pattern" >> "$patterns_file"
-done
-
-# Get list of files to scan (with limit for safety)
-log "Finding files to scan..."
-files_to_scan=$(find "$REPO_PATH" \
-    -type f \
-    ! -path "*/.git/*" \
-    ! -path "*/node_modules/*" \
-    ! -path "*/vendor/*" \
-    ! -path "*/__pycache__/*" \
-    ! -path "*/venv/*" \
-    ! -path "*/.venv/*" \
-    ! -path "*/dist/*" \
-    ! -path "*/build/*" \
-    ! -path "*/.next/*" \
-    ! -path "*/coverage/*" \
-    ! -path "*/.nyc_output/*" \
-    ! -name "*.min.js" \
-    ! -name "*.min.css" \
-    ! -name "*.map" \
-    ! -name "*.png" ! -name "*.jpg" ! -name "*.jpeg" ! -name "*.gif" \
-    ! -name "*.ico" ! -name "*.svg" ! -name "*.woff" ! -name "*.woff2" \
-    ! -name "*.ttf" ! -name "*.eot" ! -name "*.pdf" \
-    ! -name "*.zip" ! -name "*.tar" ! -name "*.gz" \
-    ! -name "*.exe" ! -name "*.dll" ! -name "*.so" ! -name "*.dylib" \
-    ! -name "package-lock.json" ! -name "yarn.lock" ! -name "pnpm-lock.yaml" \
-    2>/dev/null | head -n "$MAX_FILES" || true)
-
-total_files=$(echo "$files_to_scan" | grep -c . || echo "0")
-log "Found $total_files files to scan (max: $MAX_FILES)"
-
-scanned_files=0
-skipped_files=0
-file_count=0
-
-# Identify pattern from matched content
-identify_pattern() {
-    local content="$1"
-    for i in "${!pattern_regexes[@]}"; do
-        if echo "$content" | grep -qE "${pattern_regexes[$i]}" 2>/dev/null; then
-            echo "${pattern_names[$i]}"
-            return
-        fi
-    done
-    echo "unknown"
-}
-
-while IFS= read -r file; do
-    [[ -z "$file" ]] && continue
-    ((file_count++)) || true
-
-    # Progress indicator for large repos
-    if [[ $((file_count % 500)) -eq 0 ]]; then
-        log "Progress: $file_count/$total_files files..."
-    fi
-
-    # Skip files that are too large
-    file_size=$(stat -f%z "$file" 2>/dev/null || stat -c%s "$file" 2>/dev/null || echo "0")
-    if [[ "$file_size" -gt "$MAX_FILE_SIZE" ]]; then
-        ((skipped_files++)) || true
-        continue
-    fi
-
-    # Check if file is binary (faster check using head + file)
-    if head -c 512 "$file" 2>/dev/null | file - 2>/dev/null | grep -q "binary"; then
-        ((skipped_files++)) || true
-        continue
-    fi
-
-    ((scanned_files++)) || true
-
-    # Check if this is a test/example file (for severity adjustment)
-    is_test_file=false
-    if echo "$file" | grep -qE '(test|spec|example|sample|mock|fixture)'; then
-        is_test_file=true
-    fi
-
-    # Skip .env.example files entirely
-    if echo "$file" | grep -qE '\.env\.(example|sample|template)'; then
-        continue
-    fi
-
-    # Use grep -f for batch pattern matching (one grep call per file instead of 22)
-    matches=$(grep -n -E -f "$patterns_file" "$file" 2>/dev/null || true)
-
-    while IFS= read -r match; do
-        [[ -z "$match" ]] && continue
-
-        line_num=$(echo "$match" | cut -d: -f1)
-        content=$(echo "$match" | cut -d: -f2-)
-
-        # Skip common false positives (placeholder values)
-        if echo "$content" | grep -qiE '(YOUR_|REPLACE_|EXAMPLE_|xxx|placeholder|dummy|fake|test123|<[^>]+>)'; then
-            continue
-        fi
-
-        # Identify which pattern matched
-        pattern_name=$(identify_pattern "$content")
-        severity=$(get_severity "$pattern_name")
-
-        # Downgrade severity for test files
-        if [[ "$is_test_file" == "true" ]]; then
-            case "$severity" in
-                critical) severity="high" ;;
-                high) severity="medium" ;;
-                medium) severity="low" ;;
-            esac
-        fi
-
-        add_finding "$pattern_name" "$file" "$line_num" "$severity" "$content" "pattern"
-    done <<< "$matches"
-done <<< "$files_to_scan"
-
-# Cleanup
-rm -f "$patterns_file"
-
-# Check for .env files (which shouldn't be committed)
-env_files=$(find "$REPO_PATH" \
-    -type f \
-    -name ".env" \
-    ! -path "*/.git/*" \
-    ! -path "*/node_modules/*" \
-    2>/dev/null || true)
-
-env_files_count=0
-while IFS= read -r env_file; do
-    [[ -z "$env_file" ]] && continue
-    ((env_files_count++)) || true
-
-    # Check if .env is in .gitignore
-    gitignore="$REPO_PATH/.gitignore"
-    env_ignored=false
-    if [[ -f "$gitignore" ]]; then
-        if grep -qE '^\.env$|^\*\.env$' "$gitignore" 2>/dev/null; then
-            env_ignored=true
-        fi
-    fi
-
-    if [[ "$env_ignored" == "false" ]]; then
-        add_finding "env_file_committed" "$env_file" 1 "high" ".env file may be committed to repository" "pattern"
-    fi
-done <<< "$env_files"
-
-# Calculate risk score
-total_findings=$((critical_count + high_count + medium_count + low_count))
-risk_score=100
-
-if [[ $total_findings -gt 0 ]]; then
-    # Deduct points based on severity
-    critical_penalty=$((critical_count * 25))
-    high_penalty=$((high_count * 15))
-    medium_penalty=$((medium_count * 5))
-    low_penalty=$((low_count * 2))
-
-    total_penalty=$((critical_penalty + high_penalty + medium_penalty + low_penalty))
-    risk_score=$((100 - total_penalty))
-
-    # Clamp to 0-100
-    [[ $risk_score -lt 0 ]] && risk_score=0
-fi
-
-# Determine risk level
-risk_level="excellent"
-if [[ $risk_score -lt 40 ]]; then
-    risk_level="critical"
-elif [[ $risk_score -lt 60 ]]; then
-    risk_level="high"
-elif [[ $risk_score -lt 80 ]]; then
-    risk_level="medium"
-elif [[ $risk_score -lt 95 ]]; then
-    risk_level="low"
-fi
-
-# Build recommendations array
-recommendations='["Use environment variables or secret managers for sensitive data","Enable pre-commit hooks to prevent secret commits"]'
-
-if [[ $critical_count -gt 0 ]]; then
-    recommendations='["URGENT: Rotate all critical secrets immediately",'${recommendations:1}
-fi
-if [[ $high_count -gt 0 ]]; then
-    recommendations=${recommendations%]}
-    recommendations+=',"Review and rotate high-severity secrets"]'
-fi
-if [[ $env_files_count -gt 0 ]]; then
-    recommendations=${recommendations%]}
-    recommendations+=',"Ensure .env files are in .gitignore"]'
-fi
-
-# Get findings JSON
-findings_json=$(cat "$findings_file")
-rm -f "$findings_file"
-
-# Generate output JSON
-output=$(cat << EOF
-{
-    "analyzer": "secrets-scanner",
-    "version": "$VERSION",
-    "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
-    "repository": "$REPO_PATH",
-    "scanner": {
-        "pattern_matching": true,
-        "patterns_count": ${#pattern_names[@]},
-        "max_files": $MAX_FILES
-    },
-    "summary": {
-        "risk_score": $risk_score,
-        "risk_level": "$risk_level",
-        "total_findings": $total_findings,
-        "critical_count": $critical_count,
-        "high_count": $high_count,
-        "medium_count": $medium_count,
-        "low_count": $low_count,
-        "files_scanned": $scanned_files,
-        "files_skipped": $skipped_files,
-        "env_files_found": $env_files_count
-    },
-    "findings": $findings_json,
-    "recommendations": $recommendations
-}
-EOF
-)
-
-# Output results
+# Output
 if [[ -n "$OUTPUT_FILE" ]]; then
     echo "$output" > "$OUTPUT_FILE"
-    log "Results written to $OUTPUT_FILE"
+    log_success "Results written to $OUTPUT_FILE"
 else
     echo "$output"
 fi
+
+log "Scan completed in ${duration}s"

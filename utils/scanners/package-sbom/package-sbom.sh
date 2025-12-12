@@ -72,6 +72,9 @@ ORG_REPOS_ANALYZED=()
 PERSONA=""
 VALID_PERSONAS=("security-engineer" "software-engineer" "engineering-leader" "auditor" "all")
 
+# SBOM generator configuration (syft, cdxgen, or auto)
+SBOM_GENERATOR="${SBOM_GENERATOR:-syft}"
+
 # Cleanup function
 cleanup_shared_repo() {
     if [[ -n "$SHARED_REPO_DIR" ]] && [[ -d "$SHARED_REPO_DIR" ]]; then
@@ -122,6 +125,8 @@ TARGETS:
 OPTIONS:
     --output DIR, -o DIR    Output directory for reports
     --config FILE           Use alternate config file
+    --generator GENERATOR   SBOM generator: syft (fast), cdxgen (accurate), auto
+                           Default: syft. Use cdxgen for more complete dep detection.
     --claude                Use Claude AI for enhanced analysis (requires ANTHROPIC_API_KEY)
     --parallel              Batch API processing (default: enabled)
     --persona PERSONA       Analysis persona (security-engineer, software-engineer,
@@ -488,7 +493,13 @@ clone_shared_repository() {
         echo -e "${GREEN}✓ Cloned ${SHARED_REPO_NAME}: ${file_count} files, ${repo_size}${NC}"
 
         # Generate SBOM for shared use
-        echo -e "${BLUE}Generating SBOM for shared analysis...${NC}"
+        local generator_msg=""
+        case "$SBOM_GENERATOR" in
+            cdxgen) generator_msg=" (using cdxgen - more accurate)" ;;
+            auto) generator_msg=" (auto-selecting generator)" ;;
+            *) generator_msg=" (using syft - fast)" ;;
+        esac
+        echo -e "${BLUE}Generating SBOM for shared analysis${generator_msg}...${NC}"
 
         # Source SBOM library
         if [[ -f "$UTILS_ROOT/lib/sbom.sh" ]]; then
@@ -497,8 +508,8 @@ clone_shared_repository() {
             # Create temp SBOM file
             SHARED_SBOM_FILE=$(mktemp)
 
-            # Generate SBOM
-            if generate_sbom "$SHARED_REPO_DIR" "$SHARED_SBOM_FILE" "true" 2>&1 | grep -v "^\["; then
+            # Generate SBOM using smart generator (supports syft, cdxgen, or auto)
+            if generate_sbom_smart "$SHARED_REPO_DIR" "$SHARED_SBOM_FILE" "$SBOM_GENERATOR" "true" 2>&1 | grep -v "^\["; then
                 # Display SBOM summary - make package_count global for progress display
                 SHARED_PACKAGE_COUNT=$(jq '.components | length' "$SHARED_SBOM_FILE" 2>/dev/null || echo "0")
                 local sbom_format=$(jq -r '.bomFormat // "unknown"' "$SHARED_SBOM_FILE" 2>/dev/null || echo "unknown")
@@ -1713,6 +1724,16 @@ while [[ $# -gt 0 ]]; do
         --parallel)
             PARALLEL=true
             shift
+            ;;
+        --generator)
+            SBOM_GENERATOR="$2"
+            # Validate generator
+            if [[ ! "$SBOM_GENERATOR" =~ ^(syft|cdxgen|auto)$ ]]; then
+                echo -e "${RED}Error: Invalid SBOM generator '${SBOM_GENERATOR}'${NC}"
+                echo "Valid generators: syft, cdxgen, auto"
+                exit 1
+            fi
+            shift 2
             ;;
         --persona)
             PERSONA="$2"
