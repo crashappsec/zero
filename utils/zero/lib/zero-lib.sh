@@ -2812,3 +2812,12 @@ zero_list_orgs() {
         basename "$org_dir"
     done
 }
+
+#############################################################################
+# Export functions for use in subshells (required for parallel operations)
+#############################################################################
+export -f zero_project_id
+export -f format_number
+export -f format_size_lower
+export -f get_repo_stats
+export -f format_repo_stats
