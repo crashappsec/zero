@@ -38,8 +38,10 @@ CLONE_ONLY=false
 LIMIT=0
 BRANCH=""
 DEPTH=""
+DEPTH_SET=false  # Track if user explicitly set depth
 FORCE=false
 PROFILE="standard"
+ORG_DEFAULT_DEPTH=1  # Default shallow clone depth for org mode
 
 #############################################################################
 # Usage
@@ -60,7 +62,7 @@ MODES:
 
 CLONE OPTIONS:
     --branch <name>     Clone specific branch
-    --depth <n>         Shallow clone depth
+    --depth <n>         Shallow clone depth (default: 1 for org mode)
     --clone-only        Clone without scanning
 
 SCAN OPTIONS:
@@ -117,6 +119,7 @@ parse_args() {
                 ;;
             --depth)
                 DEPTH="$2"
+                DEPTH_SET=true
                 shift 2
                 ;;
             --clone-only)
@@ -174,6 +177,11 @@ parse_args() {
             -*)
                 echo -e "${RED}Error: Unknown option $1${NC}" >&2
                 exit 1
+                ;;
+            # Support profile names without -- prefix
+            quick|standard|advanced|deep|security|security-deep|compliance|devops|malcontent|packages|all)
+                PROFILE="$1"
+                shift
                 ;;
             *)
                 if [[ -z "$TARGET" ]]; then
@@ -366,36 +374,45 @@ hydrate_org() {
     local total_file_count=0
 
     #---------------------------------------------------------------------------
-    # PHASE 1: Cloning
+    # PHASE 1: Cloning (parallel)
     #---------------------------------------------------------------------------
-    echo -e "${BOLD}Cloning${NC}"
+
+    # Apply default shallow clone for org mode if user didn't specify depth
+    local effective_depth="$DEPTH"
+    if [[ "$DEPTH_SET" != "true" ]] && [[ -n "$ORG_DEFAULT_DEPTH" ]]; then
+        effective_depth="$ORG_DEFAULT_DEPTH"
+    fi
+
+    echo -e "${BOLD}Cloning${NC}$([[ -n "$effective_depth" ]] && echo -e " ${DIM}(depth=$effective_depth)${NC}")"
     echo ""
 
-    for current_repo in "${repos[@]}"; do
+    # Function to clone a single repo (runs in subshell)
+    clone_single_repo() {
+        local current_repo="$1"
+        local force="$2"
+        local branch="$3"
+        local depth="$4"
+        local tmp_dir="$5"
         local short="${current_repo##*/}"
         local project_id=$(zero_project_id "$current_repo")
         local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
 
-        if [[ -d "$repo_path" ]] && [[ "$FORCE" != "true" ]]; then
+        if [[ -d "$repo_path" ]] && [[ "$force" != "true" ]]; then
             # Update existing repo with git pull
-            printf "  ${YELLOW}*${NC} %s ${DIM}updating...${NC}" "$short"
             local old_commit=$(cd "$repo_path" && git rev-parse --short HEAD 2>/dev/null)
             if (cd "$repo_path" && git pull -q 2>/dev/null); then
                 local new_commit=$(cd "$repo_path" && git rev-parse --short HEAD 2>/dev/null)
                 local stats=$(format_repo_stats "$repo_path")
                 if [[ "$old_commit" != "$new_commit" ]]; then
-                    printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC} ${CYAN}(updated: %s → %s)${NC}                    \n" "$short" "$stats" "$old_commit" "$new_commit"
+                    echo "updated:$short:$stats:$old_commit:$new_commit"
                 else
-                    printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC} ${DIM}(%s up to date)${NC}                    \n" "$short" "$stats" "$new_commit"
+                    echo "uptodate:$short:$stats:$new_commit"
                 fi
             else
                 local stats=$(format_repo_stats "$repo_path")
-                printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC} ${DIM}(%s pull skipped)${NC}                    \n" "$short" "$stats" "$old_commit"
+                echo "skipped:$short:$stats:$old_commit"
             fi
-            clone_success=$((clone_success + 1))
         else
-            printf "  ${YELLOW}*${NC} %s ${DIM}cloning...${NC}" "$short"
-
             [[ -d "$repo_path" ]] && rm -rf "$repo_path"
             mkdir -p "$ZERO_PROJECTS_DIR/$project_id"
 
@@ -403,20 +420,126 @@ hydrate_org() {
             [[ -n "${GITHUB_TOKEN:-}" ]] && clone_url="https://${GITHUB_TOKEN}@github.com/$current_repo.git"
 
             local clone_args=("-q")
-            [[ -n "$BRANCH" ]] && clone_args+=("--branch" "$BRANCH")
-            [[ -n "$DEPTH" ]] && clone_args+=("--depth" "$DEPTH")
+            [[ -n "$branch" ]] && clone_args+=("--branch" "$branch")
+            [[ -n "$depth" ]] && clone_args+=("--depth" "$depth")
 
             if git clone "${clone_args[@]}" "$clone_url" "$repo_path" 2>/dev/null; then
                 mkdir -p "$ZERO_PROJECTS_DIR/$project_id/analysis"
                 local stats=$(format_repo_stats "$repo_path")
-                printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC}                    \n" "$short" "$stats"
-                clone_success=$((clone_success + 1))
+                echo "cloned:$short:$stats"
             else
-                printf "\r  ${RED}✗${NC} %s ${RED}clone failed${NC}           \n" "$short"
                 echo "$current_repo" >> "$tmp_dir/failed_repos"
-                clone_failed=$((clone_failed + 1))
+                echo "failed:$short"
             fi
         fi
+    }
+    export -f clone_single_repo
+
+    # Track active clone jobs
+    local clone_pids=()
+    local clone_repos_map=()
+
+    # Print clone result from encoded string
+    print_clone_result() {
+        local result="$1"
+        local status="${result%%:*}"
+        local rest="${result#*:}"
+
+        case "$status" in
+            cloned)
+                local short="${rest%%:*}"
+                local stats="${rest#*:}"
+                echo -e "  ${GREEN}✓${NC} $short ${DIM}$stats${NC}"
+                clone_success=$((clone_success + 1))
+                ;;
+            updated)
+                local short="${rest%%:*}"
+                rest="${rest#*:}"
+                local stats="${rest%%:*}"
+                rest="${rest#*:}"
+                local old="${rest%%:*}"
+                local new="${rest#*:}"
+                echo -e "  ${GREEN}✓${NC} $short ${DIM}$stats${NC} ${CYAN}(updated: $old → $new)${NC}"
+                clone_success=$((clone_success + 1))
+                ;;
+            uptodate)
+                local short="${rest%%:*}"
+                rest="${rest#*:}"
+                local stats="${rest%%:*}"
+                local commit="${rest#*:}"
+                echo -e "  ${GREEN}✓${NC} $short ${DIM}$stats${NC} ${DIM}($commit up to date)${NC}"
+                clone_success=$((clone_success + 1))
+                ;;
+            skipped)
+                local short="${rest%%:*}"
+                rest="${rest#*:}"
+                local stats="${rest%%:*}"
+                local commit="${rest#*:}"
+                echo -e "  ${GREEN}✓${NC} $short ${DIM}$stats${NC} ${DIM}($commit pull skipped)${NC}"
+                clone_success=$((clone_success + 1))
+                ;;
+            failed)
+                local short="${rest%%:*}"
+                echo -e "  ${RED}✗${NC} $short ${RED}clone failed${NC}"
+                clone_failed=$((clone_failed + 1))
+                ;;
+        esac
+    }
+
+    # Check completed clone jobs and print results
+    check_clone_completions() {
+        local new_pids=()
+        local new_repos=()
+
+        for i in "${!clone_pids[@]}"; do
+            local pid="${clone_pids[$i]}"
+            local repo="${clone_repos_map[$i]}"
+            local short="${repo##*/}"
+
+            if ! kill -0 "$pid" 2>/dev/null; then
+                wait "$pid" 2>/dev/null || true
+                # Read result from temp file
+                if [[ -f "$tmp_dir/clone_${short}.result" ]]; then
+                    local result=$(cat "$tmp_dir/clone_${short}.result")
+                    print_clone_result "$result"
+                fi
+            else
+                new_pids+=("$pid")
+                new_repos+=("$repo")
+            fi
+        done
+
+        clone_pids=("${new_pids[@]}")
+        clone_repos_map=("${new_repos[@]}")
+    }
+
+    # Launch parallel clone jobs
+    for current_repo in "${repos[@]}"; do
+        local short="${current_repo##*/}"
+
+        # Show that clone is starting
+        echo -e "  ${YELLOW}◐${NC} $short ${DIM}cloning...${NC}"
+
+        # Start clone in background, capture result to file
+        (
+            result=$(clone_single_repo "$current_repo" "$FORCE" "$BRANCH" "$effective_depth" "$tmp_dir")
+            echo "$result" > "$tmp_dir/clone_${short}.result"
+        ) &
+
+        clone_pids+=($!)
+        clone_repos_map+=("$current_repo")
+
+        # Limit concurrent clones to parallel_jobs
+        while [[ ${#clone_pids[@]} -ge $parallel_jobs ]]; do
+            sleep 0.3
+            check_clone_completions
+        done
+    done
+
+    # Wait for remaining clone jobs
+    while [[ ${#clone_pids[@]} -gt 0 ]]; do
+        sleep 0.3
+        check_clone_completions
     done
 
     echo ""
