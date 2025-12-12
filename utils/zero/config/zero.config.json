@@ -415,6 +415,27 @@
         "bundle-analysis",
         "container-security"
       ]
+    },
+    "packages": {
+      "name": "Packages",
+      "description": "Complete package/dependency analysis - SBOM, vulnerabilities, health, provenance, and malware detection",
+      "estimated_time": "~5 minutes",
+      "claude_mode": "optional",
+      "claude_scanners": [
+        "package-sbom",
+        "package-health",
+        "package-provenance",
+        "package-malcontent"
+      ],
+      "scanners": [
+        "package-sbom",
+        "package-vulns",
+        "package-health",
+        "package-provenance",
+        "package-malcontent",
+        "package-bundle-optimization",
+        "package-recommendations"
+      ]
     }
   }
 }
