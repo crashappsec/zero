@@ -281,16 +281,26 @@ parse_checkov_results() {
         all_skipped=$(echo "$checkov_json" | jq '.results.skipped_checks // []')
     fi
 
-    # Build normalized findings
+    # Build normalized findings using temp files to avoid ARG_MAX limit
+    local tmp_passed=$(mktemp)
+    local tmp_failed=$(mktemp)
+    local tmp_skipped=$(mktemp)
+
+    echo "$all_passed" > "$tmp_passed"
+    echo "$all_failed" > "$tmp_failed"
+    echo "$all_skipped" > "$tmp_skipped"
+
     jq -n \
-        --argjson passed "$all_passed" \
-        --argjson failed "$all_failed" \
-        --argjson skipped "$all_skipped" \
+        --slurpfile passed "$tmp_passed" \
+        --slurpfile failed "$tmp_failed" \
+        --slurpfile skipped "$tmp_skipped" \
         '{
-            passed: $passed,
-            failed: $failed,
-            skipped: $skipped
+            passed: $passed[0],
+            failed: $failed[0],
+            skipped: $skipped[0]
         }'
+
+    rm -f "$tmp_passed" "$tmp_failed" "$tmp_skipped"
 }
 
 # Extract compliance framework mappings from findings
@@ -486,21 +496,31 @@ analyze_target() {
     # Get Checkov version
     local checkov_version=$("$CHECKOV_BIN" --version 2>/dev/null | head -1 || echo "unknown")
 
-    # Build final output
+    # Build final output using temp files to avoid ARG_MAX limit
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+    local tmp_frameworks=$(mktemp)
+    local tmp_severity=$(mktemp)
+    local tmp_findings=$(mktemp)
+    local tmp_compliance=$(mktemp)
+
+    echo "$detected_frameworks" > "$tmp_frameworks"
+    echo "$severity_breakdown" > "$tmp_severity"
+    echo "$formatted_findings" > "$tmp_findings"
+    echo "$compliance_mapping" > "$tmp_compliance"
 
     jq -n \
         --arg ts "$timestamp" \
         --arg tgt "$TARGET" \
         --arg ver "1.0.0" \
         --arg checkov_ver "$checkov_version" \
-        --argjson frameworks "$detected_frameworks" \
         --argjson passed "$passed_count" \
         --argjson failed "$failed_count" \
         --argjson skipped "$skipped_count" \
-        --argjson severity "$severity_breakdown" \
-        --argjson findings "$formatted_findings" \
-        --argjson compliance "$compliance_mapping" \
+        --slurpfile frameworks "$tmp_frameworks" \
+        --slurpfile severity "$tmp_severity" \
+        --slurpfile findings "$tmp_findings" \
+        --slurpfile compliance "$tmp_compliance" \
         '{
             analyzer: "iac-security",
             version: $ver,
@@ -508,18 +528,20 @@ analyze_target() {
             target: $tgt,
             checkov_version: $checkov_ver,
             status: "scan_completed",
-            frameworks_detected: $frameworks,
+            frameworks_detected: $frameworks[0],
             summary: {
                 total_checks: ($passed + $failed + $skipped),
                 passed: $passed,
                 failed: $failed,
                 skipped: $skipped,
-                by_severity: $severity
+                by_severity: $severity[0]
             },
-            findings: $findings,
-            compliance_mapping: $compliance,
+            findings: $findings[0],
+            compliance_mapping: $compliance[0],
             note: "Checkov IaC security scan. All findings require manual review."
         }'
+
+    rm -f "$tmp_frameworks" "$tmp_severity" "$tmp_findings" "$tmp_compliance"
 }
 
 # Parse arguments

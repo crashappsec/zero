@@ -278,6 +278,16 @@ get_parallel_jobs() {
     jq -r '.settings.parallel_jobs // 4' "$PHANTOM_CONFIG" 2>/dev/null
 }
 
+# Get scanner timeout setting from config (in seconds)
+# Usage: get_scanner_timeout
+get_scanner_timeout() {
+    if [[ ! -f "$PHANTOM_CONFIG" ]]; then
+        echo "600"  # Default 10 minutes
+        return
+    fi
+    jq -r '.settings.scanner_timeout_seconds // 600' "$PHANTOM_CONFIG" 2>/dev/null
+}
+
 # Get default profile from config
 # Usage: get_default_profile
 get_default_profile() {
@@ -382,6 +392,7 @@ export -f profile_uses_claude
 export -f get_profile_claude_scanners
 export -f get_default_profile
 export -f get_parallel_jobs
+export -f get_scanner_timeout
 export -f get_all_scanners
 export -f get_scanner_name
 export -f get_scanner_description

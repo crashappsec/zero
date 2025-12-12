@@ -312,6 +312,55 @@ zero_project_analysis_path() {
     echo "$ZERO_PROJECTS_DIR/$project_id/analysis"
 }
 
+# Get the scan-specific output path for versioned storage
+# Returns analysis/scans/<scan_id>/ for storing scanner outputs
+zero_scan_output_path() {
+    local project_id="$1"
+    local scan_id="$2"
+    echo "$ZERO_PROJECTS_DIR/$project_id/analysis/scans/$scan_id"
+}
+
+# Create scan output directory and update 'current' symlink
+# Optionally includes commit hash in directory name for easier identification
+zero_init_scan_directory() {
+    local project_id="$1"
+    local scan_id="$2"
+    local commit_short="${3:-}"
+
+    local analysis_path=$(zero_project_analysis_path "$project_id")
+
+    # Include commit hash in directory name if provided
+    local scan_dir_name="$scan_id"
+    [[ -n "$commit_short" ]] && scan_dir_name="${scan_id}_${commit_short}"
+
+    local scan_path="$ZERO_PROJECTS_DIR/$project_id/analysis/scans/$scan_dir_name"
+
+    # Create scan directory
+    mkdir -p "$scan_path"
+
+    # Update 'current' symlink to point to this scan
+    local current_link="$analysis_path/current"
+    rm -f "$current_link" 2>/dev/null
+    ln -sf "scans/$scan_dir_name" "$current_link"
+
+    echo "$scan_path"
+}
+
+# Get the current (latest) scan output path
+zero_current_scan_path() {
+    local project_id="$1"
+    local analysis_path=$(zero_project_analysis_path "$project_id")
+    local current_link="$analysis_path/current"
+
+    if [[ -L "$current_link" ]]; then
+        # Return the resolved path
+        echo "$(cd "$analysis_path" && readlink -f "current" 2>/dev/null || echo "$analysis_path")"
+    else
+        # Fallback to analysis root for backwards compatibility
+        echo "$analysis_path"
+    fi
+}
+
 # Check if project exists
 zero_project_exists() {
     local project_id="$1"
@@ -788,9 +837,9 @@ zero_finalize_manifest() {
         fi
     fi
 
-    # Get completed and failed scanners from analyses
+    # Get completed, failed, and timed-out scanners from analyses
     local scanners_completed=$(jq -r '[.analyses // {} | to_entries[] | select(.value.status == "complete") | .key] | unique' "$manifest" 2>/dev/null)
-    local scanners_failed=$(jq -r '[.analyses // {} | to_entries[] | select(.value.status == "failed") | .key] | unique' "$manifest" 2>/dev/null)
+    local scanners_failed=$(jq -r '[.analyses // {} | to_entries[] | select(.value.status == "failed" or .value.status == "timeout") | .key] | unique' "$manifest" 2>/dev/null)
 
     local tmp=$(mktemp)
     jq --arg ts "$timestamp" \
@@ -1299,6 +1348,12 @@ format_duration() {
     else
         echo "${secs}s"
     fi
+}
+
+# Format number with thousands separators (e.g., 32664 -> 32,664)
+format_number() {
+    local num=$1
+    printf "%'d" "$num" 2>/dev/null || echo "$num"
 }
 
 # Format bytes to human readable (e.g., "245mb", "1.1gb")
