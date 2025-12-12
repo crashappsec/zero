@@ -254,17 +254,37 @@ hydrate_single() {
     echo -e "Target: ${CYAN}$current_repo${NC}"
     echo
 
-    # Clone
-    echo -e "  ${CYAN}Cloning...${NC}"
-    if clone_repo_silent "$current_repo"; then
-        if [[ "$CLONE_STATUS" == "skipped" ]]; then
-            echo -e "  ${GREEN}✓${NC} Already cloned"
+    # Clone or update
+    local project_id=$(zero_project_id "$current_repo")
+    local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
+
+    if [[ -d "$repo_path" ]] && [[ "$FORCE" != "true" ]]; then
+        # Update existing repo
+        echo -e "  ${CYAN}Updating...${NC}"
+        local old_commit=$(cd "$repo_path" && git rev-parse --short HEAD 2>/dev/null)
+        if (cd "$repo_path" && git pull -q 2>/dev/null); then
+            local new_commit=$(cd "$repo_path" && git rev-parse --short HEAD 2>/dev/null)
+            if [[ "$old_commit" != "$new_commit" ]]; then
+                echo -e "  ${GREEN}✓${NC} Updated (${old_commit} → ${new_commit})"
+            else
+                echo -e "  ${GREEN}✓${NC} Already up to date (${new_commit})"
+            fi
         else
-            echo -e "  ${GREEN}✓${NC} Cloned"
+            echo -e "  ${GREEN}✓${NC} Using cached repo (pull skipped)"
         fi
+        CLONE_STATUS="updated"
     else
-        echo -e "  ${RED}✗${NC} Clone failed"
-        return 1
+        echo -e "  ${CYAN}Cloning...${NC}"
+        if clone_repo_silent "$current_repo"; then
+            if [[ "$CLONE_STATUS" == "skipped" ]]; then
+                echo -e "  ${GREEN}✓${NC} Already cloned"
+            else
+                echo -e "  ${GREEN}✓${NC} Cloned"
+            fi
+        else
+            echo -e "  ${RED}✗${NC} Clone failed"
+            return 1
+        fi
     fi
 
     # Scan (unless clone-only)
@@ -347,8 +367,21 @@ hydrate_org() {
         local repo_path="$ZERO_PROJECTS_DIR/$project_id/repo"
 
         if [[ -d "$repo_path" ]] && [[ "$FORCE" != "true" ]]; then
-            local stats=$(format_repo_stats "$repo_path")
-            echo -e "  ${GREEN}✓${NC} ${short} ${DIM}(previously cloned)${NC} ${DIM}${stats}${NC}"
+            # Update existing repo with git pull
+            printf "  ${YELLOW}*${NC} %s ${DIM}updating...${NC}" "$short"
+            local old_commit=$(cd "$repo_path" && git rev-parse --short HEAD 2>/dev/null)
+            if (cd "$repo_path" && git pull -q 2>/dev/null); then
+                local new_commit=$(cd "$repo_path" && git rev-parse --short HEAD 2>/dev/null)
+                local stats=$(format_repo_stats "$repo_path")
+                if [[ "$old_commit" != "$new_commit" ]]; then
+                    printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC} ${CYAN}(updated: %s → %s)${NC}                    \n" "$short" "$stats" "$old_commit" "$new_commit"
+                else
+                    printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC} ${DIM}(up to date)${NC}                    \n" "$short" "$stats"
+                fi
+            else
+                local stats=$(format_repo_stats "$repo_path")
+                printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC} ${DIM}(pull skipped)${NC}                    \n" "$short" "$stats"
+            fi
             clone_success=$((clone_success + 1))
         else
             printf "  ${YELLOW}*${NC} %s ${DIM}cloning...${NC}" "$short"
@@ -448,6 +481,25 @@ hydrate_org() {
             container-security)
                 local count=$(jq '.vulnerabilities | length' "$json_file" 2>/dev/null || echo "0")
                 [[ "$count" -gt 0 ]] && summary="${YELLOW}$count vulns${NC}"
+                ;;
+            package-sbom)
+                local total=$(jq -r '.summary.total // .total_dependencies // 0' "$json_file" 2>/dev/null)
+                # Get ecosystem breakdown from the sbom.cdx.json if available, or from summary
+                local ecosystems=""
+                local analysis_dir=$(dirname "$json_file")
+                local sbom_file="$analysis_dir/sbom.cdx.json"
+                if [[ -f "$sbom_file" ]]; then
+                    ecosystems=$(jq -r '[.components[]? | .purl // empty | ltrimstr("pkg:") | split("/")[0]] | map(select(length > 0)) | group_by(.) | map({type: .[0], count: length}) | sort_by(-.count) | .[0:3] | map("\(.type):\(.count)") | join(" ")' "$sbom_file" 2>/dev/null)
+                else
+                    ecosystems=$(jq -r '[.summary.ecosystems // {} | to_entries[] | "\(.key):\(.value)"] | join(" ")' "$json_file" 2>/dev/null)
+                fi
+                if [[ "$total" -gt 0 ]]; then
+                    if [[ -n "$ecosystems" ]] && [[ "$ecosystems" != "null" ]] && [[ "$ecosystems" != "" ]]; then
+                        summary="${DIM}$total packages ($ecosystems)${NC}"
+                    else
+                        summary="${DIM}$total packages${NC}"
+                    fi
+                fi
                 ;;
         esac
 
@@ -634,8 +686,14 @@ hydrate_org() {
         # Licenses
         if [[ -f "$analysis_dir/licenses.json" ]]; then
             total_license_violations=$((total_license_violations + $(jq -r '.summary.license_violations // 0' "$analysis_dir/licenses.json" 2>/dev/null || echo 0)))
-            total_packages=$((total_packages + $(jq -r '.summary.total_dependencies_with_licenses // 0' "$analysis_dir/licenses.json" 2>/dev/null || echo 0)))
             [[ ! "$scanners_used" =~ "licenses" ]] && scanners_used+=" licenses"
+        fi
+
+        # Package count from SBOM (stored in manifest.json)
+        if [[ -f "$analysis_dir/manifest.json" ]]; then
+            local pkg_count=$(jq -r '.analyses["package-sbom"].summary.total // 0' "$analysis_dir/manifest.json" 2>/dev/null || echo 0)
+            total_packages=$((total_packages + pkg_count))
+            [[ ! "$scanners_used" =~ "package-sbom" ]] && scanners_used+=" package-sbom"
         fi
 
         # Malcontent
@@ -664,7 +722,7 @@ hydrate_org() {
     echo -e "  Duration:        $(format_duration $total_elapsed)"
     echo -e "  Repos scanned:   ${GREEN}$scan_success success${NC}$([[ $scan_failed -gt 0 ]] && echo -e ", ${RED}$scan_failed failed${NC}")"
     echo -e "  Disk usage:      ${disk_usage}"
-    echo -e "  Total files:     ${file_count}"
+    echo -e "  Total files:     $(format_number $file_count)"
     echo -e "  Scanners ran:    $scanner_count (${DIM}${scanners_used# }${NC})"
     echo ""
 
@@ -672,23 +730,24 @@ hydrate_org() {
     local has_findings=false
     [[ $total_vulns_critical -gt 0 || $total_vulns_high -gt 0 || $total_secrets -gt 0 || $total_code_issues -gt 0 || $total_malcontent_critical -gt 0 || $total_malcontent_high -gt 0 ]] && has_findings=true
 
+    local total_vulns=$((total_vulns_critical + total_vulns_high + total_vulns_medium + total_vulns_low))
     echo -e "${BOLD}Findings Summary${NC}"
-    echo -e "  Package vulnerabilities: $((total_vulns_critical + total_vulns_high + total_vulns_medium + total_vulns_low)) total"
-    [[ $total_vulns_critical -gt 0 ]] && echo -e "    ${RED}● $total_vulns_critical critical${NC}"
-    [[ $total_vulns_high -gt 0 ]] && echo -e "    ${YELLOW}● $total_vulns_high high${NC}"
-    [[ $total_vulns_medium -gt 0 ]] && echo -e "    ${DIM}● $total_vulns_medium medium${NC}"
-    [[ $total_vulns_low -gt 0 ]] && echo -e "    ${DIM}● $total_vulns_low low${NC}"
+    echo -e "  Package vulnerabilities: $(format_number $total_vulns) total"
+    [[ $total_vulns_critical -gt 0 ]] && echo -e "    ${RED}● $(format_number $total_vulns_critical) critical${NC}"
+    [[ $total_vulns_high -gt 0 ]] && echo -e "    ${YELLOW}● $(format_number $total_vulns_high) high${NC}"
+    [[ $total_vulns_medium -gt 0 ]] && echo -e "    ${DIM}● $(format_number $total_vulns_medium) medium${NC}"
+    [[ $total_vulns_low -gt 0 ]] && echo -e "    ${DIM}● $(format_number $total_vulns_low) low${NC}"
 
-    echo -e "  Secrets detected:        $total_secrets$([[ $total_secrets -gt 0 ]] && echo -e " ${RED}⚠${NC}")"
-    echo -e "  Code security issues:    $total_code_issues"
-    echo -e "  IaC security issues:     $total_iac_issues"
-    echo -e "  License violations:      $total_license_violations"
-    echo -e "  Packages analyzed:       $total_packages"
+    echo -e "  Secrets detected:        $(format_number $total_secrets)$([[ $total_secrets -gt 0 ]] && echo -e " ${RED}⚠${NC}")"
+    echo -e "  Code security issues:    $(format_number $total_code_issues)"
+    echo -e "  IaC security issues:     $(format_number $total_iac_issues)"
+    echo -e "  License violations:      $(format_number $total_license_violations)"
+    echo -e "  Packages analyzed:       $(format_number $total_packages)"
 
     if [[ $total_malcontent_critical -gt 0 || $total_malcontent_high -gt 0 ]]; then
         echo -e "  Supply chain risks:"
-        [[ $total_malcontent_critical -gt 0 ]] && echo -e "    ${RED}● $total_malcontent_critical critical${NC}"
-        [[ $total_malcontent_high -gt 0 ]] && echo -e "    ${YELLOW}● $total_malcontent_high high${NC}"
+        [[ $total_malcontent_critical -gt 0 ]] && echo -e "    ${RED}● $(format_number $total_malcontent_critical) critical${NC}"
+        [[ $total_malcontent_high -gt 0 ]] && echo -e "    ${YELLOW}● $(format_number $total_malcontent_high) high${NC}"
     fi
 
     echo ""

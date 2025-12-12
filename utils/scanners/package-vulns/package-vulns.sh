@@ -225,17 +225,55 @@ run_osv_scan() {
     rm -f "$temp_output"
 }
 
-# Process scan results into structured JSON
+# Fetch OSV details for a single vuln and save to file
+# Usage: fetch_osv_to_file <vuln_id> <output_dir>
+fetch_osv_to_file() {
+    local vuln_id="$1"
+    local output_dir="$2"
+    local osv_response
+
+    osv_response=$(curl -sf "https://api.osv.dev/v1/vulns/${vuln_id}" 2>/dev/null)
+    if [[ -n "$osv_response" ]]; then
+        echo "$osv_response" > "$output_dir/$vuln_id.json"
+    fi
+}
+
+# Process scan results into structured JSON (optimized for large repos)
 process_results() {
     local raw_json="$1"
     local target="$2"
     local repo_name="$3"
 
     local timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-    local vulns_array="[]"
     local total=0 critical=0 high=0 medium=0 low=0 kev_count=0
 
-    # Process vulnerabilities
+    # Create temp directory for OSV cache
+    local osv_cache_dir=$(mktemp -d)
+
+    # PASS 1: Extract all vulnerabilities and calculate severity (fast, no API calls)
+    local all_vulns_file=$(mktemp)
+
+    echo "$raw_json" | jq -c '.results[]? | .packages[]? | select(.vulnerabilities) |
+        .package as $pkg | .groups as $groups | .vulnerabilities[] |
+        . as $vuln |
+        ($groups | map(select(.ids[]? == $vuln.id)) | .[0].max_severity // "0") as $cvss |
+        {
+            id: (.id // "N/A"),
+            package: ($pkg.name // "N/A"),
+            version: ($pkg.version // "N/A"),
+            ecosystem: ($pkg.ecosystem // "N/A"),
+            cvss: ($cvss | tostring),
+            summary: (.summary // .details // "No description")
+        }' 2>/dev/null > "$all_vulns_file"
+
+    # Count total vulnerabilities
+    local vuln_count=$(wc -l < "$all_vulns_file" | tr -d ' ')
+    echo -e "${BLUE}Found $vuln_count vulnerabilities${NC}" >&2
+
+    # PASS 2: Process vulnerabilities and determine which need OSV details
+    local vulns_to_fetch=()
+    local vulns_array="[]"
+
     while IFS= read -r vuln_json; do
         [[ -z "$vuln_json" ]] && continue
 
@@ -246,7 +284,7 @@ process_results() {
         local cvss=$(echo "$vuln_json" | jq -r '.cvss' | grep -oE '[0-9]+(\.[0-9]+)?' | head -1 || echo "0")
         local summary=$(echo "$vuln_json" | jq -r '.summary')
 
-        # Calculate priority
+        # Calculate priority and severity
         local priority_score=0
         local in_kev=false
         local severity="low"
@@ -258,7 +296,7 @@ process_results() {
             ((kev_count++))
         fi
 
-        # CVSS scoring - use awk for portability instead of bc
+        # CVSS scoring
         if [[ -n "$cvss" ]] && [[ "$cvss" != "0" ]]; then
             local cvss_level=$(awk -v score="$cvss" 'BEGIN {
                 if (score >= 9.0) print "critical"
@@ -267,28 +305,15 @@ process_results() {
                 else print "low"
             }')
             case "$cvss_level" in
-                critical)
-                    priority_score=$((priority_score + 50))
-                    severity="critical"
-                    ;;
-                high)
-                    priority_score=$((priority_score + 30))
-                    severity="high"
-                    ;;
-                medium)
-                    priority_score=$((priority_score + 15))
-                    severity="medium"
-                    ;;
-                *)
-                    priority_score=$((priority_score + 5))
-                    ;;
+                critical) priority_score=$((priority_score + 50)); severity="critical" ;;
+                high) priority_score=$((priority_score + 30)); severity="high" ;;
+                medium) priority_score=$((priority_score + 15)); severity="medium" ;;
+                *) priority_score=$((priority_score + 5)) ;;
             esac
         fi
 
         # Override severity if in KEV
-        if [[ "$in_kev" == true ]]; then
-            severity="critical"
-        fi
+        [[ "$in_kev" == true ]] && severity="critical"
 
         # Count by severity
         ((total++))
@@ -299,27 +324,75 @@ process_results() {
             low) ((low++)) ;;
         esac
 
-        # Fetch full details from OSV.dev
-        echo -e "${DIM}  Fetching details for $vuln_id...${NC}" >&2
-        local osv_details=$(fetch_osv_details "$vuln_id")
+        # Fetch OSV details for ALL vulnerabilities (enriches with fix info, references, etc.)
+        vulns_to_fetch+=("$vuln_id")
 
-        # Extract additional fields from OSV response
-        local description=$(echo "$osv_details" | jq -r '.details // .summary // ""' 2>/dev/null)
-        local aliases=$(echo "$osv_details" | jq -c '[.aliases[]?] // []' 2>/dev/null)
-        local references=$(echo "$osv_details" | jq -c '[.references[]? | {type: .type, url: .url}] // []' 2>/dev/null)
-        local affected_ranges=$(echo "$osv_details" | jq -c '[.affected[]? | {package: .package.name, ecosystem: .package.ecosystem, ranges: .ranges, versions: .versions}] // []' 2>/dev/null)
-        local fix_available=$(echo "$osv_details" | jq -r 'if .affected[0].ranges[0].events | map(select(.fixed)) | length > 0 then "yes" else "no" end' 2>/dev/null || echo "unknown")
-        local fixed_version=$(echo "$osv_details" | jq -r '.affected[0].ranges[0].events[] | select(.fixed) | .fixed' 2>/dev/null | head -1)
-        local published=$(echo "$osv_details" | jq -r '.published // ""' 2>/dev/null)
-        local modified=$(echo "$osv_details" | jq -r '.modified // ""' 2>/dev/null)
-        local severity_osv=$(echo "$osv_details" | jq -c '.severity // []' 2>/dev/null)
+        # Store basic vuln info for later processing
+        echo "$vuln_json" | jq -c --arg sev "$severity" --argjson score "$priority_score" --argjson kev "$in_kev" \
+            '. + {severity: $sev, priority_score: $score, in_kev: $kev}' >> "$osv_cache_dir/vulns_basic.jsonl"
 
-        # Use OSV description if available and longer than summary
-        if [[ -n "$description" ]] && [[ ${#description} -gt ${#summary} ]]; then
-            summary="$description"
+    done < "$all_vulns_file"
+
+    # PASS 3: Fetch OSV details in parallel for ALL vulnerabilities
+    if [[ ${#vulns_to_fetch[@]} -gt 0 ]]; then
+        echo -e "${BLUE}Fetching OSV details for ${#vulns_to_fetch[@]} vulnerabilities (parallel)...${NC}" >&2
+
+        # Export function for parallel execution
+        export -f fetch_osv_to_file
+        export osv_cache_dir
+
+        # Fetch in parallel (20 concurrent for speed)
+        printf '%s\n' "${vulns_to_fetch[@]}" | xargs -P 20 -I {} bash -c 'fetch_osv_to_file "$1" "$osv_cache_dir"' _ {}
+
+        echo -e "${GREEN}✓ Details fetched${NC}" >&2
+    fi
+
+    # PASS 4: Build final vulnerability array with enriched data
+    while IFS= read -r vuln_basic; do
+        [[ -z "$vuln_basic" ]] && continue
+
+        local vuln_id=$(echo "$vuln_basic" | jq -r '.id')
+        local package=$(echo "$vuln_basic" | jq -r '.package')
+        local version=$(echo "$vuln_basic" | jq -r '.version')
+        local ecosystem=$(echo "$vuln_basic" | jq -r '.ecosystem')
+        local cvss=$(echo "$vuln_basic" | jq -r '.cvss')
+        local summary=$(echo "$vuln_basic" | jq -r '.summary')
+        local severity=$(echo "$vuln_basic" | jq -r '.severity')
+        local priority_score=$(echo "$vuln_basic" | jq -r '.priority_score')
+        local in_kev=$(echo "$vuln_basic" | jq -r '.in_kev')
+
+        # Default values for fields not fetched
+        local aliases="[]"
+        local references="[]"
+        local affected_ranges="[]"
+        local fix_available="unknown"
+        local fixed_version=""
+        local published=""
+        local modified=""
+        local severity_osv="[]"
+
+        # Check if we have OSV details for this vuln
+        if [[ -f "$osv_cache_dir/$vuln_id.json" ]]; then
+            local osv_details=$(cat "$osv_cache_dir/$vuln_id.json")
+
+            # Extract additional fields from OSV response
+            local description=$(echo "$osv_details" | jq -r '.details // .summary // ""' 2>/dev/null)
+            aliases=$(echo "$osv_details" | jq -c '[.aliases[]?] // []' 2>/dev/null || echo "[]")
+            references=$(echo "$osv_details" | jq -c '[.references[]? | {type: .type, url: .url}] // []' 2>/dev/null || echo "[]")
+            affected_ranges=$(echo "$osv_details" | jq -c '[.affected[]? | {package: .package.name, ecosystem: .package.ecosystem, ranges: .ranges, versions: .versions}] // []' 2>/dev/null || echo "[]")
+            fix_available=$(echo "$osv_details" | jq -r 'if .affected[0].ranges[0].events | map(select(.fixed)) | length > 0 then "yes" else "no" end' 2>/dev/null || echo "unknown")
+            fixed_version=$(echo "$osv_details" | jq -r '.affected[0].ranges[0].events[] | select(.fixed) | .fixed' 2>/dev/null | head -1)
+            published=$(echo "$osv_details" | jq -r '.published // ""' 2>/dev/null)
+            modified=$(echo "$osv_details" | jq -r '.modified // ""' 2>/dev/null)
+            severity_osv=$(echo "$osv_details" | jq -c '.severity // []' 2>/dev/null || echo "[]")
+
+            # Use OSV description if available and longer
+            if [[ -n "$description" ]] && [[ ${#description} -gt ${#summary} ]]; then
+                summary="$description"
+            fi
         fi
 
-        # Build vulnerability object with full details
+        # Build vulnerability object
         local vuln_obj=$(jq -n \
             --arg id "$vuln_id" \
             --arg pkg "$package" \
@@ -361,24 +434,18 @@ process_results() {
 
         vulns_array=$(echo "$vulns_array" | jq --argjson v "$vuln_obj" '. + [$v]')
 
-    done < <(echo "$raw_json" | jq -r '.results[]? | .packages[]? | select(.vulnerabilities) |
-        .package as $pkg | .groups as $groups | .vulnerabilities[] |
-        . as $vuln |
-        # Find max_severity from groups that contain this vuln id
-        ($groups | map(select(.ids[]? == $vuln.id)) | .[0].max_severity // "0") as $cvss |
-        {
-            id: (.id // "N/A"),
-            package: ($pkg.name // "N/A"),
-            version: ($pkg.version // "N/A"),
-            ecosystem: ($pkg.ecosystem // "N/A"),
-            cvss: ($cvss | tostring),
-            summary: (.summary // .details // "No description")
-        } | @json' 2>/dev/null)
+    done < "$osv_cache_dir/vulns_basic.jsonl"
+
+    # Cleanup temp files
+    rm -rf "$osv_cache_dir" "$all_vulns_file"
 
     # Sort by priority score descending
     vulns_array=$(echo "$vulns_array" | jq 'sort_by(-.priority_score)')
 
-    # Build final output
+    # Build final output using temp file to avoid ARG_MAX
+    local tmp_vulns=$(mktemp)
+    echo "$vulns_array" > "$tmp_vulns"
+
     jq -n \
         --arg ts "$timestamp" \
         --arg tgt "$target" \
@@ -390,7 +457,7 @@ process_results() {
         --argjson med "$medium" \
         --argjson lo "$low" \
         --argjson kev "$kev_count" \
-        --argjson vulns "$vulns_array" \
+        --slurpfile vulns "$tmp_vulns" \
         '{
             analyzer: "vulnerability-analyser",
             version: $ver,
@@ -405,8 +472,10 @@ process_results() {
                 low: $lo,
                 cisa_kev: $kev
             },
-            vulnerabilities: $vulns
+            vulnerabilities: $vulns[0]
         }'
+
+    rm -f "$tmp_vulns"
 }
 
 # Cleanup

@@ -1955,6 +1955,7 @@ run_all_analyzers_parallel() {
 
     local profile_count=$(echo "$requested_analyzers" | wc -w | tr -d ' ')
     local parallel_jobs=$(get_parallel_jobs)
+    local scanner_timeout=$(get_scanner_timeout)
 
     # Show mode in header
     local mode_display=""
@@ -2145,30 +2146,91 @@ run_all_analyzers_parallel() {
     done
 
     # Monitor and update progress bar
-    local loop_counter=0
-    local max_loops=6000  # 10 minutes at 0.1s sleep = 6000 iterations
+    local current_time
     while scanners_still_running "$status_dir" "$remaining_scanners"; do
-        ((loop_counter++))
-        if [[ $loop_counter -gt $max_loops ]]; then
-            echo -e "\n${RED}ERROR: Scan timeout after $((max_loops / 10)) seconds${NC}" >&2
-            echo -e "${YELLOW}Status dir: $status_dir${NC}" >&2
-            echo -e "${YELLOW}Remaining scanners: $remaining_scanners${NC}" >&2
-            for analyzer in $remaining_scanners; do
-                local status_file="$status_dir/$analyzer.status"
-                if [[ -f "$status_file" ]]; then
-                    echo -e "  $analyzer: $(cat "$status_file")" >&2
-                fi
-            done
-            break
-        fi
+        current_time=$(date +%s)
 
-        # Count completed scanners
+        # Check for per-scanner timeouts and kill timed-out scanners
+        for i in "${!pids[@]}"; do
+            local pid="${pids[$i]}"
+            local analyzer="${pid_to_analyzer[$i]}"
+            local start_time="${analyzer_start_times[$i]}"
+            local elapsed=$((current_time - start_time))
+
+            # Check if scanner has exceeded timeout
+            if [[ $elapsed -gt $scanner_timeout ]] && kill -0 "$pid" 2>/dev/null; then
+                # Kill the timed-out scanner and its children (using pkill to get child processes)
+                # First kill all child processes of the subshell
+                pkill -TERM -P "$pid" 2>/dev/null || true
+                sleep 0.3
+                pkill -KILL -P "$pid" 2>/dev/null || true
+                # Then kill the subshell itself
+                kill -TERM "$pid" 2>/dev/null || true
+                sleep 0.2
+                kill -KILL "$pid" 2>/dev/null || true
+
+                # Mark as timeout in status file
+                update_scanner_status "$status_dir" "$analyzer" "timeout" "exceeded ${scanner_timeout}s limit" "$elapsed"
+
+                # Update manifest with timeout status
+                local duration_ms=$((elapsed * 1000))
+                zero_analysis_complete "$project_id" "$analyzer" "timeout" "$duration_ms" '{"error": "Scanner exceeded timeout limit"}'
+
+                # Log timeout (only when not in org scan mode)
+                if [[ -z "$STATUS_DIR" ]]; then
+                    echo -e "\n${YELLOW}⚠ Scanner '$analyzer' timed out after ${elapsed}s (limit: ${scanner_timeout}s)${NC}" >&2
+                fi
+
+                # Remove from tracking
+                unset 'pids[$i]'
+                unset 'pid_to_analyzer[$i]'
+                unset 'analyzer_start_times[$i]'
+                ((running--))
+
+                # Start next scanner if available
+                if [[ $next_analyzer_idx -lt ${#analyzer_array[@]} ]]; then
+                    local next_analyzer="${analyzer_array[$next_analyzer_idx]}"
+                    local new_start_time=$(date +%s)
+
+                    update_scanner_status "$status_dir" "$next_analyzer" "running"
+                    ((scanner_index++))
+                    if [[ -n "$STATUS_DIR" ]]; then
+                        update_repo_scan_status "$STATUS_DIR" "$project_id" "running" "$next_analyzer" "$scanner_index/$total_scanners_to_run" "0"
+                    fi
+
+                    (
+                        local error_log="$error_dir/$next_analyzer.err"
+                        run_analyzer "$next_analyzer" "$repo_path" "$output_path" "$project_id" 2>"$error_log"
+                        local exit_code=$?
+                        local end_time=$(date +%s)
+                        local duration=$((end_time - new_start_time))
+                        local summary=$(display_scanner_summary "$next_analyzer" "$output_path" 2>/dev/null || echo "complete")
+
+                        if [[ $exit_code -eq 0 ]]; then
+                            update_scanner_status "$status_dir" "$next_analyzer" "complete" "$summary" "$duration"
+                        else
+                            local error_msg=""
+                            [[ -s "$error_log" ]] && error_msg=$(tail -3 "$error_log" | tr '\n' ' ' | head -c 100)
+                            update_scanner_status "$status_dir" "$next_analyzer" "failed" "$error_msg" "$duration"
+                        fi
+                    ) &
+
+                    pids+=($!)
+                    pid_to_analyzer+=("$next_analyzer")
+                    analyzer_start_times+=("$new_start_time")
+                    ((running++))
+                    ((next_analyzer_idx++))
+                fi
+            fi
+        done
+
+        # Count completed scanners (including timeouts)
         completed_count=0
         for analyzer in $remaining_scanners; do
             local status_file="$status_dir/$analyzer.status"
             if [[ -f "$status_file" ]]; then
                 local status=$(cut -d'|' -f1 "$status_file")
-                if [[ "$status" == "complete" ]] || [[ "$status" == "failed" ]]; then
+                if [[ "$status" == "complete" ]] || [[ "$status" == "failed" ]] || [[ "$status" == "timeout" ]]; then
                     ((completed_count++))
                 fi
             fi
@@ -2183,6 +2245,23 @@ run_all_analyzers_parallel() {
         for i in "${!pids[@]}"; do
             local pid="${pids[$i]}"
             if ! kill -0 "$pid" 2>/dev/null; then
+                # Get analyzer info before removing from tracking
+                local completed_analyzer="${pid_to_analyzer[$i]}"
+                local completed_start_time="${analyzer_start_times[$i]}"
+
+                # Check if status file was updated (if not, the process crashed)
+                local status_file="$status_dir/$completed_analyzer.status"
+                if [[ -f "$status_file" ]]; then
+                    local current_status=$(cut -d'|' -f1 "$status_file")
+                    if [[ "$current_status" == "running" ]]; then
+                        # Process exited without updating status - mark as failed
+                        local elapsed=$((current_time - completed_start_time))
+                        update_scanner_status "$status_dir" "$completed_analyzer" "failed" "process exited unexpectedly" "$elapsed"
+                        local duration_ms=$((elapsed * 1000))
+                        zero_analysis_complete "$project_id" "$completed_analyzer" "failed" "$duration_ms" '{"error": "Process exited unexpectedly"}'
+                    fi
+                fi
+
                 # Job completed, remove from tracking
                 unset 'pids[$i]'
                 unset 'pid_to_analyzer[$i]'
@@ -2523,12 +2602,24 @@ main() {
         echo -e "Project ID: ${CYAN}$project_id${NC}"
         echo -e "Scan ID: ${DIM}$scan_id${NC}"
 
-        # Skip cloning, just run missing analyzers
+        # Get commit short for directory name
+        local commit_short=$(echo "$git_context" | jq -r '.commit_short // ""' 2>/dev/null)
+
+        # Initialize versioned scan directory (analysis/scans/<scan_id>_<commit>/)
+        local scan_output_path=$(zero_init_scan_directory "$project_id" "$scan_id" "$commit_short")
+
+        # Skip cloning, just run missing analyzers - output to versioned directory
         if [[ "$PARALLEL" == "true" ]]; then
-            run_all_analyzers_parallel "$repo_path" "$analysis_path" "$project_id" "$MODE" "true"
+            run_all_analyzers_parallel "$repo_path" "$scan_output_path" "$project_id" "$MODE" "true"
         else
-            run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE" "true"
+            run_all_analyzers "$repo_path" "$scan_output_path" "$project_id" "$MODE" "true"
         fi
+
+        # Copy results to analysis root for backwards compatibility
+        for f in "$scan_output_path"/*.json; do
+            [[ -f "$f" ]] && cp "$f" "$analysis_path/" 2>/dev/null || true
+        done
+        [[ -f "$scan_output_path/sbom.cdx.json" ]] && cp "$scan_output_path/sbom.cdx.json" "$analysis_path/" 2>/dev/null || true
 
         # Update summary and finalize
         generate_summary "$project_id" "$analysis_path"
@@ -2604,14 +2695,26 @@ main() {
 
         # Initialize/update analysis manifest
         local commit=$(echo "$git_context" | jq -r '.commit_hash // ""' 2>/dev/null)
+        local commit_short=$(echo "$git_context" | jq -r '.commit_short // ""' 2>/dev/null)
+
+        # Initialize versioned scan directory (analysis/scans/<scan_id>_<commit>/)
+        local scan_output_path=$(zero_init_scan_directory "$project_id" "$scan_id" "$commit_short")
+
         zero_init_analysis_manifest "$project_id" "$commit" "$MODE" "$scan_id" "$git_context"
 
-        # Run analyzers
+        # Run analyzers - output to versioned scan directory
         if [[ "$PARALLEL" == "true" ]]; then
-            run_all_analyzers_parallel "$repo_path" "$analysis_path" "$project_id" "$MODE"
+            run_all_analyzers_parallel "$repo_path" "$scan_output_path" "$project_id" "$MODE"
         else
-            run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE"
+            run_all_analyzers "$repo_path" "$scan_output_path" "$project_id" "$MODE"
         fi
+
+        # Copy results to analysis root for backwards compatibility
+        for f in "$scan_output_path"/*.json; do
+            [[ -f "$f" ]] && cp "$f" "$analysis_path/" 2>/dev/null || true
+        done
+        # Also copy sbom.cdx.json if it exists
+        [[ -f "$scan_output_path/sbom.cdx.json" ]] && cp "$scan_output_path/sbom.cdx.json" "$analysis_path/" 2>/dev/null || true
 
         # Update summary and finalize
         generate_summary "$project_id" "$analysis_path"
@@ -2758,15 +2861,28 @@ main() {
     zero_create_project_metadata "$project_id" "$TARGET" "$source_type" "$branch" "$commit"
     zero_update_project_type "$project_id" "$languages" "$frameworks" "$package_managers"
 
+    # Get commit short for directory name
+    local commit_short=$(echo "$git_context" | jq -r '.commit_short // ""' 2>/dev/null)
+
+    # Initialize versioned scan directory (analysis/scans/<scan_id>_<commit>/)
+    local scan_output_path=$(zero_init_scan_directory "$project_id" "$scan_id" "$commit_short")
+
     # Initialize analysis manifest (with mode, scan_id, and git context)
     zero_init_analysis_manifest "$project_id" "$commit" "$MODE" "$scan_id" "$git_context"
 
-    # Run analyzers
+    # Run analyzers - output to versioned scan directory
     if [[ "$PARALLEL" == "true" ]]; then
-        run_all_analyzers_parallel "$repo_path" "$analysis_path" "$project_id" "$MODE"
+        run_all_analyzers_parallel "$repo_path" "$scan_output_path" "$project_id" "$MODE"
     else
-        run_all_analyzers "$repo_path" "$analysis_path" "$project_id" "$MODE"
+        run_all_analyzers "$repo_path" "$scan_output_path" "$project_id" "$MODE"
     fi
+
+    # Copy results to analysis root for backwards compatibility
+    for f in "$scan_output_path"/*.json; do
+        [[ -f "$f" ]] && cp "$f" "$analysis_path/" 2>/dev/null || true
+    done
+    # Also copy sbom.cdx.json if it exists
+    [[ -f "$scan_output_path/sbom.cdx.json" ]] && cp "$scan_output_path/sbom.cdx.json" "$analysis_path/" 2>/dev/null || true
 
     # Generate summary
     generate_summary "$project_id" "$analysis_path"
