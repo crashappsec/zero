@@ -73,6 +73,8 @@ SCAN OPTIONS:
     --compliance        License and policy compliance (~2min)
     --devops            CI/CD and operational metrics (~3min)
     --malcontent        Supply chain compromise detection (~2min)
+    --packages          Complete package/dependency analysis (~5min)
+    --all               Run all scanners (~10min)
 
 COMMON OPTIONS:
     --org <name>        Process all repos in organization
@@ -155,6 +157,14 @@ parse_args() {
                 ;;
             --malcontent)
                 PROFILE="malcontent"
+                shift
+                ;;
+            --packages)
+                PROFILE="packages"
+                shift
+                ;;
+            --all)
+                PROFILE="all"
                 shift
                 ;;
             --force)
@@ -376,11 +386,11 @@ hydrate_org() {
                 if [[ "$old_commit" != "$new_commit" ]]; then
                     printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC} ${CYAN}(updated: %s → %s)${NC}                    \n" "$short" "$stats" "$old_commit" "$new_commit"
                 else
-                    printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC} ${DIM}(up to date)${NC}                    \n" "$short" "$stats"
+                    printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC} ${DIM}(%s up to date)${NC}                    \n" "$short" "$stats" "$new_commit"
                 fi
             else
                 local stats=$(format_repo_stats "$repo_path")
-                printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC} ${DIM}(pull skipped)${NC}                    \n" "$short" "$stats"
+                printf "\r  ${GREEN}✓${NC} %s ${DIM}%s${NC} ${DIM}(%s pull skipped)${NC}                    \n" "$short" "$stats" "$old_commit"
             fi
             clone_success=$((clone_success + 1))
         else

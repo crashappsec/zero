@@ -1415,7 +1415,8 @@ format_repo_stats() {
     fi
 
     local size_str=$(format_size_lower "$size_bytes")
-    printf "%s, %s files" "$size_str" "$file_count"
+    local file_count_fmt=$(format_number "$file_count")
+    printf "%s, %s files" "$size_str" "$file_count_fmt"
 }
 
 # Calculate progress including partial repo completion
