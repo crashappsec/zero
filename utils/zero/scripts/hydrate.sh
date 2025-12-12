@@ -231,11 +231,39 @@ clone_repo_silent() {
         clone_url="https://${GITHUB_TOKEN}@github.com/$current_repo.git"
     fi
 
-    local clone_args=("-q")
+    local clone_args=("--progress")
     [[ -n "$BRANCH" ]] && clone_args+=("--branch" "$BRANCH")
     [[ -n "$DEPTH" ]] && clone_args+=("--depth" "$DEPTH")
 
-    if git clone "${clone_args[@]}" "$clone_url" "$repo_path" 2>/dev/null; then
+    # Create temp file for progress output
+    local progress_file=$(mktemp)
+    trap "rm -f '$progress_file'" RETURN
+
+    # Run clone in background, capturing progress
+    git clone "${clone_args[@]}" "$clone_url" "$repo_path" 2>"$progress_file" &
+    local clone_pid=$!
+
+    # Monitor progress while clone is running
+    while kill -0 "$clone_pid" 2>/dev/null; do
+        sleep 0.5
+        if [[ -f "$progress_file" ]]; then
+            local last_progress=$(grep -oE '(Receiving|Resolving|Counting)[^(]*\([^)]+\)' "$progress_file" 2>/dev/null | tail -1)
+            if [[ -n "$last_progress" ]]; then
+                local pct=$(echo "$last_progress" | grep -oE '[0-9]+%' | tail -1)
+                local phase=$(echo "$last_progress" | grep -oE '^[A-Za-z]+' | head -1 | tr '[:upper:]' '[:lower:]')
+                if [[ -n "$pct" ]] && [[ -n "$phase" ]]; then
+                    printf "\r  ${CYAN}Cloning...${NC} ${DIM}%s %s${NC}    " "$phase" "$pct"
+                fi
+            fi
+        fi
+    done
+    printf "\r                                        \r"  # Clear progress line
+
+    # Check if clone succeeded
+    wait "$clone_pid"
+    local clone_result=$?
+
+    if [[ $clone_result -eq 0 ]]; then
         mkdir -p "$ZERO_PROJECTS_DIR/$project_id/analysis"
         CLONE_STATUS="cloned"
         return 0
@@ -419,11 +447,13 @@ hydrate_org() {
             local clone_url="https://github.com/$current_repo.git"
             [[ -n "${GITHUB_TOKEN:-}" ]] && clone_url="https://${GITHUB_TOKEN}@github.com/$current_repo.git"
 
-            local clone_args=("-q")
+            local clone_args=("--progress")
             [[ -n "$branch" ]] && clone_args+=("--branch" "$branch")
             [[ -n "$depth" ]] && clone_args+=("--depth" "$depth")
 
-            if git clone "${clone_args[@]}" "$clone_url" "$repo_path" 2>/dev/null; then
+            # Clone with progress output to a temp file for monitoring
+            local progress_file="$tmp_dir/clone_${short}.progress"
+            if git clone "${clone_args[@]}" "$clone_url" "$repo_path" 2>"$progress_file"; then
                 mkdir -p "$ZERO_PROJECTS_DIR/$project_id/analysis"
                 local stats=$(format_repo_stats "$repo_path")
                 echo "cloned:$short:$stats"
@@ -486,10 +516,30 @@ hydrate_org() {
         esac
     }
 
+    # Extract latest progress from git clone output file
+    get_clone_progress() {
+        local progress_file="$1"
+        if [[ -f "$progress_file" ]]; then
+            # Get the last line with percentage from git progress output
+            local last_progress=$(grep -oE '(Receiving|Resolving|Counting)[^(]*\([^)]+\)' "$progress_file" 2>/dev/null | tail -1)
+            if [[ -n "$last_progress" ]]; then
+                # Extract just the percentage part
+                local pct=$(echo "$last_progress" | grep -oE '[0-9]+%' | tail -1)
+                local phase=$(echo "$last_progress" | grep -oE '^[A-Za-z]+' | head -1 | tr '[:upper:]' '[:lower:]')
+                if [[ -n "$pct" ]]; then
+                    echo "$phase $pct"
+                    return
+                fi
+            fi
+        fi
+        echo ""
+    }
+
     # Check completed clone jobs and print results
     check_clone_completions() {
         local new_pids=()
         local new_repos=()
+        local show_progress="${1:-false}"
 
         for i in "${!clone_pids[@]}"; do
             local pid="${clone_pids[$i]}"
@@ -506,6 +556,13 @@ hydrate_org() {
             else
                 new_pids+=("$pid")
                 new_repos+=("$repo")
+                # Show progress update for still-running clones
+                if [[ "$show_progress" == "true" ]]; then
+                    local progress=$(get_clone_progress "$tmp_dir/clone_${short}.progress")
+                    if [[ -n "$progress" ]]; then
+                        echo -e "  ${YELLOW}◐${NC} $short ${DIM}$progress${NC}"
+                    fi
+                fi
             fi
         done
 
@@ -530,16 +587,30 @@ hydrate_org() {
         clone_repos_map+=("$current_repo")
 
         # Limit concurrent clones to parallel_jobs
+        local progress_counter=0
         while [[ ${#clone_pids[@]} -ge $parallel_jobs ]]; do
-            sleep 0.3
-            check_clone_completions
+            sleep 0.5
+            progress_counter=$((progress_counter + 1))
+            # Show progress every 3 seconds (6 iterations * 0.5s)
+            if [[ $((progress_counter % 6)) -eq 0 ]]; then
+                check_clone_completions "true"
+            else
+                check_clone_completions "false"
+            fi
         done
     done
 
-    # Wait for remaining clone jobs
+    # Wait for remaining clone jobs with progress updates
+    local progress_counter=0
     while [[ ${#clone_pids[@]} -gt 0 ]]; do
-        sleep 0.3
-        check_clone_completions
+        sleep 0.5
+        progress_counter=$((progress_counter + 1))
+        # Show progress every 3 seconds
+        if [[ $((progress_counter % 6)) -eq 0 ]]; then
+            check_clone_completions "true"
+        else
+            check_clone_completions "false"
+        fi
     done
 
     echo ""
