@@ -73,7 +73,7 @@ agent_get_required_data() {
         zero)         echo "all" ;;  # Zero can access all data to delegate
         cereal)       echo "vulnerabilities package-health dependencies package-malcontent licenses package-sbom" ;;
         cereal-basic) echo "vulnerabilities package-health dependencies licenses package-sbom" ;;
-        razor)        echo "code-security code-secrets technology secrets-scanner" ;;
+        razor)        echo "code-vulns code-secrets api-security tech-discovery" ;;
         blade)        echo "vulnerabilities licenses package-sbom iac-security code-security" ;;
         phreak)       echo "licenses dependencies package-sbom" ;;
         acid)         echo "technology code-security" ;;
