@@ -15,7 +15,30 @@ Named after **Zero Cool** from the movie Hackers (1995), Zero is a team of AI ag
 
 ## What is Zero?
 
-Zero is a set of open-source tools for software and security engineers. At its core is a team of AI agents (all named after Hackers characters), each with deep expertise in their domain. Zero coordinates investigations, delegates to specialists, and synthesizes findings into actionable insights.
+Zero is a set of open-source tools for software and security engineers. When combined with two other Crash Override projects—[Chalk](https://github.com/crashappsec/chalk) and Ocular—it can analyze code and builds to create a comprehensive understanding of what is happening in the development process.
+
+[Crash Override](https://crashoverride.com) sells a commercial platform that includes advanced versions of these tools and other features for operations teams, providing a way to understand and improve software development at scale.
+
+### Components
+
+**Source Code Management**
+- Local cloning utilities designed for laptop-based analysis
+- The Ocular project handles code syncing at scale for enterprise environments
+
+**Scanning Utilities**
+- Standalone scripts and wrappers for security and analysis tools
+- Many are unique solutions for specific data collection and complex business problems
+- Zero orchestrates these scanners locally; Ocular handles orchestration at scale
+
+**Data & Intelligence**
+- Results stored in JSON format for easy consumption
+- Comprehensive RAG (Retrieval-Augmented Generation) knowledge base
+- Reference data for agents to perform specialized analysis tasks
+
+**AI Agents**
+- A team of specialist agents (named after Hackers characters)
+- Each agent has deep expertise in their domain
+- Zero coordinates investigations, delegates to specialists, and synthesizes findings into actionable insights
 
 ### The Team
 
@@ -35,15 +58,30 @@ Zero is a set of open-source tools for software and security engineers. At its c
 
 ## Features
 
-- **Supply Chain Security** - CVE detection, malcontent (malware) scanning, package health
-- **Code Security** - Static analysis, secrets detection, SAST findings
-- **SBOM Generation** - CycloneDX software bill of materials via Syft
-- **License Compliance** - SPDX license analysis and legal risk assessment
-- **Technology Detection** - Automated tech stack identification with 100+ patterns
-- **Code Ownership** - Bus factor analysis and contributor insights
-- **DORA Metrics** - Deployment frequency, lead time, and performance metrics
-- **IaC Security** - Terraform, Kubernetes, and CloudFormation analysis
-- **Provenance** - Git signature verification and supply chain integrity
+### Supply Chain Security
+- **Vulnerability Scanning** - CVE detection via OSV database with KEV (Known Exploited Vulnerabilities) prioritization
+- **Malware Detection** - Supply chain compromise detection using [malcontent](https://github.com/chainguard-dev/malcontent) with 14,500+ YARA rules
+- **Package Health** - Dependency health scoring, abandonment detection, typosquat warnings
+- **Package Provenance** - SLSA attestation verification, build provenance analysis
+
+### SBOM Generation
+- **Default: cdxgen** - [cdxgen](https://github.com/CycloneDX/cdxgen) installs dependencies for complete transitive dependency analysis
+- **Optional: Syft** - [Syft](https://github.com/anchore/syft) available via `--generator syft` for fast static analysis
+- **CycloneDX Format** - Industry-standard SBOM with CPE identifiers for vulnerability matching
+
+### Code Security
+- **Static Analysis** - SAST findings via Semgrep with custom rules
+- **Secrets Detection** - API keys, credentials, and token detection
+- **IaC Security** - Terraform, Kubernetes, CloudFormation, and Dockerfile analysis
+
+### Compliance & Legal
+- **License Analysis** - SPDX license detection with policy enforcement (allowed/denied/review)
+- **Content Policy** - Profanity and non-inclusive language detection
+
+### Developer Productivity
+- **Technology Detection** - Automated tech stack identification across 100+ frameworks and languages
+- **Code Ownership** - Bus factor analysis, CODEOWNERS validation, contributor insights
+- **DORA Metrics** - Deployment frequency, lead time, change failure rate, MTTR
 
 ## Quick Start
 
@@ -52,11 +90,12 @@ Zero is a set of open-source tools for software and security engineers. At its c
 **Required:**
 - Bash 3.2+ (macOS default works)
 - Git, jq, curl
-- [syft](https://github.com/anchore/syft) - SBOM generation
+- [syft](https://github.com/anchore/syft) - Fast SBOM generation
 - [osv-scanner](https://github.com/google/osv-scanner) - Vulnerability scanning
 - [gh](https://cli.github.com/) - GitHub CLI
 
 **Recommended:**
+- [cdxgen](https://github.com/CycloneDX/cdxgen) - Deep SBOM generation (installs deps for complete analysis)
 - [malcontent](https://github.com/chainguard-dev/malcontent) - Supply chain compromise detection
 - [semgrep](https://github.com/returntocorp/semgrep) - Code security scanning
 - [trivy](https://github.com/aquasecurity/trivy) - Container vulnerability scanning
@@ -180,28 +219,62 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 ### Analysis Profiles
 
-| Profile | Time | Focus |
-|---------|------|-------|
-| **quick** | ~30s | Dependencies, technology, vulnerabilities, licenses |
-| **standard** | ~2min | + security, ownership, DORA metrics |
-| **security** | ~3min | Vulnerabilities, malcontent, code security, secrets |
-| **advanced** | ~5min | All scanners including package health |
-| **deep** | ~10min | Claude-assisted analysis |
+All profiles use cdxgen by default. Use `--generator syft` for faster but less complete SBOM generation.
+
+| Profile | Time | Scanners |
+|---------|------|----------|
+| **quick** | ~30s | SBOM, tech-discovery, vulnerabilities, licenses |
+| **standard** | ~2min | + package-health, code-secrets, code-ownership |
+| **security** | ~3min | SBOM, vulns, code-security, iac-security, secrets, malcontent, container-security |
+| **packages** | ~5min | SBOM, vulns, health, provenance, malcontent, bundle-optimization, recommendations |
+| **advanced** | ~5min | All scanners except bundle-analysis |
+| **deep** | ~10min | All scanners + Claude AI-assisted insights |
 
 ## Scanners
 
-| Scanner | Output | Description |
-|---------|--------|-------------|
-| `tech-discovery` | `technology.json` | Tech stack identification (100+ patterns) |
-| `vulnerabilities` | `vulnerabilities/` | CVE scanning via OSV |
-| `package-malcontent` | `package-malcontent/` | Supply chain compromise detection |
-| `package-health` | `package-health/` | Dependency health and abandonment |
-| `licenses` | `licenses/` | SPDX license analysis |
-| `code-security` | `code-security/` | Static analysis findings |
-| `secrets-scanner` | `secrets-scanner/` | Secret detection |
-| `package-sbom` | `sbom.cdx.json` | CycloneDX SBOM via Syft |
-| `dora` | `dora/` | DORA metrics calculation |
-| `code-ownership` | `code-ownership/` | Contributor and bus factor analysis |
+Zero includes 21 specialized scanners organized by category:
+
+### Supply Chain Security
+| Scanner | Description |
+|---------|-------------|
+| `package-sbom` | CycloneDX SBOM generation (syft or cdxgen) |
+| `package-vulns` | CVE scanning via OSV with KEV prioritization |
+| `package-health` | Dependency health scoring, abandonment, typosquats |
+| `package-provenance` | SLSA attestations and build provenance |
+| `package-malcontent` | Malware detection with 14,500+ YARA rules |
+| `package-recommendations` | Alternative library suggestions |
+| `package-bundle-optimization` | JavaScript bundle size analysis |
+
+### Code Security
+| Scanner | Description |
+|---------|-------------|
+| `code-security` | SAST analysis via Semgrep |
+| `code-secrets` | API keys, credentials, token detection |
+| `iac-security` | Terraform, K8s, CloudFormation analysis |
+| `container-security` | Dockerfile best practices and hardening |
+
+### Compliance & Legal
+| Scanner | Description |
+|---------|-------------|
+| `licenses` | SPDX license detection with policy enforcement |
+| `digital-certificates` | SSL/TLS certificate analysis |
+
+### Developer Productivity
+| Scanner | Description |
+|---------|-------------|
+| `tech-discovery` | Framework and language detection (100+ patterns) |
+| `code-ownership` | CODEOWNERS, bus factor, contributor analysis |
+| `dora` | Deployment frequency, lead time, MTTR |
+| `git` | Commit patterns, contributor activity |
+| `documentation` | README quality and docs coverage |
+| `test-coverage` | Test framework detection and coverage estimates |
+| `tech-debt` | Code duplication, complexity, TODO markers |
+
+### Container & Infrastructure
+| Scanner | Description |
+|---------|-------------|
+| `containers` | Container image analysis |
+| `bundle-analysis` | Deep npm bundle analysis with tree-shaking |
 
 ## Repository Structure
 
@@ -257,6 +330,16 @@ We've created the [phantom-tests](https://github.com/phantom-tests) organization
 ./zero.sh hydrate phantom-tests/openai-node
 ```
 
+## Roadmap
+
+See [ROADMAP.md](./ROADMAP.md) for planned features including:
+
+- **Cloud Asset Inventory** - Multi-cloud discovery and SBOM generation for AWS, Azure, GCP
+- **API Security Analysis** - OpenAPI/Swagger and GraphQL scanning
+- **Reachability Analysis** - Determine if vulnerable dependencies are actually used
+- **Report System** - HTML/PDF reports with trend analysis
+- **Integration** - Ocular code sync, Chalk attestations, GitHub/GitLab org analysis
+
 ## Contributing
 
 Contributions are welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
@@ -285,7 +368,7 @@ The agents, knowledge base, and RAG database were built to augment the Crash Ove
 ---
 
 **Status**: Experimental Preview
-**Version**: 5.0.0
-**Last Updated**: 2025-12-08
+**Version**: 5.1.0
+**Last Updated**: 2025-12-12
 
 *"Hack the planet!"*

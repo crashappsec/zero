@@ -24,6 +24,7 @@ The following agents are available for specialized analysis tasks. Use the Task 
 | `joey` | Joey | Joey | CI/CD, build optimization, caching | Read, Grep, Glob, Bash, Task |
 | `plague` | Plague | The Plague | DevOps, infrastructure, Kubernetes, IaC | Read, Grep, Glob, Bash, Task |
 | `gibson` | Gibson | The Gibson | DORA metrics, team health, engineering KPIs | Read, Grep, Glob, Task |
+| `gill` | Gill | Gill Bates | Cryptography, ciphers, keys, TLS, random | Read, Grep, Glob, WebSearch, Task |
 
 ### Agent Details
 
@@ -112,6 +113,20 @@ The Gibson - the ultimate system that tracks everything.
 Specializes in DORA metrics analysis, team health assessment, and engineering KPIs.
 
 **Required data:** dora, code-ownership, git-insights
+
+#### Gill (Cryptography Specialist)
+**subagent_type:** `gill`
+
+Gill Bates represented the corporate establishment in Hackers - now reformed and using vast crypto knowledge to help secure implementations.
+Specializes in cryptographic security analysis, cipher review, key management, TLS configuration, and random number generation security.
+
+**Required data:** crypto-ciphers, crypto-keys, crypto-random, crypto-tls, code-secrets
+
+**Example invocation:**
+```
+Task tool with subagent_type: "gill"
+prompt: "Analyze the cryptographic security of this repository. Focus on hardcoded keys and weak ciphers."
+```
 
 ## Slash Commands
 
@@ -203,12 +218,13 @@ Specialists can delegate to other agents when cross-domain expertise is needed:
 
 | Agent | Can Delegate To |
 |-------|-----------------|
-| Cereal | Phreak (legal), Razor (security), Plague (devops), Nikon (architecture) |
-| Razor | Cereal (supply chain), Blade (compliance), Nikon (architecture), Dade (backend) |
-| Blade | Cereal (supply chain), Razor (security), Phreak (legal) |
+| Cereal | Phreak (legal), Razor (security), Plague (devops), Nikon (architecture), Gill (crypto) |
+| Razor | Cereal (supply chain), Blade (compliance), Nikon (architecture), Dade (backend), Gill (crypto) |
+| Blade | Cereal (supply chain), Razor (security), Phreak (legal), Gill (crypto) |
 | Acid | Dade (backend), Nikon (architecture), Razor (security) |
 | Dade | Acid (frontend), Nikon (architecture), Razor (security), Plague (devops) |
 | Nikon | All technical domains |
+| Gill | Razor (security), Cereal (supply chain), Plague (devops), Blade (compliance) |
 
 **Delegation example:**
 ```

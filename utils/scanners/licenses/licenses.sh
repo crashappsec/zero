@@ -31,6 +31,7 @@ REPO_ROOT="$(dirname "$UTILS_ROOT")"
 # Default options
 OUTPUT_FILE=""
 LOCAL_PATH=""
+SBOM_FILE=""           # Path to SBOM file (CycloneDX JSON)
 TEMP_DIR=""
 CLEANUP=true
 TARGET=""
@@ -54,6 +55,7 @@ TARGET:
 
 OPTIONS:
     --local-path PATH       Use pre-cloned repository (skips cloning)
+    --sbom FILE             Use existing SBOM file for dependency licenses
     --licenses-only         Scan licenses only
     --content-only          Scan content policy only
     -o, --output FILE       Write JSON to file (default: stdout)
@@ -275,16 +277,23 @@ scan_licenses() {
 # Scan dependency licenses from SBOM
 scan_dependency_licenses() {
     local repo_path="$1"
+    local provided_sbom="$2"  # Optional: explicitly provided SBOM path
     local sbom_file=""
 
-    # Look for SBOM file in analysis directory (if running as part of hydration)
-    local analysis_dir="${repo_path%/repo}/analysis"
-    if [[ -f "$analysis_dir/sbom.cdx.json" ]]; then
-        sbom_file="$analysis_dir/sbom.cdx.json"
-    elif [[ -f "$repo_path/sbom.cdx.json" ]]; then
-        sbom_file="$repo_path/sbom.cdx.json"
-    elif [[ -f "$repo_path/bom.json" ]]; then
-        sbom_file="$repo_path/bom.json"
+    # Use provided SBOM if available
+    if [[ -n "$provided_sbom" ]] && [[ -f "$provided_sbom" ]]; then
+        sbom_file="$provided_sbom"
+        echo -e "${BLUE}Using provided SBOM: $sbom_file${NC}" >&2
+    else
+        # Look for SBOM file in analysis directory (if running as part of hydration)
+        local analysis_dir="${repo_path%/repo}/analysis"
+        if [[ -f "$analysis_dir/sbom.cdx.json" ]]; then
+            sbom_file="$analysis_dir/sbom.cdx.json"
+        elif [[ -f "$repo_path/sbom.cdx.json" ]]; then
+            sbom_file="$repo_path/sbom.cdx.json"
+        elif [[ -f "$repo_path/bom.json" ]]; then
+            sbom_file="$repo_path/bom.json"
+        fi
     fi
 
     if [[ -z "$sbom_file" ]] || [[ ! -f "$sbom_file" ]]; then
@@ -404,6 +413,7 @@ scan_content() {
 # Main analysis
 analyze_target() {
     local repo_path="$1"
+    local sbom_path="$2"  # Optional: explicitly provided SBOM path
 
     local license_results='{"findings": [], "violations": 0, "warnings": 0}'
     local content_results='{"profanity": [], "inclusive_language": [], "profanity_count": 0, "inclusive_count": 0}'
@@ -417,7 +427,7 @@ analyze_target() {
         echo -e "${GREEN}✓ Found $license_count license references ($violations violations)${NC}" >&2
 
         # Also scan dependency licenses from SBOM
-        dep_license_results=$(scan_dependency_licenses "$repo_path")
+        dep_license_results=$(scan_dependency_licenses "$repo_path" "$sbom_path")
         local dep_count=$(echo "$dep_license_results" | jq '.all_packages | length')
         local denied_count=$(echo "$dep_license_results" | jq '[.denied[].count] | add // 0')
         echo -e "${GREEN}✓ Analyzed $dep_count dependency licenses ($denied_count with denied licenses)${NC}" >&2
@@ -509,6 +519,10 @@ while [[ $# -gt 0 ]]; do
             LOCAL_PATH="$2"
             shift 2
             ;;
+        --sbom)
+            SBOM_FILE="$2"
+            shift 2
+            ;;
         --licenses-only)
             SCAN_CONTENT=false
             shift
@@ -560,7 +574,7 @@ fi
 
 echo -e "${BLUE}Analyzing: $TARGET${NC}" >&2
 
-final_json=$(analyze_target "$scan_path")
+final_json=$(analyze_target "$scan_path" "$SBOM_FILE")
 
 # Output
 if [[ -n "$OUTPUT_FILE" ]]; then

@@ -22,6 +22,7 @@ SBOM_INCLUDE_TEST_DEPS="${SBOM_INCLUDE_TEST_DEPS:-false}"
 SBOM_SCAN_NODE_MODULES="${SBOM_SCAN_NODE_MODULES:-false}"
 SBOM_RESOLVE_VERSIONS="${SBOM_RESOLVE_VERSIONS:-true}"
 SBOM_OUTPUT_DIR="${SBOM_OUTPUT_DIR:-sbom-output}"
+SBOM_GENERATOR="${SBOM_GENERATOR:-cdxgen}"  # cdxgen (default), syft, or auto
 
 # Load SBOM configuration if available
 load_sbom_config() {
@@ -289,6 +290,104 @@ generate_sbom() {
     fi
 }
 
+# Generate SBOM using cdxgen (more accurate, installs dependencies)
+generate_sbom_cdxgen() {
+    local repo_path="$1"
+    local output_file="${2:-sbom.json}"
+    local force="${3:-false}"
+
+    # Check if cdxgen is installed
+    if ! command -v cdxgen &> /dev/null; then
+        echo "Error: cdxgen is not installed" >&2
+        echo "Install: npm install -g @cyclonedx/cdxgen" >&2
+        return 1
+    fi
+
+    # Create output directory if needed
+    mkdir -p "$(dirname "$output_file")"
+
+    # Check if SBOM already exists
+    if [[ -f "$output_file" ]] && [[ "$force" != "true" ]]; then
+        echo "SBOM already exists: $output_file" >&2
+        echo "Use force=true to regenerate" >&2
+        return 0
+    fi
+
+    echo "Generating SBOM with cdxgen (this may take longer but is more accurate)..." >&2
+
+    # cdxgen options
+    local cdxgen_opts=()
+    cdxgen_opts+=("-o" "$output_file")
+    cdxgen_opts+=("--spec-version" "1.5")
+
+    # Use deep mode for better accuracy
+    cdxgen_opts+=("--deep")
+
+    # Exclude test directories
+    if [[ "$SBOM_INCLUDE_TEST_DEPS" != "true" ]]; then
+        cdxgen_opts+=("--exclude" "**/test/**,**/tests/**,**/__tests__/**")
+    fi
+
+    if cdxgen "${cdxgen_opts[@]}" "$repo_path" 2>&1; then
+        echo "SBOM generated successfully with cdxgen" >&2
+        return 0
+    else
+        echo "Error: cdxgen SBOM generation failed" >&2
+        return 1
+    fi
+}
+
+# Check if project is complex (multiple package managers = benefits from cdxgen)
+is_complex_project() {
+    local repo_path="$1"
+    local manifest_count=0
+
+    # Count different package manager manifests
+    [[ -f "$repo_path/package.json" ]] && ((manifest_count++))
+    [[ -f "$repo_path/requirements.txt" || -f "$repo_path/pyproject.toml" ]] && ((manifest_count++))
+    [[ -f "$repo_path/go.mod" ]] && ((manifest_count++))
+    [[ -f "$repo_path/Cargo.toml" ]] && ((manifest_count++))
+    [[ -f "$repo_path/pom.xml" || -f "$repo_path/build.gradle" ]] && ((manifest_count++))
+    [[ -f "$repo_path/Gemfile" ]] && ((manifest_count++))
+    [[ -f "$repo_path/composer.json" ]] && ((manifest_count++))
+
+    # Complex if 2+ different ecosystems
+    [[ $manifest_count -ge 2 ]]
+}
+
+# Smart SBOM generation - selects best generator based on config/project
+# Usage: generate_sbom_smart <repo_path> <output_file> [generator] [force]
+# generator: "syft" (default, fast), "cdxgen" (accurate), "auto" (smart selection)
+generate_sbom_smart() {
+    local repo_path="$1"
+    local output_file="${2:-sbom.json}"
+    local generator="${3:-$SBOM_GENERATOR}"
+    local force="${4:-false}"
+
+    case "$generator" in
+        cdxgen)
+            if command -v cdxgen &> /dev/null; then
+                generate_sbom_cdxgen "$repo_path" "$output_file" "$force"
+            else
+                echo "Warning: cdxgen not installed, falling back to syft" >&2
+                generate_sbom "$repo_path" "$output_file" "$force"
+            fi
+            ;;
+        auto)
+            # Use cdxgen if available AND project is complex
+            if command -v cdxgen &> /dev/null && is_complex_project "$repo_path"; then
+                echo "Complex project detected, using cdxgen for better accuracy" >&2
+                generate_sbom_cdxgen "$repo_path" "$output_file" "$force"
+            else
+                generate_sbom "$repo_path" "$output_file" "$force"
+            fi
+            ;;
+        syft|*)
+            generate_sbom "$repo_path" "$output_file" "$force"
+            ;;
+    esac
+}
+
 # Validate SBOM against lock file
 validate_sbom_against_lock() {
     local sbom_file="$1"
@@ -367,5 +466,8 @@ export -f detect_package_manager
 export -f get_lock_file
 export -f build_syft_command
 export -f generate_sbom
+export -f generate_sbom_cdxgen
+export -f generate_sbom_smart
+export -f is_complex_project
 export -f validate_sbom_against_lock
 export -f get_sbom_stats

@@ -69,13 +69,13 @@
       "estimated_time": "10-30s",
       "output_file": "package-health.json"
     },
-    "code-security": {
-      "name": "Code Security",
-      "description": "Static analysis for security vulnerabilities in source code",
-      "script": "utils/scanners/code-security.sh",
+    "code-vulns": {
+      "name": "Code Vulnerabilities",
+      "description": "Static analysis for security vulnerabilities using Semgrep (OWASP, CWE, secrets)",
+      "script": "utils/scanners/code-vulns/code-vulns.sh",
       "claude_mode": "none",
-      "estimated_time": "10-60s",
-      "output_file": "code-security.json"
+      "estimated_time": "30-120s",
+      "output_file": "code-vulns.json"
     },
     "iac-security": {
       "name": "IaC Security",
@@ -87,10 +87,10 @@
     },
     "code-secrets": {
       "name": "Code Secrets",
-      "description": "Detect exposed API keys, passwords, and credentials",
-      "script": "utils/scanners/code-secrets.sh",
+      "description": "Detect exposed API keys, passwords, and credentials using Semgrep p/secrets",
+      "script": "utils/scanners/code-secrets/code-secrets.sh",
       "claude_mode": "none",
-      "estimated_time": "10-60s",
+      "estimated_time": "30-120s",
       "output_file": "code-secrets.json"
     },
     "tech-debt": {
@@ -218,6 +218,46 @@
       "claude_mode": "none",
       "estimated_time": "30-120s",
       "output_file": "container-security.json"
+    },
+    "crypto-ciphers": {
+      "name": "Crypto Ciphers",
+      "description": "Detect weak/deprecated cryptographic algorithms (DES, RC4, MD5, SHA1, ECB)",
+      "script": "utils/scanners/crypto-ciphers/crypto-ciphers.sh",
+      "claude_mode": "none",
+      "estimated_time": "10-30s",
+      "output_file": "crypto-ciphers.json"
+    },
+    "crypto-keys": {
+      "name": "Crypto Keys",
+      "description": "Find hardcoded keys, weak key lengths, embedded private keys",
+      "script": "utils/scanners/crypto-keys/crypto-keys.sh",
+      "claude_mode": "optional",
+      "claude_features": [
+        "Key exposure analysis",
+        "Rotation recommendations"
+      ],
+      "estimated_time": "10-30s",
+      "output_file": "crypto-keys.json"
+    },
+    "crypto-random": {
+      "name": "Crypto Random",
+      "description": "Detect insecure random number generation (Math.random, random module)",
+      "script": "utils/scanners/crypto-random/crypto-random.sh",
+      "claude_mode": "none",
+      "estimated_time": "10-30s",
+      "output_file": "crypto-random.json"
+    },
+    "crypto-tls": {
+      "name": "Crypto TLS",
+      "description": "TLS configuration issues (disabled verification, deprecated protocols)",
+      "script": "utils/scanners/crypto-tls/crypto-tls.sh",
+      "claude_mode": "optional",
+      "claude_features": [
+        "Configuration analysis",
+        "Security recommendations"
+      ],
+      "estimated_time": "10-30s",
+      "output_file": "crypto-tls.json"
     }
   },
   "profiles": {
@@ -226,6 +266,7 @@
       "description": "Fast essential analysis for rapid feedback",
       "estimated_time": "~30 seconds",
       "claude_mode": "none",
+      "sbom_generator": "cdxgen",
       "scanners": [
         "package-sbom",
         "tech-discovery",
@@ -238,6 +279,7 @@
       "description": "Balanced analysis covering security and code quality",
       "estimated_time": "~2 minutes",
       "claude_mode": "none",
+      "sbom_generator": "cdxgen",
       "scanners": [
         "package-sbom",
         "package-vulns",
@@ -253,13 +295,14 @@
       "description": "Comprehensive static analysis with health checks",
       "estimated_time": "~5 minutes",
       "claude_mode": "none",
+      "sbom_generator": "cdxgen",
       "scanners": [
         "package-sbom",
         "tech-discovery",
         "package-vulns",
         "package-health",
         "licenses",
-        "code-security",
+        "code-vulns",
         "iac-security",
         "code-secrets",
         "tech-debt",
@@ -279,6 +322,7 @@
       "description": "Full analysis with Claude AI-assisted insights",
       "estimated_time": "~10 minutes",
       "claude_mode": "enabled",
+      "sbom_generator": "cdxgen",
       "claude_scanners": [
         "package-sbom",
         "package-health",
@@ -291,7 +335,7 @@
         "package-vulns",
         "package-health",
         "licenses",
-        "code-security",
+        "code-vulns",
         "iac-security",
         "code-secrets",
         "tech-debt",
@@ -311,13 +355,17 @@
       "description": "Security-focused analysis for vulnerability assessment",
       "estimated_time": "~3 minutes",
       "claude_mode": "none",
+      "sbom_generator": "cdxgen",
       "scanners": [
         "package-sbom",
         "package-vulns",
         "licenses",
-        "code-security",
+        "code-vulns",
         "iac-security",
         "code-secrets",
+        "crypto-ciphers",
+        "crypto-keys",
+        "crypto-tls",
         "package-malcontent",
         "container-security"
       ]
@@ -327,20 +375,27 @@
       "description": "Security-focused analysis with AI-enhanced insights",
       "estimated_time": "~5 minutes",
       "claude_mode": "enabled",
+      "sbom_generator": "cdxgen",
       "claude_scanners": [
         "package-health",
         "package-provenance",
         "digital-certificates",
-        "package-malcontent"
+        "package-malcontent",
+        "crypto-keys",
+        "crypto-tls"
       ],
       "scanners": [
         "package-sbom",
         "package-vulns",
         "package-health",
         "licenses",
-        "code-security",
+        "code-vulns",
         "iac-security",
         "code-secrets",
+        "crypto-ciphers",
+        "crypto-keys",
+        "crypto-random",
+        "crypto-tls",
         "package-provenance",
         "digital-certificates",
         "package-malcontent",
@@ -352,6 +407,7 @@
       "description": "License and policy compliance checks",
       "estimated_time": "~2 minutes",
       "claude_mode": "none",
+      "sbom_generator": "cdxgen",
       "scanners": [
         "package-sbom",
         "licenses",
@@ -364,6 +420,7 @@
       "description": "CI/CD and operational metrics",
       "estimated_time": "~3 minutes",
       "claude_mode": "none",
+      "sbom_generator": "cdxgen",
       "scanners": [
         "tech-discovery",
         "iac-security",
@@ -376,6 +433,7 @@
       "description": "Supply chain compromise detection using Chainguard malcontent",
       "estimated_time": "~2 minutes",
       "claude_mode": "optional",
+      "sbom_generator": "cdxgen",
       "claude_scanners": [
         "package-malcontent"
       ],
@@ -384,16 +442,40 @@
         "package-malcontent"
       ]
     },
+    "crypto": {
+      "name": "Cryptography",
+      "description": "Comprehensive cryptographic security analysis using 242+ RAG-generated patterns plus Semgrep registry rules",
+      "estimated_time": "~5 minutes",
+      "claude_mode": "optional",
+      "sbom_generator": "cdxgen",
+      "claude_scanners": [
+        "crypto-keys",
+        "crypto-tls"
+      ],
+      "scanners": [
+        "tech-discovery",
+        "crypto-ciphers",
+        "crypto-keys",
+        "crypto-random",
+        "crypto-tls",
+        "code-secrets",
+        "code-vulns",
+        "digital-certificates"
+      ]
+    },
     "all": {
       "name": "All Scanners",
       "description": "Run all scanners that support repository analysis",
-      "estimated_time": "~10 minutes",
+      "estimated_time": "~12 minutes",
       "claude_mode": "optional",
+      "sbom_generator": "cdxgen",
       "claude_scanners": [
         "package-sbom",
         "package-health",
         "package-provenance",
-        "package-malcontent"
+        "package-malcontent",
+        "crypto-keys",
+        "crypto-tls"
       ],
       "scanners": [
         "package-sbom",
@@ -401,9 +483,13 @@
         "package-vulns",
         "package-health",
         "licenses",
-        "code-security",
+        "code-vulns",
         "iac-security",
         "code-secrets",
+        "crypto-ciphers",
+        "crypto-keys",
+        "crypto-random",
+        "crypto-tls",
         "tech-debt",
         "documentation",
         "git",
@@ -421,6 +507,7 @@
       "description": "Complete package/dependency analysis - SBOM, vulnerabilities, health, provenance, and malware detection",
       "estimated_time": "~5 minutes",
       "claude_mode": "optional",
+      "sbom_generator": "cdxgen",
       "claude_scanners": [
         "package-sbom",
         "package-health",

@@ -8,173 +8,147 @@ SPDX-License-Identifier: GPL-3.0
 
 **Vision**: Position Zero as the leading **open-source software analysis toolkit** — providing deep insights into what software is made of, how it's built, and its security posture.
 
-Zero is the free, open-source component of the Crash Override platform. It provides analyzers for understanding software while adding AI capabilities via specialist agents. Zero serves as an on-ramp to the commercial Crash Override platform for organizations needing enterprise features.
+Zero is the free, open-source component of the Crash Override platform. It provides analyzers for understanding software while adding AI capabilities via specialist agents.
 
 ---
 
-## What's Complete
+## Current Capabilities
 
-### Core Infrastructure ✅
-- **Zero CLI** - Master orchestrator with hydrate, scan, report commands
-- **Agent System** - 10 Hackers-themed specialist agents with Task tool integration
-- **Storage** - Project hydration with analysis caching in `~/.zero/`
-- **Profiles** - quick, standard, security, advanced, deep analysis modes
+Zero currently includes **21 scanners** across these categories:
 
-### Scanners ✅
-| Scanner | Status | Description |
-|---------|--------|-------------|
-| tech-discovery | ✅ | 112+ technologies with multi-layer detection |
-| vulnerabilities | ✅ | CVE scanning via OSV.dev and CISA KEV |
-| package-malcontent | ✅ | Supply chain compromise detection (14,500+ YARA rules) |
-| package-health | ✅ | Abandonment, typosquatting, health scoring |
-| licenses | ✅ | SPDX license analysis |
-| code-security | ✅ | AI-powered security review |
-| secrets-scanner | ✅ | Pattern-based secret detection (22+ patterns) |
-| package-sbom | ✅ | CycloneDX SBOM via Syft |
-| dora | ✅ | DORA metrics calculation |
-| code-ownership | ✅ | Contributor analysis, bus factor |
-| iac-security | ✅ | Checkov integration (50+ frameworks) |
-| tech-debt | ✅ | RAG-based weighted scoring |
-| documentation | ✅ | README quality, API docs coverage |
-| git-insights | ✅ | Contributor patterns, churn analysis |
-| test-coverage | ✅ | Framework detection, coverage estimation |
-| auth-analysis | ✅ | Auth provider and pattern detection |
+| Category | Scanners |
+|----------|----------|
+| **Supply Chain Security** | package-sbom, package-vulns, package-health, package-provenance, package-malcontent, package-recommendations, package-bundle-optimization |
+| **Code Security** | code-security, code-secrets, iac-security, container-security |
+| **Compliance & Legal** | licenses, digital-certificates |
+| **Developer Productivity** | tech-discovery, code-ownership, dora, git, documentation, test-coverage, tech-debt |
+| **Container & Infrastructure** | containers, bundle-analysis |
 
-### Agents ✅
-All 10 specialist agents with knowledge bases and Claude Code integration:
-- **Cereal** - Supply chain security
-- **Razor** - Code security
-- **Blade** - Compliance auditing
-- **Phreak** - Legal counsel
-- **Acid** - Frontend engineering
-- **Dade** - Backend engineering
-- **Nikon** - Software architecture
-- **Joey** - Build engineering
-- **Plague** - DevOps engineering
-- **Gibson** - Engineering metrics
-
----
-
-## In Progress
-
-### Agent Autonomy ✅
-- [x] Full investigation mode with tool access (Read, Grep, Glob, WebSearch)
-- [x] Agent-to-agent delegation for complex investigations
-- [x] Improved context loading from cached analysis data
-
-### Report System
-- [ ] HTML report generation with interactive visualizations
-- [ ] PDF export for executive summaries
-- [ ] Trend analysis across multiple scans
+Plus **10 AI specialist agents** for deep analysis (Cereal, Razor, Blade, Phreak, Acid, Dade, Nikon, Joey, Plague, Gibson).
 
 ---
 
 ## Planned Features
 
-### Q1 2025
+### Source Code Scanners
+
+These scanners analyze repositories and work with Zero's existing hydrate workflow.
+
+#### API Security Analysis
+Scan OpenAPI specs, GraphQL schemas, and route definitions in source code:
+- [ ] **OpenAPI/Swagger Scanning** - Parse API specs for security issues (auth, rate limiting, input validation)
+- [ ] **GraphQL Security** - Introspection exposure, query complexity, authorization gaps
+- [ ] **Authentication Analysis** - OAuth/OIDC configuration review in code
+- [ ] **API Versioning Audit** - Detect deprecated or sunset API endpoints
+
+#### AI/ML Model Security
+Scan ML models, datasets, and AI pipelines in repositories:
+- [ ] **ML-BOM Generation** - CycloneDX inventory of models, datasets, frameworks
+- [ ] **Pickle/Model File Scanning** - Detect unsafe deserialization in `.pkl`, `.pt` files
+- [ ] **ML Framework Vulnerabilities** - CVEs in PyTorch, TensorFlow, scikit-learn
+- [ ] **Training Data Analysis** - PII detection, provenance tracking
+- [ ] **Jupyter Notebook Security** - Secrets, credentials, unsafe code in `.ipynb`
+
+#### Cryptography Audit
+Scan source code for weak cryptographic patterns:
+- [ ] **Weak Cipher Detection** - Flag MD5, SHA1, DES, RC4, ECB mode usage
+- [ ] **Hardcoded Keys/IVs** - Detect cryptographic keys in source code
+- [ ] **TLS Configuration** - Insecure TLS versions, weak cipher suites in configs
+- [ ] **Certificate Validation** - Disabled cert verification, pinning issues
 
 #### Enhanced Secret Detection
-- [ ] Claude-enhanced false positive reduction
-- [ ] Context-aware severity assessment
-- [ ] Git history deep scanning
-- [ ] Secret rotation recommendations
+- [ ] **Claude-enhanced False Positive Reduction** - AI-powered context analysis
+- [ ] **Git History Deep Scanning** - Find secrets in commit history
+- [ ] **Secret Rotation Recommendations** - Suggest remediation steps
+- [ ] **Entropy Analysis** - Detect high-entropy strings that may be secrets
 
-#### Bundle Analysis (npm/JavaScript) ✅
-- [x] Bundle size analysis via bundlephobia API
-- [x] Tree-shaking opportunity detection
-- [x] Heavy package identification with recommendations
-- [ ] Code splitting recommendations (planned enhancement)
-
-### Q2 2025
-
-#### Developer Experience Metrics
-- [ ] Developer satisfaction surveys (Swarmia-inspired)
-- [ ] Flow metrics (cycle time, PR review time)
-- [ ] Bottleneck identification
-- [ ] Working agreements monitoring
-
-#### Container Security ✅
-- [x] Dockerfile best practices analysis
-- [x] Base image vulnerability assessment
-- [x] Hardened image recommendations (Chainguard, Distroless)
-- [x] Multi-stage build optimization
-
-### Q3 2025
-
-#### Business Alignment
-- [ ] Investment tracking (where is engineering time spent?)
-- [ ] Initiative monitoring across teams
-- [ ] OKR alignment and tracking
-- [ ] Quarterly planning with capacity forecasting
+#### Reachability Analysis
+Determine if vulnerable dependencies are actually used:
+- [ ] **Vulnerable Code Path Detection** - Trace calls to vulnerable functions
+- [ ] **Call Graph Analysis** - Map how vulnerabilities could be exploited
+- [ ] **Risk Prioritization** - Focus on reachable vulnerabilities first
+- [ ] **VEX Generation** - Auto-generate Vulnerability Exploitability eXchange documents
 
 #### Advanced Architecture Analysis
-- [ ] Dependency graph visualization
-- [ ] Circular dependency detection
-- [ ] Layer violation identification
-- [ ] API security analysis
+- [ ] **Dependency Graph Visualization** - Interactive dependency explorer
+- [ ] **Circular Dependency Detection** - Find problematic dependency cycles
+- [ ] **Layer Violation Identification** - Detect architecture rule violations
+- [ ] **Microservice Mapping** - Service-to-service communication from code
+- [ ] **Database Schema Analysis** - Migration risks, schema drift from ORM models
 
-### Q4 2025
+---
 
-#### Scanner Result Versioning
-- [ ] Embed scan metadata (timestamp, commit SHA, scanner version) in results
-- [ ] Historical result storage strategy (timestamped files vs incremental append)
-- [ ] Trend analysis across scan history
-- [ ] Delta detection (new/fixed findings between scans)
-- [ ] Result pruning/archival for large datasets
+### Cloud & Runtime Scanners
 
-#### Predictive Intelligence
-- [ ] AI impact measurement
-- [ ] Delivery timeline forecasting
-- [ ] Security posture trending
-- [ ] Supply chain risk forecasting
+These require cloud credentials or access to running infrastructure. **Not source code based.**
+
+#### Cloud Asset Inventory
+Connect to cloud providers to build infrastructure SBOMs:
+- [ ] **Multi-Cloud Discovery** - Inventory AWS, Azure, GCP resources via [CloudQuery](https://github.com/cloudquery/cloudquery) or [Fix Inventory](https://github.com/someengineering/fixinventory)
+- [ ] **Cloud SBOM Generation** - CycloneDX SBOMs for containers, functions, services
+- [ ] **Runtime vs Build-time Comparison** - Compare deployed assets against source SBOMs
+- [ ] **Cloud Security Posture** - Misconfigurations, exposed services, risky permissions
+- [ ] **Cross-Cloud Unified View** - Normalize resource data across providers
+
+#### Live Endpoint Scanning
+- [ ] **Certificate Expiry Monitoring** - Check live SSL/TLS certificates
+- [ ] **Exposed Service Detection** - Identify publicly accessible services
+- [ ] **DNS Security** - DNSSEC, SPF, DKIM, DMARC validation
+
+---
+
+### Reports & Analytics
+
+#### Report System
+- [ ] **HTML Report Generation** - Interactive visualizations with drill-down
+- [ ] **PDF Export** - Executive summaries for stakeholders
+- [ ] **Trend Analysis** - Track security posture over time
+- [ ] **Delta Detection** - New/fixed findings between scans
+- [ ] **Compliance Dashboards** - SOC 2, ISO 27001, NIST mapping
+
+#### Developer Experience Metrics
+- [ ] **Flow Metrics** - Cycle time, PR review time, deployment frequency
+- [ ] **Bottleneck Identification** - Where is work getting stuck?
+- [ ] **Team Health Indicators** - Code review patterns, on-call burden
+- [ ] **Investment Tracking** - Where is engineering time spent?
 
 ---
 
 ## Integration Roadmap
 
-### Ocular Integration (ocularproject.io)
-Ocular is a Crash Override project that provides robust code synchronization and tool orchestration. By integrating with Ocular, Zero can focus purely on analysis while delegating infrastructure concerns.
+### Ocular Integration
 
-**Phase 1: Code Synchronization**
+[Ocular](https://ocularproject.io) is a Crash Override project providing robust code synchronization and tool orchestration at scale.
+
 - [ ] Replace Zero's hydration with Ocular's code sync
 - [ ] Leverage Ocular's repository caching and versioning
-- [ ] Support for monorepos and multi-repo projects
-- [ ] Incremental sync for large codebases
-
-**Phase 2: Tool Orchestration**
 - [ ] Delegate scanner execution to Ocular's orchestration layer
-- [ ] Parallel scanner execution with resource management
-- [ ] Scanner result caching and invalidation
-- [ ] Support for custom scanner plugins via Ocular
-
-**Phase 3: Agent Integration**
-- [ ] Zero agents consume Ocular-orchestrated findings
+- [ ] Support for monorepos and multi-repo projects
 - [ ] Real-time analysis as Ocular syncs changes
-- [ ] Cross-repository analysis for organization-wide insights
-- [ ] Shared analysis cache across Zero instances
-
-**Benefits:**
-- Zero focuses on AI-powered analysis, not infrastructure
-- Ocular handles scale, caching, and orchestration
-- Unified platform for code intelligence across Crash Override products
-- Enterprise-ready deployment via Ocular's infrastructure
 
 ### Chalk Integration
-- Build-time security analysis
-- Attestation enrichment with Zero findings
-- CI/CD workflow templates
 
-### GitHub Organization Analysis
-- Repository security configuration audit
-- Branch protection and access review
-- GitHub Actions security analysis
-- Compliance mapping (SOC 2, ISO 27001)
+[Chalk](https://github.com/crashappsec/chalk) provides build-time attestation and security metadata.
 
-### Database Backend (Research)
-- SQLite for single-user deployments
-- DuckDB for analytics and dashboards
-- PostgreSQL for enterprise multi-user
-- Enable cross-project queries
+- [ ] Build-time security analysis integration
+- [ ] Attestation enrichment with Zero findings
+- [ ] CI/CD workflow templates
+- [ ] SLSA compliance verification
+
+### GitHub/GitLab Organization Analysis
+
+- [ ] Repository security configuration audit
+- [ ] Branch protection and access review
+- [ ] GitHub Actions/GitLab CI security analysis
+- [ ] Compliance mapping (SOC 2, ISO 27001)
+- [ ] Organization-wide policy enforcement
+
+### Database Backend
+
+- [ ] SQLite for single-user deployments
+- [ ] DuckDB for analytics and dashboards
+- [ ] PostgreSQL for enterprise multi-user
+- [ ] Cross-project queries and aggregation
 
 ---
 
@@ -189,7 +163,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-*Last Updated: 2025-12-08*
-*Version: 5.0.0*
+*Last Updated: 2025-12-12*
+*Version: 5.1.0*
 
 *"Hack the planet!"*
