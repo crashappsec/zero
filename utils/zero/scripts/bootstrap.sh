@@ -778,6 +778,9 @@ run_analyzer() {
         container-security)
             analyzer_script="container-security/container-security.sh"
             ;;
+        api-security)
+            analyzer_script="api-security/api-security.sh"
+            ;;
     esac
 
     zero_analysis_start "$project_id" "$analyzer" "$analyzer_script"
@@ -846,6 +849,9 @@ run_analyzer() {
             ;;
         container-security)
             run_container_security_analyzer "$repo_path" "$output_path"
+            ;;
+        api-security)
+            run_api_security_analyzer "$repo_path" "$output_path"
             ;;
         *)
             status="failed"
@@ -1621,6 +1627,36 @@ run_container_security_analyzer() {
   },
   "dockerfiles": [],
   "images": []
+}
+EOF
+    fi
+}
+
+run_api_security_analyzer() {
+    local repo_path="$1"
+    local output_path="$2"
+
+    local script="$UTILS_ROOT/scanners/api-security/api-security.sh"
+
+    if [[ -x "$script" ]]; then
+        "$script" --local-path "$repo_path" -o "$output_path/api-security.json" 2>/dev/null
+    else
+        cat > "$output_path/api-security.json" << EOF
+{
+  "analyzer": "api-security",
+  "version": "1.0.0",
+  "timestamp": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
+  "status": "analyzer_not_found",
+  "summary": {
+    "risk_score": 100,
+    "risk_level": "unknown",
+    "total_findings": 0,
+    "critical_count": 0,
+    "high_count": 0,
+    "medium_count": 0
+  },
+  "findings": [],
+  "recommendations": []
 }
 EOF
     fi
