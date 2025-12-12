@@ -597,6 +597,12 @@ hydrate_org() {
     for current_repo in "${scan_repos[@]}"; do
         local short="${current_repo##*/}"
         local project_id=$(zero_project_id "$current_repo")
+        local analysis_dir="$ZERO_PROJECTS_DIR/$project_id/analysis"
+
+        # Clear old analysis JSON files to ensure fresh results (preserve scans history)
+        if [[ -d "$analysis_dir" ]]; then
+            rm -f "$analysis_dir"/*.json "$analysis_dir"/sbom.cdx.json 2>/dev/null || true
+        fi
 
         # Show immediate feedback that scan is starting
         echo -e "  ${YELLOW}◐${NC} ${BOLD}${short}${NC} ${DIM}scanning...${NC}"
