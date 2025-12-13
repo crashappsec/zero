@@ -1,0 +1,556 @@
+{
+  "$schema": "./zero.config.schema.json",
+  "_version": "1.1.0",
+  "_docs": "===================================================================================",
+  "_docs2": "ACTIVE CONFIGURATION FILE - This is the config Zero uses",
+  "_docs3": "===================================================================================",
+  "_docs4": "Edit this file to customize Zero's behavior.",
+  "_docs5": "See zero.config.example.json for detailed documentation on all settings.",
+  "_docs6": "===================================================================================",
+  "_claude_mode_docs": "claude_mode: 'none' = no Claude support, 'optional' = Claude enhances output, 'required' = Claude is mandatory",
+  "settings": {
+    "default_profile": "standard",
+    "storage_path": ".zero",
+    "parallel_jobs": 1,
+    "scanner_timeout_seconds": 300,
+    "cache_ttl_hours": 24,
+    "environment": {
+      "github_token_env": "GITHUB_TOKEN",
+      "anthropic_key_env": "ANTHROPIC_API_KEY"
+    }
+  },
+  "scanners": {
+    "package-sbom": {
+      "name": "Package SBOM",
+      "description": "Extract package dependencies from manifests (package.json, requirements.txt, etc.)",
+      "script": "utils/scanners/package-sbom.sh",
+      "claude_mode": "optional",
+      "claude_features": [
+        "AI-enhanced dependency analysis",
+        "Risk assessment"
+      ],
+      "estimated_time": "1-5s",
+      "output_file": "package-sbom.json",
+      "options": {
+        "sbom": {
+          "_docs": "SBOM generation settings for cdxgen/syft",
+          "tool": "auto",
+          "spec_version": "1.5",
+          "format": "json",
+          "recurse": true,
+          "install_deps": false,
+          "babel_analysis": false,
+          "deep": false,
+          "evidence": false,
+          "profile": "generic",
+          "exclude_patterns": ["**/node_modules/**", "**/vendor/**", "**/.git/**"],
+          "fallback_to_syft": true,
+          "timeout_seconds": 300
+        }
+      }
+    },
+    "tech-discovery": {
+      "name": "Tech Discovery",
+      "description": "Identify frameworks, languages, and tools used in the codebase",
+      "script": "utils/scanners/tech-discovery.sh",
+      "claude_mode": "none",
+      "estimated_time": "5-15s",
+      "output_file": "tech-discovery.json"
+    },
+    "package-vulns": {
+      "name": "Package Vulnerabilities",
+      "description": "Scan packages for known CVEs using OSV database",
+      "script": "utils/scanners/package-vulns.sh",
+      "claude_mode": "none",
+      "estimated_time": "3-10s",
+      "output_file": "package-vulns.json"
+    },
+    "licenses": {
+      "name": "License Compliance",
+      "description": "Analyze dependency licenses for compliance risks",
+      "script": "utils/scanners/licenses.sh",
+      "claude_mode": "none",
+      "estimated_time": "2-5s",
+      "output_file": "licenses.json"
+    },
+    "package-health": {
+      "name": "Package Health",
+      "description": "Check for abandoned, deprecated, or unhealthy dependencies",
+      "script": "utils/scanners/package-health.sh",
+      "claude_mode": "optional",
+      "claude_features": [
+        "AI risk assessment",
+        "Remediation suggestions",
+        "Typosquat detection"
+      ],
+      "estimated_time": "10-30s",
+      "output_file": "package-health.json"
+    },
+    "code-vulns": {
+      "name": "Code Vulnerabilities",
+      "description": "Static analysis for security vulnerabilities using Semgrep (OWASP, CWE, secrets)",
+      "script": "utils/scanners/code-vulns/code-vulns.sh",
+      "claude_mode": "none",
+      "estimated_time": "30-120s",
+      "output_file": "code-vulns.json"
+    },
+    "iac-security": {
+      "name": "IaC Security",
+      "description": "Security scanning for Terraform, CloudFormation, Kubernetes configs",
+      "script": "utils/scanners/iac-security.sh",
+      "claude_mode": "none",
+      "estimated_time": "5-30s",
+      "output_file": "iac-security.json"
+    },
+    "code-secrets": {
+      "name": "Code Secrets",
+      "description": "Detect exposed API keys, passwords, and credentials using Semgrep p/secrets",
+      "script": "utils/scanners/code-secrets/code-secrets.sh",
+      "claude_mode": "none",
+      "estimated_time": "30-120s",
+      "output_file": "code-secrets.json"
+    },
+    "tech-debt": {
+      "name": "Technical Debt",
+      "description": "Analyze code duplication, complexity, and TODO markers",
+      "script": "utils/scanners/tech-debt.sh",
+      "claude_mode": "none",
+      "estimated_time": "15-60s",
+      "output_file": "tech-debt.json"
+    },
+    "documentation": {
+      "name": "Documentation",
+      "description": "Analyze README, docs coverage, and documentation quality",
+      "script": "utils/scanners/documentation.sh",
+      "claude_mode": "none",
+      "estimated_time": "5-15s",
+      "output_file": "documentation.json"
+    },
+    "git": {
+      "name": "Git Insights",
+      "description": "Analyze commit patterns, contributors, and repository activity",
+      "script": "utils/scanners/git.sh",
+      "claude_mode": "none",
+      "estimated_time": "5-20s",
+      "output_file": "git.json"
+    },
+    "test-coverage": {
+      "name": "Test Coverage",
+      "description": "Detect test frameworks and estimate test coverage",
+      "script": "utils/scanners/test-coverage.sh",
+      "claude_mode": "none",
+      "estimated_time": "5-15s",
+      "output_file": "test-coverage.json"
+    },
+    "code-ownership": {
+      "name": "Code Ownership",
+      "description": "Analyze CODEOWNERS, contributor patterns, and maintainership",
+      "script": "utils/scanners/code-ownership.sh",
+      "claude_mode": "none",
+      "estimated_time": "10-30s",
+      "output_file": "code-ownership.json"
+    },
+    "dora": {
+      "name": "DORA Metrics",
+      "description": "Calculate deployment frequency, lead time, and other DevOps metrics",
+      "script": "utils/scanners/dora.sh",
+      "claude_mode": "none",
+      "estimated_time": "10-30s",
+      "output_file": "dora.json"
+    },
+    "package-provenance": {
+      "name": "Package Provenance",
+      "description": "Verify build provenance and supply chain attestations (SLSA)",
+      "script": "utils/scanners/package-provenance.sh",
+      "claude_mode": "optional",
+      "claude_features": [
+        "AI provenance analysis",
+        "Supply chain risk assessment"
+      ],
+      "estimated_time": "30-120s",
+      "output_file": "package-provenance.json"
+    },
+    "package-bundle-optimization": {
+      "name": "Package Bundle Optimization",
+      "description": "Analyze JavaScript bundle sizes and optimization opportunities",
+      "script": "utils/scanners/package-bundle-optimization.sh",
+      "claude_mode": "none",
+      "estimated_time": "5-30s",
+      "output_file": "package-bundle-optimization.json"
+    },
+    "digital-certificates": {
+      "name": "Digital Certificates",
+      "description": "Analyze SSL/TLS certificates for security and compliance",
+      "script": "utils/scanners/digital-certificates.sh",
+      "claude_mode": "optional",
+      "claude_features": [
+        "Certificate chain analysis",
+        "Security recommendations",
+        "Compliance assessment"
+      ],
+      "estimated_time": "5-30s",
+      "output_file": "digital-certificates.json"
+    },
+    "containers": {
+      "name": "Container Analysis",
+      "description": "Analyze container images for security and best practices",
+      "script": "utils/scanners/containers.sh",
+      "claude_mode": "none",
+      "estimated_time": "10-60s",
+      "output_file": "containers.json"
+    },
+    "package-recommendations": {
+      "name": "Package Recommendations",
+      "description": "Suggest alternative libraries based on health and security",
+      "script": "utils/scanners/package-recommendations.sh",
+      "claude_mode": "none",
+      "estimated_time": "10-30s",
+      "output_file": "package-recommendations.json"
+    },
+    "package-malcontent": {
+      "name": "Package Malcontent",
+      "description": "Supply chain compromise detection using YARA rules and differential analysis",
+      "script": "utils/scanners/package-malcontent/package-malcontent.sh",
+      "claude_mode": "optional",
+      "claude_features": [
+        "AI-enhanced threat analysis",
+        "Risk prioritization",
+        "Remediation guidance"
+      ],
+      "estimated_time": "10-60s",
+      "output_file": "package-malcontent.json"
+    },
+    "bundle-analysis": {
+      "name": "Bundle Analysis",
+      "description": "Analyze npm bundle sizes, identify heavy packages, detect tree-shaking issues",
+      "script": "utils/scanners/bundle-analysis/bundle-analysis.sh",
+      "claude_mode": "none",
+      "estimated_time": "30-120s",
+      "output_file": "bundle-analysis.json"
+    },
+    "container-security": {
+      "name": "Container Security",
+      "description": "Dockerfile best practices, image vulnerabilities, hardening recommendations",
+      "script": "utils/scanners/container-security/container-security.sh",
+      "claude_mode": "none",
+      "estimated_time": "30-120s",
+      "output_file": "container-security.json"
+    },
+    "crypto-ciphers": {
+      "name": "Crypto Ciphers",
+      "description": "Detect weak/deprecated cryptographic algorithms (DES, RC4, MD5, SHA1, ECB)",
+      "script": "utils/scanners/crypto-ciphers/crypto-ciphers.sh",
+      "claude_mode": "none",
+      "estimated_time": "10-30s",
+      "output_file": "crypto-ciphers.json"
+    },
+    "crypto-keys": {
+      "name": "Crypto Keys",
+      "description": "Find hardcoded keys, weak key lengths, embedded private keys",
+      "script": "utils/scanners/crypto-keys/crypto-keys.sh",
+      "claude_mode": "optional",
+      "claude_features": [
+        "Key exposure analysis",
+        "Rotation recommendations"
+      ],
+      "estimated_time": "10-30s",
+      "output_file": "crypto-keys.json"
+    },
+    "crypto-random": {
+      "name": "Crypto Random",
+      "description": "Detect insecure random number generation (Math.random, random module)",
+      "script": "utils/scanners/crypto-random/crypto-random.sh",
+      "claude_mode": "none",
+      "estimated_time": "10-30s",
+      "output_file": "crypto-random.json"
+    },
+    "crypto-tls": {
+      "name": "Crypto TLS",
+      "description": "TLS configuration issues (disabled verification, deprecated protocols)",
+      "script": "utils/scanners/crypto-tls/crypto-tls.sh",
+      "claude_mode": "optional",
+      "claude_features": [
+        "Configuration analysis",
+        "Security recommendations"
+      ],
+      "estimated_time": "10-30s",
+      "output_file": "crypto-tls.json"
+    },
+    "api-security": {
+      "name": "API Security",
+      "description": "OWASP API Security Top 10 analysis - auth, injection, data exposure, SSRF, mass assignment",
+      "script": "utils/scanners/api-security/api-security.sh",
+      "claude_mode": "none",
+      "estimated_time": "30-120s",
+      "output_file": "api-security.json"
+    }
+  },
+  "profiles": {
+    "quick": {
+      "name": "Quick",
+      "description": "Fast essential analysis for rapid feedback",
+      "estimated_time": "~30 seconds",
+      "claude_mode": "none",
+      "sbom_generator": "cdxgen",
+      "scanners": [
+        "package-sbom",
+        "tech-discovery",
+        "package-vulns",
+        "licenses"
+      ]
+    },
+    "standard": {
+      "name": "Standard",
+      "description": "Balanced analysis covering security and code quality",
+      "estimated_time": "~2 minutes",
+      "claude_mode": "none",
+      "sbom_generator": "cdxgen",
+      "scanners": [
+        "package-sbom",
+        "package-vulns",
+        "package-health",
+        "tech-discovery",
+        "licenses",
+        "code-secrets",
+        "code-ownership"
+      ]
+    },
+    "advanced": {
+      "name": "Advanced",
+      "description": "Comprehensive static analysis with health checks",
+      "estimated_time": "~5 minutes",
+      "claude_mode": "none",
+      "sbom_generator": "cdxgen",
+      "scanners": [
+        "package-sbom",
+        "tech-discovery",
+        "package-vulns",
+        "package-health",
+        "licenses",
+        "code-vulns",
+        "iac-security",
+        "code-secrets",
+        "tech-debt",
+        "documentation",
+        "git",
+        "test-coverage",
+        "code-ownership",
+        "dora",
+        "package-provenance",
+        "package-malcontent",
+        "bundle-analysis",
+        "container-security"
+      ]
+    },
+    "deep": {
+      "name": "Deep",
+      "description": "Full analysis with Claude AI-assisted insights",
+      "estimated_time": "~10 minutes",
+      "claude_mode": "enabled",
+      "sbom_generator": "cdxgen",
+      "claude_scanners": [
+        "package-sbom",
+        "package-health",
+        "package-provenance",
+        "package-malcontent"
+      ],
+      "scanners": [
+        "package-sbom",
+        "tech-discovery",
+        "package-vulns",
+        "package-health",
+        "licenses",
+        "code-vulns",
+        "iac-security",
+        "code-secrets",
+        "tech-debt",
+        "documentation",
+        "git",
+        "test-coverage",
+        "code-ownership",
+        "dora",
+        "package-provenance",
+        "package-malcontent",
+        "bundle-analysis",
+        "container-security"
+      ]
+    },
+    "security": {
+      "name": "Security Only",
+      "description": "Security-focused analysis for vulnerability assessment",
+      "estimated_time": "~4 minutes",
+      "claude_mode": "none",
+      "sbom_generator": "cdxgen",
+      "scanners": [
+        "package-sbom",
+        "package-vulns",
+        "licenses",
+        "code-vulns",
+        "iac-security",
+        "code-secrets",
+        "crypto-ciphers",
+        "crypto-keys",
+        "crypto-tls",
+        "api-security",
+        "package-malcontent",
+        "container-security"
+      ]
+    },
+    "security-deep": {
+      "name": "Security Deep",
+      "description": "Security-focused analysis with AI-enhanced insights",
+      "estimated_time": "~6 minutes",
+      "claude_mode": "enabled",
+      "sbom_generator": "cdxgen",
+      "claude_scanners": [
+        "package-health",
+        "package-provenance",
+        "digital-certificates",
+        "package-malcontent",
+        "crypto-keys",
+        "crypto-tls"
+      ],
+      "scanners": [
+        "package-sbom",
+        "package-vulns",
+        "package-health",
+        "licenses",
+        "code-vulns",
+        "iac-security",
+        "code-secrets",
+        "crypto-ciphers",
+        "crypto-keys",
+        "crypto-random",
+        "crypto-tls",
+        "api-security",
+        "package-provenance",
+        "digital-certificates",
+        "package-malcontent",
+        "container-security"
+      ]
+    },
+    "compliance": {
+      "name": "Compliance",
+      "description": "License and policy compliance checks",
+      "estimated_time": "~2 minutes",
+      "claude_mode": "none",
+      "sbom_generator": "cdxgen",
+      "scanners": [
+        "package-sbom",
+        "licenses",
+        "documentation",
+        "code-ownership"
+      ]
+    },
+    "devops": {
+      "name": "DevOps",
+      "description": "CI/CD and operational metrics",
+      "estimated_time": "~3 minutes",
+      "claude_mode": "none",
+      "sbom_generator": "cdxgen",
+      "scanners": [
+        "tech-discovery",
+        "iac-security",
+        "git",
+        "test-coverage"
+      ]
+    },
+    "malcontent": {
+      "name": "Malcontent",
+      "description": "Supply chain compromise detection using Chainguard malcontent",
+      "estimated_time": "~2 minutes",
+      "claude_mode": "optional",
+      "sbom_generator": "cdxgen",
+      "claude_scanners": [
+        "package-malcontent"
+      ],
+      "scanners": [
+        "package-sbom",
+        "package-malcontent"
+      ]
+    },
+    "crypto": {
+      "name": "Cryptography",
+      "description": "Comprehensive cryptographic security analysis using 242+ RAG-generated patterns plus Semgrep registry rules",
+      "estimated_time": "~5 minutes",
+      "claude_mode": "optional",
+      "sbom_generator": "cdxgen",
+      "claude_scanners": [
+        "crypto-keys",
+        "crypto-tls"
+      ],
+      "scanners": [
+        "tech-discovery",
+        "crypto-ciphers",
+        "crypto-keys",
+        "crypto-random",
+        "crypto-tls",
+        "code-secrets",
+        "code-vulns",
+        "digital-certificates"
+      ]
+    },
+    "all": {
+      "name": "All Scanners",
+      "description": "Run all scanners that support repository analysis",
+      "estimated_time": "~15 minutes",
+      "claude_mode": "optional",
+      "sbom_generator": "cdxgen",
+      "claude_scanners": [
+        "package-sbom",
+        "package-health",
+        "package-provenance",
+        "package-malcontent",
+        "crypto-keys",
+        "crypto-tls"
+      ],
+      "scanners": [
+        "package-sbom",
+        "tech-discovery",
+        "package-vulns",
+        "package-health",
+        "licenses",
+        "code-vulns",
+        "iac-security",
+        "code-secrets",
+        "crypto-ciphers",
+        "crypto-keys",
+        "crypto-random",
+        "crypto-tls",
+        "api-security",
+        "tech-debt",
+        "documentation",
+        "git",
+        "test-coverage",
+        "code-ownership",
+        "dora",
+        "package-provenance",
+        "package-malcontent",
+        "bundle-analysis",
+        "container-security"
+      ]
+    },
+    "packages": {
+      "name": "Packages",
+      "description": "Complete package/dependency analysis - SBOM, vulnerabilities, health, provenance, and malware detection",
+      "estimated_time": "~5 minutes",
+      "claude_mode": "optional",
+      "sbom_generator": "cdxgen",
+      "claude_scanners": [
+        "package-sbom",
+        "package-health",
+        "package-provenance",
+        "package-malcontent"
+      ],
+      "scanners": [
+        "package-sbom",
+        "package-vulns",
+        "package-health",
+        "package-provenance",
+        "package-malcontent",
+        "package-bundle-optimization",
+        "package-recommendations"
+      ]
+    }
+  }
+}

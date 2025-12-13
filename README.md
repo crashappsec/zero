@@ -10,97 +10,22 @@ Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Status: Experimental](https://img.shields.io/badge/Status-Experimental-orange.svg)](https://github.com/crashappsec/zero)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8.svg)](https://go.dev)
 
 Named after **Zero Cool** from the movie Hackers (1995), Zero is a team of AI agents that analyze your code for security, compliance, and quality issues.
 
 ## What is Zero?
 
-Zero is a set of open-source tools for software and security engineers. When combined with two other Crash Override projects—[Chalk](https://github.com/crashappsec/chalk) and Ocular—it can analyze code and builds to create a comprehensive understanding of what is happening in the development process.
+Zero is a Go-based CLI tool for software and security engineers. It provides 25+ security scanners, AI-powered analysis agents, and integrates with tools like cdxgen, syft, semgrep, and grype to provide comprehensive security assessments.
 
-[Crash Override](https://crashoverride.com) sells a commercial platform that includes advanced versions of these tools and other features for operations teams, providing a way to understand and improve software development at scale.
+### Key Capabilities
 
-### Components
-
-**Source Code Management**
-- Local cloning utilities designed for laptop-based analysis
-- The Ocular project handles code syncing at scale for enterprise environments
-
-**Scanning Utilities**
-- Standalone scripts and wrappers for security and analysis tools
-- Many are unique solutions for specific data collection and complex business problems
-- Zero orchestrates these scanners locally; Ocular handles orchestration at scale
-
-**Data & Intelligence**
-- Results stored in JSON format for easy consumption
-- Comprehensive RAG (Retrieval-Augmented Generation) knowledge base
-- Reference data for agents to perform specialized analysis tasks
-
-**AI Agents**
-- A team of specialist agents (named after Hackers characters)
-- Each agent has deep expertise in their domain
-- Zero coordinates investigations, delegates to specialists, and synthesizes findings into actionable insights
-
-### The Team
-
-| Agent | Character | Expertise |
-|-------|-----------|-----------|
-| **Zero** | Zero Cool | Master orchestrator - coordinates all agents |
-| **Cereal** | Cereal Killer | Supply chain security, malware detection, CVEs |
-| **Razor** | Razor | Code security, SAST, secrets detection |
-| **Blade** | Blade | Compliance, SOC 2, ISO 27001 auditing |
-| **Phreak** | Phantom Phreak | Legal, licenses, data privacy |
-| **Acid** | Acid Burn | Frontend, React, TypeScript, accessibility |
-| **Flu Shot** | Flu Shot | Backend, APIs, databases |
-| **Nikon** | Lord Nikon | Architecture, system design |
-| **Joey** | Joey | Build, CI/CD, performance |
-| **Plague** | The Plague | DevOps, infrastructure, Kubernetes |
-| **Gibson** | The Gibson | Engineering metrics, DORA |
-
-## Features
-
-### Supply Chain Security
-- **Vulnerability Scanning** - CVE detection via OSV database with KEV (Known Exploited Vulnerabilities) prioritization
-- **Malware Detection** - Supply chain compromise detection using [malcontent](https://github.com/chainguard-dev/malcontent) with 14,500+ YARA rules
-- **Package Health** - Dependency health scoring, abandonment detection, typosquat warnings
-- **Package Provenance** - SLSA attestation verification, build provenance analysis
-
-### SBOM Generation
-- **Default: cdxgen** - [cdxgen](https://github.com/CycloneDX/cdxgen) installs dependencies for complete transitive dependency analysis
-- **Optional: Syft** - [Syft](https://github.com/anchore/syft) available via `--generator syft` for fast static analysis
-- **CycloneDX Format** - Industry-standard SBOM with CPE identifiers for vulnerability matching
-
-### Code Security
-- **Static Analysis** - SAST findings via Semgrep with custom rules
-- **Secrets Detection** - API keys, credentials, and token detection
-- **IaC Security** - Terraform, Kubernetes, CloudFormation, and Dockerfile analysis
-
-### Compliance & Legal
-- **License Analysis** - SPDX license detection with policy enforcement (allowed/denied/review)
-- **Content Policy** - Profanity and non-inclusive language detection
-
-### Developer Productivity
-- **Technology Detection** - Automated tech stack identification across 100+ frameworks and languages
-- **Code Ownership** - Bus factor analysis, CODEOWNERS validation, contributor insights
-- **DORA Metrics** - Deployment frequency, lead time, change failure rate, MTTR
+- **25+ Security Scanners** - SBOM generation, vulnerability scanning, secrets detection, SAST, IaC security, and more
+- **AI Agent System** - Specialist agents (named after Hackers characters) for deep security analysis
+- **Configurable** - JSON configuration for scanner options, profiles, and tool preferences
+- **Token-Aware** - The `roadmap` command shows which scanners work with your GitHub token permissions
 
 ## Quick Start
-
-### Prerequisites
-
-**Required:**
-- Bash 3.2+ (macOS default works)
-- Git, jq, curl
-- [syft](https://github.com/anchore/syft) - Fast SBOM generation
-- [osv-scanner](https://github.com/google/osv-scanner) - Vulnerability scanning
-- [gh](https://cli.github.com/) - GitHub CLI
-
-**Recommended:**
-- [cdxgen](https://github.com/CycloneDX/cdxgen) - Deep SBOM generation (installs deps for complete analysis)
-- [malcontent](https://github.com/chainguard-dev/malcontent) - Supply chain compromise detection
-- [semgrep](https://github.com/returntocorp/semgrep) - Code security scanning
-- [trivy](https://github.com/aquasecurity/trivy) - Container vulnerability scanning
-- [hadolint](https://github.com/hadolint/hadolint) - Dockerfile linting
-- [checkov](https://github.com/bridgecrewio/checkov) - IaC security scanning
 
 ### Installation
 
@@ -109,50 +34,232 @@ Zero is a set of open-source tools for software and security engineers. When com
 git clone https://github.com/crashappsec/zero.git
 cd zero
 
-# Check prerequisites (will offer to install missing tools)
-./zero.sh check --fix
+# Build the CLI
+go build -o main ./cmd/zero
 
-# Set up API keys
-cp .env.example .env
-# Edit .env with your GITHUB_TOKEN and ANTHROPIC_API_KEY
+# Check prerequisites and install missing tools
+./main checkup --fix
+
+# Verify your GitHub token and see what scanners will work
+./main checkup
 ```
 
-### Usage
+### Prerequisites
 
-**Interactive Mode:**
+**Required:**
+- Go 1.22+
+- Git
+- GitHub CLI (`gh`) - for authentication
+
+**Recommended Tools** (install with `./main checkup --fix`):
+| Tool | Purpose | Install |
+|------|---------|---------|
+| [cdxgen](https://github.com/CycloneDX/cdxgen) | SBOM generation (preferred) | `npm install -g @cyclonedx/cdxgen` |
+| [syft](https://github.com/anchore/syft) | SBOM generation (fallback) | `brew install syft` |
+| [grype](https://github.com/anchore/grype) | Vulnerability scanning | `brew install grype` |
+| [osv-scanner](https://github.com/google/osv-scanner) | Vulnerability scanning | `go install github.com/google/osv-scanner/cmd/osv-scanner@latest` |
+| [semgrep](https://github.com/returntocorp/semgrep) | Code security scanning | `brew install semgrep` |
+| [gitleaks](https://github.com/gitleaks/gitleaks) | Secrets detection | `brew install gitleaks` |
+| [malcontent](https://github.com/chainguard-dev/malcontent) | Supply chain malware detection | `go install github.com/chainguard-dev/malcontent/cmd/mal@latest` |
+| [trivy](https://github.com/aquasecurity/trivy) | Container scanning | `brew install trivy` |
+| [checkov](https://github.com/bridgecrewio/checkov) | IaC security | `pip install checkov` |
+
+### Basic Usage
+
 ```bash
-./zero.sh
-```
+# Hydrate (clone and scan) a repository
+./main hydrate expressjs/express
 
-**Command Line:**
-```bash
-# Hydrate (clone and analyze) a repository
-./zero.sh hydrate expressjs/express
+# With analysis profiles (profile is a positional argument)
+./main hydrate expressjs/express quick        # Fast scan (~30s)
+./main hydrate expressjs/express security     # Security-focused (~3min)
+./main hydrate expressjs/express packages     # Package analysis (~5min)
 
-# With analysis profiles
-./zero.sh hydrate owner/repo --quick      # ~30s - fast scan
-./zero.sh hydrate owner/repo --standard   # ~2min - default
-./zero.sh hydrate owner/repo --security   # ~3min - security-focused
-./zero.sh hydrate owner/repo --advanced   # ~5min - all analyzers
-./zero.sh hydrate owner/repo --deep       # ~10min - Claude-assisted
+# Scan an entire GitHub organization (no "/" means org)
+./main hydrate phantom-tests                  # All repos in org
+./main hydrate phantom-tests quick            # With profile
+./main hydrate phantom-tests --limit 10       # Limit repos
 
-# Check status of hydrated projects
-./zero.sh status
+# Check status of analyzed projects
+./main status
 
 # Generate reports
-./zero.sh report expressjs/express
+./main report expressjs/express
+
+# See what scanners work with your token
+./main checkup
+
+# List all available scanners
+./main list
 ```
 
-**Agent Mode (Claude Code):**
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `hydrate <target> [profile]` | Clone and scan (target: `owner/repo` or `org-name`) |
+| `scan <target> [profile]` | Re-scan already-cloned repos |
+| `status` | Show all analyzed projects |
+| `report <owner/repo>` | Generate security report |
+| `checkup` | Check setup, token permissions, and install missing tools |
+| `list` | List all available scanners |
+| `clean <owner/repo>` | Remove analysis data |
+| `history <owner/repo>` | Show scan history |
+
+**Target detection:** If target contains `/`, it's a single repo. Otherwise, it's an organization.
+
+Profiles are defined in `config/zero.config.json` and can be customized.
+
+## Scanners
+
+Zero includes 25 specialized scanners organized by category:
+
+### Supply Chain Security
+| Scanner | Description | External Tool |
+|---------|-------------|---------------|
+| `package-sbom` | CycloneDX SBOM generation | cdxgen or syft |
+| `package-vulns` | CVE scanning via OSV database | osv-scanner or grype |
+| `package-health` | Dependency health scoring, abandonment detection | - |
+| `package-provenance` | SLSA attestations and build provenance | - |
+| `package-malcontent` | Malware detection (14,500+ YARA rules) | malcontent |
+| `package-recommendations` | Alternative library suggestions | - |
+| `package-bundle-optimization` | JavaScript bundle size analysis | - |
+
+### Code Security
+| Scanner | Description | External Tool |
+|---------|-------------|---------------|
+| `code-vulns` | SAST analysis (OWASP, CWE) | semgrep |
+| `code-secrets` | API keys, credentials, token detection | semgrep or gitleaks |
+| `api-security` | OWASP API Security Top 10 | semgrep |
+| `iac-security` | Terraform, K8s, CloudFormation analysis | checkov or trivy |
+| `container-security` | Dockerfile security and best practices | trivy or hadolint |
+| `containers` | Container image analysis | trivy |
+
+### Cryptography Analysis
+| Scanner | Description | External Tool |
+|---------|-------------|---------------|
+| `crypto-ciphers` | Weak/deprecated algorithms (DES, RC4, MD5) | semgrep |
+| `crypto-keys` | Hardcoded keys, weak key lengths | semgrep |
+| `crypto-random` | Insecure random number generation | semgrep |
+| `crypto-tls` | TLS configuration issues | semgrep |
+| `digital-certificates` | X.509 certificate analysis | - |
+
+### Developer Productivity
+| Scanner | Description | External Tool |
+|---------|-------------|---------------|
+| `tech-discovery` | Framework and language detection (100+ patterns) | - |
+| `code-ownership` | CODEOWNERS, bus factor, contributor analysis | - |
+| `dora` | DORA metrics (deployment freq, lead time, MTTR) | GitHub API |
+| `git` | Commit patterns, contributor activity | - |
+| `documentation` | README quality and docs coverage | - |
+| `test-coverage` | Test framework detection and coverage | - |
+| `tech-debt` | Code duplication, complexity, TODO markers | - |
+| `licenses` | SPDX license detection with policy | - |
+
+## Configuration
+
+### Environment Variables
+
+```bash
+# GitHub authentication (required for GitHub API scanners)
+export GITHUB_TOKEN="ghp_..."
+# Or use: gh auth login
+
+# Claude API key (for AI agent analysis)
+export ANTHROPIC_API_KEY="sk-ant-..."
 ```
-/agent
+
+### Configuration File
+
+Zero uses `config/zero.config.json` for scanner configuration:
+
+```json
+{
+  "settings": {
+    "default_profile": "standard",
+    "scanner_timeout_seconds": 300,
+    "parallel_jobs": 4
+  },
+  "scanners": {
+    "package-sbom": {
+      "options": {
+        "sbom": {
+          "tool": "auto",
+          "spec_version": "1.5",
+          "recurse": true,
+          "install_deps": false,
+          "fallback_to_syft": true
+        }
+      }
+    }
+  }
+}
 ```
 
-This enters agent mode where you chat with Zero, who can delegate to specialist agents for deep analysis.
+### SBOM Options
 
-## Agent Mode
+The SBOM scanner supports extensive configuration:
 
-The real power of Zero is the agent system. Use the `/agent` slash command in Claude Code to chat with Zero:
+| Option | Default | Description |
+|--------|---------|-------------|
+| `tool` | `auto` | Tool preference: `cdxgen`, `syft`, or `auto` |
+| `spec_version` | `1.5` | CycloneDX spec version |
+| `format` | `json` | Output format: `json` or `xml` |
+| `recurse` | `true` | Recurse into subdirectories (mono-repos) |
+| `install_deps` | `false` | Install dependencies before scanning |
+| `babel_analysis` | `false` | Run babel for JS/TS analysis |
+| `deep` | `false` | Deep analysis for C/C++, OCI images |
+| `evidence` | `false` | Generate evidence in SBOM |
+| `profile` | `generic` | cdxgen profile: `generic`, `research`, `appsec` |
+| `fallback_to_syft` | `true` | Fall back to syft if cdxgen fails |
+
+### Scan Profiles
+
+| Profile | Scanners |
+|---------|----------|
+| `quick` | sbom, tech-discovery, vulnerabilities, licenses |
+| `standard` | + package-health, code-secrets, code-ownership |
+| `security` | sbom, vulns, code-security, iac-security, secrets, malcontent, container-security |
+| `packages` | sbom, vulns, health, provenance, malcontent, bundle-optimization, recommendations |
+| `advanced` | All scanners |
+
+## Checkup Command
+
+The `checkup` command helps you understand what scanners will work with your current setup:
+
+```bash
+./main checkup
+```
+
+This shows:
+- **Token Status** - Whether your GitHub token is valid and its type (classic PAT, fine-grained PAT, OAuth)
+- **Token Permissions** - Scopes and permissions available
+- **External Tools** - Which required tools are installed
+- **Scanner Compatibility** - Which scanners are ready, limited, or unavailable
+- **Recommendations** - What permissions or tools to add
+
+## AI Agent System
+
+Zero includes specialist AI agents (powered by Claude) for deep analysis:
+
+| Agent | Character | Expertise |
+|-------|-----------|-----------|
+| **Zero** | Zero Cool | Master orchestrator |
+| **Cereal** | Cereal Killer | Supply chain security, malware, CVEs |
+| **Razor** | Razor | Code security, SAST, secrets |
+| **Blade** | Blade | Compliance, SOC 2, ISO 27001 |
+| **Phreak** | Phantom Phreak | Legal, licenses, data privacy |
+| **Acid** | Acid Burn | Frontend, React, TypeScript |
+| **Dade** | Dade Murphy | Backend, APIs, databases |
+| **Nikon** | Lord Nikon | Architecture, system design |
+| **Joey** | Joey | Build, CI/CD, performance |
+| **Plague** | The Plague | DevOps, infrastructure, Kubernetes |
+| **Gibson** | The Gibson | Engineering metrics, DORA |
+| **Gill** | Gill Bates | Cryptography, TLS, keys |
+
+### Agent Mode (Claude Code)
+
+Use the `/agent` slash command in Claude Code to chat with Zero:
 
 ```
 You: Do we have any malware in our dependencies?
@@ -160,191 +267,103 @@ You: Do we have any malware in our dependencies?
 Zero: Let me check what projects are loaded and delegate to Cereal...
 [Invokes Cereal agent to investigate malcontent findings]
 
-Cereal: I've analyzed the malcontent scan results for express. Found 3 high-risk
-behaviors flagged, but after reading the source files, all appear to be false
-positives related to legitimate test fixtures...
+Cereal: I've analyzed the malcontent scan results. Found 3 high-risk
+behaviors flagged, but after reading the source files, all appear to be
+false positives related to legitimate test fixtures...
 ```
-
-### Example Queries
-
-| Query | Agent | What Happens |
-|-------|-------|--------------|
-| "Any malware in our deps?" | Cereal | Investigates malcontent scanner findings |
-| "Review code security" | Razor | Analyzes SAST findings and secrets |
-| "Are we SOC 2 compliant?" | Blade | Assesses compliance posture |
-| "License conflicts?" | Phreak | Reviews license compatibility |
-| "Frontend architecture?" | Acid | Reviews React/TypeScript patterns |
-| "API security issues?" | Flu Shot | Checks backend security |
-| "System design concerns?" | Nikon | Architecture review |
-| "CI/CD performance?" | Joey | Build pipeline analysis |
-| "Infrastructure issues?" | Plague | DevOps/K8s review |
-| "Team health metrics?" | Gibson | DORA metrics analysis |
 
 ## Storage
 
-All analysis data is stored in `~/.zero/`:
+Analysis data is stored in `.zero/` (configurable):
 
 ```
-~/.zero/
-├── config.json                 # Global settings
+.zero/
 ├── index.json                  # Project index
 └── repos/
     └── expressjs/
         └── express/
             ├── project.json    # Project metadata
             ├── repo/           # Cloned repository
-            └── analysis/       # Analysis results
-                ├── manifest.json
-                ├── scanners/
-                │   ├── vulnerabilities/
-                │   ├── package-malcontent/
-                │   ├── package-health/
-                │   ├── licenses/
-                │   ├── code-security/
-                │   └── secrets-scanner/
-                └── technology.json
+            └── analysis/       # Scanner results (JSON)
+                ├── package-sbom.json
+                ├── package-vulns.json
+                ├── code-secrets.json
+                └── ...
 ```
 
-## Configuration
-
-### Environment Variables
-
-```bash
-# GitHub authentication (required for GitHub API)
-export GITHUB_TOKEN="ghp_..."
-
-# Claude API key (for deep analysis and agents)
-export ANTHROPIC_API_KEY="sk-ant-..."
-```
-
-### Analysis Profiles
-
-All profiles use cdxgen by default. Use `--generator syft` for faster but less complete SBOM generation.
-
-| Profile | Time | Scanners |
-|---------|------|----------|
-| **quick** | ~30s | SBOM, tech-discovery, vulnerabilities, licenses |
-| **standard** | ~2min | + package-health, code-secrets, code-ownership |
-| **security** | ~3min | SBOM, vulns, code-security, iac-security, secrets, malcontent, container-security |
-| **packages** | ~5min | SBOM, vulns, health, provenance, malcontent, bundle-optimization, recommendations |
-| **advanced** | ~5min | All scanners except bundle-analysis |
-| **deep** | ~10min | All scanners + Claude AI-assisted insights |
-
-## Scanners
-
-Zero includes 21 specialized scanners organized by category:
-
-### Supply Chain Security
-| Scanner | Description |
-|---------|-------------|
-| `package-sbom` | CycloneDX SBOM generation (syft or cdxgen) |
-| `package-vulns` | CVE scanning via OSV with KEV prioritization |
-| `package-health` | Dependency health scoring, abandonment, typosquats |
-| `package-provenance` | SLSA attestations and build provenance |
-| `package-malcontent` | Malware detection with 14,500+ YARA rules |
-| `package-recommendations` | Alternative library suggestions |
-| `package-bundle-optimization` | JavaScript bundle size analysis |
-
-### Code Security
-| Scanner | Description |
-|---------|-------------|
-| `code-security` | SAST analysis via Semgrep |
-| `code-secrets` | API keys, credentials, token detection |
-| `iac-security` | Terraform, K8s, CloudFormation analysis |
-| `container-security` | Dockerfile best practices and hardening |
-
-### Compliance & Legal
-| Scanner | Description |
-|---------|-------------|
-| `licenses` | SPDX license detection with policy enforcement |
-| `digital-certificates` | SSL/TLS certificate analysis |
-
-### Developer Productivity
-| Scanner | Description |
-|---------|-------------|
-| `tech-discovery` | Framework and language detection (100+ patterns) |
-| `code-ownership` | CODEOWNERS, bus factor, contributor analysis |
-| `dora` | Deployment frequency, lead time, MTTR |
-| `git` | Commit patterns, contributor activity |
-| `documentation` | README quality and docs coverage |
-| `test-coverage` | Test framework detection and coverage estimates |
-| `tech-debt` | Code duplication, complexity, TODO markers |
-
-### Container & Infrastructure
-| Scanner | Description |
-|---------|-------------|
-| `containers` | Container image analysis |
-| `bundle-analysis` | Deep npm bundle analysis with tree-shaking |
-
-## Repository Structure
+## Architecture
 
 ```
 zero/
-├── zero.sh                     # Main CLI entry point
-├── utils/
-│   ├── zero/                   # Zero orchestrator
-│   │   ├── lib/                # Libraries (zero-lib.sh, agent-loader.sh)
-│   │   ├── scripts/            # CLI scripts (hydrate, scan, report)
-│   │   └── config/             # Configuration files
-│   └── scanners/               # Individual scanners
-│       ├── vulnerabilities/
-│       ├── package-malcontent/
-│       ├── package-health/
-│       ├── tech-discovery/
-│       └── ...
-├── agents/                     # Specialist agent definitions
-│   ├── orchestrator/           # Zero - master orchestrator
-│   ├── supply-chain/           # Cereal Killer - supply chain security
-│   ├── code-security/          # Razor - code security
-│   ├── compliance/             # Blade - compliance auditing
-│   ├── legal/                  # Phantom Phreak - legal counsel
-│   ├── frontend/               # Acid Burn - frontend engineer
-│   ├── backend/                # Flu Shot - backend engineer
-│   ├── architecture/           # Lord Nikon - software architect
-│   ├── build/                  # Joey - build engineer
-│   ├── devops/                 # The Plague - devops engineer
-│   ├── engineering-leader/     # The Gibson - engineering metrics
-│   └── shared/                 # Cross-agent knowledge
+├── cmd/zero/                   # CLI entry point
+│   └── cmd/                    # Cobra commands
+├── pkg/
+│   ├── scanner/                # Scanner framework
+│   ├── scanners/               # Scanner implementations (25+)
+│   │   ├── sbom/
+│   │   ├── vulns/
+│   │   ├── secrets/
+│   │   └── ...
+│   ├── config/                 # Configuration handling
+│   ├── github/                 # GitHub API client
+│   ├── hydrate/                # Clone + scan orchestration
+│   └── terminal/               # Terminal UI
+├── agents/                     # AI agent definitions
 ├── rag/                        # RAG knowledge base
-│   ├── technology-identification/  # 100+ technology patterns
-│   ├── supply-chain/           # Supply chain references
-│   └── ...
-└── .claude/
-    └── commands/               # Slash commands (/agent, /zero)
+├── config/                     # Configuration files
+├── legacy/                     # Old shell-based implementation
 ```
 
-## Claude Code Integration
+## Development
 
-Zero is designed to work with [Claude Code](https://claude.com/claude-code). Install the Claude Code extension and use:
+### Building
 
-- `/agent` - Chat with Zero and the specialist agents
-- `/zero` - Access Zero commands and documentation
+```bash
+# Build
+go build -o main ./cmd/zero
+
+# Run tests
+go test ./...
+
+# Run specific scanner tests
+go test ./pkg/scanners/sbom/...
+```
+
+### Adding a New Scanner
+
+1. Create a new package in `pkg/scanners/<name>/`
+2. Implement the `scanner.Scanner` interface:
+   ```go
+   type Scanner interface {
+       Name() string
+       Description() string
+       Dependencies() []string
+       EstimateDuration(fileCount int) time.Duration
+       Run(ctx context.Context, opts *ScanOptions) (*ScanResult, error)
+   }
+   ```
+3. Register in `init()`:
+   ```go
+   func init() {
+       scanner.Register(&MyScanner{})
+   }
+   ```
+4. Import in `pkg/scanners/all.go`
 
 ## Test Organization
 
-We've created the [phantom-tests](https://github.com/phantom-tests) organization with sample repositories for safe testing:
+We maintain [phantom-tests](https://github.com/phantom-tests) for safe testing:
 
 ```bash
-./zero.sh hydrate phantom-tests/express
-./zero.sh hydrate phantom-tests/mitmproxy
-./zero.sh hydrate phantom-tests/openai-node
+./main hydrate phantom-tests/express
+./main hydrate phantom-tests/platform
 ```
-
-## Roadmap
-
-See [ROADMAP.md](./ROADMAP.md) for planned features including:
-
-- **Cloud Asset Inventory** - Multi-cloud discovery and SBOM generation for AWS, Azure, GCP
-- **API Security Analysis** - OpenAPI/Swagger and GraphQL scanning
-- **Reachability Analysis** - Determine if vulnerable dependencies are actually used
-- **Report System** - HTML/PDF reports with trend analysis
-- **Integration** - Ocular code sync, Chalk attestations, GitHub/GitLab org analysis
 
 ## Contributing
 
 Contributions are welcome! See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
-**Important:** All contributors must complete our [Contributor License Agreement](https://crashoverride.com/docs/other/contributing) before their contributions can be merged. This ensures the project remains properly licensed and protects both contributors and users.
+**Important:** All contributors must complete our [Contributor License Agreement](https://crashoverride.com/docs/other/contributing).
 
 ## License
 
@@ -363,12 +382,10 @@ the Free Software Foundation, either version 3 of the License, or
 
 Zero is maintained by the open source community and sponsored by [Crash Override](https://crashoverride.com).
 
-The agents, knowledge base, and RAG database were built to augment the Crash Override platform.
-
 ---
 
 **Status**: Experimental Preview
-**Version**: 5.1.0
-**Last Updated**: 2025-12-12
+**Version**: 6.0.0 (Go rewrite)
+**Last Updated**: 2025-12-13
 
 *"Hack the planet!"*

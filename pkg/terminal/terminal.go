@@ -2,10 +2,12 @@
 package terminal
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"golang.org/x/term"
 )
@@ -193,6 +195,33 @@ func (t *Terminal) ScannerComplete(name, summary string, duration int) {
 	)
 }
 
+// ScannerFailed prints a failed scanner result
+func (t *Terminal) ScannerFailed(name, errMsg string, duration int) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	fmt.Printf("      %s %-20s %s %s\n",
+		t.Color(Red, IconFailed),
+		name,
+		t.Color(Red, errMsg),
+		t.Color(Dim, fmt.Sprintf("%ds", duration)),
+	)
+}
+
+// UpdateScannerStatus updates a scanner line in place (moves cursor up and rewrites)
+func (t *Terminal) UpdateScannerStatus(linesUp int, name string, status string, icon string, color string, extra string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	// Move cursor up N lines, clear line, print, move back down
+	fmt.Printf("\033[%dA\033[K      %s %-20s %s %s\033[%dB\r",
+		linesUp,
+		t.Color(color, icon),
+		name,
+		t.Color(color, status),
+		t.Color(Dim, extra),
+		linesUp,
+	)
+}
+
 // Progress prints an in-place progress line (overwrites current line)
 func (t *Terminal) Progress(completed, total int, active string) {
 	t.mu.Lock()
@@ -227,6 +256,38 @@ func (t *Terminal) ScanComplete() {
 	fmt.Printf("%s %s\n", t.Color(Green, IconSuccess), t.Color(Bold, "Scanning complete"))
 }
 
+// ScanFindings holds aggregated scan findings
+type ScanFindings struct {
+	// Packages
+	TotalPackages   int
+	PackagesByEco   map[string]int
+
+	// Vulnerabilities
+	VulnCritical    int
+	VulnHigh        int
+	VulnMedium      int
+	VulnLow         int
+	VulnsByEco      map[string]int
+
+	// Licenses
+	LicenseTypes    int
+	LicenseCounts   map[string]int
+
+	// Secrets
+	SecretsCritical int
+	SecretsHigh     int
+	SecretsMedium   int
+	SecretsTotal    int
+
+	// Malcontent
+	MalcontentCrit  int
+	MalcontentHigh  int
+
+	// Health
+	HealthCritical  int
+	HealthWarnings  int
+}
+
 // Summary prints the hydrate summary
 func (t *Terminal) Summary(org string, duration int, success, failed int, diskUsage, files string) {
 	t.mu.Lock()
@@ -249,9 +310,269 @@ func (t *Terminal) Summary(org string, duration int, success, failed int, diskUs
 	fmt.Printf("  Total files:     %s\n", files)
 }
 
+// SummaryWithFindings prints the hydrate summary with aggregated findings
+func (t *Terminal) SummaryWithFindings(org string, duration int, success, failed int, diskUsage, files string, findings *ScanFindings) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	fmt.Printf("\n%s\n\n", t.Color(Bold+Green, "✓ Hydrate Complete"))
+
+	fmt.Printf("%s\n", t.Color(Bold, "Summary"))
+	fmt.Printf("  Organization:    %s\n", t.Color(Cyan, org))
+	fmt.Printf("  Duration:        %ds\n", duration)
+	if failed > 0 {
+		fmt.Printf("  Repos scanned:   %s, %s\n",
+			t.Color(Green, fmt.Sprintf("%d success", success)),
+			t.Color(Red, fmt.Sprintf("%d failed", failed)),
+		)
+	} else {
+		fmt.Printf("  Repos scanned:   %s\n", t.Color(Green, fmt.Sprintf("%d success", success)))
+	}
+	fmt.Printf("  Disk usage:      %s\n", diskUsage)
+	fmt.Printf("  Total files:     %s\n", files)
+
+	if findings == nil {
+		return
+	}
+
+	// Print findings section
+	fmt.Printf("\n%s\n", t.Color(Bold, "Findings"))
+
+	// Packages by ecosystem
+	if findings.TotalPackages > 0 {
+		ecoStr := t.formatEcosystemCounts(findings.PackagesByEco)
+		fmt.Printf("  Packages:        %s %s\n",
+			t.Color(Cyan, fmt.Sprintf("%d total", findings.TotalPackages)),
+			t.Color(Dim, ecoStr))
+	}
+
+	// Vulnerabilities
+	totalVulns := findings.VulnCritical + findings.VulnHigh + findings.VulnMedium + findings.VulnLow
+	if totalVulns > 0 {
+		vulnStr := ""
+		if findings.VulnCritical > 0 {
+			vulnStr += t.Color(BoldRed, fmt.Sprintf("%d critical", findings.VulnCritical)) + ", "
+		}
+		if findings.VulnHigh > 0 {
+			vulnStr += t.Color(Red, fmt.Sprintf("%d high", findings.VulnHigh)) + ", "
+		}
+		if findings.VulnMedium > 0 {
+			vulnStr += t.Color(Yellow, fmt.Sprintf("%d medium", findings.VulnMedium)) + ", "
+		}
+		if findings.VulnLow > 0 {
+			vulnStr += fmt.Sprintf("%d low", findings.VulnLow)
+		}
+		vulnStr = strings.TrimSuffix(vulnStr, ", ")
+		fmt.Printf("  Vulnerabilities: %s\n", vulnStr)
+	} else {
+		fmt.Printf("  Vulnerabilities: %s\n", t.Color(Green, "none found"))
+	}
+
+	// Secrets
+	if findings.SecretsTotal > 0 {
+		secretStr := ""
+		if findings.SecretsCritical > 0 {
+			secretStr += t.Color(BoldRed, fmt.Sprintf("%d critical", findings.SecretsCritical)) + ", "
+		}
+		if findings.SecretsHigh > 0 {
+			secretStr += t.Color(Red, fmt.Sprintf("%d high", findings.SecretsHigh)) + ", "
+		}
+		if findings.SecretsMedium > 0 {
+			secretStr += t.Color(Yellow, fmt.Sprintf("%d medium", findings.SecretsMedium))
+		}
+		secretStr = strings.TrimSuffix(secretStr, ", ")
+		fmt.Printf("  Secrets:         %s\n", secretStr)
+	}
+
+	// Licenses
+	if findings.LicenseTypes > 0 {
+		licStr := t.formatLicenseCounts(findings.LicenseCounts)
+		fmt.Printf("  Licenses:        %s %s\n",
+			t.Color(Cyan, fmt.Sprintf("%d types", findings.LicenseTypes)),
+			t.Color(Dim, licStr))
+	}
+
+	// Malcontent
+	if findings.MalcontentCrit > 0 || findings.MalcontentHigh > 0 {
+		malStr := ""
+		if findings.MalcontentCrit > 0 {
+			malStr += t.Color(BoldRed, fmt.Sprintf("%d critical", findings.MalcontentCrit)) + ", "
+		}
+		if findings.MalcontentHigh > 0 {
+			malStr += t.Color(Red, fmt.Sprintf("%d high", findings.MalcontentHigh))
+		}
+		malStr = strings.TrimSuffix(malStr, ", ")
+		fmt.Printf("  Malcontent:      %s\n", malStr)
+	}
+
+	// Health
+	if findings.HealthCritical > 0 || findings.HealthWarnings > 0 {
+		healthStr := ""
+		if findings.HealthCritical > 0 {
+			healthStr += t.Color(Red, fmt.Sprintf("%d critical", findings.HealthCritical)) + ", "
+		}
+		if findings.HealthWarnings > 0 {
+			healthStr += t.Color(Yellow, fmt.Sprintf("%d warnings", findings.HealthWarnings))
+		}
+		healthStr = strings.TrimSuffix(healthStr, ", ")
+		fmt.Printf("  Package health:  %s\n", healthStr)
+	}
+}
+
+func (t *Terminal) formatEcosystemCounts(counts map[string]int) string {
+	if len(counts) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(counts))
+	for eco, count := range counts {
+		parts = append(parts, fmt.Sprintf("%s: %d", eco, count))
+	}
+	return "(" + strings.Join(parts, ", ") + ")"
+}
+
+func (t *Terminal) formatLicenseCounts(counts map[string]int) string {
+	if len(counts) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(counts))
+	for lic, count := range counts {
+		parts = append(parts, fmt.Sprintf("%s: %d", lic, count))
+	}
+	// Limit to top 5
+	if len(parts) > 5 {
+		parts = parts[:5]
+		return "(" + strings.Join(parts, ", ") + ", ...)"
+	}
+	return "(" + strings.Join(parts, ", ") + ")"
+}
+
+// Confirm asks a yes/no question and returns the answer
+func (t *Terminal) Confirm(prompt string, defaultYes bool) bool {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	suffix := "[y/N]"
+	if defaultYes {
+		suffix = "[Y/n]"
+	}
+
+	fmt.Printf("%s %s: ", prompt, suffix)
+
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return defaultYes
+	}
+
+	input = strings.TrimSpace(strings.ToLower(input))
+
+	if input == "" {
+		return defaultYes
+	}
+
+	return input == "y" || input == "yes"
+}
+
+// PromptChoice asks user to select from options
+func (t *Terminal) PromptChoice(prompt string, options []string, defaultOption int) int {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	fmt.Printf("\n%s\n", prompt)
+	for i, opt := range options {
+		marker := " "
+		if i == defaultOption {
+			marker = t.Color(Cyan, ">")
+		}
+		fmt.Printf("  %s %d) %s\n", marker, i+1, opt)
+	}
+	fmt.Printf("Choice [%d]: ", defaultOption+1)
+
+	reader := bufio.NewReader(os.Stdin)
+	input, err := reader.ReadString('\n')
+	if err != nil {
+		return defaultOption
+	}
+
+	input = strings.TrimSpace(input)
+	if input == "" {
+		return defaultOption
+	}
+
+	var choice int
+	if _, err := fmt.Sscanf(input, "%d", &choice); err != nil {
+		return defaultOption
+	}
+
+	if choice < 1 || choice > len(options) {
+		return defaultOption
+	}
+
+	return choice - 1
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a
 	}
 	return b
+}
+
+// ScannerResultRow represents a row in the scanner results table
+type ScannerResultRow struct {
+	Name     string
+	Status   string        // "success", "failed", "skipped"
+	Summary  string
+	Duration time.Duration
+}
+
+// ScannerResultsTable prints a table of scanner results
+func (t *Terminal) ScannerResultsTable(rows []ScannerResultRow) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	fmt.Printf("\n%s\n", t.Color(Bold, "Scanner Results"))
+
+	// Print header
+	fmt.Printf("  %-25s %-10s %-35s %s\n",
+		t.Color(Dim, "Scanner"),
+		t.Color(Dim, "Status"),
+		t.Color(Dim, "Summary"),
+		t.Color(Dim, "Duration"),
+	)
+	fmt.Printf("  %s\n", strings.Repeat("─", 78))
+
+	// Print rows
+	for _, row := range rows {
+		statusIcon := IconSuccess
+		statusColor := Green
+
+		switch row.Status {
+		case "failed":
+			statusIcon = IconFailed
+			statusColor = Red
+		case "skipped":
+			statusIcon = IconSkipped
+			statusColor = Dim
+		}
+
+		// Truncate summary if too long
+		summary := row.Summary
+		if len(summary) > 35 {
+			summary = summary[:32] + "..."
+		}
+
+		durationStr := ""
+		if row.Duration > 0 {
+			durationStr = fmt.Sprintf("%ds", int(row.Duration.Seconds()))
+		}
+
+		fmt.Printf("  %-25s %s %-8s %-35s %s\n",
+			row.Name,
+			t.Color(statusColor, statusIcon),
+			t.Color(statusColor, row.Status),
+			summary,
+			t.Color(Dim, durationStr),
+		)
+	}
 }

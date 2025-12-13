@@ -1,0 +1,322 @@
+{
+  "$schema": "./zero.config.schema.json",
+  "_version": "2.0.0",
+  "_docs": "===================================================================================",
+  "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v2.0)",
+  "_docs3": "===================================================================================",
+  "_docs4": "Zero now uses 5 consolidated 'super scanners' with configurable features:",
+  "_docs5": "  - packages: SBOM, vulnerabilities, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations",
+  "_docs6": "  - crypto: ciphers, keys, random, tls, certificates",
+  "_docs7": "  - code: vulns, secrets, api, tech_debt",
+  "_docs8": "  - infra: iac, containers, github_actions, dora, git",
+  "_docs9": "  - health: technology, documentation, tests, ownership",
+  "_docs10": "===================================================================================",
+  "settings": {
+    "default_profile": "standard",
+    "storage_path": ".zero",
+    "parallel_repos": 1,
+    "parallel_scanners": 4,
+    "scanner_timeout_seconds": 300,
+    "cache_ttl_hours": 24,
+    "environment": {
+      "github_token_env": "GITHUB_TOKEN",
+      "anthropic_key_env": "ANTHROPIC_API_KEY"
+    }
+  },
+  "scanners": {
+    "packages": {
+      "name": "Packages",
+      "description": "Consolidated package/dependency scanner: SBOM, vulnerabilities, health, malcontent, provenance, bundle optimization, licenses",
+      "estimated_time": "60-180s",
+      "output_file": "packages.json",
+      "features": {
+        "sbom": {
+          "enabled": true,
+          "tool": "auto",
+          "spec_version": "1.5",
+          "fallback_to_syft": true
+        },
+        "vulnerabilities": {
+          "enabled": true,
+          "include_dev": false
+        },
+        "health": {
+          "enabled": true,
+          "check_deprecated": true,
+          "check_maintained": true,
+          "check_downloads": true
+        },
+        "malcontent": {
+          "enabled": true,
+          "min_risk": "medium"
+        },
+        "provenance": {
+          "enabled": true,
+          "check_sigstore": true,
+          "check_slsa": true
+        },
+        "bundle": {
+          "enabled": true,
+          "size_threshold_kb": 100
+        },
+        "licenses": {
+          "enabled": true,
+          "include_dev": false
+        },
+        "duplicates": {
+          "enabled": true
+        },
+        "recommendations": {
+          "enabled": true
+        },
+        "typosquats": {
+          "enabled": true
+        },
+        "deprecations": {
+          "enabled": true
+        }
+      }
+    },
+    "crypto": {
+      "name": "Cryptography",
+      "description": "Consolidated cryptographic security scanner: ciphers, keys, random, TLS, certificates",
+      "estimated_time": "30-90s",
+      "output_file": "crypto.json",
+      "features": {
+        "ciphers": {
+          "enabled": true,
+          "check_weak": true,
+          "check_deprecated": true
+        },
+        "keys": {
+          "enabled": true,
+          "check_hardcoded": true,
+          "check_weak_length": true
+        },
+        "random": {
+          "enabled": true,
+          "check_insecure": true
+        },
+        "tls": {
+          "enabled": true,
+          "check_verification": true,
+          "check_protocols": true
+        },
+        "certificates": {
+          "enabled": true
+        }
+      }
+    },
+    "code": {
+      "name": "Code Security",
+      "description": "Consolidated code security scanner: vulnerabilities, secrets, API security, technical debt",
+      "estimated_time": "60-180s",
+      "output_file": "code.json",
+      "features": {
+        "vulns": {
+          "enabled": true,
+          "rulesets": ["p/security-audit", "p/owasp-top-ten"]
+        },
+        "secrets": {
+          "enabled": true,
+          "ruleset": "p/secrets"
+        },
+        "api": {
+          "enabled": true
+        },
+        "tech_debt": {
+          "enabled": true,
+          "check_todos": true,
+          "check_complexity": true
+        }
+      }
+    },
+    "infra": {
+      "name": "Infrastructure",
+      "description": "Consolidated infrastructure scanner: IaC security, containers, GitHub Actions, DORA metrics, git insights",
+      "estimated_time": "60-180s",
+      "output_file": "infra.json",
+      "features": {
+        "iac": {
+          "enabled": true,
+          "tool": "auto",
+          "fallback_tool": true
+        },
+        "containers": {
+          "enabled": true,
+          "scan_base_images": true
+        },
+        "github_actions": {
+          "enabled": true,
+          "check_pinning": true,
+          "check_secrets": true,
+          "check_injection": true,
+          "check_permissions": true
+        },
+        "dora": {
+          "enabled": true,
+          "period_days": 90
+        },
+        "git": {
+          "enabled": true,
+          "include_churn": true,
+          "include_age": true,
+          "include_patterns": true,
+          "include_branches": true
+        }
+      }
+    },
+    "health": {
+      "name": "Project Health",
+      "description": "Consolidated project health scanner: technology discovery, documentation, test coverage, code ownership",
+      "estimated_time": "30-90s",
+      "output_file": "health.json",
+      "features": {
+        "technology": {
+          "enabled": true,
+          "scan_extensions": true,
+          "scan_config": true,
+          "scan_sbom": true
+        },
+        "documentation": {
+          "enabled": true,
+          "check_readme": true,
+          "check_code_docs": true,
+          "check_changelog": true,
+          "check_api_docs": true
+        },
+        "tests": {
+          "enabled": true,
+          "parse_reports": true,
+          "analyze_infra": true,
+          "coverage_threshold": 80
+        },
+        "ownership": {
+          "enabled": true,
+          "analyze_contributors": true,
+          "check_codeowners": true,
+          "detect_orphans": true,
+          "period_days": 90
+        }
+      }
+    }
+  },
+  "profiles": {
+    "quick": {
+      "name": "Quick",
+      "description": "Fast essential analysis for rapid feedback",
+      "estimated_time": "~30 seconds",
+      "scanners": ["packages", "health"],
+      "feature_overrides": {
+        "packages": {
+          "malcontent": {"enabled": false},
+          "provenance": {"enabled": false},
+          "bundle": {"enabled": false}
+        },
+        "health": {
+          "documentation": {"check_code_docs": false},
+          "ownership": {"enabled": false}
+        }
+      }
+    },
+    "standard": {
+      "name": "Standard",
+      "description": "Balanced analysis covering security and code quality",
+      "estimated_time": "~2 minutes",
+      "scanners": ["packages", "code", "health"],
+      "feature_overrides": {
+        "packages": {
+          "bundle": {"enabled": false}
+        },
+        "code": {
+          "tech_debt": {"enabled": false}
+        }
+      }
+    },
+    "security": {
+      "name": "Security",
+      "description": "Security-focused analysis for vulnerability assessment",
+      "estimated_time": "~4 minutes",
+      "scanners": ["packages", "crypto", "code", "infra"],
+      "feature_overrides": {
+        "infra": {
+          "dora": {"enabled": false},
+          "git": {"enabled": false}
+        }
+      }
+    },
+    "full": {
+      "name": "Full",
+      "description": "Complete analysis with all features enabled",
+      "estimated_time": "~10 minutes",
+      "scanners": ["packages", "crypto", "code", "infra", "health"]
+    },
+    "packages-only": {
+      "name": "Packages Only",
+      "description": "Complete package/dependency analysis",
+      "estimated_time": "~3 minutes",
+      "scanners": ["packages"]
+    },
+    "crypto-only": {
+      "name": "Cryptography Only",
+      "description": "Comprehensive cryptographic security analysis",
+      "estimated_time": "~2 minutes",
+      "scanners": ["crypto"]
+    },
+    "code-only": {
+      "name": "Code Only",
+      "description": "Code security and quality analysis",
+      "estimated_time": "~3 minutes",
+      "scanners": ["code"]
+    },
+    "infra-only": {
+      "name": "Infrastructure Only",
+      "description": "Infrastructure and DevOps analysis",
+      "estimated_time": "~3 minutes",
+      "scanners": ["infra"]
+    },
+    "health-only": {
+      "name": "Health Only",
+      "description": "Project health and documentation analysis",
+      "estimated_time": "~2 minutes",
+      "scanners": ["health"]
+    },
+    "compliance": {
+      "name": "Compliance",
+      "description": "License and policy compliance checks",
+      "estimated_time": "~2 minutes",
+      "scanners": ["packages", "health"],
+      "feature_overrides": {
+        "packages": {
+          "vulnerabilities": {"enabled": false},
+          "malcontent": {"enabled": false},
+          "provenance": {"enabled": false},
+          "bundle": {"enabled": false},
+          "duplicates": {"enabled": false},
+          "recommendations": {"enabled": false},
+          "typosquats": {"enabled": false}
+        },
+        "health": {
+          "technology": {"enabled": false},
+          "tests": {"enabled": false}
+        }
+      }
+    },
+    "devops": {
+      "name": "DevOps",
+      "description": "CI/CD and operational metrics",
+      "estimated_time": "~3 minutes",
+      "scanners": ["infra", "health"],
+      "feature_overrides": {
+        "infra": {
+          "iac": {"enabled": false},
+          "containers": {"enabled": false}
+        },
+        "health": {
+          "documentation": {"enabled": false},
+          "ownership": {"enabled": false}
+        }
+      }
+    }
+  }
+}
