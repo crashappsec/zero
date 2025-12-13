@@ -206,6 +206,9 @@ func (s *AIScanner) runModelsFeature(ctx context.Context, repoPath string, resul
 func (s *AIScanner) detectModelFiles(repoPath string) []MLModel {
 	var models []MLModel
 
+	// Use RAG-loaded formats with fallback to hardcoded
+	fileFormats := GetModelFileFormatsFromRAG()
+
 	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
@@ -221,7 +224,7 @@ func (s *AIScanner) detectModelFiles(repoPath string) []MLModel {
 		}
 
 		ext := strings.ToLower(filepath.Ext(path))
-		if formatInfo, ok := ModelFileFormats[ext]; ok {
+		if formatInfo, ok := fileFormats[ext]; ok {
 			relPath, _ := filepath.Rel(repoPath, path)
 
 			model := MLModel{
