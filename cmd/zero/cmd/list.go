@@ -15,7 +15,10 @@ var listCmd = &cobra.Command{
 		term.Info("Available scanners:")
 		fmt.Println()
 		for _, name := range scanner.List() {
-			s, _ := scanner.Get(name)
+			s, ok := scanner.Get(name)
+			if !ok {
+				continue
+			}
 			fmt.Printf("  %-20s %s\n", name, s.Description())
 		}
 	},
