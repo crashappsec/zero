@@ -316,6 +316,11 @@ var ScannerRequirements = map[string]ScannerRequirement{
 		NeedsGitHubAPI: false,
 		RequiredTools:  []string{"cdxgen", "syft"},
 	},
+	"ai": {
+		Scanner:        "ai",
+		Description:    "AI/ML security analysis and ML-BOM generation",
+		NeedsGitHubAPI: false,
+	},
 }
 
 // CheckTokenPermissions analyzes a GitHub token and returns its capabilities
