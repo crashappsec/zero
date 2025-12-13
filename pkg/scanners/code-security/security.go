@@ -1,16 +1,13 @@
-// Package code provides a consolidated code security super scanner
-// Features: vulns, secrets, api, tech-debt
-package code
+// Package codesecurity provides the consolidated code security super scanner
+// Features: vulns, secrets, api
+package codesecurity
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -20,35 +17,35 @@ import (
 )
 
 const (
-	Name    = "code"
-	Version = "3.0.0"
+	Name    = "code-security"
+	Version = "3.2.0"
 )
 
 func init() {
-	scanner.Register(&CodeScanner{})
+	scanner.Register(&CodeSecurityScanner{})
 }
 
-// CodeScanner consolidates all code security analysis
-type CodeScanner struct{}
+// CodeSecurityScanner consolidates security-focused code analysis
+type CodeSecurityScanner struct{}
 
-func (s *CodeScanner) Name() string {
+func (s *CodeSecurityScanner) Name() string {
 	return Name
 }
 
-func (s *CodeScanner) Description() string {
-	return "Consolidated code security scanner: vulnerabilities, secrets, API security, technical debt"
+func (s *CodeSecurityScanner) Description() string {
+	return "Security-focused code analysis: vulnerabilities, secrets, API security"
 }
 
-func (s *CodeScanner) Dependencies() []string {
+func (s *CodeSecurityScanner) Dependencies() []string {
 	return nil
 }
 
-func (s *CodeScanner) EstimateDuration(fileCount int) time.Duration {
+func (s *CodeSecurityScanner) EstimateDuration(fileCount int) time.Duration {
 	est := 15 + fileCount/300
 	return time.Duration(est) * time.Second
 }
 
-func (s *CodeScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scanner.ScanResult, error) {
+func (s *CodeSecurityScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scanner.ScanResult, error) {
 	start := time.Now()
 
 	cfg := getConfig(opts)
@@ -62,7 +59,7 @@ func (s *CodeScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scan
 	var wg sync.WaitGroup
 	var mu sync.Mutex
 
-	// Check if semgrep is available (needed for vulns, secrets, api)
+	// Check if semgrep is available (needed for all features)
 	hasSemgrep := common.ToolExists("semgrep")
 
 	// Run features in parallel where possible
@@ -117,19 +114,6 @@ func (s *CodeScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scan
 		mu.Unlock()
 	}
 
-	if cfg.TechDebt.Enabled {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			summary, techDebtResult := s.runTechDebt(ctx, opts, cfg.TechDebt, hasSemgrep)
-			mu.Lock()
-			result.FeaturesRun = append(result.FeaturesRun, "tech_debt")
-			result.Summary.TechDebt = summary
-			result.Findings.TechDebt = techDebtResult
-			mu.Unlock()
-		}()
-	}
-
 	wg.Wait()
 
 	scanResult := scanner.NewScanResult(Name, Version, start)
@@ -175,7 +159,7 @@ func getConfig(opts *scanner.ScanOptions) FeatureConfig {
 // VULNS FEATURE
 // ============================================================================
 
-func (s *CodeScanner) runVulns(ctx context.Context, opts *scanner.ScanOptions, cfg VulnsConfig) (*VulnsSummary, []VulnFinding) {
+func (s *CodeSecurityScanner) runVulns(ctx context.Context, opts *scanner.ScanOptions, cfg VulnsConfig) (*VulnsSummary, []VulnFinding) {
 	var findings []VulnFinding
 
 	timeout := opts.Timeout
@@ -298,7 +282,7 @@ func parseVulnsOutput(data []byte, repoPath string, cfg VulnsConfig) ([]VulnFind
 // SECRETS FEATURE
 // ============================================================================
 
-func (s *CodeScanner) runSecrets(ctx context.Context, opts *scanner.ScanOptions, cfg SecretsConfig) (*SecretsSummary, []SecretFinding) {
+func (s *CodeSecurityScanner) runSecrets(ctx context.Context, opts *scanner.ScanOptions, cfg SecretsConfig) (*SecretsSummary, []SecretFinding) {
 	var findings []SecretFinding
 
 	timeout := opts.Timeout
@@ -438,7 +422,7 @@ func parseSecretsOutput(data []byte, repoPath string, cfg SecretsConfig) ([]Secr
 // API FEATURE
 // ============================================================================
 
-func (s *CodeScanner) runAPI(ctx context.Context, opts *scanner.ScanOptions, cfg APIConfig) (*APISummary, []APIFinding) {
+func (s *CodeSecurityScanner) runAPI(ctx context.Context, opts *scanner.ScanOptions, cfg APIConfig) (*APISummary, []APIFinding) {
 	var findings []APIFinding
 
 	timeout := opts.Timeout
@@ -562,345 +546,6 @@ func parseAPIOutput(data []byte, repoPath string, cfg APIConfig) ([]APIFinding, 
 	}
 
 	return findings, summary
-}
-
-// ============================================================================
-// TECH DEBT FEATURE
-// ============================================================================
-
-func (s *CodeScanner) runTechDebt(ctx context.Context, opts *scanner.ScanOptions, cfg TechDebtConfig, hasSemgrep bool) (*TechDebtSummary, *TechDebtResult) {
-	var markers []DebtMarker
-	var issues []DebtIssue
-	fileStats := make(map[string]*FileDebt)
-
-	// Scan for debt markers
-	if cfg.IncludeMarkers || cfg.IncludeIssues {
-		scanForDebt(opts.RepoPath, &markers, &issues, fileStats, cfg)
-	}
-
-	// Use Semgrep for complexity analysis if available and enabled
-	if cfg.IncludeComplexity && hasSemgrep {
-		complexityIssues := runSemgrepComplexityAnalysis(ctx, opts.RepoPath, opts.Timeout)
-		issues = append(issues, complexityIssues...)
-	}
-
-	// Calculate hotspots
-	var hotspots []FileDebt
-	for _, fs := range fileStats {
-		if fs.TotalMarkers > 0 {
-			hotspots = append(hotspots, *fs)
-		}
-	}
-	sort.Slice(hotspots, func(i, j int) bool {
-		return hotspots[i].TotalMarkers > hotspots[j].TotalMarkers
-	})
-	if len(hotspots) > 20 {
-		hotspots = hotspots[:20]
-	}
-
-	summary := &TechDebtSummary{
-		TotalMarkers:  len(markers),
-		TotalIssues:   len(issues),
-		ByType:        make(map[string]int),
-		ByPriority:    make(map[string]int),
-		FilesAffected: len(hotspots),
-	}
-
-	for _, m := range markers {
-		summary.ByType[m.Type]++
-		summary.ByPriority[m.Priority]++
-	}
-
-	for _, iss := range issues {
-		if strings.HasPrefix(iss.Type, "complexity-") {
-			summary.ComplexityIssues++
-		}
-	}
-
-	return summary, &TechDebtResult{
-		Markers:  markers,
-		Issues:   issues,
-		Hotspots: hotspots,
-	}
-}
-
-func runSemgrepComplexityAnalysis(ctx context.Context, repoPath string, timeout time.Duration) []DebtIssue {
-	var issues []DebtIssue
-
-	if timeout == 0 {
-		timeout = 3 * time.Minute
-	}
-
-	ctx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	result, err := common.RunCommand(ctx, "semgrep",
-		"scan",
-		"--config", "p/maintainability",
-		"--json",
-		"--quiet",
-		"--include", "*.go",
-		"--include", "*.py",
-		"--include", "*.js",
-		"--include", "*.ts",
-		"--include", "*.java",
-		repoPath,
-	)
-
-	if err != nil || result == nil {
-		return issues
-	}
-
-	var semgrepOutput struct {
-		Results []struct {
-			CheckID string `json:"check_id"`
-			Path    string `json:"path"`
-			Start   struct {
-				Line int `json:"line"`
-			} `json:"start"`
-			Extra struct {
-				Message  string `json:"message"`
-				Severity string `json:"severity"`
-			} `json:"extra"`
-		} `json:"results"`
-	}
-
-	if err := json.Unmarshal(result.Stdout, &semgrepOutput); err != nil {
-		return issues
-	}
-
-	complexityKeywords := []string{
-		"complexity", "long", "nested", "deep", "lines", "parameters",
-		"function", "method", "class", "cognitive", "cyclomatic",
-	}
-
-	for _, r := range semgrepOutput.Results {
-		checkLower := strings.ToLower(r.CheckID)
-		msgLower := strings.ToLower(r.Extra.Message)
-
-		isComplexity := false
-		for _, kw := range complexityKeywords {
-			if strings.Contains(checkLower, kw) || strings.Contains(msgLower, kw) {
-				isComplexity = true
-				break
-			}
-		}
-
-		if !isComplexity {
-			continue
-		}
-
-		severity := strings.ToLower(r.Extra.Severity)
-		switch severity {
-		case "warning":
-			severity = "medium"
-		case "error":
-			severity = "high"
-		case "info":
-			severity = "low"
-		}
-
-		file := r.Path
-		if strings.HasPrefix(file, repoPath) {
-			file = strings.TrimPrefix(file, repoPath+"/")
-		}
-
-		issueType := categorizeComplexityIssue(r.CheckID, r.Extra.Message)
-
-		issues = append(issues, DebtIssue{
-			Type:        issueType,
-			Severity:    severity,
-			File:        file,
-			Line:        r.Start.Line,
-			Description: r.Extra.Message,
-			Suggestion:  getComplexitySuggestion(issueType),
-			Source:      "semgrep",
-		})
-	}
-
-	return issues
-}
-
-// Marker patterns
-var markerPatterns = []struct {
-	pattern  *regexp.Regexp
-	typ      string
-	priority string
-}{
-	{regexp.MustCompile(`(?i)\bFIXME\b[:\s]*(.{0,100})`), "FIXME", "high"},
-	{regexp.MustCompile(`(?i)\bXXX\b[:\s]*(.{0,100})`), "XXX", "high"},
-	{regexp.MustCompile(`(?i)\bBUG\b[:\s]*(.{0,100})`), "BUG", "high"},
-	{regexp.MustCompile(`(?i)\bHACK\b[:\s]*(.{0,100})`), "HACK", "high"},
-	{regexp.MustCompile(`(?i)\bWORKAROUND\b[:\s]*(.{0,100})`), "WORKAROUND", "high"},
-	{regexp.MustCompile(`(?i)\bTODO\b[:\s]*(.{0,100})`), "TODO", "medium"},
-	{regexp.MustCompile(`(?i)\bREFACTOR\b[:\s]*(.{0,100})`), "REFACTOR", "medium"},
-	{regexp.MustCompile(`(?i)\bOPTIMIZE\b[:\s]*(.{0,100})`), "OPTIMIZE", "medium"},
-	{regexp.MustCompile(`(?i)\bCLEANUP\b[:\s]*(.{0,100})`), "CLEANUP", "medium"},
-	{regexp.MustCompile(`(?i)\bTECH[_-]?DEBT\b[:\s]*(.{0,100})`), "TECH_DEBT", "medium"},
-	{regexp.MustCompile(`(?i)\bNOTE\b[:\s]*(.{0,100})`), "NOTE", "low"},
-	{regexp.MustCompile(`(?i)\bIDEA\b[:\s]*(.{0,100})`), "IDEA", "low"},
-	{regexp.MustCompile(`(?i)\bREVIEW\b[:\s]*(.{0,100})`), "REVIEW", "low"},
-	{regexp.MustCompile(`(?i)\bTEMP\b[:\s]*(.{0,100})`), "TEMP", "medium"},
-}
-
-// Issue patterns
-var issuePatterns = []struct {
-	pattern     *regexp.Regexp
-	typ         string
-	severity    string
-	description string
-	suggestion  string
-}{
-	{
-		regexp.MustCompile(`(?i)@deprecated`),
-		"deprecated-usage", "medium",
-		"Deprecated annotation found",
-		"Replace with current alternative",
-	},
-	{
-		regexp.MustCompile(`(?i)(noinspection|@suppress|eslint-disable|noqa|nosec)`),
-		"suppressed-warning", "low",
-		"Linter/analyzer warning suppressed",
-		"Address the underlying issue instead of suppressing",
-	},
-	{
-		regexp.MustCompile(`(?i)console\.(log|debug|info|warn|error)\s*\(`),
-		"debug-statement", "low",
-		"Console/debug statement in code",
-		"Remove debug statements or use proper logging",
-	},
-	{
-		regexp.MustCompile(`(?i)(sleep|wait|delay)\s*\(\s*\d+\s*\)`),
-		"hardcoded-delay", "medium",
-		"Hardcoded delay/sleep found",
-		"Use proper async patterns or event-driven approaches",
-	},
-	{
-		regexp.MustCompile(`(?i)catch\s*\([^)]*\)\s*\{\s*\}`),
-		"empty-catch", "high",
-		"Empty catch block swallows errors",
-		"Handle or log errors appropriately",
-	},
-	{
-		regexp.MustCompile(`(?i)(magic\s*number|hardcoded|hard-coded)`),
-		"magic-value", "low",
-		"Magic number or hardcoded value mentioned",
-		"Extract to named constant",
-	},
-	{
-		regexp.MustCompile(`(?i)DISABLED|SKIP|PENDING`),
-		"disabled-test", "medium",
-		"Disabled/skipped test detected",
-		"Fix or remove disabled tests",
-	},
-	{
-		regexp.MustCompile(`(?i)(process\.exit|os\.exit|sys\.exit|System\.exit)`),
-		"hard-exit", "medium",
-		"Hard process exit call",
-		"Use proper error handling and graceful shutdown",
-	},
-}
-
-var scanExtensions = map[string]bool{
-	".go": true, ".py": true, ".js": true, ".ts": true, ".tsx": true,
-	".jsx": true, ".java": true, ".rb": true, ".php": true, ".cs": true,
-	".cpp": true, ".c": true, ".h": true, ".hpp": true, ".rs": true,
-	".swift": true, ".kt": true, ".scala": true, ".vue": true, ".svelte": true,
-}
-
-func scanForDebt(repoPath string, markers *[]DebtMarker, issues *[]DebtIssue, fileStats map[string]*FileDebt, cfg TechDebtConfig) error {
-	return filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return nil
-		}
-
-		if info.IsDir() {
-			name := info.Name()
-			if name == ".git" || name == "node_modules" || name == "vendor" ||
-				name == "dist" || name == "build" || name == ".venv" ||
-				name == "__pycache__" || name == "target" {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-
-		ext := strings.ToLower(filepath.Ext(path))
-		if !scanExtensions[ext] {
-			return nil
-		}
-
-		scanFileForDebt(path, repoPath, markers, issues, fileStats, cfg)
-		return nil
-	})
-}
-
-func scanFileForDebt(filePath, repoPath string, markers *[]DebtMarker, issues *[]DebtIssue, fileStats map[string]*FileDebt, cfg TechDebtConfig) {
-	file, err := os.Open(filePath)
-	if err != nil {
-		return
-	}
-	defer file.Close()
-
-	relPath := filePath
-	if strings.HasPrefix(filePath, repoPath) {
-		relPath = strings.TrimPrefix(filePath, repoPath+"/")
-	}
-
-	scanner := bufio.NewScanner(file)
-	lineNum := 0
-
-	for scanner.Scan() {
-		lineNum++
-		line := scanner.Text()
-
-		// Look for debt markers
-		if cfg.IncludeMarkers {
-			for _, mp := range markerPatterns {
-				if matches := mp.pattern.FindStringSubmatch(line); len(matches) > 0 {
-					text := strings.TrimSpace(line)
-					if len(text) > 150 {
-						text = text[:150] + "..."
-					}
-
-					marker := DebtMarker{
-						Type:     mp.typ,
-						Priority: mp.priority,
-						File:     relPath,
-						Line:     lineNum,
-						Text:     text,
-					}
-					*markers = append(*markers, marker)
-
-					if _, ok := fileStats[relPath]; !ok {
-						fileStats[relPath] = &FileDebt{
-							File:   relPath,
-							ByType: make(map[string]int),
-						}
-					}
-					fileStats[relPath].TotalMarkers++
-					fileStats[relPath].ByType[mp.typ]++
-				}
-			}
-		}
-
-		// Look for code issues
-		if cfg.IncludeIssues {
-			for _, ip := range issuePatterns {
-				if ip.pattern.MatchString(line) {
-					issue := DebtIssue{
-						Type:        ip.typ,
-						Severity:    ip.severity,
-						File:        relPath,
-						Line:        lineNum,
-						Description: ip.description,
-						Suggestion:  ip.suggestion,
-						Source:      "pattern",
-					}
-					*issues = append(*issues, issue)
-				}
-			}
-		}
-	}
 }
 
 // ============================================================================
@@ -1117,44 +762,4 @@ func mapToOWASPAPI(ruleID string) string {
 	}
 
 	return ""
-}
-
-func categorizeComplexityIssue(checkID, message string) string {
-	combined := strings.ToLower(checkID + " " + message)
-
-	if strings.Contains(combined, "cyclomatic") || strings.Contains(combined, "complex") {
-		return "complexity-cyclomatic"
-	}
-	if strings.Contains(combined, "long") && strings.Contains(combined, "function") {
-		return "complexity-long-function"
-	}
-	if strings.Contains(combined, "lines") {
-		return "complexity-long-function"
-	}
-	if strings.Contains(combined, "nested") || strings.Contains(combined, "deep") {
-		return "complexity-deep-nesting"
-	}
-	if strings.Contains(combined, "parameter") || strings.Contains(combined, "argument") {
-		return "complexity-too-many-params"
-	}
-	if strings.Contains(combined, "cognitive") {
-		return "complexity-cognitive"
-	}
-
-	return "complexity-general"
-}
-
-func getComplexitySuggestion(issueType string) string {
-	suggestions := map[string]string{
-		"complexity-cyclomatic":     "Break down into smaller functions with single responsibilities",
-		"complexity-long-function":  "Extract logic into helper functions or separate methods",
-		"complexity-deep-nesting":   "Use early returns, guard clauses, or extract nested logic",
-		"complexity-too-many-params": "Group related parameters into objects/structs",
-		"complexity-cognitive":      "Simplify control flow and reduce cognitive load",
-		"complexity-general":        "Consider refactoring to improve maintainability",
-	}
-	if s, ok := suggestions[issueType]; ok {
-		return s
-	}
-	return "Consider refactoring for better maintainability"
 }

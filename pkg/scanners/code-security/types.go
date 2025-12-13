@@ -1,4 +1,4 @@
-package code
+package codesecurity
 
 // Result holds all feature results
 type Result struct {
@@ -9,19 +9,17 @@ type Result struct {
 
 // Summary holds summaries from all features
 type Summary struct {
-	Vulns    *VulnsSummary    `json:"vulns,omitempty"`
-	Secrets  *SecretsSummary  `json:"secrets,omitempty"`
-	API      *APISummary      `json:"api,omitempty"`
-	TechDebt *TechDebtSummary `json:"tech_debt,omitempty"`
-	Errors   []string         `json:"errors,omitempty"`
+	Vulns   *VulnsSummary   `json:"vulns,omitempty"`
+	Secrets *SecretsSummary `json:"secrets,omitempty"`
+	API     *APISummary     `json:"api,omitempty"`
+	Errors  []string        `json:"errors,omitempty"`
 }
 
 // Findings holds findings from all features
 type Findings struct {
-	Vulns    []VulnFinding    `json:"vulns,omitempty"`
-	Secrets  []SecretFinding  `json:"secrets,omitempty"`
-	API      []APIFinding     `json:"api,omitempty"`
-	TechDebt *TechDebtResult  `json:"tech_debt,omitempty"`
+	Vulns   []VulnFinding   `json:"vulns,omitempty"`
+	Secrets []SecretFinding `json:"secrets,omitempty"`
+	API     []APIFinding    `json:"api,omitempty"`
 }
 
 // Feature summaries
@@ -63,17 +61,6 @@ type APISummary struct {
 	Error         string         `json:"error,omitempty"`
 }
 
-// TechDebtSummary contains technical debt summary
-type TechDebtSummary struct {
-	TotalMarkers     int            `json:"total_markers"`
-	TotalIssues      int            `json:"total_issues"`
-	ComplexityIssues int            `json:"complexity_issues"`
-	ByType           map[string]int `json:"by_type"`
-	ByPriority       map[string]int `json:"by_priority"`
-	FilesAffected    int            `json:"files_affected"`
-	Error            string         `json:"error,omitempty"`
-}
-
 // Finding types
 
 // VulnFinding represents a code vulnerability finding
@@ -113,39 +100,4 @@ type APIFinding struct {
 	Line        int    `json:"line"`
 	Category    string `json:"category"`
 	OWASPApi    string `json:"owasp_api,omitempty"`
-}
-
-// TechDebtResult contains technical debt findings
-type TechDebtResult struct {
-	Markers  []DebtMarker `json:"markers"`
-	Issues   []DebtIssue  `json:"issues,omitempty"`
-	Hotspots []FileDebt   `json:"hotspots"`
-}
-
-// DebtMarker represents a TODO/FIXME marker
-type DebtMarker struct {
-	Type     string `json:"type"`
-	Priority string `json:"priority"`
-	File     string `json:"file"`
-	Line     int    `json:"line"`
-	Text     string `json:"text"`
-	Author   string `json:"author,omitempty"`
-}
-
-// DebtIssue represents a code smell or issue
-type DebtIssue struct {
-	Type        string `json:"type"`
-	Severity    string `json:"severity"`
-	File        string `json:"file"`
-	Line        int    `json:"line,omitempty"`
-	Description string `json:"description"`
-	Suggestion  string `json:"suggestion,omitempty"`
-	Source      string `json:"source,omitempty"`
-}
-
-// FileDebt represents debt statistics for a file
-type FileDebt struct {
-	File         string         `json:"file"`
-	TotalMarkers int            `json:"total_markers"`
-	ByType       map[string]int `json:"by_type"`
 }

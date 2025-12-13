@@ -1,18 +1,19 @@
 {
   "$schema": "./zero.config.schema.json",
-  "_version": "3.1.0",
+  "_version": "3.2.0",
   "_docs": "===================================================================================",
-  "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v3.1)",
+  "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v3.2)",
   "_docs3": "===================================================================================",
-  "_docs4": "Zero uses 7 consolidated 'super scanners' with configurable features:",
+  "_docs4": "Zero uses 8 consolidated 'super scanners' with configurable features:",
   "_docs5": "  - sbom: SBOM generation and integrity verification (source of truth)",
   "_docs6": "  - packages: vulnerabilities, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations, confusion, reachability",
   "_docs7": "  - crypto: ciphers, keys, random, tls, certificates",
-  "_docs8": "  - code: vulns, secrets, api, tech_debt",
-  "_docs9": "  - devops: iac, containers, github_actions, dora, git",
-  "_docs10": "  - health: technology, documentation, tests, ownership",
-  "_docs11": "  - ai: models, frameworks, datasets, security, governance (ML-BOM)",
-  "_docs12": "===================================================================================",
+  "_docs8": "  - code-security: vulns, secrets, api (security-focused code analysis)",
+  "_docs9": "  - quality: tech_debt, complexity, test_coverage, documentation (code quality)",
+  "_docs10": "  - devops: iac, containers, github_actions, dora, git",
+  "_docs11": "  - health: technology, documentation, tests, ownership",
+  "_docs12": "  - ai: models, frameworks, datasets, security, governance (ML-BOM)",
+  "_docs13": "===================================================================================",
   "settings": {
     "default_profile": "standard",
     "storage_path": ".zero",
@@ -141,30 +142,61 @@
         }
       }
     },
-    "code": {
+    "code-security": {
       "name": "Code Security",
-      "description": "Code security analysis: vulnerabilities, secrets, API security, technical debt",
+      "description": "Security-focused code analysis: vulnerabilities, secrets, API security",
       "estimated_time": "60-180s",
-      "output_file": "code.json",
+      "output_file": "code-security.json",
       "dependencies": [],
       "features": {
         "vulns": {
           "enabled": true,
-          "rulesets": ["p/security-audit", "p/owasp-top-ten"]
+          "rulesets": ["p/security-audit", "p/owasp-top-ten"],
+          "severity_minimum": "low"
         },
         "secrets": {
           "enabled": true,
-          "ruleset": "p/secrets"
+          "ruleset": "p/secrets",
+          "redact_secrets": true
         },
         "api": {
           "enabled": true,
           "check_openapi": true,
-          "check_graphql": true
-        },
+          "check_graphql": true,
+          "check_owasp_api": true
+        }
+      }
+    },
+    "quality": {
+      "name": "Code Quality",
+      "description": "Code quality analysis: technical debt, complexity, test coverage, documentation",
+      "estimated_time": "30-90s",
+      "output_file": "quality.json",
+      "dependencies": [],
+      "features": {
         "tech_debt": {
           "enabled": true,
-          "check_todos": true,
-          "check_complexity": true
+          "include_markers": true,
+          "include_issues": true,
+          "marker_types": ["TODO", "FIXME", "HACK", "XXX", "BUG", "WORKAROUND"]
+        },
+        "complexity": {
+          "enabled": true,
+          "check_cyclomatic": true,
+          "check_cognitive": true,
+          "check_nesting": true,
+          "max_function_lines": 50,
+          "max_cyclomatic": 10
+        },
+        "test_coverage": {
+          "enabled": true,
+          "parse_reports": true,
+          "minimum_threshold": 80
+        },
+        "code_docs": {
+          "enabled": true,
+          "check_public_api": true,
+          "check_readme": true
         }
       }
     },
@@ -308,14 +340,11 @@
       "name": "Standard",
       "description": "Balanced analysis covering security and code quality",
       "estimated_time": "~2 minutes",
-      "scanners": ["sbom", "packages", "code", "health"],
+      "scanners": ["sbom", "packages", "code-security", "health"],
       "feature_overrides": {
         "packages": {
           "bundle": {"enabled": false},
           "reachability": {"enabled": false}
-        },
-        "code": {
-          "tech_debt": {"enabled": false}
         }
       }
     },
@@ -323,7 +352,7 @@
       "name": "Security",
       "description": "Security-focused analysis for vulnerability assessment",
       "estimated_time": "~4 minutes",
-      "scanners": ["sbom", "packages", "crypto", "code", "devops"],
+      "scanners": ["sbom", "packages", "crypto", "code-security", "devops"],
       "feature_overrides": {
         "devops": {
           "dora": {"enabled": false},
@@ -334,21 +363,18 @@
     "full": {
       "name": "Full",
       "description": "Complete analysis with all features enabled",
-      "estimated_time": "~10 minutes",
-      "scanners": ["sbom", "packages", "crypto", "code", "devops", "health", "ai"]
+      "estimated_time": "~12 minutes",
+      "scanners": ["sbom", "packages", "crypto", "code-security", "quality", "devops", "health", "ai"]
     },
     "ai-security": {
       "name": "AI/ML Security",
       "description": "AI/ML focused security analysis with ML-BOM generation",
       "estimated_time": "~3 minutes",
-      "scanners": ["sbom", "packages", "code", "ai"],
+      "scanners": ["sbom", "packages", "code-security", "ai"],
       "feature_overrides": {
         "packages": {
           "bundle": {"enabled": false},
           "recommendations": {"enabled": false}
-        },
-        "code": {
-          "tech_debt": {"enabled": false}
         }
       }
     },
@@ -370,11 +396,17 @@
       "estimated_time": "~2 minutes",
       "scanners": ["crypto"]
     },
-    "code-only": {
-      "name": "Code Only",
-      "description": "Code security and quality analysis",
+    "code-security-only": {
+      "name": "Code Security Only",
+      "description": "Security-focused code analysis only",
       "estimated_time": "~3 minutes",
-      "scanners": ["code"]
+      "scanners": ["code-security"]
+    },
+    "quality-only": {
+      "name": "Quality Only",
+      "description": "Code quality analysis: tech debt, complexity, coverage",
+      "estimated_time": "~2 minutes",
+      "scanners": ["quality"]
     },
     "devops-only": {
       "name": "DevOps Only",
