@@ -11,6 +11,75 @@ All notable changes to Zero will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.1.0] - 2025-12-13
+
+### New Feature: AI Super Scanner (ML-BOM)
+
+Added a new **AI super scanner** for ML model security assessment and ML-BOM (Machine Learning Bill of Materials) generation.
+
+### Added
+- **AI Super Scanner** (`pkg/scanners/ai/`): Comprehensive AI/ML security analysis
+  - `models` feature: ML model inventory with file detection, code pattern scanning, config scanning
+  - `frameworks` feature: AI framework detection (PyTorch, TensorFlow, JAX, LangChain, etc.)
+  - `datasets` feature: Training dataset reference tracking
+  - `security` feature: Unsafe pickle files, torch.load() patterns, API key exposure
+  - `governance` feature: Model card validation, license compliance, dataset provenance
+
+- **Model Registry Integration**: Multi-registry metadata enrichment
+  - HuggingFace Hub API integration
+  - TensorFlow Hub detection
+  - PyTorch Hub detection
+  - Replicate.com model references
+  - Weights & Biases model artifacts
+  - MLflow model registry references
+
+- **Model File Detection**: Security-aware format analysis
+  - HIGH risk: `.pt`, `.pth`, `.pkl`, `.pickle`, `.bin`
+  - MEDIUM risk: `.onnx`, `.h5`, `.keras`
+  - LOW risk: `.safetensors`, `.gguf`, `.ggml`, `.tflite`
+
+- **Code Pattern Detection**: Model loading pattern identification
+  - HuggingFace: `from_pretrained()`, `pipeline()`, `AutoModel`
+  - PyTorch: `torch.load()`, `torch.hub.load()`
+  - TensorFlow: `keras.models.load_model()`, `tf.saved_model.load()`
+  - LLM APIs: OpenAI, Anthropic, Google AI, Cohere, Mistral
+
+- **Turing Agent** (`.claude/agents/turing.md`): AI/ML security specialist
+  - Named after Alan Turing - father of AI and legendary codebreaker
+  - Expertise: ML model security, ML-BOM, AI framework analysis, LLM security
+  - Can delegate to Cereal (supply chain), Razor (code security), Gill (crypto)
+
+- **RAG Knowledge** (`rag/domains/ai.md`): AI/ML security domain knowledge
+  - Model file format security reference
+  - AI framework security patterns
+  - LLM API key patterns and secure handling
+  - Model provenance and supply chain risks
+  - AI governance requirements
+
+### Security Findings
+| ID | Category | Severity | Description |
+|----|----------|----------|-------------|
+| MLSEC-001 | pickle_rce | High | Unsafe pickle model file |
+| MLSEC-002 | unsafe_loading | High | torch.load without weights_only |
+| MLSEC-003 | api_key_exposure | Critical | Hardcoded LLM API key |
+| MLGOV-001 | missing_model_card | Medium | No model documentation |
+| MLGOV-002 | missing_license | Medium | Unknown model license |
+| MLGOV-003 | blocked_license | High | Non-compliant license |
+
+### Scanner Architecture (v3.1)
+
+| Scanner | Features | Dependencies |
+|---------|----------|--------------|
+| **sbom** | generation, integrity | none (runs first) |
+| **packages** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | sbom |
+| **crypto** | ciphers, keys, random, tls, certificates | none |
+| **code** | vulns, secrets, api, tech_debt | none |
+| **devops** | iac, containers, github_actions, dora, git | none |
+| **health** | technology, documentation, tests, ownership | none |
+| **ai** | models, frameworks, datasets, security, governance | none |
+
+---
+
 ## [6.0.0] - 2025-12-13
 
 ### Major Architecture: Super Scanner v3.0

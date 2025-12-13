@@ -217,3 +217,100 @@ type APIProviderInfo struct {
 	EnvVars  []string `json:"env_vars"`
 	Packages []string `json:"packages"`
 }
+
+// ModelRegistry represents a model hosting registry
+type ModelRegistry struct {
+	Name        string `json:"name"`
+	BaseURL     string `json:"base_url"`
+	APIURL      string `json:"api_url,omitempty"`
+	HasAPI      bool   `json:"has_api"`
+	Description string `json:"description"`
+}
+
+// ModelRegistries defines supported model registries
+var ModelRegistries = map[string]ModelRegistry{
+	"huggingface": {
+		Name:        "HuggingFace Hub",
+		BaseURL:     "https://huggingface.co",
+		APIURL:      "https://huggingface.co/api/models",
+		HasAPI:      true,
+		Description: "Largest open ML model repository with 400k+ models",
+	},
+	"tensorflow_hub": {
+		Name:        "TensorFlow Hub",
+		BaseURL:     "https://tfhub.dev",
+		APIURL:      "",
+		HasAPI:      false,
+		Description: "Google's repository for reusable TensorFlow models",
+	},
+	"pytorch_hub": {
+		Name:        "PyTorch Hub",
+		BaseURL:     "https://pytorch.org/hub",
+		APIURL:      "",
+		HasAPI:      false,
+		Description: "Official PyTorch model repository",
+	},
+	"replicate": {
+		Name:        "Replicate",
+		BaseURL:     "https://replicate.com",
+		APIURL:      "https://api.replicate.com/v1/models",
+		HasAPI:      true,
+		Description: "Cloud ML platform with versioned models",
+	},
+	"wandb": {
+		Name:        "Weights & Biases",
+		BaseURL:     "https://wandb.ai",
+		APIURL:      "https://api.wandb.ai/artifacts",
+		HasAPI:      true,
+		Description: "MLOps platform with model artifacts",
+	},
+	"mlflow": {
+		Name:        "MLflow Model Registry",
+		BaseURL:     "",
+		APIURL:      "",
+		HasAPI:      false,
+		Description: "Self-hosted MLOps model registry",
+	},
+	"civitai": {
+		Name:        "Civitai",
+		BaseURL:     "https://civitai.com",
+		APIURL:      "https://civitai.com/api/v1/models",
+		HasAPI:      true,
+		Description: "Community platform for Stable Diffusion models",
+	},
+	"kaggle": {
+		Name:        "Kaggle Models",
+		BaseURL:     "https://kaggle.com/models",
+		APIURL:      "",
+		HasAPI:      false,
+		Description: "Kaggle's ML model repository",
+	},
+	"ollama": {
+		Name:        "Ollama Library",
+		BaseURL:     "https://ollama.com/library",
+		APIURL:      "",
+		HasAPI:      false,
+		Description: "Local LLM model library for ollama",
+	},
+	"nvidia_ngc": {
+		Name:        "NVIDIA NGC",
+		BaseURL:     "https://catalog.ngc.nvidia.com",
+		APIURL:      "",
+		HasAPI:      true,
+		Description: "NVIDIA's GPU-optimized model catalog",
+	},
+	"aws_jumpstart": {
+		Name:        "AWS SageMaker JumpStart",
+		BaseURL:     "",
+		APIURL:      "",
+		HasAPI:      false,
+		Description: "AWS ML model catalog for SageMaker",
+	},
+	"azure_ml": {
+		Name:        "Azure ML Model Catalog",
+		BaseURL:     "",
+		APIURL:      "",
+		HasAPI:      false,
+		Description: "Microsoft Azure ML model repository",
+	},
+}
