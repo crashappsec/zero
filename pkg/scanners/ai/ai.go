@@ -163,9 +163,17 @@ func (s *AIScanner) runModelsFeature(ctx context.Context, repoPath string, resul
 		}
 	}
 
-	// 4. Query HuggingFace API for model metadata
+	// 4. Query model registry APIs for metadata
 	if s.config.Models.QueryHuggingFace {
+		// Enrich HuggingFace models
 		s.enrichWithHuggingFaceMetadata(ctx, result.Findings.Models)
+
+		// Enrich Replicate models
+		s.enrichWithReplicateMetadata(ctx, result.Findings.Models)
+
+		// Add source URLs for all models
+		s.enrichModelSourceURLs(result.Findings.Models)
+
 		for _, model := range result.Findings.Models {
 			if model.ModelCard != nil {
 				summary.WithModelCard++
@@ -179,12 +187,17 @@ func (s *AIScanner) runModelsFeature(ctx context.Context, repoPath string, resul
 		}
 	}
 
-	// Count API models
+	// Count API models and track registry sources
+	registryCounts := make(map[string]int)
 	for _, model := range result.Findings.Models {
 		if model.Source == "api" {
 			summary.APIModels++
 		}
+		registryCounts[model.Source]++
 	}
+
+	// Add registry counts to summary
+	summary.BySource = registryCounts
 
 	result.Summary.Models = summary
 }
@@ -250,6 +263,12 @@ var modelLoadPatterns = []struct {
 		Source:      "huggingface",
 		ExtractName: func(m []string) string { return m[1] },
 	},
+	// HuggingFace Hub download
+	{
+		Pattern:     regexp.MustCompile(`hf_hub_download\s*\([^)]*repo_id\s*=\s*["']([^"']+)["']`),
+		Source:      "huggingface",
+		ExtractName: func(m []string) string { return m[1] },
+	},
 	// PyTorch Hub
 	{
 		Pattern:     regexp.MustCompile(`torch\.hub\.load\s*\(\s*["']([^"']+)["']\s*,\s*["']([^"']+)["']`),
@@ -260,6 +279,108 @@ var modelLoadPatterns = []struct {
 	{
 		Pattern:     regexp.MustCompile(`hub\.(?:KerasLayer|load)\s*\(\s*["']([^"']+)["']`),
 		Source:      "tensorflow_hub",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// TensorFlow Hub URL pattern
+	{
+		Pattern:     regexp.MustCompile(`["'](https?://tfhub\.dev/[^"']+)["']`),
+		Source:      "tensorflow_hub",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// Replicate models - replicate.run("owner/model:version")
+	{
+		Pattern:     regexp.MustCompile(`replicate\.run\s*\(\s*["']([^"']+)["']`),
+		Source:      "replicate",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// Replicate Client.run
+	{
+		Pattern:     regexp.MustCompile(`Replicate\s*\([^)]*\)\s*\.run\s*\(\s*["']([^"']+)["']`),
+		Source:      "replicate",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// Weights & Biases model artifacts
+	{
+		Pattern:     regexp.MustCompile(`wandb\.use_artifact\s*\(\s*["']([^"']+)["']`),
+		Source:      "wandb",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// W&B artifact download
+	{
+		Pattern:     regexp.MustCompile(`wandb\.Api\s*\([^)]*\)\.artifact\s*\(\s*["']([^"']+)["']`),
+		Source:      "wandb",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// MLflow model loading
+	{
+		Pattern:     regexp.MustCompile(`mlflow\.(?:pyfunc|sklearn|pytorch|tensorflow|keras)\.load_model\s*\(\s*["']([^"']+)["']`),
+		Source:      "mlflow",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// MLflow model registry URI
+	{
+		Pattern:     regexp.MustCompile(`["'](models:/[^"']+)["']`),
+		Source:      "mlflow",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// MLflow runs artifacts
+	{
+		Pattern:     regexp.MustCompile(`["'](runs:/[^"']+)["']`),
+		Source:      "mlflow",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// Kaggle models download
+	{
+		Pattern:     regexp.MustCompile(`kaggle\.api\.model_get\s*\([^)]*model\s*=\s*["']([^"']+)["']`),
+		Source:      "kaggle",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// Kaggle Hub
+	{
+		Pattern:     regexp.MustCompile(`kagglehub\.model_download\s*\(\s*["']([^"']+)["']`),
+		Source:      "kaggle",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// Civitai model references (URL pattern)
+	{
+		Pattern:     regexp.MustCompile(`["'](https?://civitai\.com/(?:api/download/)?models/[^"']+)["']`),
+		Source:      "civitai",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// NVIDIA NGC catalog
+	{
+		Pattern:     regexp.MustCompile(`["'](nvcr\.io/[^"']+)["']`),
+		Source:      "nvidia_ngc",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// NGC CLI pattern
+	{
+		Pattern:     regexp.MustCompile(`ngc\s+(?:registry\s+)?model\s+download[^"']*["']([^"']+)["']`),
+		Source:      "nvidia_ngc",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// AWS SageMaker JumpStart
+	{
+		Pattern:     regexp.MustCompile(`JumpStartModel\s*\(\s*model_id\s*=\s*["']([^"']+)["']`),
+		Source:      "aws_jumpstart",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// SageMaker model ID
+	{
+		Pattern:     regexp.MustCompile(`sagemaker\.(?:model_uris|image_uris)\.[^(]+\([^)]*model_id\s*=\s*["']([^"']+)["']`),
+		Source:      "aws_jumpstart",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// Azure ML model
+	{
+		Pattern:     regexp.MustCompile(`Model\s*\([^)]*name\s*=\s*["']([^"']+)["'][^)]*workspace`),
+		Source:      "azure_ml",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// Azure ML model registry
+	{
+		Pattern:     regexp.MustCompile(`azureml://registries/[^/]+/models/([^/"']+)`),
+		Source:      "azure_ml",
 		ExtractName: func(m []string) string { return m[1] },
 	},
 	// OpenAI API models
@@ -280,7 +401,37 @@ var modelLoadPatterns = []struct {
 		Source:      "api",
 		ExtractName: func(m []string) string { return "google/" + m[1] },
 	},
+	// Mistral models
+	{
+		Pattern:     regexp.MustCompile(`model\s*[=:]\s*["'](mistral-[^"']+|open-mistral[^"']+|open-mixtral[^"']+)["']`),
+		Source:      "api",
+		ExtractName: func(m []string) string { return "mistral/" + m[1] },
+	},
+	// Cohere models
+	{
+		Pattern:     regexp.MustCompile(`model\s*[=:]\s*["'](command[^"']*|embed[^"']*)["']`),
+		Source:      "api",
+		ExtractName: func(m []string) string { return "cohere/" + m[1] },
+	},
+	// Together AI models
+	{
+		Pattern:     regexp.MustCompile(`together\.Complete[^(]*\([^)]*model\s*=\s*["']([^"']+)["']`),
+		Source:      "api",
+		ExtractName: func(m []string) string { return "together/" + m[1] },
+	},
+	// Groq models
+	{
+		Pattern:     regexp.MustCompile(`Groq\s*\([^)]*\)\.chat[^(]*\([^)]*model\s*=\s*["']([^"']+)["']`),
+		Source:      "api",
+		ExtractName: func(m []string) string { return "groq/" + m[1] },
+	},
 	// Ollama models
+	{
+		Pattern:     regexp.MustCompile(`ollama\.(?:chat|generate|embeddings)\s*\([^)]*model\s*=\s*["']([^"']+)["']`),
+		Source:      "ollama",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// Ollama client pull/show
 	{
 		Pattern:     regexp.MustCompile(`(?:model|model_name)\s*[=:]\s*["']([a-z0-9]+-?[a-z0-9]*(?::[a-z0-9.]+)?)["']`),
 		Source:      "ollama",
@@ -303,6 +454,18 @@ var modelLoadPatterns = []struct {
 		Pattern:     regexp.MustCompile(`Llama\s*\([^)]*model_path\s*=\s*["']([^"']+)["']`),
 		Source:      "local",
 		ExtractName: func(m []string) string { return filepath.Base(m[1]) },
+	},
+	// vLLM model loading
+	{
+		Pattern:     regexp.MustCompile(`LLM\s*\(\s*(?:model\s*=\s*)?["']([^"']+)["']`),
+		Source:      "huggingface",
+		ExtractName: func(m []string) string { return m[1] },
+	},
+	// text-generation-inference
+	{
+		Pattern:     regexp.MustCompile(`--model-id\s+["']?([^\s"']+)`),
+		Source:      "huggingface",
+		ExtractName: func(m []string) string { return m[1] },
 	},
 }
 
@@ -567,6 +730,139 @@ func (s *AIScanner) modelExists(models []MLModel, name string) bool {
 		}
 	}
 	return false
+}
+
+// enrichWithReplicateMetadata queries Replicate API for model metadata
+func (s *AIScanner) enrichWithReplicateMetadata(ctx context.Context, models []MLModel) {
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	for i := range models {
+		if models[i].Source != "replicate" {
+			continue
+		}
+
+		// Parse model name (format: owner/model or owner/model:version)
+		modelName := models[i].Name
+		if idx := strings.Index(modelName, ":"); idx > 0 {
+			modelName = modelName[:idx] // Remove version
+		}
+
+		// Query Replicate API (no auth required for public info)
+		url := fmt.Sprintf("https://api.replicate.com/v1/models/%s", modelName)
+
+		req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+		if err != nil {
+			continue
+		}
+
+		resp, err := client.Do(req)
+		if err != nil || resp.StatusCode != 200 {
+			if resp != nil {
+				resp.Body.Close()
+			}
+			continue
+		}
+
+		var repModel struct {
+			Owner       string `json:"owner"`
+			Name        string `json:"name"`
+			Description string `json:"description"`
+			Visibility  string `json:"visibility"`
+			URL         string `json:"url"`
+			GitHub      struct {
+				URL string `json:"url"`
+			} `json:"github_url"`
+			Paper struct {
+				URL string `json:"url"`
+			} `json:"paper_url"`
+			License struct {
+				URL  string `json:"url"`
+				Name string `json:"name"`
+			} `json:"license_url"`
+			LatestVersion struct {
+				ID string `json:"id"`
+			} `json:"latest_version"`
+		}
+
+		if err := json.NewDecoder(resp.Body).Decode(&repModel); err != nil {
+			resp.Body.Close()
+			continue
+		}
+		resp.Body.Close()
+
+		// Enrich model
+		models[i].SourceURL = fmt.Sprintf("https://replicate.com/%s", modelName)
+
+		if repModel.License.Name != "" {
+			models[i].License = repModel.License.Name
+		}
+
+		// Create model card
+		models[i].ModelCard = &ModelCard{
+			Description: repModel.Description,
+			Author:      repModel.Owner,
+			License:     repModel.License.Name,
+		}
+	}
+}
+
+// enrichModelSourceURLs adds source URLs for models from various registries
+func (s *AIScanner) enrichModelSourceURLs(models []MLModel) {
+	for i := range models {
+		if models[i].SourceURL != "" {
+			continue
+		}
+
+		switch models[i].Source {
+		case "huggingface":
+			if !strings.HasPrefix(models[i].Name, "http") {
+				models[i].SourceURL = fmt.Sprintf("https://huggingface.co/%s", models[i].Name)
+			}
+		case "pytorch_hub":
+			// Format: owner/repo/model -> https://github.com/owner/repo
+			parts := strings.Split(models[i].Name, "/")
+			if len(parts) >= 2 {
+				models[i].SourceURL = fmt.Sprintf("https://github.com/%s/%s", parts[0], parts[1])
+			}
+		case "tensorflow_hub":
+			if strings.HasPrefix(models[i].Name, "http") {
+				models[i].SourceURL = models[i].Name
+			} else {
+				models[i].SourceURL = fmt.Sprintf("https://tfhub.dev/%s", models[i].Name)
+			}
+		case "replicate":
+			modelName := models[i].Name
+			if idx := strings.Index(modelName, ":"); idx > 0 {
+				modelName = modelName[:idx]
+			}
+			models[i].SourceURL = fmt.Sprintf("https://replicate.com/%s", modelName)
+		case "wandb":
+			// Format: entity/project/artifact:version
+			models[i].SourceURL = fmt.Sprintf("https://wandb.ai/artifacts/%s", models[i].Name)
+		case "kaggle":
+			models[i].SourceURL = fmt.Sprintf("https://kaggle.com/models/%s", models[i].Name)
+		case "civitai":
+			if strings.HasPrefix(models[i].Name, "http") {
+				models[i].SourceURL = models[i].Name
+			}
+		case "nvidia_ngc":
+			if strings.HasPrefix(models[i].Name, "nvcr.io/") {
+				models[i].SourceURL = fmt.Sprintf("https://catalog.ngc.nvidia.com/orgs/nvidia/containers/%s",
+					strings.TrimPrefix(models[i].Name, "nvcr.io/"))
+			}
+		case "ollama":
+			models[i].SourceURL = fmt.Sprintf("https://ollama.com/library/%s", models[i].Name)
+		}
+
+		// Set registry info from ModelRegistries
+		if registry, ok := ModelRegistries[models[i].Source]; ok {
+			if models[i].Metadata == nil {
+				models[i].Metadata = make(map[string]any)
+			}
+			models[i].Metadata["registry"] = registry.Name
+			models[i].Metadata["registry_description"] = registry.Description
+		}
+	}
 }
 
 // runFrameworksFeature detects AI/ML frameworks

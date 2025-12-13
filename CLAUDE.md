@@ -3,9 +3,9 @@
 Zero provides security analysis tools and specialist AI agents for repository assessment.
 Named after characters from the movie Hackers (1995) - "Hack the planet!"
 
-## Super Scanner Architecture (v3.0)
+## Super Scanner Architecture (v3.1)
 
-Zero uses **6 consolidated super scanners** with configurable features:
+Zero uses **7 consolidated super scanners** with configurable features:
 
 | Scanner | Features | Description |
 |---------|----------|-------------|
@@ -15,10 +15,12 @@ Zero uses **6 consolidated super scanners** with configurable features:
 | **code** | vulns, secrets, api, tech_debt | Code security analysis |
 | **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security |
 | **health** | technology, documentation, tests, ownership | Project health |
+| **ai** | models, frameworks, datasets, security, governance | AI/ML security and ML-BOM generation |
 
 **Key architecture notes:**
 - `sbom` scanner runs first and generates `sbom.cdx.json` (CycloneDX format)
 - `packages` scanner depends on sbom output - does not generate its own SBOM
+- `ai` scanner generates ML-BOM (Machine Learning Bill of Materials)
 - Each scanner produces **one JSON output file** with all feature results
 
 ## Orchestrator: Zero
@@ -43,6 +45,7 @@ The following agents are available for specialized analysis tasks. Use the Task 
 | `plague` | Plague | The Plague | DevOps, infrastructure, Kubernetes, IaC | **devops** |
 | `gibson` | Gibson | The Gibson | DORA metrics, team health, engineering KPIs | **devops** (dora, git), **health** |
 | `gill` | Gill | Gill Bates | Cryptography, ciphers, keys, TLS, random | **crypto** |
+| `turing` | Turing | Alan Turing | AI/ML security, ML-BOM, model safety, LLM security | **ai** |
 
 ### Agent Details
 
@@ -83,6 +86,21 @@ Specializes in cryptographic security analysis, cipher review, key management, T
 ```
 Task tool with subagent_type: "gill"
 prompt: "Analyze the cryptographic security of this repository. Focus on hardcoded keys and weak ciphers."
+```
+
+#### Turing (AI/ML Security Specialist)
+**subagent_type:** `turing`
+
+Alan Turing - the father of artificial intelligence and legendary codebreaker. Uses deep understanding of machine learning to secure AI systems against emerging ML supply chain threats.
+Specializes in ML model security, ML-BOM generation, AI framework analysis, LLM security, and AI governance.
+
+**Primary scanner:** `ai`
+**Required data:** `ai.json` (contains models, frameworks, datasets, security, governance)
+
+**Example invocation:**
+```
+Task tool with subagent_type: "turing"
+prompt: "Analyze the AI/ML security of this repository. Check for unsafe pickle models and exposed API keys."
 ```
 
 #### Plague (DevOps Engineer)
@@ -219,7 +237,8 @@ zero/
                   ├─► crypto.json      (5 features)
                   ├─► code.json        (4 features)
                   ├─► devops.json      (5 features)
-                  └─► health.json      (4 features)
+                  ├─► health.json      (4 features)
+                  └─► ai.json          (5 features) - ML-BOM
 
 /agent
          │
@@ -291,12 +310,13 @@ Profiles define which scanners and features to run:
 |---------|----------|----------|
 | `quick` | sbom, packages (limited), health | Fast feedback |
 | `standard` | sbom, packages, code, health | Balanced analysis |
-| `security` | sbom, packages, crypto, code, devops | Security-focused |
-| `full` | All 6 scanners | Complete analysis |
+| `security` | sbom, packages, crypto, code, devops, ai | Security-focused |
+| `full` | All 7 scanners | Complete analysis |
 | `packages-only` | sbom, packages | Dependency analysis only |
 | `crypto-only` | crypto | Crypto security only |
 | `devops` | devops, health | CI/CD and metrics |
 | `compliance` | sbom, packages, health | License/compliance |
+| `ai` | ai | ML-BOM and AI security only |
 
 ## Environment Variables
 
