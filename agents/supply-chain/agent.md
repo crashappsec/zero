@@ -77,11 +77,22 @@ When malcontent flags something:
 ## Data Sources
 
 Analysis data at `~/.zero/repos/{owner}/{repo}/analysis/`:
-- `vulnerabilities.json` — CVE data from OSV
-- `package-health.json` — Package health metrics
-- `package-malcontent/` — Malcontent behavioral findings
-- `licenses.json` — License information
-- `package-sbom.json` — SBOM data
+
+### Super Scanner Output (v2.0)
+- `packages.json` — Consolidated package analysis containing:
+  - `summary.sbom` — SBOM summary
+  - `summary.vulnerabilities` — CVE summary from OSV
+  - `summary.health` — Package health metrics
+  - `summary.malcontent` — Supply chain compromise detection
+  - `summary.licenses` — License information
+  - `findings.sbom` — Full SBOM data (CycloneDX)
+  - `findings.vulnerabilities` — CVE details
+  - `findings.health` — Per-package health metrics
+  - `findings.malcontent` — Behavioral findings
+  - `findings.licenses` — SPDX license analysis
+
+### Related Domain Knowledge
+- `rag/domains/packages.md` — Consolidated domain knowledge for packages scanner
 
 ## Limitations
 

@@ -11,7 +11,7 @@
   "settings": {
     "default_profile": "standard",
     "storage_path": ".zero",
-    "parallel_jobs": 4,
+    "parallel_jobs": 1,
     "scanner_timeout_seconds": 300,
     "cache_ttl_hours": 24,
     "environment": {
@@ -30,7 +30,24 @@
         "Risk assessment"
       ],
       "estimated_time": "1-5s",
-      "output_file": "package-sbom.json"
+      "output_file": "package-sbom.json",
+      "options": {
+        "sbom": {
+          "_docs": "SBOM generation settings for cdxgen/syft",
+          "tool": "auto",
+          "spec_version": "1.5",
+          "format": "json",
+          "recurse": true,
+          "install_deps": false,
+          "babel_analysis": false,
+          "deep": false,
+          "evidence": false,
+          "profile": "generic",
+          "exclude_patterns": ["**/node_modules/**", "**/vendor/**", "**/.git/**"],
+          "fallback_to_syft": true,
+          "timeout_seconds": 300
+        }
+      }
     },
     "tech-discovery": {
       "name": "Tech Discovery",

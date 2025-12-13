@@ -3,6 +3,7 @@ package hydrate
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -10,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/crashappsec/zero/pkg/config"
@@ -21,14 +21,24 @@ import (
 
 // Options configures the hydrate command
 type Options struct {
-	Org          string
-	Limit        int
-	Profile      string
-	Force        bool
-	SkipSlow     bool
-	Yes          bool
-	Parallel     int
-	SkipScanners []string
+	// Target
+	Org   string // GitHub organization
+	Repo  string // Single repo (owner/repo)
+	Limit int    // Max repos in org mode
+
+	// Clone options
+	Branch    string // Clone specific branch
+	Depth     int    // Shallow clone depth
+	CloneOnly bool   // Clone without scanning
+
+	// Scan options
+	Profile          string   // Scan profile
+	Force            bool     // Re-scan even if exists
+	SkipSlow         bool     // Skip slow scanners
+	Yes              bool     // Auto-accept prompts
+	ParallelRepos    int      // Parallel repo processing (default: 1)
+	ParallelScanners int      // Parallel scanner execution (default: 4)
+	SkipScanners     []string // Scanners to skip
 }
 
 // RepoStatus tracks the status of a repo being processed
@@ -47,7 +57,7 @@ type Hydrate struct {
 	cfg      *config.Config
 	term     *terminal.Terminal
 	gh       *github.Client
-	runner   *scanner.Runner
+	runner   *scanner.NativeRunner
 	opts     *Options
 	zeroHome string
 }
@@ -59,61 +69,110 @@ func New(opts *Options) (*Hydrate, error) {
 		return nil, fmt.Errorf("loading config: %w", err)
 	}
 
-	zeroHome := cfg.Settings.ZeroHome
+	zeroHome := cfg.ZeroHome()
 	if zeroHome == "" {
 		zeroHome = ".zero"
 	}
 
-	if opts.Parallel == 0 {
-		opts.Parallel = cfg.Settings.ParallelJobs
+	if opts.ParallelRepos == 0 {
+		opts.ParallelRepos = cfg.Settings.ParallelRepos
+	}
+	if opts.ParallelScanners == 0 {
+		opts.ParallelScanners = cfg.Settings.ParallelScanners
 	}
 
 	return &Hydrate{
 		cfg:      cfg,
 		term:     terminal.New(),
 		gh:       github.NewClient(),
-		runner:   scanner.NewRunner(zeroHome),
+		runner:   scanner.NewNativeRunner(zeroHome),
 		opts:     opts,
 		zeroHome: zeroHome,
 	}, nil
 }
 
-// Run executes the hydrate process
-func (h *Hydrate) Run(ctx context.Context) error {
+// Run executes the hydrate process and returns scanned project IDs
+func (h *Hydrate) Run(ctx context.Context) ([]string, error) {
 	start := time.Now()
 	scanID := fmt.Sprintf("scan-%s", time.Now().Format("20060102-150405"))
 
-	// Fetch repositories
-	h.term.Info("Fetching repositories for %s...", h.term.Color(terminal.Cyan, h.opts.Org))
+	var repos []github.Repository
+	var targetName string
 
-	repos, err := h.gh.ListOrgRepos(h.opts.Org, h.opts.Limit)
-	if err != nil {
-		return fmt.Errorf("listing repos: %w", err)
-	}
+	// Single repo or org mode
+	if h.opts.Repo != "" {
+		// Single repo mode
+		targetName = h.opts.Repo
+		h.term.Info("Hydrating %s...", h.term.Color(terminal.Cyan, h.opts.Repo))
 
-	if len(repos) == 0 {
-		return fmt.Errorf("no repositories found for org: %s", h.opts.Org)
+		// Parse owner/repo
+		parts := strings.Split(h.opts.Repo, "/")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid repo format: use owner/repo")
+		}
+
+		repos = []github.Repository{{
+			Name:          parts[1],
+			NameWithOwner: h.opts.Repo,
+			Owner:         parts[0],
+			DefaultBranch: h.opts.Branch,
+			SSHURL:        fmt.Sprintf("git@github.com:%s.git", h.opts.Repo),
+			CloneURL:      fmt.Sprintf("https://github.com/%s.git", h.opts.Repo),
+		}}
+	} else {
+		// Org mode
+		targetName = h.opts.Org
+		h.term.Info("Fetching repositories for %s...", h.term.Color(terminal.Cyan, h.opts.Org))
+
+		var err error
+		repos, err = h.gh.ListOrgRepos(h.opts.Org, h.opts.Limit)
+		if err != nil {
+			return nil, fmt.Errorf("listing repos: %w", err)
+		}
+
+		if len(repos) == 0 {
+			return nil, fmt.Errorf("no repositories found for org: %s", h.opts.Org)
+		}
 	}
 
 	// Get scanners for profile
 	scanners, err := h.cfg.GetProfileScanners(h.opts.Profile)
 	if err != nil {
-		return fmt.Errorf("getting scanners: %w", err)
+		return nil, fmt.Errorf("getting scanners: %w", err)
 	}
 
 	// Print header
 	h.term.Divider()
-	h.term.Info("%s %s", h.term.Color(terminal.Bold, "Hydrate Organization:"), h.term.Color(terminal.Cyan, h.opts.Org))
+	if h.opts.Org != "" {
+		h.term.Info("%s %s", h.term.Color(terminal.Bold, "Hydrate Organization:"), h.term.Color(terminal.Cyan, h.opts.Org))
+	} else {
+		h.term.Info("%s %s", h.term.Color(terminal.Bold, "Hydrate Repository:"), h.term.Color(terminal.Cyan, h.opts.Repo))
+	}
 	h.term.Info("Scan ID:      %s", h.term.Color(terminal.Dim, scanID))
 	h.term.Info("Repositories: %s", h.term.Color(terminal.Cyan, strconv.Itoa(len(repos))))
 	h.term.Info("Profile:      %s", h.term.Color(terminal.Cyan, h.opts.Profile))
-	h.term.Info("Parallel:     %s", h.term.Color(terminal.Cyan, fmt.Sprintf("%d jobs", h.opts.Parallel)))
+	h.term.Info("Scanners:     %s", h.term.Color(terminal.Cyan, fmt.Sprintf("%d parallel", h.opts.ParallelScanners)))
 
 	// Phase 1: Clone
 	h.term.Header("CLONING")
 	repoStatuses, err := h.cloneRepos(ctx, repos)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	// Collect project IDs for return
+	var projectIDs []string
+	for _, status := range repoStatuses {
+		if status.CloneOK {
+			projectIDs = append(projectIDs, github.ProjectID(status.Repo.NameWithOwner))
+		}
+	}
+
+	// Stop here if clone-only
+	if h.opts.CloneOnly {
+		h.term.Divider()
+		h.term.Success("Clone complete (--clone-only)")
+		return projectIDs, nil
 	}
 
 	// Check for slow scanners
@@ -129,22 +188,28 @@ func (h *Hydrate) Run(ctx context.Context) error {
 	h.term.ClearLine()
 	h.term.ScanComplete()
 
+	// Print per-scanner results table
+	h.printScannerResultsTable(repoStatuses, scanners, skipScanners)
+
+	// Aggregate findings from all repos
+	findings := h.aggregateFindings(repoStatuses)
+
 	// Print summary
 	duration := int(time.Since(start).Seconds())
 	diskUsage := h.getDiskUsage()
 	totalFiles := h.getTotalFiles(repoStatuses)
 
 	h.term.Divider()
-	h.term.Summary(h.opts.Org, duration, successCount, failedCount, diskUsage, formatNumber(totalFiles))
+	h.term.SummaryWithFindings(targetName, duration, successCount, failedCount, diskUsage, formatNumber(totalFiles), findings)
 
-	return nil
+	return projectIDs, nil
 }
 
-// cloneRepos clones all repositories in parallel
+// cloneRepos clones all repositories (sequential by default for clean output)
 func (h *Hydrate) cloneRepos(ctx context.Context, repos []github.Repository) ([]*RepoStatus, error) {
 	statuses := make([]*RepoStatus, len(repos))
 	var wg sync.WaitGroup
-	sem := make(chan struct{}, h.opts.Parallel)
+	sem := make(chan struct{}, h.opts.ParallelRepos)
 
 	for i, repo := range repos {
 		statuses[i] = &RepoStatus{Repo: repo}
@@ -173,8 +238,9 @@ func (h *Hydrate) cloneRepo(ctx context.Context, status *RepoStatus) {
 	repoPath := filepath.Join(h.zeroHome, "repos", projectID, "repo")
 	status.RepoPath = repoPath
 
-	// Check if already cloned
-	if _, err := os.Stat(repoPath); err == nil {
+	// Check if already cloned (must have .git directory to be valid)
+	gitDir := filepath.Join(repoPath, ".git")
+	if _, err := os.Stat(gitDir); err == nil {
 		// Already exists, just update stats
 		status.CloneOK = true
 		status.FileCount = h.countFiles(repoPath)
@@ -193,16 +259,29 @@ func (h *Hydrate) cloneRepo(ctx context.Context, status *RepoStatus) {
 		return
 	}
 
+	// Remove empty/invalid repo directory if it exists
+	if _, err := os.Stat(repoPath); err == nil {
+		os.RemoveAll(repoPath)
+	}
+
 	// Create directory
 	if err := os.MkdirAll(filepath.Dir(repoPath), 0755); err != nil {
 		h.term.Error("%s clone failed: %v", repo.Name, err)
 		return
 	}
 
-	// Clone with depth=1
+	// Clone with depth=1 (prefer HTTPS for broader compatibility)
+	cloneURL := repo.CloneURL
+	if cloneURL == "" {
+		// Build HTTPS URL from nameWithOwner
+		cloneURL = fmt.Sprintf("https://github.com/%s.git", repo.NameWithOwner)
+	}
+	if cloneURL == "" {
+		cloneURL = repo.SSHURL
+	}
 	cmd := exec.CommandContext(ctx, "git", "clone",
 		"--depth", "1",
-		repo.SSHURL,
+		cloneURL,
 		repoPath,
 	)
 	cmd.Stdout = nil
@@ -228,95 +307,55 @@ func (h *Hydrate) cloneRepo(ctx context.Context, status *RepoStatus) {
 	)
 }
 
-// scanRepos scans all repositories
+// scanRepos scans all repositories sequentially with live progress
 func (h *Hydrate) scanRepos(ctx context.Context, statuses []*RepoStatus, scanners, skipScanners []string) (success, failed int) {
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, h.opts.Parallel)
-
-	// Track overall progress
-	var totalComplete atomic.Int32
-	totalScanners := 0
-	for _, s := range statuses {
-		if s.CloneOK {
-			totalScanners += len(scanners)
-		}
-	}
-
-	// Progress update goroutine
-	progressDone := make(chan struct{})
-	go func() {
-		ticker := time.NewTicker(300 * time.Millisecond)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-progressDone:
-				return
-			case <-ticker.C:
-				completed := int(totalComplete.Load())
-				if completed > 0 && completed < totalScanners {
-					active := h.getActiveScannersString(statuses)
-					h.term.Progress(completed, totalScanners, active)
-				}
-			}
-		}
-	}()
-
-	// Print initial status for all repos
+	// Process repos sequentially for clear progress display
 	for _, status := range statuses {
-		if !status.CloneOK {
-			continue
+		// Check for cancellation
+		select {
+		case <-ctx.Done():
+			h.term.Warning("Scan interrupted")
+			return success, failed
+		default:
 		}
 
-		status.Progress = scanner.NewProgress(scanners)
-		estimate := scanner.TotalEstimate(scanners, status.FileCount)
-		h.term.RepoScanning(status.Repo.Name, estimate)
-
-		// Print scanner list
-		firstActive := true
-		for _, s := range scanners {
-			est := scanner.EstimateTime(s, status.FileCount)
-			if contains(skipScanners, s) {
-				h.term.ScannerSkipped(s)
-				status.Progress.SetSkipped(s)
-			} else if firstActive {
-				h.term.ScannerRunning(s, est)
-				firstActive = false
-			} else {
-				h.term.ScannerQueued(s, est)
-			}
-		}
-	}
-
-	// Run scans
-	results := make(chan *RepoStatus, len(statuses))
-
-	for _, status := range statuses {
 		if !status.CloneOK {
 			failed++
 			continue
 		}
 
-		wg.Add(1)
-		go func(s *RepoStatus) {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
+		// Initialize progress for this repo
+		status.Progress = scanner.NewProgress(scanners)
+		estimate := scanner.TotalEstimate(scanners, status.FileCount)
+		h.term.RepoScanning(status.Repo.Name, estimate)
 
-			h.scanRepo(ctx, s, scanners, skipScanners, &totalComplete)
-			results <- s
-		}(status)
-	}
+		// Build scanner line positions (from bottom: 0 = last scanner, N-1 = first scanner)
+		scannerLinePos := make(map[string]int)
+		lineNum := 0
+		for _, s := range scanners {
+			if contains(skipScanners, s) {
+				h.term.ScannerSkipped(s)
+				status.Progress.SetSkipped(s)
+			} else {
+				h.term.ScannerQueued(s, scanner.EstimateTime(s, status.FileCount))
+				scannerLinePos[s] = lineNum
+				lineNum++
+			}
+		}
+		totalLines := lineNum
 
-	// Collect results
-	go func() {
-		wg.Wait()
-		close(results)
-		close(progressDone)
-	}()
+		// Run scan with real-time line updates
+		h.scanRepoWithProgress(ctx, status, scanners, skipScanners, scannerLinePos, totalLines)
 
-	for status := range results {
-		h.term.ClearLine()
-		h.printRepoResult(status, scanners, skipScanners)
+		// Move cursor past all scanner lines and print completion
+		fmt.Println() // Ensure we're on a new line
+		if status.ScanOK {
+			h.term.Success("%s complete (%ds)", status.Repo.Name, int(status.Duration.Seconds()))
+		} else {
+			h.term.Error("%s failed", status.Repo.Name)
+		}
+		fmt.Println()
+
 		if status.ScanOK {
 			success++
 		} else {
@@ -327,11 +366,74 @@ func (h *Hydrate) scanRepos(ctx context.Context, statuses []*RepoStatus, scanner
 	return success, failed
 }
 
-// scanRepo runs all scanners on a single repo
-func (h *Hydrate) scanRepo(ctx context.Context, status *RepoStatus, scanners, skipScanners []string, totalComplete *atomic.Int32) {
+// scanRepoWithProgress runs all scanners with real-time line updates
+func (h *Hydrate) scanRepoWithProgress(ctx context.Context, status *RepoStatus, scanners, skipScanners []string, linePos map[string]int, totalLines int) {
 	start := time.Now()
 
-	result, err := h.runner.Run(ctx, status.Repo.NameWithOwner, h.opts.Profile, status.Progress, skipScanners)
+	// Get scanners from registry
+	scannerList, err := scanner.GetByNames(scanners)
+	if err != nil {
+		status.ScanOK = false
+		status.Duration = time.Since(start)
+		return
+	}
+
+	// Build output directory
+	projectID := github.ProjectID(status.Repo.NameWithOwner)
+	outputDir := filepath.Join(h.zeroHome, "repos", projectID, "analysis")
+
+	// Track scanner start times for duration calculation (protected by mutex)
+	var startTimesMu sync.Mutex
+	scannerStartTimes := make(map[string]time.Time)
+
+	// Set up progress callback with real-time line updates
+	h.runner.OnProgress = func(name string, st scanner.Status, summary string) {
+		pos, hasPos := linePos[name]
+		if !hasPos {
+			return // Skip scanners not in our list
+		}
+
+		// Calculate lines up from current position (bottom of scanner list)
+		linesUp := totalLines - pos
+
+		switch st {
+		case scanner.StatusRunning:
+			status.Progress.SetRunning(name)
+			startTimesMu.Lock()
+			scannerStartTimes[name] = time.Now()
+			startTimesMu.Unlock()
+			h.term.UpdateScannerStatus(linesUp, name, "running", terminal.IconArrow, terminal.Cyan, "")
+
+		case scanner.StatusComplete:
+			startTimesMu.Lock()
+			startTime := scannerStartTimes[name]
+			startTimesMu.Unlock()
+			duration := time.Since(startTime)
+			status.Progress.SetComplete(name, summary, duration)
+			h.term.UpdateScannerStatus(linesUp, name, summary, terminal.IconSuccess, terminal.Green, fmt.Sprintf("%ds", int(duration.Seconds())))
+
+		case scanner.StatusFailed:
+			startTimesMu.Lock()
+			startTime := scannerStartTimes[name]
+			startTimesMu.Unlock()
+			duration := time.Since(startTime)
+			status.Progress.SetFailed(name, nil, duration)
+			errMsg := "failed"
+			if summary != "" {
+				errMsg = summary
+			}
+			h.term.UpdateScannerStatus(linesUp, name, errMsg, terminal.IconFailed, terminal.Red, fmt.Sprintf("%ds", int(duration.Seconds())))
+		}
+	}
+
+	// Run scanners (parallel execution within repo)
+	result, err := h.runner.RunScanners(ctx, scanner.RunOptions{
+		RepoPath:     status.RepoPath,
+		OutputDir:    outputDir,
+		Scanners:     scannerList,
+		SkipScanners: skipScanners,
+		Parallel:     h.opts.ParallelScanners,
+	})
 	status.Duration = time.Since(start)
 
 	if err != nil {
@@ -341,31 +443,15 @@ func (h *Hydrate) scanRepo(ctx context.Context, status *RepoStatus, scanners, sk
 
 	status.ScanOK = result.Success
 
-	// Update total progress
-	totalComplete.Add(int32(len(scanners) - len(skipScanners)))
-}
-
-// printRepoResult prints the results for a completed repo
-func (h *Hydrate) printRepoResult(status *RepoStatus, scanners, skipScanners []string) {
-	h.term.RepoComplete(status.Repo.Name, status.ScanOK)
-
-	if !status.ScanOK {
-		return
-	}
-
-	// Print each scanner result
-	for _, s := range scanners {
-		if contains(skipScanners, s) {
-			h.term.ScannerSkipped(s)
-			continue
-		}
-
-		if r, ok := status.Progress.Results[s]; ok {
-			duration := int(r.Duration.Seconds())
-			h.term.ScannerComplete(s, r.Summary, duration)
+	// Copy results to progress tracker
+	for name, res := range result.Results {
+		if r, ok := status.Progress.Results[name]; ok {
+			r.Status = res.Status
+			r.Summary = res.Summary
+			r.Duration = res.Duration
+			r.Error = res.Error
 		}
 	}
-	fmt.Println()
 }
 
 // shouldWarnSlowScanners checks if we should warn about slow scanners
@@ -398,44 +484,50 @@ func (h *Hydrate) handleSlowScannerWarning(statuses []*RepoStatus, scanners []st
 		}
 	}
 
+	fmt.Println()
 	h.term.Warning("Slow scanner warning")
 	h.term.Info("    Largest repo: %s (%s files)", h.term.Color(terminal.Cyan, largest.Repo.Name), formatNumber(largest.FileCount))
 	fmt.Println()
 
-	// Show slow scanners
+	// Show slow scanners and estimate total time
 	slowScanners := []string{}
+	totalEstimate := 0
 	for _, s := range scanners {
 		est := scanner.EstimateTime(s, largest.FileCount)
 		if est > 10 {
-			h.term.Info("    • %s: ~%ds on %s", s, est, largest.Repo.Name)
+			h.term.Info("    %s %s: ~%ds on large repos",
+				h.term.Color(terminal.Yellow, "•"),
+				s,
+				est,
+			)
 			slowScanners = append(slowScanners, s)
+			totalEstimate += est
 		}
 	}
 
-	// For now, return the slow scanners to skip (in full implementation, would prompt user)
+	if len(slowScanners) == 0 {
+		return nil
+	}
+
+	fmt.Println()
+	h.term.Info("    Total estimated time for slow scanners: ~%ds", totalEstimate)
+	fmt.Println()
+
+	// If --skip-slow was specified, skip without prompting
 	if h.opts.SkipSlow {
+		h.term.Info("    %s Skipping slow scanners (--skip-slow)", h.term.Color(terminal.Yellow, terminal.IconSkipped))
 		return slowScanners
 	}
 
-	return nil
-}
+	// Interactive prompt
+	skip := h.term.Confirm("    Skip slow scanners?", true)
+	if skip {
+		h.term.Info("    %s Skipping: %s", h.term.Color(terminal.Yellow, terminal.IconSkipped), strings.Join(slowScanners, ", "))
+		return slowScanners
+	}
 
-// getActiveScannersString returns a string of currently active scanners
-func (h *Hydrate) getActiveScannersString(statuses []*RepoStatus) string {
-	var active []string
-	for _, s := range statuses {
-		if s.Progress != nil {
-			_, _, current := s.Progress.GetProgress()
-			if current != "" {
-				active = append(active, fmt.Sprintf("%s:%s", s.Repo.Name, current))
-			}
-		}
-	}
-	result := strings.Join(active, ", ")
-	if len(result) > 60 {
-		result = result[:60] + "..."
-	}
-	return result
+	h.term.Info("    %s Running all scanners (this may take a while)", h.term.Color(terminal.Green, terminal.IconSuccess))
+	return nil
 }
 
 // Helper methods
@@ -523,4 +615,269 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+// printScannerResultsTable prints a summary table of all scanner results
+func (h *Hydrate) printScannerResultsTable(statuses []*RepoStatus, scanners, skipScanners []string) {
+	// Aggregate scanner results across all repos
+	scannerResults := make(map[string]*aggregatedScannerResult)
+
+	for _, name := range scanners {
+		scannerResults[name] = &aggregatedScannerResult{
+			Name:    name,
+			Skipped: contains(skipScanners, name),
+		}
+	}
+
+	// Aggregate results from all repos
+	for _, status := range statuses {
+		if status.Progress == nil {
+			continue
+		}
+		for name, result := range status.Progress.Results {
+			agg, ok := scannerResults[name]
+			if !ok {
+				continue
+			}
+
+			switch result.Status {
+			case scanner.StatusComplete:
+				agg.SuccessCount++
+				agg.TotalDuration += result.Duration
+				if result.Summary != "" {
+					agg.LastSummary = result.Summary
+				}
+			case scanner.StatusFailed:
+				agg.FailedCount++
+				agg.TotalDuration += result.Duration
+			case scanner.StatusSkipped:
+				agg.Skipped = true
+			}
+		}
+	}
+
+	// Build rows for display (preserve scanner order)
+	rows := make([]terminal.ScannerResultRow, 0, len(scanners))
+	for _, name := range scanners {
+		agg := scannerResults[name]
+
+		status := "success"
+		summary := agg.LastSummary
+		if agg.Skipped {
+			status = "skipped"
+			summary = ""
+		} else if agg.FailedCount > 0 {
+			if agg.SuccessCount > 0 {
+				status = "partial"
+				summary = fmt.Sprintf("%d ok, %d failed", agg.SuccessCount, agg.FailedCount)
+			} else {
+				status = "failed"
+				summary = "all failed"
+			}
+		} else if agg.SuccessCount == 0 {
+			status = "skipped"
+			summary = ""
+		}
+
+		if summary == "" && status == "success" {
+			summary = "complete"
+		}
+
+		rows = append(rows, terminal.ScannerResultRow{
+			Name:     name,
+			Status:   status,
+			Summary:  summary,
+			Duration: agg.TotalDuration,
+		})
+	}
+
+	h.term.ScannerResultsTable(rows)
+}
+
+type aggregatedScannerResult struct {
+	Name          string
+	SuccessCount  int
+	FailedCount   int
+	Skipped       bool
+	TotalDuration time.Duration
+	LastSummary   string
+}
+
+// aggregateFindings reads scan results and aggregates findings across all repos
+func (h *Hydrate) aggregateFindings(statuses []*RepoStatus) *terminal.ScanFindings {
+	findings := &terminal.ScanFindings{
+		PackagesByEco: make(map[string]int),
+		VulnsByEco:    make(map[string]int),
+		LicenseCounts: make(map[string]int),
+	}
+
+	for _, status := range statuses {
+		if !status.ScanOK {
+			continue
+		}
+
+		projectID := github.ProjectID(status.Repo.NameWithOwner)
+		analysisDir := filepath.Join(h.zeroHome, "repos", projectID, "analysis")
+
+		// Aggregate SBOM data
+		h.aggregateSBOM(analysisDir, findings)
+
+		// Aggregate vulnerability data
+		h.aggregateVulns(analysisDir, findings)
+
+		// Aggregate license data
+		h.aggregateLicenses(analysisDir, findings)
+
+		// Aggregate secrets data
+		h.aggregateSecrets(analysisDir, findings)
+
+		// Aggregate malcontent data
+		h.aggregateMalcontent(analysisDir, findings)
+
+		// Aggregate health data
+		h.aggregateHealth(analysisDir, findings)
+	}
+
+	return findings
+}
+
+func (h *Hydrate) aggregateSBOM(dir string, findings *terminal.ScanFindings) {
+	path := filepath.Join(dir, "package-sbom.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	var result struct {
+		Summary struct {
+			TotalPackages int            `json:"total_packages"`
+			ByEcosystem   map[string]int `json:"by_ecosystem"`
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return
+	}
+
+	findings.TotalPackages += result.Summary.TotalPackages
+	for eco, count := range result.Summary.ByEcosystem {
+		findings.PackagesByEco[eco] += count
+	}
+}
+
+func (h *Hydrate) aggregateVulns(dir string, findings *terminal.ScanFindings) {
+	path := filepath.Join(dir, "package-vulns.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	var result struct {
+		Summary struct {
+			Critical int `json:"critical"`
+			High     int `json:"high"`
+			Medium   int `json:"medium"`
+			Low      int `json:"low"`
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return
+	}
+
+	findings.VulnCritical += result.Summary.Critical
+	findings.VulnHigh += result.Summary.High
+	findings.VulnMedium += result.Summary.Medium
+	findings.VulnLow += result.Summary.Low
+}
+
+func (h *Hydrate) aggregateLicenses(dir string, findings *terminal.ScanFindings) {
+	path := filepath.Join(dir, "licenses.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	var result struct {
+		Summary struct {
+			UniqueLicenses int            `json:"unique_licenses"`
+			LicenseCounts  map[string]int `json:"license_counts"`
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return
+	}
+
+	// Track unique license types
+	if result.Summary.UniqueLicenses > findings.LicenseTypes {
+		findings.LicenseTypes = result.Summary.UniqueLicenses
+	}
+	for lic, count := range result.Summary.LicenseCounts {
+		findings.LicenseCounts[lic] += count
+	}
+}
+
+func (h *Hydrate) aggregateSecrets(dir string, findings *terminal.ScanFindings) {
+	path := filepath.Join(dir, "code-secrets.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	var result struct {
+		Summary struct {
+			Critical      int `json:"critical"`
+			High          int `json:"high"`
+			Medium        int `json:"medium"`
+			TotalFindings int `json:"total_findings"`
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return
+	}
+
+	findings.SecretsCritical += result.Summary.Critical
+	findings.SecretsHigh += result.Summary.High
+	findings.SecretsMedium += result.Summary.Medium
+	findings.SecretsTotal += result.Summary.TotalFindings
+}
+
+func (h *Hydrate) aggregateMalcontent(dir string, findings *terminal.ScanFindings) {
+	path := filepath.Join(dir, "package-malcontent.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	var result struct {
+		Summary struct {
+			Critical int `json:"critical"`
+			High     int `json:"high"`
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return
+	}
+
+	findings.MalcontentCrit += result.Summary.Critical
+	findings.MalcontentHigh += result.Summary.High
+}
+
+func (h *Hydrate) aggregateHealth(dir string, findings *terminal.ScanFindings) {
+	path := filepath.Join(dir, "package-health.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	var result struct {
+		Summary struct {
+			CriticalCount int `json:"critical_count"`
+			WarningCount  int `json:"warning_count"`
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return
+	}
+
+	findings.HealthCritical += result.Summary.CriticalCount
+	findings.HealthWarnings += result.Summary.WarningCount
 }

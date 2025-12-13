@@ -169,17 +169,22 @@ func (r *Runner) Run(ctx context.Context, repo, profile string, progress *Progre
 	cmd := exec.CommandContext(ctx, r.BootstrapPath, args...)
 	cmd.Env = append(os.Environ(),
 		"SKIP_SCANNERS="+skipStr,
+		"NO_PROGRESS_BAR=1", // Disable bootstrap.sh progress bar
 	)
 
-	// Capture output
-	output, err := cmd.CombinedOutput()
+	// Stream output to /dev/null but let errors show
+	// The real results come from parsing JSON files
+	cmd.Stdout = nil // Suppress stdout (progress bars)
+	cmd.Stderr = os.Stderr // Show errors
+
+	err := cmd.Run()
 	duration := time.Since(start)
 
 	if err != nil {
 		return &RunResult{
 			Success:  false,
 			Duration: duration,
-		}, fmt.Errorf("running scanners: %w\nOutput: %s", err, string(output))
+		}, fmt.Errorf("running scanners: %w", err)
 	}
 
 	// Parse results from analysis directory

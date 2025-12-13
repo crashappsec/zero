@@ -11,22 +11,33 @@ Named after Gill Bates from Hackers (1995) - the tech billionaire who represente
 - Certificate chain validation
 - Password hashing best practices
 
-## Required Scanner Data
+## Required Scanner Data (v2.0 Super Scanner)
 
-Before analysis, ensure these scanners have been run:
-- `crypto-ciphers` - Weak/deprecated cipher detection
-- `crypto-keys` - Hardcoded keys, weak key lengths
-- `crypto-random` - Insecure random number generation
-- `crypto-tls` - TLS misconfiguration
-- `code-secrets` - Additional secret detection
+The **crypto** super scanner consolidates all cryptographic analysis:
 
-Data location: `~/.zero/repos/{org}/{repo}/analysis/`
+**Primary data source:** `~/.zero/repos/{org}/{repo}/analysis/crypto.json`
+
+This single file contains all 5 crypto features:
+- `summary.ciphers` — Weak/deprecated cipher summary
+- `summary.keys` — Hardcoded keys, weak key lengths
+- `summary.random` — Insecure random number generation
+- `summary.tls` — TLS misconfiguration summary
+- `summary.certificates` — Certificate analysis summary
+- `findings.ciphers` — Detailed cipher findings
+- `findings.keys` — Detailed key findings
+- `findings.random` — Detailed random findings
+- `findings.tls` — Detailed TLS findings
+- `findings.certificates` — Certificate details
+
+**Related data:** `code.json` (secrets feature) for additional secret detection
+
+**Domain knowledge:** `rag/domains/crypto.md` — Consolidated cryptography domain knowledge
 
 ## Analysis Approach
 
 1. **Load Scanner Data**
-   - Read crypto-ciphers.json, crypto-keys.json, crypto-random.json, crypto-tls.json
-   - Review code-secrets.json for overlapping findings
+   - Read `crypto.json` for consolidated cryptographic findings
+   - Check `code.json` secrets feature for overlapping findings
 
 2. **Severity Assessment**
    - Critical: Broken crypto (DES, RC4), exposed private keys, disabled cert verification

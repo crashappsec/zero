@@ -11,6 +11,59 @@ All notable changes to Zero will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.0.0] - 2025-12-13
+
+### Major Architecture: Super Scanner v3.0
+
+Consolidated the scanner architecture from 26+ individual scanners into **6 super scanners** with a clean dependency model.
+
+### Added
+- **SBOM Super Scanner** (`pkg/scanners/sbom/`): New standalone scanner that generates the authoritative SBOM
+  - `generation` feature: Generates CycloneDX 1.5 SBOM using cdxgen/syft
+  - `integrity` feature: Verifies SBOM against actual lockfiles
+  - Produces `sbom.cdx.json` as source of truth for all package data
+  - Other scanners can depend on SBOM output via `Dependencies()` interface
+
+- **Scanner Dependencies**: New `Dependencies() []string` interface method
+  - Scanners can declare dependencies on other scanners
+  - Runner ensures dependent scanners complete first
+  - `packages` scanner depends on `sbom` output
+
+### Changed
+- **Packages Scanner** (`pkg/scanners/packages/`): No longer generates SBOM
+  - Removed SBOM generation - now uses `sbom.LoadSBOM()` from sbom scanner
+  - Depends on sbom scanner via `Dependencies() []string { return []string{"sbom"} }`
+  - 12 features: vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations
+
+- **Renamed Infra → DevOps** (`pkg/scanners/devops/`):
+  - Better reflects scope: DevOps, CI/CD, infrastructure
+  - Absorbed `github-actions-security` scanner
+  - 5 features: iac, containers, github_actions, dora, git
+
+- **Documentation**: Updated CLAUDE.md for v3.0 architecture
+
+### Removed
+- **Standalone scanners absorbed into super scanners**:
+  - `github-actions-security` → absorbed into `devops` scanner
+  - `dependency-confusion` → absorbed into `packages` scanner
+  - `reachability-analysis` → absorbed into `packages` scanner
+  - `sbom-integrity` → absorbed into `sbom` scanner
+
+- **Old infra directory**: Renamed to `devops`
+
+### Scanner Architecture (v3.0)
+
+| Scanner | Features | Dependencies |
+|---------|----------|--------------|
+| **sbom** | generation, integrity | none (runs first) |
+| **packages** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | sbom |
+| **crypto** | ciphers, keys, random, tls, certificates | none |
+| **code** | vulns, secrets, api, tech_debt | none |
+| **devops** | iac, containers, github_actions, dora, git | none |
+| **health** | technology, documentation, tests, ownership | none |
+
+---
+
 ## [5.0.0] - 2025-12-06
 
 ### Major Rebranding: Phantom → Zero

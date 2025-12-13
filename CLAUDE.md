@@ -3,6 +3,24 @@
 Zero provides security analysis tools and specialist AI agents for repository assessment.
 Named after characters from the movie Hackers (1995) - "Hack the planet!"
 
+## Super Scanner Architecture (v3.0)
+
+Zero uses **6 consolidated super scanners** with configurable features:
+
+| Scanner | Features | Description |
+|---------|----------|-------------|
+| **sbom** | generation, integrity | SBOM generation (source of truth) |
+| **packages** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | Package/dependency analysis (depends on sbom) |
+| **crypto** | ciphers, keys, random, tls, certificates | Cryptographic security |
+| **code** | vulns, secrets, api, tech_debt | Code security analysis |
+| **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security |
+| **health** | technology, documentation, tests, ownership | Project health |
+
+**Key architecture notes:**
+- `sbom` scanner runs first and generates `sbom.cdx.json` (CycloneDX format)
+- `packages` scanner depends on sbom output - does not generate its own SBOM
+- Each scanner produces **one JSON output file** with all feature results
+
 ## Orchestrator: Zero
 
 **Zero** (named after Zero Cool) is the master orchestrator who coordinates all specialist agents.
@@ -12,19 +30,19 @@ Use `/agent` to enter agent mode and chat with Zero directly.
 
 The following agents are available for specialized analysis tasks. Use the Task tool with the appropriate `subagent_type` to invoke them.
 
-| Agent | Persona | Character | Expertise | Tools |
-|-------|---------|-----------|-----------|-------|
-| `cereal` | Cereal | Cereal Killer | Supply chain, vulnerabilities, malcontent, package health | Read, Grep, Glob, WebSearch, WebFetch, Task |
-| `razor` | Razor | Razor | Code security, SAST, secrets detection | Read, Grep, Glob, WebSearch, Task |
-| `blade` | Blade | Blade | Compliance, SOC 2, ISO 27001, audit prep | Read, Grep, Glob, WebFetch, Task |
-| `phreak` | Phreak | Phantom Phreak | Legal, licenses, data privacy, contracts | Read, Grep, WebFetch, Task |
-| `acid` | Acid | Acid Burn | Frontend, React, TypeScript, accessibility | Read, Grep, Glob, Task |
-| `dade` | Dade | Dade Murphy | Backend, APIs, databases, Node.js, Python | Read, Grep, Glob, Task |
-| `nikon` | Nikon | Lord Nikon | Architecture, system design, patterns | Read, Grep, Glob, Task |
-| `joey` | Joey | Joey | CI/CD, build optimization, caching | Read, Grep, Glob, Bash, Task |
-| `plague` | Plague | The Plague | DevOps, infrastructure, Kubernetes, IaC | Read, Grep, Glob, Bash, Task |
-| `gibson` | Gibson | The Gibson | DORA metrics, team health, engineering KPIs | Read, Grep, Glob, Task |
-| `gill` | Gill | Gill Bates | Cryptography, ciphers, keys, TLS, random | Read, Grep, Glob, WebSearch, Task |
+| Agent | Persona | Character | Expertise | Primary Scanner |
+|-------|---------|-----------|-----------|-----------------|
+| `cereal` | Cereal | Cereal Killer | Supply chain, vulnerabilities, malcontent | **sbom**, **packages** |
+| `razor` | Razor | Razor | Code security, SAST, secrets detection | **code** |
+| `blade` | Blade | Blade | Compliance, SOC 2, ISO 27001, audit prep | packages, code |
+| `phreak` | Phreak | Phantom Phreak | Legal, licenses, data privacy | **packages** (licenses) |
+| `acid` | Acid | Acid Burn | Frontend, React, TypeScript, accessibility | **code**, **health** |
+| `dade` | Dade | Dade Murphy | Backend, APIs, databases, Node.js, Python | **code** (api) |
+| `nikon` | Nikon | Lord Nikon | Architecture, system design, patterns | **health** (technology) |
+| `joey` | Joey | Joey | CI/CD, build optimization, caching | **devops** (github_actions) |
+| `plague` | Plague | The Plague | DevOps, infrastructure, Kubernetes, IaC | **devops** |
+| `gibson` | Gibson | The Gibson | DORA metrics, team health, engineering KPIs | **devops** (dora, git), **health** |
+| `gill` | Gill | Gill Bates | Cryptography, ciphers, keys, TLS, random | **crypto** |
 
 ### Agent Details
 
@@ -34,7 +52,8 @@ The following agents are available for specialized analysis tasks. Use the Task 
 Cereal Killer was paranoid about surveillance - perfect for watching for malware hiding in dependencies.
 Specializes in dependency vulnerability analysis, malcontent findings investigation (supply chain compromise detection), package health assessment, license compliance, and typosquatting detection.
 
-**Required data:** vulnerabilities, package-health, dependencies, package-malcontent, licenses, package-sbom
+**Primary scanners:** `sbom`, `packages`
+**Required data:** `sbom.json`, `packages.json` (contains vulns, health, malcontent, licenses, etc.)
 
 **Example invocation:**
 ```
@@ -48,71 +67,8 @@ prompt: "Investigate the malcontent findings for expressjs/express. Focus on cri
 Razor cuts through code to find vulnerabilities.
 Specializes in static analysis, secret detection, code vulnerability assessment, and security code review.
 
-**Required data:** code-security, code-secrets, technology, secrets-scanner
-
-#### Blade (Internal Auditor)
-**subagent_type:** `blade`
-
-Blade is meticulous and detail-oriented - perfect for auditing.
-Specializes in compliance assessment (SOC 2, ISO 27001), audit preparation, control testing, and policy gap analysis.
-
-**Required data:** vulnerabilities, licenses, package-sbom, iac-security, code-security
-
-#### Phreak (General Counsel)
-**subagent_type:** `phreak`
-
-Phantom Phreak knew the legal angles and how systems really work.
-Specializes in license compatibility analysis, data privacy assessment, and legal risk evaluation.
-
-**Required data:** licenses, dependencies, package-sbom
-
-#### Acid (Frontend Engineer)
-**subagent_type:** `acid`
-
-Acid Burn - sharp, stylish, the elite frontend hacker.
-Specializes in React, TypeScript, component architecture, accessibility (a11y), and frontend security.
-
-**Required data:** technology, code-security
-
-#### Dade (Backend Engineer)
-**subagent_type:** `dade`
-
-Dade Murphy - the person behind Zero Cool, backend systems expert.
-Specializes in APIs, databases, Node.js, Python, and backend architecture.
-
-**Required data:** technology, code-security
-
-#### Nikon (Software Architect)
-**subagent_type:** `nikon`
-
-Lord Nikon had photographic memory - sees the big picture.
-Specializes in system design, architectural patterns, trade-offs analysis, and design review.
-
-**Required data:** technology, dependencies, package-sbom
-
-#### Joey (Build Engineer)
-**subagent_type:** `joey`
-
-Joey was learning the ropes - builds things, sometimes breaks them.
-Specializes in CI/CD pipelines, build optimization, caching strategies, and build security.
-
-**Required data:** technology, dora, code-security
-
-#### Plague (DevOps Engineer)
-**subagent_type:** `plague`
-
-The Plague controlled all the infrastructure (we reformed him).
-Specializes in infrastructure, Kubernetes, IaC security, container security, and deployment automation.
-
-**Required data:** technology, dora, iac-security, container-security
-
-#### Gibson (Engineering Leader)
-**subagent_type:** `gibson`
-
-The Gibson - the ultimate system that tracks everything.
-Specializes in DORA metrics analysis, team health assessment, and engineering KPIs.
-
-**Required data:** dora, code-ownership, git-insights
+**Primary scanner:** `code`
+**Required data:** `code.json` (contains vulns, secrets, api, tech_debt)
 
 #### Gill (Cryptography Specialist)
 **subagent_type:** `gill`
@@ -120,13 +76,86 @@ Specializes in DORA metrics analysis, team health assessment, and engineering KP
 Gill Bates represented the corporate establishment in Hackers - now reformed and using vast crypto knowledge to help secure implementations.
 Specializes in cryptographic security analysis, cipher review, key management, TLS configuration, and random number generation security.
 
-**Required data:** crypto-ciphers, crypto-keys, crypto-random, crypto-tls, code-secrets
+**Primary scanner:** `crypto`
+**Required data:** `crypto.json` (contains ciphers, keys, random, tls, certificates)
 
 **Example invocation:**
 ```
 Task tool with subagent_type: "gill"
 prompt: "Analyze the cryptographic security of this repository. Focus on hardcoded keys and weak ciphers."
 ```
+
+#### Plague (DevOps Engineer)
+**subagent_type:** `plague`
+
+The Plague controlled all the infrastructure (we reformed him).
+Specializes in infrastructure, Kubernetes, IaC security, container security, and deployment automation.
+
+**Primary scanner:** `devops`
+**Required data:** `devops.json` (contains iac, containers, github_actions, dora, git)
+
+#### Joey (Build Engineer)
+**subagent_type:** `joey`
+
+Joey was learning the ropes - builds things, sometimes breaks them.
+Specializes in CI/CD pipelines, build optimization, caching strategies, and build security.
+
+**Primary scanner:** `devops` (github_actions feature)
+**Required data:** `devops.json`
+
+#### Gibson (Engineering Leader)
+**subagent_type:** `gibson`
+
+The Gibson - the ultimate system that tracks everything.
+Specializes in DORA metrics analysis, team health assessment, and engineering KPIs.
+
+**Primary scanners:** `devops` (dora, git features), `health` (ownership feature)
+**Required data:** `devops.json`, `health.json`
+
+#### Nikon (Software Architect)
+**subagent_type:** `nikon`
+
+Lord Nikon had photographic memory - sees the big picture.
+Specializes in system design, architectural patterns, trade-offs analysis, and design review.
+
+**Primary scanner:** `health` (technology feature)
+**Required data:** `health.json`, `packages.json`
+
+#### Blade (Internal Auditor)
+**subagent_type:** `blade`
+
+Blade is meticulous and detail-oriented - perfect for auditing.
+Specializes in compliance assessment (SOC 2, ISO 27001), audit preparation, control testing, and policy gap analysis.
+
+**Primary scanners:** Multiple (packages, code, devops)
+**Required data:** `packages.json`, `code.json`, `devops.json`
+
+#### Phreak (General Counsel)
+**subagent_type:** `phreak`
+
+Phantom Phreak knew the legal angles and how systems really work.
+Specializes in license compatibility analysis, data privacy assessment, and legal risk evaluation.
+
+**Primary scanner:** `packages` (licenses feature)
+**Required data:** `packages.json`
+
+#### Acid (Frontend Engineer)
+**subagent_type:** `acid`
+
+Acid Burn - sharp, stylish, the elite frontend hacker.
+Specializes in React, TypeScript, component architecture, accessibility (a11y), and frontend security.
+
+**Primary scanner:** `code`, `health` (technology feature)
+**Required data:** `code.json`, `health.json`
+
+#### Dade (Backend Engineer)
+**subagent_type:** `dade`
+
+Dade Murphy - the person behind Zero Cool, backend systems expert.
+Specializes in APIs, databases, Node.js, Python, and backend architecture.
+
+**Primary scanner:** `code` (api feature)
+**Required data:** `code.json`
 
 ## Slash Commands
 
@@ -153,16 +182,23 @@ zero/
 │   │   ├── knowledge/         # Domain knowledge
 │   │   └── prompts/           # Output templates
 │   └── shared/                # Shared knowledge (severity, confidence)
-├── utils/
-│   ├── zero/                  # Zero orchestrator
-│   │   ├── lib/               # Libraries (zero-lib.sh, agent-loader.sh)
-│   │   └── scripts/           # CLI scripts (hydrate, scan, report)
-│   └── scanners/              # Individual scanners
-│       ├── package-malcontent/
-│       ├── bundle-analysis/
-│       ├── container-security/
-│       └── ...
+├── pkg/scanners/              # Go scanner implementations
+│   ├── sbom/                  # SBOM super scanner (source of truth)
+│   ├── packages/              # Packages super scanner (depends on sbom)
+│   ├── crypto/                # Crypto super scanner
+│   ├── code/                  # Code super scanner
+│   ├── devops/                # DevOps super scanner
+│   └── health/                # Health super scanner
 ├── rag/                       # Retrieval-Augmented Generation knowledge
+│   └── domains/               # Consolidated domain knowledge
+│       ├── sbom.md
+│       ├── packages.md
+│       ├── crypto.md
+│       ├── code.md
+│       ├── devops.md
+│       └── health.md
+├── config/
+│   └── zero.config.json       # Scanner configuration
 └── .claude/
     ├── agents/                # Claude Code agent definitions
     ├── commands/              # Slash commands
@@ -172,17 +208,18 @@ zero/
 ## Data Flow
 
 ```
-./zero.sh hydrate <repo>
+./zero hydrate <repo>
          │
          ├─► Clone repository to .zero/repos/<project>/repo/
          │
-         └─► Run scanners, store JSON in .zero/repos/<project>/analysis/
+         └─► Run super scanners, store JSON in .zero/repos/<project>/analysis/
                   │
-                  ├─► vulnerabilities.json
-                  ├─► package-malcontent/ (malcontent findings)
-                  ├─► package-health.json
-                  ├─► licenses.json
-                  └─► ...
+                  ├─► sbom.json        (2 features) + sbom.cdx.json
+                  ├─► packages.json    (12 features, depends on sbom)
+                  ├─► crypto.json      (5 features)
+                  ├─► code.json        (4 features)
+                  ├─► devops.json      (5 features)
+                  └─► health.json      (4 features)
 
 /agent
          │
@@ -195,7 +232,7 @@ zero/
 
 ## Agent Autonomy
 
-Agents now support autonomous investigation with full tool access and agent-to-agent delegation.
+Agents support autonomous investigation with full tool access and agent-to-agent delegation.
 
 ### Investigation Mode
 
@@ -246,21 +283,20 @@ Mode is automatically selected based on query keywords:
 - "critical", "urgent", "priority" → `critical` mode
 - Default → `summary` mode
 
-### Helper Functions (agent-loader.sh)
+## Configuration Profiles
 
-```bash
-# Get delegation targets for an agent
-agent_get_delegation_targets "cereal"  # Returns: "phreak razor plague nikon"
+Profiles define which scanners and features to run:
 
-# Check if delegation is allowed
-agent_can_delegate "cereal" "phreak"   # Returns: 0 (true)
-
-# Load context with smart mode selection
-load_agent_context_auto "cereal" "org/repo" "Investigate the malware"  # Uses full mode
-
-# Load only critical findings
-load_scanner_data_smart "cereal" "org/repo" "critical"
-```
+| Profile | Scanners | Use Case |
+|---------|----------|----------|
+| `quick` | sbom, packages (limited), health | Fast feedback |
+| `standard` | sbom, packages, code, health | Balanced analysis |
+| `security` | sbom, packages, crypto, code, devops | Security-focused |
+| `full` | All 6 scanners | Complete analysis |
+| `packages-only` | sbom, packages | Dependency analysis only |
+| `crypto-only` | crypto | Crypto security only |
+| `devops` | devops, health | CI/CD and metrics |
+| `compliance` | sbom, packages, health | License/compliance |
 
 ## Environment Variables
 
