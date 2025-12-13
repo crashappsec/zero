@@ -1,0 +1,153 @@
+{
+  "version": "1.0.0",
+  "description": "Model file format security characteristics",
+  "formats": {
+    ".pt": {
+      "name": "PyTorch Pickle",
+      "format": "pickle",
+      "risk": "high",
+      "risk_reason": "Arbitrary code execution during deserialization",
+      "cwe": "CWE-502",
+      "remediation": "Convert to SafeTensors format"
+    },
+    ".pth": {
+      "name": "PyTorch Pickle",
+      "format": "pickle",
+      "risk": "high",
+      "risk_reason": "Arbitrary code execution during deserialization",
+      "cwe": "CWE-502",
+      "remediation": "Convert to SafeTensors format"
+    },
+    ".pkl": {
+      "name": "Python Pickle",
+      "format": "pickle",
+      "risk": "high",
+      "risk_reason": "Arbitrary code execution during deserialization",
+      "cwe": "CWE-502",
+      "remediation": "Use safer serialization like JSON, or convert model to SafeTensors"
+    },
+    ".pickle": {
+      "name": "Python Pickle",
+      "format": "pickle",
+      "risk": "high",
+      "risk_reason": "Arbitrary code execution during deserialization",
+      "cwe": "CWE-502",
+      "remediation": "Use safer serialization like JSON, or convert model to SafeTensors"
+    },
+    ".bin": {
+      "name": "Binary Weights",
+      "format": "binary",
+      "risk": "medium",
+      "risk_reason": "May contain pickle data - verify source",
+      "cwe": "CWE-502",
+      "remediation": "Verify format is weights-only, consider SafeTensors"
+    },
+    ".safetensors": {
+      "name": "SafeTensors",
+      "format": "safetensors",
+      "risk": "low",
+      "risk_reason": "Secure format, no code execution possible",
+      "cwe": null,
+      "remediation": null
+    },
+    ".onnx": {
+      "name": "ONNX",
+      "format": "onnx",
+      "risk": "medium",
+      "risk_reason": "Custom operators may execute native code",
+      "cwe": "CWE-94",
+      "remediation": "Review custom operators, use only trusted models"
+    },
+    ".gguf": {
+      "name": "GGUF",
+      "format": "gguf",
+      "risk": "low",
+      "risk_reason": "Inference-only format, no code execution",
+      "cwe": null,
+      "remediation": null
+    },
+    ".ggml": {
+      "name": "GGML",
+      "format": "ggml",
+      "risk": "low",
+      "risk_reason": "Inference-only format, no code execution",
+      "cwe": null,
+      "remediation": null
+    },
+    ".h5": {
+      "name": "HDF5/Keras",
+      "format": "keras",
+      "risk": "medium",
+      "risk_reason": "May contain Lambda layers with arbitrary code",
+      "cwe": "CWE-94",
+      "remediation": "Convert Lambda layers to functional API"
+    },
+    ".keras": {
+      "name": "Keras",
+      "format": "keras",
+      "risk": "medium",
+      "risk_reason": "May contain Lambda layers with arbitrary code",
+      "cwe": "CWE-94",
+      "remediation": "Convert Lambda layers to functional API"
+    },
+    ".pb": {
+      "name": "TensorFlow SavedModel",
+      "format": "tensorflow",
+      "risk": "medium",
+      "risk_reason": "May contain custom ops with native code",
+      "cwe": "CWE-94",
+      "remediation": "Review custom ops, use trusted models only"
+    },
+    ".tflite": {
+      "name": "TensorFlow Lite",
+      "format": "tflite",
+      "risk": "low",
+      "risk_reason": "Mobile inference format with limited op set",
+      "cwe": null,
+      "remediation": null
+    },
+    ".mlmodel": {
+      "name": "Core ML",
+      "format": "coreml",
+      "risk": "low",
+      "risk_reason": "Apple inference format with sandbox",
+      "cwe": null,
+      "remediation": null
+    },
+    ".mlpackage": {
+      "name": "Core ML Package",
+      "format": "coreml",
+      "risk": "low",
+      "risk_reason": "Apple inference format with sandbox",
+      "cwe": null,
+      "remediation": null
+    },
+    ".engine": {
+      "name": "TensorRT Engine",
+      "format": "tensorrt",
+      "risk": "medium",
+      "risk_reason": "Compiled for specific GPU, potential for native code",
+      "cwe": "CWE-94",
+      "remediation": "Only use engines compiled from trusted sources"
+    },
+    ".plan": {
+      "name": "TensorRT Plan",
+      "format": "tensorrt",
+      "risk": "medium",
+      "risk_reason": "Compiled for specific GPU, potential for native code",
+      "cwe": "CWE-94",
+      "remediation": "Only use plans compiled from trusted sources"
+    }
+  },
+  "safe_loading_patterns": {
+    "pytorch": {
+      "unsafe": "torch.load(path)",
+      "safe": "torch.load(path, weights_only=True)",
+      "safest": "safetensors.torch.load_file(path)"
+    },
+    "tensorflow": {
+      "unsafe": "tf.keras.models.load_model(path)",
+      "safe": "tf.keras.models.load_model(path, safe_mode=True)"
+    }
+  }
+}
