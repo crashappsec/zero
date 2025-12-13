@@ -256,6 +256,66 @@ var ScannerRequirements = map[string]ScannerRequirement{
 			"secret_scanning_alerts": "read",
 		},
 	},
+
+	// Super scanners (v2.0) - consolidated scanners with multiple features
+	"packages": {
+		Scanner:        "packages",
+		Description:    "Consolidated package scanner (SBOM, vulnerabilities, health, malcontent, licenses)",
+		NeedsGitHubAPI: true,
+		RequiredScopes: []string{"public_repo"},
+		RequiredPermissions: map[string]string{
+			"metadata": "read",
+		},
+		RequiredTools: []string{"cdxgen", "osv-scanner", "malcontent"},
+	},
+	"crypto": {
+		Scanner:        "crypto",
+		Description:    "Consolidated cryptographic security scanner",
+		NeedsGitHubAPI: false,
+	},
+	"code": {
+		Scanner:        "code",
+		Description:    "Consolidated code security scanner (SAST, secrets, API security)",
+		NeedsGitHubAPI: false,
+		RequiredTools:  []string{"semgrep", "gitleaks"},
+	},
+	"infra": {
+		Scanner:        "infra",
+		Description:    "Consolidated infrastructure scanner (IaC, containers, GitHub Actions, DORA)",
+		NeedsGitHubAPI: true,
+		RequiredScopes: []string{"repo", "workflow", "read:org"},
+		RequiredPermissions: map[string]string{
+			"actions":  "read",
+			"contents": "read",
+		},
+		RequiredTools: []string{"trivy"},
+	},
+	"devops": {
+		Scanner:        "devops",
+		Description:    "Consolidated DevOps scanner (renamed from infra)",
+		NeedsGitHubAPI: true,
+		RequiredScopes: []string{"repo", "workflow", "read:org"},
+		RequiredPermissions: map[string]string{
+			"actions":  "read",
+			"contents": "read",
+		},
+		RequiredTools: []string{"trivy"},
+	},
+	"health": {
+		Scanner:        "health",
+		Description:    "Consolidated project health scanner (technology, docs, tests, ownership)",
+		NeedsGitHubAPI: true,
+		RequiredScopes: []string{"repo"},
+		RequiredPermissions: map[string]string{
+			"contents": "read",
+		},
+	},
+	"sbom": {
+		Scanner:        "sbom",
+		Description:    "SBOM generation and integrity super scanner",
+		NeedsGitHubAPI: false,
+		RequiredTools:  []string{"cdxgen", "syft"},
+	},
 }
 
 // CheckTokenPermissions analyzes a GitHub token and returns its capabilities

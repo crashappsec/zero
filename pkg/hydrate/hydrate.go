@@ -272,11 +272,12 @@ func (h *Hydrate) cloneRepo(ctx context.Context, status *RepoStatus) {
 
 	// Clone with depth=1 (prefer HTTPS for broader compatibility)
 	cloneURL := repo.CloneURL
-	if cloneURL == "" {
+	if cloneURL == "" && repo.NameWithOwner != "" {
 		// Build HTTPS URL from nameWithOwner
 		cloneURL = fmt.Sprintf("https://github.com/%s.git", repo.NameWithOwner)
 	}
 	if cloneURL == "" {
+		// Fallback to SSH URL if HTTPS is unavailable
 		cloneURL = repo.SSHURL
 	}
 	cmd := exec.CommandContext(ctx, "git", "clone",
