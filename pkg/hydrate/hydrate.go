@@ -43,13 +43,13 @@ type Options struct {
 
 // RepoStatus tracks the status of a repo being processed
 type RepoStatus struct {
-	Repo       github.Repository
-	RepoPath   string
-	FileCount  int
-	CloneOK    bool
-	ScanOK     bool
-	Progress   *scanner.Progress
-	Duration   time.Duration
+	Repo      github.Repository
+	RepoPath  string
+	FileCount int
+	CloneOK   bool
+	ScanOK    bool
+	Progress  *scanner.Progress
+	Duration  time.Duration
 }
 
 // Hydrate orchestrates the clone and scan process
@@ -406,17 +406,23 @@ func (h *Hydrate) scanRepoWithProgress(ctx context.Context, status *RepoStatus, 
 
 		case scanner.StatusComplete:
 			startTimesMu.Lock()
-			startTime := scannerStartTimes[name]
+			startTime, hasStartTime := scannerStartTimes[name]
 			startTimesMu.Unlock()
-			duration := time.Since(startTime)
+			var duration time.Duration
+			if hasStartTime {
+				duration = time.Since(startTime)
+			}
 			status.Progress.SetComplete(name, summary, duration)
 			h.term.UpdateScannerStatus(linesUp, name, summary, terminal.IconSuccess, terminal.Green, fmt.Sprintf("%ds", int(duration.Seconds())))
 
 		case scanner.StatusFailed:
 			startTimesMu.Lock()
-			startTime := scannerStartTimes[name]
+			startTime, hasStartTime := scannerStartTimes[name]
 			startTimesMu.Unlock()
-			duration := time.Since(startTime)
+			var duration time.Duration
+			if hasStartTime {
+				duration = time.Since(startTime)
+			}
 			status.Progress.SetFailed(name, nil, duration)
 			errMsg := "failed"
 			if summary != "" {
@@ -589,7 +595,6 @@ func (h *Hydrate) getTotalFiles(statuses []*RepoStatus) int {
 	}
 	return total
 }
-
 
 func formatNumber(n int) string {
 	str := strconv.Itoa(n)
