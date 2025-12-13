@@ -1,16 +1,18 @@
 {
   "$schema": "./zero.config.schema.json",
-  "_version": "2.0.0",
+  "_version": "3.1.0",
   "_docs": "===================================================================================",
-  "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v2.0)",
+  "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v3.1)",
   "_docs3": "===================================================================================",
-  "_docs4": "Zero now uses 5 consolidated 'super scanners' with configurable features:",
-  "_docs5": "  - packages: SBOM, vulnerabilities, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations",
-  "_docs6": "  - crypto: ciphers, keys, random, tls, certificates",
-  "_docs7": "  - code: vulns, secrets, api, tech_debt",
-  "_docs8": "  - infra: iac, containers, github_actions, dora, git",
-  "_docs9": "  - health: technology, documentation, tests, ownership",
-  "_docs10": "===================================================================================",
+  "_docs4": "Zero uses 7 consolidated 'super scanners' with configurable features:",
+  "_docs5": "  - sbom: SBOM generation and integrity verification (source of truth)",
+  "_docs6": "  - packages: vulnerabilities, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations, confusion, reachability",
+  "_docs7": "  - crypto: ciphers, keys, random, tls, certificates",
+  "_docs8": "  - code: vulns, secrets, api, tech_debt",
+  "_docs9": "  - devops: iac, containers, github_actions, dora, git",
+  "_docs10": "  - health: technology, documentation, tests, ownership",
+  "_docs11": "  - ai: models, frameworks, datasets, security, governance (ML-BOM)",
+  "_docs12": "===================================================================================",
   "settings": {
     "default_profile": "standard",
     "storage_path": ".zero",
@@ -24,21 +26,37 @@
     }
   },
   "scanners": {
-    "packages": {
-      "name": "Packages",
-      "description": "Consolidated package/dependency scanner: SBOM, vulnerabilities, health, malcontent, provenance, bundle optimization, licenses",
-      "estimated_time": "60-180s",
-      "output_file": "packages.json",
+    "sbom": {
+      "name": "SBOM",
+      "description": "Software Bill of Materials generation and integrity verification - source of truth for package data",
+      "estimated_time": "30-60s",
+      "output_file": "sbom.json",
+      "dependencies": [],
       "features": {
-        "sbom": {
+        "generation": {
           "enabled": true,
           "tool": "auto",
           "spec_version": "1.5",
           "fallback_to_syft": true
         },
-        "vulnerabilities": {
+        "integrity": {
           "enabled": true,
-          "include_dev": false
+          "verify_lockfiles": true,
+          "detect_drift": true
+        }
+      }
+    },
+    "packages": {
+      "name": "Packages",
+      "description": "Package/dependency analysis: vulnerabilities, health, malcontent, provenance, bundle optimization, licenses",
+      "estimated_time": "60-180s",
+      "output_file": "packages.json",
+      "dependencies": ["sbom"],
+      "features": {
+        "vulns": {
+          "enabled": true,
+          "include_dev": false,
+          "check_reachability": true
         },
         "health": {
           "enabled": true,
@@ -61,7 +79,9 @@
         },
         "licenses": {
           "enabled": true,
-          "include_dev": false
+          "include_dev": false,
+          "blocked_licenses": ["GPL-3.0", "AGPL-3.0"],
+          "allowed_licenses": []
         },
         "duplicates": {
           "enabled": true
@@ -74,14 +94,23 @@
         },
         "deprecations": {
           "enabled": true
+        },
+        "confusion": {
+          "enabled": true,
+          "check_internal_names": true
+        },
+        "reachability": {
+          "enabled": true,
+          "filter_unreachable": false
         }
       }
     },
     "crypto": {
       "name": "Cryptography",
-      "description": "Consolidated cryptographic security scanner: ciphers, keys, random, TLS, certificates",
+      "description": "Cryptographic security analysis: ciphers, keys, random number generation, TLS, certificates",
       "estimated_time": "30-90s",
       "output_file": "crypto.json",
+      "dependencies": [],
       "features": {
         "ciphers": {
           "enabled": true,
@@ -91,7 +120,9 @@
         "keys": {
           "enabled": true,
           "check_hardcoded": true,
-          "check_weak_length": true
+          "check_weak_length": true,
+          "min_rsa_bits": 2048,
+          "min_ec_bits": 256
         },
         "random": {
           "enabled": true,
@@ -100,18 +131,22 @@
         "tls": {
           "enabled": true,
           "check_verification": true,
-          "check_protocols": true
+          "check_protocols": true,
+          "min_version": "1.2"
         },
         "certificates": {
-          "enabled": true
+          "enabled": true,
+          "check_expiry": true,
+          "expiry_warning_days": 30
         }
       }
     },
     "code": {
       "name": "Code Security",
-      "description": "Consolidated code security scanner: vulnerabilities, secrets, API security, technical debt",
+      "description": "Code security analysis: vulnerabilities, secrets, API security, technical debt",
       "estimated_time": "60-180s",
       "output_file": "code.json",
+      "dependencies": [],
       "features": {
         "vulns": {
           "enabled": true,
@@ -122,7 +157,9 @@
           "ruleset": "p/secrets"
         },
         "api": {
-          "enabled": true
+          "enabled": true,
+          "check_openapi": true,
+          "check_graphql": true
         },
         "tech_debt": {
           "enabled": true,
@@ -131,11 +168,12 @@
         }
       }
     },
-    "infra": {
-      "name": "Infrastructure",
-      "description": "Consolidated infrastructure scanner: IaC security, containers, GitHub Actions, DORA metrics, git insights",
+    "devops": {
+      "name": "DevOps",
+      "description": "DevOps and infrastructure analysis: IaC security, containers, GitHub Actions, DORA metrics, git insights",
       "estimated_time": "60-180s",
-      "output_file": "infra.json",
+      "output_file": "devops.json",
+      "dependencies": [],
       "features": {
         "iac": {
           "enabled": true,
@@ -144,7 +182,8 @@
         },
         "containers": {
           "enabled": true,
-          "scan_base_images": true
+          "scan_base_images": true,
+          "check_hardened": true
         },
         "github_actions": {
           "enabled": true,
@@ -168,9 +207,10 @@
     },
     "health": {
       "name": "Project Health",
-      "description": "Consolidated project health scanner: technology discovery, documentation, test coverage, code ownership",
+      "description": "Project health analysis: technology discovery, documentation, test coverage, code ownership",
       "estimated_time": "30-90s",
       "output_file": "health.json",
+      "dependencies": [],
       "features": {
         "technology": {
           "enabled": true,
@@ -199,6 +239,46 @@
           "period_days": 90
         }
       }
+    },
+    "ai": {
+      "name": "AI/ML Security",
+      "description": "AI/ML security analysis and ML-BOM generation: models, frameworks, datasets, security, governance",
+      "estimated_time": "30-90s",
+      "output_file": "ai.json",
+      "dependencies": [],
+      "features": {
+        "models": {
+          "enabled": true,
+          "detect_model_files": true,
+          "scan_code_patterns": true,
+          "scan_configs": true,
+          "query_registries": true
+        },
+        "frameworks": {
+          "enabled": true,
+          "detect_deep_learning": true,
+          "detect_llm": true,
+          "detect_mlops": true
+        },
+        "datasets": {
+          "enabled": true,
+          "detect_references": true,
+          "check_provenance": true
+        },
+        "security": {
+          "enabled": true,
+          "check_pickle_files": true,
+          "detect_unsafe_loading": true,
+          "check_api_key_exposure": true
+        },
+        "governance": {
+          "enabled": true,
+          "require_model_cards": true,
+          "require_license": true,
+          "require_dataset_info": false,
+          "blocked_licenses": ["CC-BY-NC-4.0", "proprietary"]
+        }
+      }
     }
   },
   "profiles": {
@@ -206,12 +286,17 @@
       "name": "Quick",
       "description": "Fast essential analysis for rapid feedback",
       "estimated_time": "~30 seconds",
-      "scanners": ["packages", "health"],
+      "scanners": ["sbom", "packages", "health"],
       "feature_overrides": {
+        "sbom": {
+          "integrity": {"enabled": false}
+        },
         "packages": {
           "malcontent": {"enabled": false},
           "provenance": {"enabled": false},
-          "bundle": {"enabled": false}
+          "bundle": {"enabled": false},
+          "confusion": {"enabled": false},
+          "reachability": {"enabled": false}
         },
         "health": {
           "documentation": {"check_code_docs": false},
@@ -223,10 +308,11 @@
       "name": "Standard",
       "description": "Balanced analysis covering security and code quality",
       "estimated_time": "~2 minutes",
-      "scanners": ["packages", "code", "health"],
+      "scanners": ["sbom", "packages", "code", "health"],
       "feature_overrides": {
         "packages": {
-          "bundle": {"enabled": false}
+          "bundle": {"enabled": false},
+          "reachability": {"enabled": false}
         },
         "code": {
           "tech_debt": {"enabled": false}
@@ -237,9 +323,9 @@
       "name": "Security",
       "description": "Security-focused analysis for vulnerability assessment",
       "estimated_time": "~4 minutes",
-      "scanners": ["packages", "crypto", "code", "infra"],
+      "scanners": ["sbom", "packages", "crypto", "code", "devops"],
       "feature_overrides": {
-        "infra": {
+        "devops": {
           "dora": {"enabled": false},
           "git": {"enabled": false}
         }
@@ -249,13 +335,34 @@
       "name": "Full",
       "description": "Complete analysis with all features enabled",
       "estimated_time": "~10 minutes",
-      "scanners": ["packages", "crypto", "code", "infra", "health"]
+      "scanners": ["sbom", "packages", "crypto", "code", "devops", "health", "ai"]
+    },
+    "ai-security": {
+      "name": "AI/ML Security",
+      "description": "AI/ML focused security analysis with ML-BOM generation",
+      "estimated_time": "~3 minutes",
+      "scanners": ["sbom", "packages", "code", "ai"],
+      "feature_overrides": {
+        "packages": {
+          "bundle": {"enabled": false},
+          "recommendations": {"enabled": false}
+        },
+        "code": {
+          "tech_debt": {"enabled": false}
+        }
+      }
+    },
+    "sbom-only": {
+      "name": "SBOM Only",
+      "description": "SBOM generation and integrity verification only",
+      "estimated_time": "~1 minute",
+      "scanners": ["sbom"]
     },
     "packages-only": {
       "name": "Packages Only",
       "description": "Complete package/dependency analysis",
       "estimated_time": "~3 minutes",
-      "scanners": ["packages"]
+      "scanners": ["sbom", "packages"]
     },
     "crypto-only": {
       "name": "Cryptography Only",
@@ -269,11 +376,11 @@
       "estimated_time": "~3 minutes",
       "scanners": ["code"]
     },
-    "infra-only": {
-      "name": "Infrastructure Only",
-      "description": "Infrastructure and DevOps analysis",
+    "devops-only": {
+      "name": "DevOps Only",
+      "description": "DevOps and infrastructure analysis",
       "estimated_time": "~3 minutes",
-      "scanners": ["infra"]
+      "scanners": ["devops"]
     },
     "health-only": {
       "name": "Health Only",
@@ -281,40 +388,64 @@
       "estimated_time": "~2 minutes",
       "scanners": ["health"]
     },
+    "ai-only": {
+      "name": "AI/ML Only",
+      "description": "AI/ML security and ML-BOM generation only",
+      "estimated_time": "~2 minutes",
+      "scanners": ["ai"]
+    },
     "compliance": {
       "name": "Compliance",
       "description": "License and policy compliance checks",
       "estimated_time": "~2 minutes",
-      "scanners": ["packages", "health"],
+      "scanners": ["sbom", "packages", "health", "ai"],
       "feature_overrides": {
         "packages": {
-          "vulnerabilities": {"enabled": false},
+          "vulns": {"enabled": false},
           "malcontent": {"enabled": false},
           "provenance": {"enabled": false},
           "bundle": {"enabled": false},
           "duplicates": {"enabled": false},
           "recommendations": {"enabled": false},
-          "typosquats": {"enabled": false}
+          "typosquats": {"enabled": false},
+          "confusion": {"enabled": false},
+          "reachability": {"enabled": false}
         },
         "health": {
           "technology": {"enabled": false},
           "tests": {"enabled": false}
+        },
+        "ai": {
+          "security": {"enabled": false},
+          "datasets": {"enabled": false}
         }
       }
     },
-    "devops": {
-      "name": "DevOps",
-      "description": "CI/CD and operational metrics",
+    "ci-cd": {
+      "name": "CI/CD",
+      "description": "CI/CD pipeline and operational metrics",
       "estimated_time": "~3 minutes",
-      "scanners": ["infra", "health"],
+      "scanners": ["devops", "health"],
       "feature_overrides": {
-        "infra": {
+        "devops": {
           "iac": {"enabled": false},
           "containers": {"enabled": false}
         },
         "health": {
           "documentation": {"enabled": false},
           "ownership": {"enabled": false}
+        }
+      }
+    },
+    "supply-chain": {
+      "name": "Supply Chain",
+      "description": "Complete supply chain security analysis",
+      "estimated_time": "~5 minutes",
+      "scanners": ["sbom", "packages", "ai"],
+      "feature_overrides": {
+        "ai": {
+          "frameworks": {"enabled": false},
+          "datasets": {"enabled": false}
         }
       }
     }
