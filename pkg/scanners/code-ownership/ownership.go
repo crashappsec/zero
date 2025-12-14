@@ -234,7 +234,7 @@ func (s *OwnershipScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (
 	}
 
 	// Add metadata
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"features_run": result.FeaturesRun,
 		"period_days":  periodDays,
 	}
@@ -347,6 +347,8 @@ func (s *OwnershipScanner) analyzeOwnershipWithCompetency(repo *git.Repository, 
 	contributors := make(map[string]Contributor)
 	fileContribs := make(map[string]map[string]bool)
 	devProfiles := make(map[string]*DeveloperProfile)
+	// Track unique files per developer per language to avoid counting the same file multiple times
+	devLangFiles := make(map[string]map[string]map[string]bool) // email -> language -> file -> seen
 
 	ref, err := repo.Head()
 	if err != nil {
@@ -409,7 +411,19 @@ func (s *OwnershipScanner) analyzeOwnershipWithCompetency(repo *git.Repository, 
 				// Track language stats for developer
 				lang := languages.DetectFromPath(f)
 				if lang != "" && languages.IsProgrammingLanguage(lang) {
-					s.updateLanguageStats(profile, lang, commitType)
+					// Initialize tracking maps if needed
+					if devLangFiles[email] == nil {
+						devLangFiles[email] = make(map[string]map[string]bool)
+					}
+					if devLangFiles[email][lang] == nil {
+						devLangFiles[email][lang] = make(map[string]bool)
+					}
+					// Check if this is a unique file for this developer+language
+					isNewFile := !devLangFiles[email][lang][f]
+					if isNewFile {
+						devLangFiles[email][lang][f] = true
+					}
+					s.updateLanguageStats(profile, lang, commitType, isNewFile)
 				}
 			}
 			contrib.FilesTouched += len(files)
@@ -428,7 +442,8 @@ func (s *OwnershipScanner) analyzeOwnershipWithCompetency(repo *git.Repository, 
 }
 
 // updateLanguageStats updates a developer's per-language statistics
-func (s *OwnershipScanner) updateLanguageStats(profile *DeveloperProfile, lang string, commitType string) {
+// isNewFile should be true only if this is the first time the developer touched this file in this language
+func (s *OwnershipScanner) updateLanguageStats(profile *DeveloperProfile, lang string, commitType string, isNewFile bool) {
 	// Find existing language stats or create new
 	var langStats *LanguageStats
 	for i := range profile.Languages {
@@ -444,7 +459,10 @@ func (s *OwnershipScanner) updateLanguageStats(profile *DeveloperProfile, lang s
 	}
 
 	langStats.Commits++
-	langStats.FileCount++
+	// Only increment FileCount for unique files (not per-commit)
+	if isNewFile {
+		langStats.FileCount++
+	}
 
 	switch commitType {
 	case "feature":
@@ -488,7 +506,7 @@ func (s *OwnershipScanner) finalizeProfile(profile *DeveloperProfile) {
 
 	// Score formula: commits * (1 + bug_fix_bonus) * language_bonus
 	// Bug fix work is weighted higher (fixing bugs shows deeper understanding)
-	bugFixBonus := bugFixRatio * 0.5 // Up to 50% bonus for bug fixes
+	bugFixBonus := bugFixRatio * 0.5               // Up to 50% bonus for bug fixes
 	languageBonus := 1.0 + (languageBreadth-1)*0.1 // 10% bonus per additional language
 
 	profile.CompetencyScore = commitVolume * (1 + bugFixBonus) * languageBonus
