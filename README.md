@@ -16,14 +16,14 @@ Named after **Zero Cool** from the movie Hackers (1995), Zero is a team of AI ag
 
 ## What is Zero?
 
-Zero is a Go-based CLI tool for software and security engineers. It provides 25+ security scanners, AI-powered analysis agents, and integrates with tools like cdxgen, syft, semgrep, and grype to provide comprehensive security assessments.
+Zero is a Go-based CLI tool for software and security engineers. It provides 8 consolidated "super scanners" with 40+ configurable features, AI-powered analysis agents, and integrates with tools like cdxgen, syft, semgrep, and grype to provide comprehensive security assessments.
 
 ### Key Capabilities
 
-- **25+ Security Scanners** - SBOM generation, vulnerability scanning, secrets detection, SAST, IaC security, and more
-- **AI Agent System** - Specialist agents (named after Hackers characters) for deep security analysis
-- **Configurable** - JSON configuration for scanner options, profiles, and tool preferences
-- **Token-Aware** - The `roadmap` command shows which scanners work with your GitHub token permissions
+- **8 Super Scanners** - Consolidated scanners with multiple features: SBOM, package analysis, code security, crypto, DevOps, quality, technology identification, and code ownership
+- **AI Agent System** - 12 specialist agents (named after Hackers characters) for deep security analysis
+- **Configurable** - JSON configuration for scanner options, profiles, and feature toggles
+- **ML-BOM Generation** - Machine Learning Bill of Materials for AI/ML projects
 
 ## Quick Start
 
@@ -112,49 +112,50 @@ Profiles are defined in `config/zero.config.json` and can be customized.
 
 ## Scanners
 
-Zero includes 25 specialized scanners organized by category:
+Zero uses **8 consolidated super scanners** (v3.5 architecture), each with multiple configurable features:
 
-### Supply Chain Security
-| Scanner | Description | External Tool |
-|---------|-------------|---------------|
-| `package-sbom` | CycloneDX SBOM generation | cdxgen or syft |
-| `package-vulns` | CVE scanning via OSV database | osv-scanner or grype |
-| `package-health` | Dependency health scoring, abandonment detection | - |
-| `package-provenance` | SLSA attestations and build provenance | - |
-| `package-malcontent` | Malware detection (14,500+ YARA rules) | malcontent |
-| `package-recommendations` | Alternative library suggestions | - |
-| `package-bundle-optimization` | JavaScript bundle size analysis | - |
+| Scanner | Features | Description | External Tools |
+|---------|----------|-------------|----------------|
+| **sbom** | generation, integrity | SBOM generation and verification (source of truth) | cdxgen, syft |
+| **package-analysis** | vulns, health, licenses, malcontent, provenance, bundle, duplicates, recommendations, typosquats, deprecations, confusion, reachability | Package/dependency analysis | grype, osv-scanner, malcontent |
+| **crypto** | ciphers, keys, random, tls, certificates | Cryptographic security | semgrep |
+| **code-security** | vulns, secrets, api | Security-focused code analysis (SAST) | semgrep, gitleaks |
+| **code-quality** | tech_debt, complexity, test_coverage, documentation | Code quality metrics | - |
+| **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security | trivy, checkov |
+| **tech-id** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | Technology detection and ML-BOM generation | - |
+| **code-ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | Code ownership analysis | - |
 
-### Code Security
-| Scanner | Description | External Tool |
-|---------|-------------|---------------|
-| `code-vulns` | SAST analysis (OWASP, CWE) | semgrep |
-| `code-secrets` | API keys, credentials, token detection | semgrep or gitleaks |
-| `api-security` | OWASP API Security Top 10 | semgrep |
-| `iac-security` | Terraform, K8s, CloudFormation analysis | checkov or trivy |
-| `container-security` | Dockerfile security and best practices | trivy or hadolint |
-| `containers` | Container image analysis | trivy |
+### Feature Details
 
-### Cryptography Analysis
-| Scanner | Description | External Tool |
-|---------|-------------|---------------|
-| `crypto-ciphers` | Weak/deprecated algorithms (DES, RC4, MD5) | semgrep |
-| `crypto-keys` | Hardcoded keys, weak key lengths | semgrep |
-| `crypto-random` | Insecure random number generation | semgrep |
-| `crypto-tls` | TLS configuration issues | semgrep |
-| `digital-certificates` | X.509 certificate analysis | - |
+**package-analysis** (depends on sbom):
+- `vulns` - CVE scanning via OSV database
+- `health` - Dependency health scoring, abandonment detection
+- `licenses` - SPDX license detection with policy enforcement
+- `malcontent` - Malware detection (14,500+ YARA rules)
+- `provenance` - SLSA attestations and build provenance
+- `bundle` - JavaScript bundle size analysis
+- `typosquats` - Package name typosquatting detection
+- `confusion` - Dependency confusion detection
 
-### Developer Productivity
-| Scanner | Description | External Tool |
-|---------|-------------|---------------|
-| `tech-discovery` | Framework and language detection (100+ patterns) | - |
-| `code-ownership` | CODEOWNERS, bus factor, contributor analysis | - |
-| `dora` | DORA metrics (deployment freq, lead time, MTTR) | GitHub API |
-| `git` | Commit patterns, contributor activity | - |
-| `documentation` | README quality and docs coverage | - |
-| `test-coverage` | Test framework detection and coverage | - |
-| `tech-debt` | Code duplication, complexity, TODO markers | - |
-| `licenses` | SPDX license detection with policy | - |
+**code-security**:
+- `vulns` - SAST analysis (OWASP Top 10, CWE)
+- `secrets` - API keys, credentials, token detection
+- `api` - OWASP API Security Top 10
+
+**crypto**:
+- `ciphers` - Weak/deprecated algorithms (DES, RC4, MD5)
+- `keys` - Hardcoded keys, weak key lengths
+- `random` - Insecure random number generation
+- `tls` - TLS configuration issues
+- `certificates` - X.509 certificate analysis
+
+**tech-id** (generates ML-BOM):
+- `detection` - Language and framework detection (100+ patterns)
+- `models` - ML model file detection (.pt, .onnx, .safetensors, .gguf)
+- `frameworks` - AI/ML framework detection (PyTorch, TensorFlow, LangChain)
+- `datasets` - Training dataset detection
+- `ai_security` - Pickle RCE, unsafe model loading, API key exposure
+- `ai_governance` - Model cards, licenses, dataset provenance
 
 ## Configuration
 
@@ -171,57 +172,46 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 
 ### Configuration File
 
-Zero uses `config/zero.config.json` for scanner configuration:
+Zero uses `config/zero.config.json` for scanner configuration. Each scanner has multiple features that can be enabled/disabled:
 
 ```json
 {
   "settings": {
     "default_profile": "standard",
     "scanner_timeout_seconds": 300,
-    "parallel_jobs": 4
+    "parallel_scanners": 4
   },
   "scanners": {
-    "package-sbom": {
-      "options": {
-        "sbom": {
-          "tool": "auto",
-          "spec_version": "1.5",
-          "recurse": true,
-          "install_deps": false,
-          "fallback_to_syft": true
-        }
+    "sbom": {
+      "features": {
+        "generation": { "enabled": true, "tool": "auto", "spec_version": "1.5" },
+        "integrity": { "enabled": true, "verify_lockfiles": true }
+      }
+    },
+    "package-analysis": {
+      "features": {
+        "vulns": { "enabled": true, "include_dev": false },
+        "health": { "enabled": true },
+        "malcontent": { "enabled": true, "min_risk": "medium" },
+        "licenses": { "enabled": true, "blocked_licenses": ["GPL-3.0", "AGPL-3.0"] }
       }
     }
   }
 }
 ```
 
-### SBOM Options
-
-The SBOM scanner supports extensive configuration:
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `tool` | `auto` | Tool preference: `cdxgen`, `syft`, or `auto` |
-| `spec_version` | `1.5` | CycloneDX spec version |
-| `format` | `json` | Output format: `json` or `xml` |
-| `recurse` | `true` | Recurse into subdirectories (mono-repos) |
-| `install_deps` | `false` | Install dependencies before scanning |
-| `babel_analysis` | `false` | Run babel for JS/TS analysis |
-| `deep` | `false` | Deep analysis for C/C++, OCI images |
-| `evidence` | `false` | Generate evidence in SBOM |
-| `profile` | `generic` | cdxgen profile: `generic`, `research`, `appsec` |
-| `fallback_to_syft` | `true` | Fall back to syft if cdxgen fails |
-
 ### Scan Profiles
 
-| Profile | Scanners |
-|---------|----------|
-| `quick` | sbom, tech-discovery, vulnerabilities, licenses |
-| `standard` | + package-health, code-secrets, code-ownership |
-| `security` | sbom, vulns, code-security, iac-security, secrets, malcontent, container-security |
-| `packages` | sbom, vulns, health, provenance, malcontent, bundle-optimization, recommendations |
-| `advanced` | All scanners |
+| Profile | Scanners | Use Case |
+|---------|----------|----------|
+| `quick` | sbom, package-analysis (limited) | Fast feedback (~30s) |
+| `standard` | sbom, package-analysis, code-security, code-quality | Balanced analysis (~2min) |
+| `security` | sbom, package-analysis, crypto, code-security, devops | Security-focused (~4min) |
+| `full` | All 8 scanners | Complete analysis (~12min) |
+| `sbom-only` | sbom | SBOM generation only (~1min) |
+| `ai-security` | sbom, package-analysis, code-security, tech-id | AI/ML security with ML-BOM (~3min) |
+| `supply-chain` | sbom, package-analysis, tech-id | Supply chain analysis (~5min) |
+| `compliance` | sbom, package-analysis, tech-id | License/policy compliance (~2min) |
 
 ## Checkup Command
 
@@ -240,22 +230,23 @@ This shows:
 
 ## AI Agent System
 
-Zero includes specialist AI agents (powered by Claude) for deep analysis:
+Zero includes 12 specialist AI agents (powered by Claude) for deep analysis:
 
-| Agent | Character | Expertise |
-|-------|-----------|-----------|
-| **Zero** | Zero Cool | Master orchestrator |
-| **Cereal** | Cereal Killer | Supply chain security, malware, CVEs |
-| **Razor** | Razor | Code security, SAST, secrets |
-| **Blade** | Blade | Compliance, SOC 2, ISO 27001 |
-| **Phreak** | Phantom Phreak | Legal, licenses, data privacy |
-| **Acid** | Acid Burn | Frontend, React, TypeScript |
-| **Dade** | Dade Murphy | Backend, APIs, databases |
-| **Nikon** | Lord Nikon | Architecture, system design |
-| **Joey** | Joey | Build, CI/CD, performance |
-| **Plague** | The Plague | DevOps, infrastructure, Kubernetes |
-| **Gibson** | The Gibson | Engineering metrics, DORA |
-| **Gill** | Gill Bates | Cryptography, TLS, keys |
+| Agent | Character | Expertise | Primary Scanner |
+|-------|-----------|-----------|-----------------|
+| **Zero** | Zero Cool | Master orchestrator | All |
+| **Cereal** | Cereal Killer | Supply chain security, malware, CVEs | sbom, package-analysis |
+| **Razor** | Razor | Code security, SAST, secrets | code-security |
+| **Blade** | Blade | Compliance, SOC 2, ISO 27001 | package-analysis, code-security |
+| **Phreak** | Phantom Phreak | Legal, licenses, data privacy | package-analysis (licenses) |
+| **Acid** | Acid Burn | Frontend, React, TypeScript, a11y | code-security, code-quality |
+| **Dade** | Dade Murphy | Backend, APIs, databases | code-security (api) |
+| **Nikon** | Lord Nikon | Architecture, system design | tech-id |
+| **Joey** | Joey | Build, CI/CD, performance | devops (github_actions) |
+| **Plague** | The Plague | DevOps, infrastructure, Kubernetes | devops |
+| **Gibson** | The Gibson | Engineering metrics, DORA | devops (dora, git) |
+| **Gill** | Gill Bates | Cryptography, TLS, keys | crypto |
+| **Turing** | Alan Turing | AI/ML security, ML-BOM, LLM security | tech-id |
 
 ### Agent Mode (Claude Code)
 
@@ -285,10 +276,15 @@ Analysis data is stored in `.zero/` (configurable):
             ├── project.json    # Project metadata
             ├── repo/           # Cloned repository
             └── analysis/       # Scanner results (JSON)
-                ├── package-sbom.json
-                ├── package-vulns.json
-                ├── code-secrets.json
-                └── ...
+                ├── sbom.cdx.json           # CycloneDX SBOM
+                ├── sbom.json               # SBOM scanner results
+                ├── package-analysis.json   # Package analysis results
+                ├── code-security.json      # Code security results
+                ├── crypto.json             # Crypto analysis results
+                ├── devops.json             # DevOps analysis results
+                ├── code-quality.json       # Code quality results
+                ├── technology.json         # Technology/ML-BOM results
+                └── code-ownership.json     # Ownership results
 ```
 
 ## Architecture
@@ -299,11 +295,15 @@ zero/
 │   └── cmd/                    # Cobra commands
 ├── pkg/
 │   ├── scanner/                # Scanner framework
-│   ├── scanners/               # Scanner implementations (25+)
-│   │   ├── sbom/
-│   │   ├── vulns/
-│   │   ├── secrets/
-│   │   └── ...
+│   ├── scanners/               # Super scanner implementations (8)
+│   │   ├── sbom/               # SBOM generation
+│   │   ├── package-analysis/   # Package/dependency analysis
+│   │   ├── crypto/             # Cryptographic security
+│   │   ├── code-security/      # Code security (SAST, secrets)
+│   │   ├── code-quality/       # Code quality metrics
+│   │   ├── devops/             # DevOps and CI/CD
+│   │   ├── tech-id/  # Technology and ML-BOM
+│   │   └── code-ownership/     # Code ownership
 │   ├── config/                 # Configuration handling
 │   ├── github/                 # GitHub API client
 │   ├── hydrate/                # Clone + scan orchestration
@@ -311,7 +311,6 @@ zero/
 ├── agents/                     # AI agent definitions
 ├── rag/                        # RAG knowledge base
 ├── config/                     # Configuration files
-├── legacy/                     # Old shell-based implementation
 ```
 
 ## Development
@@ -385,7 +384,7 @@ Zero is maintained by the open source community and sponsored by [Crash Override
 ---
 
 **Status**: Experimental Preview
-**Version**: 6.0.0 (Go rewrite)
-**Last Updated**: 2025-12-13
+**Version**: 3.5.0 (Super Scanner Architecture)
+**Last Updated**: 2025-12-14
 
 *"Hack the planet!"*

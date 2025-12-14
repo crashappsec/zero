@@ -14,17 +14,20 @@ Zero is the free, open-source component of the Crash Override platform. It provi
 
 ## Current Capabilities
 
-Zero currently includes **21 scanners** across these categories:
+Zero uses **8 consolidated super scanners** (v3.5 architecture) with 40+ configurable features:
 
-| Category | Scanners |
-|----------|----------|
-| **Supply Chain Security** | package-sbom, package-vulns, package-health, package-provenance, package-malcontent, package-recommendations, package-bundle-optimization |
-| **Code Security** | code-security, code-secrets, iac-security, container-security |
-| **Compliance & Legal** | licenses, digital-certificates |
-| **Developer Productivity** | tech-discovery, code-ownership, dora, git, documentation, test-coverage, tech-debt |
-| **Container & Infrastructure** | containers, bundle-analysis |
+| Scanner | Features | Description |
+|---------|----------|-------------|
+| **sbom** | generation, integrity | SBOM generation and verification (source of truth) |
+| **package-analysis** | vulns, health, licenses, malcontent, provenance, bundle, duplicates, recommendations, typosquats, deprecations, confusion, reachability | Package/dependency analysis |
+| **crypto** | ciphers, keys, random, tls, certificates | Cryptographic security |
+| **code-security** | vulns, secrets, api | Security-focused code analysis (SAST) |
+| **code-quality** | tech_debt, complexity, test_coverage, documentation | Code quality metrics |
+| **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security |
+| **tech-id** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | Technology detection and ML-BOM generation |
+| **code-ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | Code ownership analysis |
 
-Plus **10 AI specialist agents** for deep analysis (Cereal, Razor, Blade, Phreak, Acid, Dade, Nikon, Joey, Plague, Gibson).
+Plus **12 AI specialist agents** for deep analysis (Zero, Cereal, Razor, Blade, Phreak, Acid, Dade, Nikon, Joey, Plague, Gibson, Gill, Turing).
 
 ---
 
@@ -41,20 +44,24 @@ Scan OpenAPI specs, GraphQL schemas, and route definitions in source code:
 - [ ] **Authentication Analysis** - OAuth/OIDC configuration review in code
 - [ ] **API Versioning Audit** - Detect deprecated or sunset API endpoints
 
-#### AI/ML Model Security
+#### AI/ML Model Security ✅ IMPLEMENTED
 Scan ML models, datasets, and AI pipelines in repositories:
-- [ ] **ML-BOM Generation** - CycloneDX inventory of models, datasets, frameworks
-- [ ] **Pickle/Model File Scanning** - Detect unsafe deserialization in `.pkl`, `.pt` files
-- [ ] **ML Framework Vulnerabilities** - CVEs in PyTorch, TensorFlow, scikit-learn
-- [ ] **Training Data Analysis** - PII detection, provenance tracking
-- [ ] **Jupyter Notebook Security** - Secrets, credentials, unsafe code in `.ipynb`
+- [x] **ML-BOM Generation** - CycloneDX inventory of models, datasets, frameworks (tech-id scanner)
+- [x] **Pickle/Model File Scanning** - Detect unsafe deserialization in `.pkl`, `.pt`, `.pth` files
+- [x] **ML Framework Detection** - PyTorch, TensorFlow, JAX, HuggingFace, LangChain, LlamaIndex
+- [x] **Model Registry Detection** - HuggingFace Hub, TensorFlow Hub, Ollama, Replicate, Civitai
+- [x] **AI Security Scanning** - API key exposure, unsafe model loading, prompt injection
+- [x] **AI Governance** - Model cards, licenses, dataset provenance requirements
+- [ ] **Training Data Analysis** - PII detection in datasets (future)
+- [ ] **Jupyter Notebook Security** - Secrets in `.ipynb` (future)
 
-#### Cryptography Audit
+#### Cryptography Audit ✅ IMPLEMENTED
 Scan source code for weak cryptographic patterns:
-- [ ] **Weak Cipher Detection** - Flag MD5, SHA1, DES, RC4, ECB mode usage
-- [ ] **Hardcoded Keys/IVs** - Detect cryptographic keys in source code
-- [ ] **TLS Configuration** - Insecure TLS versions, weak cipher suites in configs
-- [ ] **Certificate Validation** - Disabled cert verification, pinning issues
+- [x] **Weak Cipher Detection** - Flag MD5, SHA1, DES, RC4, ECB mode usage (crypto scanner)
+- [x] **Hardcoded Keys/IVs** - Detect cryptographic keys in source code
+- [x] **TLS Configuration** - Insecure TLS versions, weak cipher suites
+- [x] **Certificate Validation** - Disabled cert verification, expiry checks
+- [x] **Insecure Random** - Detect weak random number generation
 
 #### Enhanced Secret Detection
 - [ ] **Claude-enhanced False Positive Reduction** - AI-powered context analysis
@@ -163,7 +170,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-*Last Updated: 2025-12-12*
-*Version: 5.1.0*
+*Last Updated: 2025-12-14*
+*Version: 3.5.0*
 
 *"Hack the planet!"*

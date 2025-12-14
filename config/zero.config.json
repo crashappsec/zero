@@ -158,7 +158,7 @@
         "secrets": {
           "enabled": true,
           "detection_method": "rag",
-          "rag_patterns_path": "rag/technology-identification",
+          "rag_patterns_path": "rag/tech-id",
           "validate_with_api": true,
           "redact_secrets": true,
           "min_confidence": 0.8
@@ -241,17 +241,17 @@
         }
       }
     },
-    "technology": {
+    "tech-id": {
       "name": "Technology Identification",
       "description": "Technology detection and AI/ML analysis with ML-BOM generation",
       "estimated_time": "30-90s",
-      "output_file": "technology.json",
+      "output_file": "tech-id.json",
       "dependencies": [],
       "features": {
         "detection": {
           "enabled": true,
           "tier": "auto",
-          "rag_patterns_path": "rag/technology-identification",
+          "rag_patterns_path": "rag/tech-id",
           "scan_extensions": true,
           "scan_config": true,
           "scan_sbom": true,
@@ -423,13 +423,13 @@
       "name": "Full",
       "description": "Complete analysis with all features enabled",
       "estimated_time": "~12 minutes",
-      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "technology-identification", "code-ownership"]
+      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership"]
     },
     "ai-security": {
       "name": "AI/ML Security",
       "description": "AI/ML focused security analysis with ML-BOM generation",
       "estimated_time": "~3 minutes",
-      "scanners": ["sbom", "package-analysis", "code-security", "technology-identification"],
+      "scanners": ["sbom", "package-analysis", "code-security", "tech-id"],
       "feature_overrides": {
         "package-analysis": {
           "bundle": {"enabled": false},
@@ -473,11 +473,11 @@
       "estimated_time": "~3 minutes",
       "scanners": ["devops"]
     },
-    "technology-identification-only": {
+    "tech-id-only": {
       "name": "Technology Identification Only",
       "description": "Technology detection and AI/ML analysis with ML-BOM",
       "estimated_time": "~2 minutes",
-      "scanners": ["technology-identification"]
+      "scanners": ["tech-id"]
     },
     "code-ownership-only": {
       "name": "Code Ownership Only",
@@ -489,7 +489,7 @@
       "name": "Compliance",
       "description": "License and policy compliance checks",
       "estimated_time": "~2 minutes",
-      "scanners": ["sbom", "package-analysis", "technology-identification"],
+      "scanners": ["sbom", "package-analysis", "tech-id"],
       "feature_overrides": {
         "package-analysis": {
           "vulns": {"enabled": false},
@@ -502,7 +502,7 @@
           "confusion": {"enabled": false},
           "reachability": {"enabled": false}
         },
-        "technology-identification": {
+        "tech-id": {
           "ai_security": {"enabled": false},
           "infrastructure": {"enabled": false}
         }
@@ -528,9 +528,9 @@
       "name": "Supply Chain",
       "description": "Complete supply chain security analysis",
       "estimated_time": "~5 minutes",
-      "scanners": ["sbom", "package-analysis", "technology-identification"],
+      "scanners": ["sbom", "package-analysis", "tech-id"],
       "feature_overrides": {
-        "technology-identification": {
+        "tech-id": {
           "infrastructure": {"enabled": false}
         }
       }

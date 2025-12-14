@@ -191,8 +191,9 @@ func (h *Hydrate) Run(ctx context.Context) ([]string, error) {
 	// Print per-scanner results table
 	h.printScannerResultsTable(repoStatuses, scanners, skipScanners)
 
-	// Aggregate findings from all repos (only for scanners that were run)
-	findings := h.aggregateFindings(repoStatuses, scanners)
+	// Aggregate findings from all repos (only for scanners that were run, excluding skipped)
+	runningScanners := filterOutSkipped(scanners, skipScanners)
+	findings := h.aggregateFindings(repoStatuses, runningScanners)
 
 	// Print summary
 	duration := int(time.Since(start).Seconds())
@@ -623,6 +624,24 @@ func contains(slice []string, item string) bool {
 	return false
 }
 
+// filterOutSkipped returns scanners excluding those in skipScanners
+func filterOutSkipped(scanners, skipScanners []string) []string {
+	if len(skipScanners) == 0 {
+		return scanners
+	}
+	skipSet := make(map[string]bool)
+	for _, s := range skipScanners {
+		skipSet[s] = true
+	}
+	var result []string
+	for _, s := range scanners {
+		if !skipSet[s] {
+			result = append(result, s)
+		}
+	}
+	return result
+}
+
 // printScannerResultsTable prints a summary table of all scanner results
 func (h *Hydrate) printScannerResultsTable(statuses []*RepoStatus, scanners, skipScanners []string) {
 	// Aggregate scanner results across all repos
@@ -735,6 +754,11 @@ func (h *Hydrate) aggregateFindings(statuses []*RepoStatus, runningScanners []st
 		// Aggregate SBOM data (from sbom scanner)
 		if scannerSet["sbom"] {
 			h.aggregateSBOM(analysisDir, findings)
+			// Add SBOM path to findings
+			sbomPath := filepath.Join(analysisDir, "sbom.cdx.json")
+			if _, err := os.Stat(sbomPath); err == nil {
+				findings.SBOMPaths = append(findings.SBOMPaths, sbomPath)
+			}
 		}
 
 		// Aggregate vulnerability data (from package-analysis scanner)
@@ -749,10 +773,8 @@ func (h *Hydrate) aggregateFindings(statuses []*RepoStatus, runningScanners []st
 			h.aggregateSecrets(analysisDir, findings)
 		}
 
-		// Aggregate health data (from code-quality scanner)
-		if scannerSet["code-quality"] {
-			h.aggregateHealth(analysisDir, findings)
-		}
+		// Note: aggregateHealth was removed as the health scanner no longer exists.
+		// The code-quality scanner provides different metrics (tech debt, complexity, coverage).
 	}
 
 	return findings
@@ -878,23 +900,5 @@ func (h *Hydrate) aggregateMalcontent(dir string, findings *terminal.ScanFinding
 	findings.MalcontentHigh += result.Summary.High
 }
 
-func (h *Hydrate) aggregateHealth(dir string, findings *terminal.ScanFindings) {
-	path := filepath.Join(dir, "package-health.json")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return
-	}
-
-	var result struct {
-		Summary struct {
-			CriticalCount int `json:"critical_count"`
-			WarningCount  int `json:"warning_count"`
-		} `json:"summary"`
-	}
-	if err := json.Unmarshal(data, &result); err != nil {
-		return
-	}
-
-	findings.HealthCritical += result.Summary.CriticalCount
-	findings.HealthWarnings += result.Summary.WarningCount
-}
+// Note: aggregateHealth was removed as the health scanner no longer exists.
+// The code-quality scanner provides different metrics (tech debt, complexity, coverage).

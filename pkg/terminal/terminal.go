@@ -258,6 +258,10 @@ func (t *Terminal) ScanComplete() {
 
 // ScanFindings holds aggregated scan findings
 type ScanFindings struct {
+	// SBOM
+	SBOMPath        string   // Path to generated SBOM file(s)
+	SBOMPaths       []string // Multiple SBOM paths for multi-repo scans
+
 	// Packages
 	TotalPackages   int
 	PackagesByEco   map[string]int
@@ -337,6 +341,20 @@ func (t *Terminal) SummaryWithFindings(org string, duration int, success, failed
 
 	// Print findings section
 	fmt.Printf("\n%s\n", t.Color(Bold, "Findings"))
+
+	// SBOM path(s)
+	if findings.SBOMPath != "" {
+		fmt.Printf("  SBOM:            %s\n", t.Color(Cyan, findings.SBOMPath))
+	} else if len(findings.SBOMPaths) > 0 {
+		if len(findings.SBOMPaths) == 1 {
+			fmt.Printf("  SBOM:            %s\n", t.Color(Cyan, findings.SBOMPaths[0]))
+		} else {
+			fmt.Printf("  SBOMs:           %s\n", t.Color(Cyan, fmt.Sprintf("%d files generated", len(findings.SBOMPaths))))
+			for _, p := range findings.SBOMPaths {
+				fmt.Printf("                   %s\n", t.Color(Dim, p))
+			}
+		}
+	}
 
 	// Packages by ecosystem
 	if findings.TotalPackages > 0 {
