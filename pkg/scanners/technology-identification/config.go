@@ -1,6 +1,6 @@
-// Package technology provides the consolidated technology identification super scanner
+// Package technologyidentification provides the consolidated technology identification super scanner
 // Includes AI/ML security and ML-BOM generation
-package technology
+package technologyidentification
 
 // FeatureConfig holds configuration for all AI/ML analysis features
 type FeatureConfig struct {

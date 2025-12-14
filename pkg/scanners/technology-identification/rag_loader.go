@@ -1,4 +1,4 @@
-package technology
+package technologyidentification
 
 import (
 	"regexp"

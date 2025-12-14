@@ -1,4 +1,4 @@
-package health
+package codehealth
 
 // Result holds all feature results
 type Result struct {

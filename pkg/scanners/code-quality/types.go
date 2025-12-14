@@ -1,4 +1,4 @@
-package quality
+package codequality
 
 // Result holds all feature results
 type Result struct {

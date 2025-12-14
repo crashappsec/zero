@@ -1,5 +1,5 @@
-// Package quality provides the consolidated code quality super scanner
-package quality
+// Package codequality provides the consolidated code quality super scanner
+package codequality
 
 // FeatureConfig holds configuration for all code quality features
 type FeatureConfig struct {

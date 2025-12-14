@@ -1,5 +1,5 @@
-// Package health provides the consolidated project health super scanner
-package health
+// Package codehealth provides the consolidated project health super scanner
+package codehealth
 
 // FeatureConfig holds configuration for all project health features
 // Note: Ownership analysis has been moved to the dedicated ownership scanner
