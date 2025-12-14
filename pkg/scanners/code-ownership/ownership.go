@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	gitobj "github.com/go-git/go-git/v5/plumbing/object"
 
+	"github.com/crashappsec/zero/pkg/languages"
 	"github.com/crashappsec/zero/pkg/scanner"
 )
 
@@ -83,6 +85,19 @@ func (s *OwnershipScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (
 
 	result.FeaturesRun = append(result.FeaturesRun, "ownership")
 
+	// Detect languages in repository
+	var langStats *languages.DirectoryStats
+	if cfg.DetectLanguages {
+		result.FeaturesRun = append(result.FeaturesRun, "languages")
+		langOpts := languages.DefaultScanOptions()
+		langOpts.OnlyProgramming = true
+		var err error
+		langStats, err = languages.ScanDirectory(opts.RepoPath, langOpts)
+		if err != nil {
+			result.Summary.Errors = append(result.Summary.Errors, fmt.Sprintf("scanning languages: %v", err))
+		}
+	}
+
 	// Open git repository
 	repo, err := git.PlainOpen(opts.RepoPath)
 	if err != nil {
@@ -104,10 +119,16 @@ func (s *OwnershipScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (
 	var fileOwners map[string][]string
 	var contributors map[string]Contributor
 	var orphanedFiles []string
+	var devProfiles map[string]*DeveloperProfile
 
-	// Analyze contributors and file ownership
-	if cfg.AnalyzeContributors || cfg.DetectOrphans {
-		fileOwners, contributors = s.analyzeOwnership(repo, since)
+	// Analyze contributors, file ownership, and competency
+	if cfg.AnalyzeContributors || cfg.DetectOrphans || cfg.AnalyzeCompetency {
+		if cfg.AnalyzeCompetency {
+			result.FeaturesRun = append(result.FeaturesRun, "competency")
+			fileOwners, contributors, devProfiles = s.analyzeOwnershipWithCompetency(repo, since)
+		} else {
+			fileOwners, contributors = s.analyzeOwnership(repo, since)
+		}
 	}
 
 	// Detect orphaned files
@@ -154,6 +175,24 @@ func (s *OwnershipScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (
 		}
 	}
 
+	// Build competency list
+	var competencyList []DeveloperProfile
+	if devProfiles != nil {
+		for _, profile := range devProfiles {
+			// Calculate competency score and finalize profile
+			s.finalizeProfile(profile)
+			competencyList = append(competencyList, *profile)
+		}
+		// Sort by competency score descending
+		sort.Slice(competencyList, func(i, j int) bool {
+			return competencyList[i].CompetencyScore > competencyList[j].CompetencyScore
+		})
+		// Limit to top 30 developers
+		if len(competencyList) > 30 {
+			competencyList = competencyList[:30]
+		}
+	}
+
 	result.Summary = Summary{
 		TotalContributors: len(contributors),
 		FilesAnalyzed:     len(fileOwners),
@@ -163,15 +202,30 @@ func (s *OwnershipScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (
 		PeriodDays:        periodDays,
 	}
 
+	// Add language stats to summary
+	if langStats != nil {
+		result.Summary.LanguagesDetected = langStats.LanguageCount
+		topLangs := languages.TopLanguages(langStats, 5)
+		for _, ls := range topLangs {
+			result.Summary.TopLanguages = append(result.Summary.TopLanguages, LanguageInfo{
+				Name:       ls.Language,
+				FileCount:  ls.FileCount,
+				Percentage: ls.Percentage,
+			})
+		}
+	}
+
 	result.Findings = Findings{
 		Contributors:  contribList,
 		Codeowners:    codeowners,
 		OrphanedFiles: orphanedFiles,
 		FileOwners:    fileOwnershipList,
+		Competencies:  competencyList,
 	}
 
 	// Create scan result
 	scanResult := scanner.NewScanResult(Name, "1.0.0", startTime)
+	scanResult.Repository = opts.RepoPath
 	if err := scanResult.SetSummary(result.Summary); err != nil {
 		return nil, fmt.Errorf("failed to set summary: %w", err)
 	}
@@ -186,6 +240,17 @@ func (s *OwnershipScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (
 	}
 	if err := scanResult.SetMetadata(metadata); err != nil {
 		return nil, fmt.Errorf("failed to set metadata: %w", err)
+	}
+
+	// Write output
+	if opts.OutputDir != "" {
+		if err := os.MkdirAll(opts.OutputDir, 0755); err != nil {
+			return nil, fmt.Errorf("creating output dir: %w", err)
+		}
+		resultFile := filepath.Join(opts.OutputDir, Name+".json")
+		if err := scanResult.WriteJSON(resultFile); err != nil {
+			return nil, fmt.Errorf("writing result: %w", err)
+		}
 	}
 
 	return scanResult, nil
@@ -274,6 +339,184 @@ func (s *OwnershipScanner) getChangedFiles(commit, parent *gitobj.Commit) []stri
 	}
 
 	return files
+}
+
+// analyzeOwnershipWithCompetency analyzes git history with per-language competency tracking
+func (s *OwnershipScanner) analyzeOwnershipWithCompetency(repo *git.Repository, since time.Time) (map[string][]string, map[string]Contributor, map[string]*DeveloperProfile) {
+	fileOwners := make(map[string][]string)
+	contributors := make(map[string]Contributor)
+	fileContribs := make(map[string]map[string]bool)
+	devProfiles := make(map[string]*DeveloperProfile)
+
+	ref, err := repo.Head()
+	if err != nil {
+		return fileOwners, contributors, devProfiles
+	}
+
+	commitIter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
+	if err != nil {
+		return fileOwners, contributors, devProfiles
+	}
+
+	var commits []*gitobj.Commit
+	commitIter.ForEach(func(c *gitobj.Commit) error {
+		if c.Author.When.After(since) {
+			commits = append(commits, c)
+		}
+		return nil
+	})
+
+	for i, c := range commits {
+		email := c.Author.Email
+		contrib := contributors[email]
+		contrib.Name = c.Author.Name
+		contrib.Commits++
+
+		// Get or create developer profile
+		profile := devProfiles[email]
+		if profile == nil {
+			profile = &DeveloperProfile{
+				Name:      c.Author.Name,
+				Email:     email,
+				Languages: []LanguageStats{},
+			}
+			devProfiles[email] = profile
+		}
+		profile.TotalCommits++
+
+		// Classify commit type based on message
+		commitType := classifyCommitType(c.Message)
+		switch commitType {
+		case "feature":
+			profile.FeatureCommits++
+		case "bugfix":
+			profile.BugFixCommits++
+		case "refactor":
+			profile.RefactorCommits++
+		default:
+			profile.OtherCommits++
+		}
+
+		if i < len(commits)-1 {
+			parent := commits[i+1]
+			files := s.getChangedFiles(c, parent)
+			for _, f := range files {
+				if fileContribs[f] == nil {
+					fileContribs[f] = make(map[string]bool)
+				}
+				fileContribs[f][email] = true
+
+				// Track language stats for developer
+				lang := languages.DetectFromPath(f)
+				if lang != "" && languages.IsProgrammingLanguage(lang) {
+					s.updateLanguageStats(profile, lang, commitType)
+				}
+			}
+			contrib.FilesTouched += len(files)
+		}
+
+		contributors[email] = contrib
+	}
+
+	for file, contribs := range fileContribs {
+		for email := range contribs {
+			fileOwners[file] = append(fileOwners[file], email)
+		}
+	}
+
+	return fileOwners, contributors, devProfiles
+}
+
+// updateLanguageStats updates a developer's per-language statistics
+func (s *OwnershipScanner) updateLanguageStats(profile *DeveloperProfile, lang string, commitType string) {
+	// Find existing language stats or create new
+	var langStats *LanguageStats
+	for i := range profile.Languages {
+		if profile.Languages[i].Language == lang {
+			langStats = &profile.Languages[i]
+			break
+		}
+	}
+
+	if langStats == nil {
+		profile.Languages = append(profile.Languages, LanguageStats{Language: lang})
+		langStats = &profile.Languages[len(profile.Languages)-1]
+	}
+
+	langStats.Commits++
+	langStats.FileCount++
+
+	switch commitType {
+	case "feature":
+		langStats.FeatureCommits++
+	case "bugfix":
+		langStats.BugFixCommits++
+	}
+}
+
+// finalizeProfile calculates final metrics for a developer profile
+func (s *OwnershipScanner) finalizeProfile(profile *DeveloperProfile) {
+	if profile.TotalCommits == 0 {
+		return
+	}
+
+	// Sort languages by commit count
+	sort.Slice(profile.Languages, func(i, j int) bool {
+		return profile.Languages[i].Commits > profile.Languages[j].Commits
+	})
+
+	// Set top language
+	if len(profile.Languages) > 0 {
+		profile.TopLanguage = profile.Languages[0].Language
+	}
+
+	// Calculate percentages for each language
+	for i := range profile.Languages {
+		profile.Languages[i].Percentage = float64(profile.Languages[i].Commits) / float64(profile.TotalCommits) * 100
+	}
+
+	// Limit to top 10 languages
+	if len(profile.Languages) > 10 {
+		profile.Languages = profile.Languages[:10]
+	}
+
+	// Calculate competency score
+	// Factors: total commits, language breadth, bug fix ratio
+	bugFixRatio := float64(profile.BugFixCommits) / float64(profile.TotalCommits)
+	languageBreadth := float64(len(profile.Languages))
+	commitVolume := float64(profile.TotalCommits)
+
+	// Score formula: commits * (1 + bug_fix_bonus) * language_bonus
+	// Bug fix work is weighted higher (fixing bugs shows deeper understanding)
+	bugFixBonus := bugFixRatio * 0.5 // Up to 50% bonus for bug fixes
+	languageBonus := 1.0 + (languageBreadth-1)*0.1 // 10% bonus per additional language
+
+	profile.CompetencyScore = commitVolume * (1 + bugFixBonus) * languageBonus
+}
+
+// classifyCommitType analyzes commit message to determine type
+func classifyCommitType(message string) string {
+	msg := strings.ToLower(message)
+
+	// Bug fix patterns
+	bugPatterns := regexp.MustCompile(`(?i)(fix|bug|issue|patch|hotfix|resolve|closes? #|fixes? #)`)
+	if bugPatterns.MatchString(msg) {
+		return "bugfix"
+	}
+
+	// Refactor patterns
+	refactorPatterns := regexp.MustCompile(`(?i)(refactor|cleanup|clean up|reorganize|restructure|simplify|optimize)`)
+	if refactorPatterns.MatchString(msg) {
+		return "refactor"
+	}
+
+	// Feature patterns (default for add/implement/create)
+	featurePatterns := regexp.MustCompile(`(?i)(feat|feature|add|implement|create|new|introduce|support)`)
+	if featurePatterns.MatchString(msg) {
+		return "feature"
+	}
+
+	return "other"
 }
 
 // parseCodeowners parses the CODEOWNERS file
