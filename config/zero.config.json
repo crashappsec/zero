@@ -1,19 +1,20 @@
 {
   "$schema": "./zero.config.schema.json",
-  "_version": "3.2.0",
+  "_version": "3.3.0",
   "_docs": "===================================================================================",
-  "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v3.2)",
+  "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v3.3)",
   "_docs3": "===================================================================================",
-  "_docs4": "Zero uses 8 consolidated 'super scanners' with configurable features:",
+  "_docs4": "Zero uses 9 consolidated 'super scanners' with configurable features:",
   "_docs5": "  - sbom: SBOM generation and integrity verification (source of truth)",
   "_docs6": "  - packages: vulnerabilities, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations, confusion, reachability",
   "_docs7": "  - crypto: ciphers, keys, random, tls, certificates",
-  "_docs8": "  - code-security: vulns, secrets, api (security-focused code analysis)",
-  "_docs9": "  - quality: tech_debt, complexity, test_coverage, documentation (code quality)",
+  "_docs8": "  - code-security: vulns, secrets (RAG-based with API validation), api",
+  "_docs9": "  - quality: tech_debt, complexity, test_coverage, documentation",
   "_docs10": "  - devops: iac, containers, github_actions, dora, git",
-  "_docs11": "  - health: technology, documentation, tests, ownership",
-  "_docs12": "  - ai: models, frameworks, datasets, security, governance (ML-BOM)",
-  "_docs13": "===================================================================================",
+  "_docs11": "  - technology: detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure (ML-BOM)",
+  "_docs12": "  - ownership: contributors, bus_factor, codeowners, orphans, churn, patterns",
+  "_docs13": "  - health: score, summary, recommendations, trends (aggregator)",
+  "_docs14": "===================================================================================",
   "settings": {
     "default_profile": "standard",
     "storage_path": ".zero",
@@ -144,7 +145,7 @@
     },
     "code-security": {
       "name": "Code Security",
-      "description": "Security-focused code analysis: vulnerabilities, secrets, API security",
+      "description": "Security-focused code analysis: vulnerabilities, RAG-based secrets detection, API security",
       "estimated_time": "60-180s",
       "output_file": "code-security.json",
       "dependencies": [],
@@ -156,8 +157,11 @@
         },
         "secrets": {
           "enabled": true,
-          "ruleset": "p/secrets",
-          "redact_secrets": true
+          "detection_method": "rag",
+          "rag_patterns_path": "rag/technology-identification",
+          "validate_with_api": true,
+          "redact_secrets": true,
+          "min_confidence": 0.8
         },
         "api": {
           "enabled": true,
@@ -237,48 +241,22 @@
         }
       }
     },
-    "health": {
-      "name": "Project Health",
-      "description": "Project health analysis: technology discovery, documentation, test coverage, code ownership",
+    "technology": {
+      "name": "Technology Identification",
+      "description": "Technology detection and AI/ML analysis with ML-BOM generation",
       "estimated_time": "30-90s",
-      "output_file": "health.json",
+      "output_file": "technology.json",
       "dependencies": [],
       "features": {
-        "technology": {
+        "detection": {
           "enabled": true,
+          "tier": "auto",
+          "rag_patterns_path": "rag/technology-identification",
           "scan_extensions": true,
           "scan_config": true,
-          "scan_sbom": true
+          "scan_sbom": true,
+          "scan_imports": true
         },
-        "documentation": {
-          "enabled": true,
-          "check_readme": true,
-          "check_code_docs": true,
-          "check_changelog": true,
-          "check_api_docs": true
-        },
-        "tests": {
-          "enabled": true,
-          "parse_reports": true,
-          "analyze_infra": true,
-          "coverage_threshold": 80
-        },
-        "ownership": {
-          "enabled": true,
-          "analyze_contributors": true,
-          "check_codeowners": true,
-          "detect_orphans": true,
-          "period_days": 90
-        }
-      }
-    },
-    "ai": {
-      "name": "AI/ML Security",
-      "description": "AI/ML security analysis and ML-BOM generation: models, frameworks, datasets, security, governance",
-      "estimated_time": "30-90s",
-      "output_file": "ai.json",
-      "dependencies": [],
-      "features": {
         "models": {
           "enabled": true,
           "detect_model_files": true,
@@ -297,18 +275,103 @@
           "detect_references": true,
           "check_provenance": true
         },
-        "security": {
+        "ai_security": {
           "enabled": true,
           "check_pickle_files": true,
           "detect_unsafe_loading": true,
           "check_api_key_exposure": true
         },
-        "governance": {
+        "ai_governance": {
           "enabled": true,
           "require_model_cards": true,
           "require_license": true,
           "require_dataset_info": false,
           "blocked_licenses": ["CC-BY-NC-4.0", "proprietary"]
+        },
+        "infrastructure": {
+          "enabled": true,
+          "extract_registries": true,
+          "extract_cloud_accounts": true,
+          "extract_clusters": true
+        }
+      }
+    },
+    "ownership": {
+      "name": "Code Ownership",
+      "description": "Code ownership, contributor analysis, and team health metrics",
+      "estimated_time": "30-60s",
+      "output_file": "ownership.json",
+      "dependencies": [],
+      "features": {
+        "contributors": {
+          "enabled": true,
+          "period_days": 90,
+          "include_lines_changed": true,
+          "group_by_email_domain": false
+        },
+        "bus_factor": {
+          "enabled": true,
+          "period_days": 365,
+          "weight_by_recency": true
+        },
+        "codeowners": {
+          "enabled": true,
+          "check_coverage": true,
+          "validate_owners": true,
+          "check_conflicts": true
+        },
+        "orphans": {
+          "enabled": true,
+          "inactive_days": 180,
+          "check_codeowners_coverage": true,
+          "exclude_patterns": ["vendor/", "node_modules/", "*.generated.*"]
+        },
+        "churn": {
+          "enabled": true,
+          "period_days": 90,
+          "min_changes": 5,
+          "top_n": 30
+        },
+        "patterns": {
+          "enabled": true,
+          "include_time_distribution": true,
+          "include_message_analysis": true
+        }
+      }
+    },
+    "health": {
+      "name": "Project Health",
+      "description": "Aggregate project health scoring and recommendations (meta-scanner)",
+      "estimated_time": "10-30s",
+      "output_file": "health.json",
+      "dependencies": ["quality", "ownership", "packages", "code-security", "technology"],
+      "features": {
+        "score": {
+          "enabled": true,
+          "include_quality": true,
+          "include_ownership": true,
+          "include_security": true,
+          "weights": {
+            "quality": 0.30,
+            "ownership": 0.25,
+            "security": 0.25,
+            "activity": 0.20
+          }
+        },
+        "summary": {
+          "enabled": true,
+          "include_top_issues": true,
+          "max_issues": 10
+        },
+        "recommendations": {
+          "enabled": true,
+          "priority_threshold": "medium",
+          "max_recommendations": 10
+        },
+        "trends": {
+          "enabled": true,
+          "compare_to_previous": true,
+          "history_days": 30
         }
       }
     }
@@ -331,8 +394,7 @@
           "reachability": {"enabled": false}
         },
         "health": {
-          "documentation": {"check_code_docs": false},
-          "ownership": {"enabled": false}
+          "recommendations": {"max_recommendations": 5}
         }
       }
     },
@@ -340,7 +402,7 @@
       "name": "Standard",
       "description": "Balanced analysis covering security and code quality",
       "estimated_time": "~2 minutes",
-      "scanners": ["sbom", "packages", "code-security", "health"],
+      "scanners": ["sbom", "packages", "code-security", "quality", "health"],
       "feature_overrides": {
         "packages": {
           "bundle": {"enabled": false},
@@ -364,13 +426,13 @@
       "name": "Full",
       "description": "Complete analysis with all features enabled",
       "estimated_time": "~12 minutes",
-      "scanners": ["sbom", "packages", "crypto", "code-security", "quality", "devops", "health", "ai"]
+      "scanners": ["sbom", "packages", "crypto", "code-security", "quality", "devops", "technology", "ownership", "health"]
     },
     "ai-security": {
       "name": "AI/ML Security",
       "description": "AI/ML focused security analysis with ML-BOM generation",
       "estimated_time": "~3 minutes",
-      "scanners": ["sbom", "packages", "code-security", "ai"],
+      "scanners": ["sbom", "packages", "code-security", "technology"],
       "feature_overrides": {
         "packages": {
           "bundle": {"enabled": false},
@@ -416,21 +478,27 @@
     },
     "health-only": {
       "name": "Health Only",
-      "description": "Project health and documentation analysis",
-      "estimated_time": "~2 minutes",
+      "description": "Project health scoring (requires other scanners for full data)",
+      "estimated_time": "~30 seconds",
       "scanners": ["health"]
     },
-    "ai-only": {
-      "name": "AI/ML Only",
-      "description": "AI/ML security and ML-BOM generation only",
+    "technology-only": {
+      "name": "Technology Only",
+      "description": "Technology detection and AI/ML analysis with ML-BOM",
       "estimated_time": "~2 minutes",
-      "scanners": ["ai"]
+      "scanners": ["technology"]
+    },
+    "ownership-only": {
+      "name": "Ownership Only",
+      "description": "Code ownership and contributor analysis",
+      "estimated_time": "~1 minute",
+      "scanners": ["ownership"]
     },
     "compliance": {
       "name": "Compliance",
       "description": "License and policy compliance checks",
       "estimated_time": "~2 minutes",
-      "scanners": ["sbom", "packages", "health", "ai"],
+      "scanners": ["sbom", "packages", "technology"],
       "feature_overrides": {
         "packages": {
           "vulns": {"enabled": false},
@@ -443,13 +511,9 @@
           "confusion": {"enabled": false},
           "reachability": {"enabled": false}
         },
-        "health": {
-          "technology": {"enabled": false},
-          "tests": {"enabled": false}
-        },
-        "ai": {
-          "security": {"enabled": false},
-          "datasets": {"enabled": false}
+        "technology": {
+          "ai_security": {"enabled": false},
+          "infrastructure": {"enabled": false}
         }
       }
     },
@@ -457,15 +521,15 @@
       "name": "CI/CD",
       "description": "CI/CD pipeline and operational metrics",
       "estimated_time": "~3 minutes",
-      "scanners": ["devops", "health"],
+      "scanners": ["devops", "ownership"],
       "feature_overrides": {
         "devops": {
           "iac": {"enabled": false},
           "containers": {"enabled": false}
         },
-        "health": {
-          "documentation": {"enabled": false},
-          "ownership": {"enabled": false}
+        "ownership": {
+          "orphans": {"enabled": false},
+          "codeowners": {"enabled": false}
         }
       }
     },
@@ -473,11 +537,10 @@
       "name": "Supply Chain",
       "description": "Complete supply chain security analysis",
       "estimated_time": "~5 minutes",
-      "scanners": ["sbom", "packages", "ai"],
+      "scanners": ["sbom", "packages", "technology"],
       "feature_overrides": {
-        "ai": {
-          "frameworks": {"enabled": false},
-          "datasets": {"enabled": false}
+        "technology": {
+          "infrastructure": {"enabled": false}
         }
       }
     }

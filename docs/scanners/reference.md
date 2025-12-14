@@ -1,588 +1,353 @@
 # Scanner Reference
 
-Complete reference for all Zero scanners, organized by category.
+Complete reference for Zero's 9 super scanners. Each scanner provides multiple features that can be individually enabled or disabled.
 
-## Code Scanners
+## Architecture Overview
 
-Code scanners analyze source code for security issues, secrets, and patterns.
+Zero uses a consolidated "super scanner" architecture where each scanner handles a specific domain with multiple configurable features:
 
-### code-vulns
-
-**Purpose:** Static Application Security Testing (SAST)
-
-Detects security vulnerabilities in source code including injection flaws, XSS, authentication issues, and OWASP Top 10 coverage.
-
-```bash
-./utils/scanners/code-vulns/code-vulns.sh /path/to/repo
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Zero Scanner Engine                       │
+├─────────────────────────────────────────────────────────────────┤
+│  sbom ──► packages ──► [parallel scanners] ──► health           │
+│                                                                  │
+│  Parallel: crypto, code-security, quality, devops,              │
+│            technology, ownership                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-**Options:**
-| Flag | Description |
-|------|-------------|
-| `--local-path PATH` | Repository path |
-| `--timeout SECONDS` | Timeout per file (default: 60) |
-| `--verbose` | Show progress messages |
-| `-o, --output FILE` | Write JSON output to file |
+The `sbom` scanner runs first as the **source of truth**, `packages` depends on its output, and `health` runs last to aggregate results from all other scanners.
 
-**Rules Used:**
-- `p/security-audit` - Semgrep security audit rules
-- `p/owasp-top-ten` - OWASP Top 10 patterns
-- Custom rules from `crypto-security.yaml`
+## Super Scanners
 
-**Output:** `code-vulns.json`
+| Scanner | Features | Output | Docs |
+|---------|----------|--------|------|
+| **sbom** | generation, integrity | `sbom.json` + `sbom.cdx.json` | [sbom.md](sbom.md) |
+| **packages** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | `packages.json` | [packages.md](packages.md) |
+| **crypto** | ciphers, keys, random, tls, certificates | `crypto.json` | [crypto.md](crypto.md) |
+| **code-security** | vulns, secrets, api | `code-security.json` | [code-security.md](code-security.md) |
+| **quality** | tech_debt, complexity, test_coverage, documentation | `quality.json` | [quality.md](quality.md) |
+| **devops** | iac, containers, github_actions, dora, git | `devops.json` | [devops.md](devops.md) |
+| **technology** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | `technology.json` | [technology.md](technology.md) |
+| **ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | `ownership.json` | [ownership.md](ownership.md) |
+| **health** | score, summary, recommendations, trends | `health.json` | [health.md](health.md) |
+
+## Quick Reference
+
+### SBOM Scanner
+
+Generates Software Bill of Materials in CycloneDX format.
+
+```bash
+./zero scan --scanner sbom /path/to/repo
+```
+
+**Key Features:**
+- CycloneDX 1.5 SBOM generation (cdxgen or syft)
+- Lockfile integrity verification
+- Drift detection
+
+[Full Documentation →](sbom.md)
 
 ---
 
-### code-secrets
+### Packages Scanner
 
-**Purpose:** Secret and credential detection
-
-Detects exposed API keys, credentials, tokens, and private keys using 242+ patterns from RAG-generated rules.
+Supply chain security analysis for dependencies.
 
 ```bash
-./utils/scanners/code-secrets/code-secrets.sh /path/to/repo
+./zero scan --scanner packages /path/to/repo  # Requires sbom
 ```
 
-**Options:**
-| Flag | Description |
-|------|-------------|
-| `--local-path PATH` | Repository path |
-| `--repo OWNER/REPO` | GitHub repository (uses Zero cache) |
-| `--org ORG` | GitHub org (uses first cached repo) |
-| `--no-community` | Skip community rules (faster, offline) |
-| `--timeout SECONDS` | Timeout per file (default: 60) |
-| `--verbose` | Show progress messages |
-| `-o, --output FILE` | Write JSON output to file |
+**Key Features:**
+- Vulnerability scanning (OSV, CISA KEV)
+- Package health assessment (deps.dev)
+- License compliance checking
+- Malcontent behavioral analysis
+- Dependency confusion detection
+- Typosquatting detection
 
-**Rules Used:**
-- `secrets.yaml` - 242 RAG-generated patterns covering AWS, Azure, GCP, Stripe, OpenAI, and 100+ more
-- `p/secrets` - Semgrep registry supplement
-
-**Detected Secret Types:**
-- AWS Access Keys and Secret Keys
-- GitHub/GitLab Tokens (PAT, OAuth, App)
-- Slack Tokens and Webhooks
-- Stripe API Keys (live and test)
-- Google Cloud Service Account Keys
-- Private Keys (RSA, EC, DSA, PGP)
-- Database Connection Strings
-- JWT Secrets
-- API Keys (generic patterns)
-
-**Output:** `code-secrets.json`
+[Full Documentation →](packages.md)
 
 ---
 
-### tech-discovery
+### Crypto Scanner
 
-**Purpose:** Technology stack detection
-
-Identifies technologies, frameworks, and libraries used in the codebase.
+Cryptographic security analysis.
 
 ```bash
-./utils/scanners/tech-discovery/tech-discovery.sh /path/to/repo
+./zero scan --scanner crypto /path/to/repo
 ```
 
-**Rules Used:**
-- `tech-discovery.yaml` - Import and package detection patterns
+**Key Features:**
+- Weak cipher detection (DES, MD5, SHA-1)
+- Hardcoded key detection
+- Insecure random number generation
+- TLS misconfiguration
+- Certificate analysis
 
-**Output:** `tech-discovery.json`
+[Full Documentation →](crypto.md)
 
 ---
 
-### tech-debt
+### Code Security Scanner
 
-**Purpose:** Technical debt markers
-
-Finds TODO, FIXME, HACK, and XXX markers in code.
+Static Application Security Testing (SAST).
 
 ```bash
-./utils/scanners/tech-debt/tech-debt.sh /path/to/repo
+./zero scan --scanner code-security /path/to/repo
 ```
 
-**Rules Used:**
-- `tech-debt.yaml` - Marker detection patterns
+**Key Features:**
+- Vulnerability detection (Semgrep)
+- Secret detection with redaction
+- API security analysis (OWASP API Top 10)
 
-**Output:** `tech-debt.json`
+[Full Documentation →](code-security.md)
 
 ---
 
-## Cryptography Scanners
+### Quality Scanner
 
-Specialized scanners for cryptographic security analysis.
-
-### crypto-ciphers
-
-**Purpose:** Weak cipher detection
-
-Detects deprecated and insecure cryptographic algorithms.
+Code quality, test coverage, and documentation analysis.
 
 ```bash
-./utils/scanners/crypto-ciphers/crypto-ciphers.sh /path/to/repo
+./zero scan --scanner quality /path/to/repo
 ```
 
-**Detected Issues:**
-- DES, 3DES, Blowfish
-- RC4 (ARC4)
-- MD5, SHA1 for security purposes
-- ECB mode encryption
-- Weak key derivation functions
+**Key Features:**
+- Technical debt markers (TODO, FIXME, HACK)
+- Complexity analysis (cyclomatic, cognitive)
+- Test coverage parsing and analysis
+- Documentation quality scoring
 
-**Output:** `crypto-ciphers.json`
+[Full Documentation →](quality.md)
 
 ---
 
-### crypto-keys
+### DevOps Scanner
 
-**Purpose:** Hardcoded key detection
-
-Detects hardcoded cryptographic keys, weak key lengths, and exposed private keys.
+DevOps and CI/CD security analysis.
 
 ```bash
-./utils/scanners/crypto-keys/crypto-keys.sh /path/to/repo
+./zero scan --scanner devops /path/to/repo
 ```
 
-**Detected Issues:**
-- Hardcoded symmetric keys
-- Embedded private keys (RSA, EC, DSA, PGP)
-- Weak key lengths (< 2048 RSA, < 256 AES)
-- Keys in configuration files
+**Key Features:**
+- IaC security (Checkov/Trivy)
+- Container image scanning
+- GitHub Actions security
+- DORA metrics calculation
+- Git activity analysis
 
-**Output:** `crypto-keys.json`
+[Full Documentation →](devops.md)
 
 ---
 
-### crypto-random
+### Technology Scanner
 
-**Purpose:** Insecure random detection
-
-Detects insecure random number generation.
+Technology identification and AI/ML analysis with ML-BOM generation.
 
 ```bash
-./utils/scanners/crypto-random/crypto-random.sh /path/to/repo
+./zero scan --scanner technology /path/to/repo
 ```
 
-**Detected Issues:**
-| Language | Insecure | Secure Alternative |
-|----------|----------|--------------------|
-| JavaScript | `Math.random()` | `crypto.randomBytes()` |
-| Python | `random` module | `secrets`, `os.urandom()` |
-| Java | `java.util.Random` | `SecureRandom` |
-| Go | `math/rand` | `crypto/rand` |
-| Ruby | `rand()` | `SecureRandom` |
-| PHP | `rand()`, `mt_rand()` | `random_bytes()` |
+**Key Features:**
+- RAG-based technology detection (119+ technologies)
+- Tiered detection (quick, deep, extract)
+- AI model detection and registry queries
+- ML framework and dataset tracking
+- AI security (pickle files, API key exposure)
+- AI governance (model cards, licenses)
+- ML-BOM generation
 
-**Output:** `crypto-random.json`
+[Full Documentation →](technology.md)
 
 ---
 
-### crypto-tls
+### Ownership Scanner
 
-**Purpose:** TLS/SSL misconfiguration
-
-Detects insecure TLS/SSL configurations.
+Code ownership and contributor analysis.
 
 ```bash
-./utils/scanners/crypto-tls/crypto-tls.sh /path/to/repo
+./zero scan --scanner ownership /path/to/repo
 ```
 
-**Detected Issues:**
-- Disabled certificate verification (`verify=False`)
-- Deprecated protocols (SSLv3, TLS 1.0, TLS 1.1)
-- Disabled hostname verification
-- Trust-all certificate managers
-- `CERT_NONE` usage
-- `rejectUnauthorized: false`
+**Key Features:**
+- Contributor activity analysis
+- Bus factor calculation
+- CODEOWNERS parsing and validation
+- Orphaned code detection
+- Code churn analysis
+- Commit pattern analysis
 
-**Output:** `crypto-tls.json`
+[Full Documentation →](ownership.md)
 
 ---
 
-### digital-certificates
+### Health Scanner
 
-**Purpose:** Certificate analysis
-
-Analyzes X.509 certificates in the codebase.
+Aggregate project health scoring and recommendations.
 
 ```bash
-./utils/scanners/digital-certificates/digital-certificates.sh /path/to/repo
+./zero scan --scanner health /path/to/repo
 ```
 
-**Output:** `digital-certificates.json`
-
----
-
-## Package Scanners
-
-Scanners for dependency analysis and supply chain security.
-
-### package-sbom
-
-**Purpose:** Software Bill of Materials generation
-
-Generates CycloneDX SBOM from dependency manifests.
-
-```bash
-./utils/scanners/package-sbom/package-sbom.sh /path/to/repo
-```
-
-**Options:**
-| Flag | Description |
-|------|-------------|
-| `--generator syft\|cdxgen` | SBOM generator to use |
-| `--format cyclonedx\|spdx` | Output format |
-
-**Supported Manifests:**
-- `package.json`, `package-lock.json`, `yarn.lock`
-- `requirements.txt`, `Pipfile.lock`, `poetry.lock`
-- `go.mod`, `go.sum`
-- `Cargo.toml`, `Cargo.lock`
-- `pom.xml`, `build.gradle`
-- `Gemfile.lock`
-
-**Output:** `package-sbom.json`, `sbom.cdx.json`
-
----
-
-### package-vulns
-
-**Purpose:** Vulnerability detection
-
-Scans dependencies for known CVEs using OSV database.
-
-```bash
-./utils/scanners/package-vulns/package-vulns.sh /path/to/repo
-```
-
-**Options:**
-| Flag | Description |
-|------|-------------|
-| `--sbom FILE` | Use existing SBOM file |
-
-**Data Sources:**
-- OSV (Open Source Vulnerabilities)
-- GitHub Security Advisories
-- NVD (National Vulnerability Database)
-
-**Output:** `package-vulns.json`
-
----
-
-### package-health
-
-**Purpose:** Dependency health assessment
-
-Analyzes package maintenance, abandonment risk, and community health.
-
-```bash
-./utils/scanners/package-health/package-health.sh /path/to/repo
-```
-
-**Health Signals:**
-- Last publish date
-- Download trends
-- Maintainer activity
-- Open issues/PRs ratio
-- Typosquatting risk
-
-**Output:** `package-health.json`
-
----
-
-### package-malcontent
-
-**Purpose:** Supply chain malware detection
-
-Behavioral analysis for malicious code patterns using malcontent.
-
-```bash
-./utils/scanners/package-malcontent/package-malcontent.sh /path/to/repo
-```
-
-**Detected Behaviors:**
-- Data exfiltration
-- Code execution
-- Persistence mechanisms
-- Network connections
-- File system operations
-- Post-install scripts
-
-**Output:** `package-malcontent.json`, `package-malcontent/` directory
-
----
-
-### package-provenance
-
-**Purpose:** Build provenance verification
-
-Verifies SLSA provenance and supply chain integrity.
-
-```bash
-./utils/scanners/package-provenance/package-provenance.sh /path/to/repo
-```
-
-**Checks:**
-- Sigstore signatures
-- SLSA provenance attestations
-- Build reproducibility
-
-**Output:** `package-provenance.json`
-
----
-
-### licenses
-
-**Purpose:** License compliance
-
-Analyzes licenses across the dependency tree.
-
-```bash
-./utils/scanners/licenses/licenses.sh /path/to/repo
-```
-
-**Checks:**
-- License identification (SPDX)
-- License compatibility
-- Copyleft detection
-- Unknown/missing licenses
-
-**Output:** `licenses.json`
-
----
-
-## Infrastructure Scanners
-
-Scanners for infrastructure as code and containers.
-
-### iac-security
-
-**Purpose:** Infrastructure as Code security
-
-Scans Terraform, CloudFormation, Kubernetes manifests using Checkov.
-
-```bash
-./utils/scanners/iac-security/iac-security.sh /path/to/repo
-```
-
-**Supported Formats:**
-- Terraform (`.tf`, `.tfvars`)
-- CloudFormation (YAML/JSON)
-- Kubernetes manifests
-- Helm charts
-- Docker Compose
-- ARM templates
-
-**Output:** `iac-security.json`
-
----
-
-### container-security
-
-**Purpose:** Container image security
-
-Analyzes Dockerfiles and container images using Trivy and Hadolint.
-
-```bash
-./utils/scanners/container-security/container-security.sh /path/to/repo
-```
-
-**Checks:**
-- Dockerfile best practices
-- Base image vulnerabilities
-- Layer security
-- Secret exposure in layers
-
-**Output:** `container-security.json`
-
----
-
-### containers
-
-**Purpose:** Container enumeration
-
-Identifies container technologies and configurations.
-
-```bash
-./utils/scanners/containers/containers.sh /path/to/repo
-```
-
-**Output:** `containers.json`
-
----
-
-## Analysis Scanners
-
-Scanners for code quality and project analysis.
-
-### code-ownership
-
-**Purpose:** Code ownership analysis
-
-Analyzes git history for code ownership and bus factor.
-
-```bash
-./utils/scanners/code-ownership/code-ownership.sh /path/to/repo
-./utils/scanners/code-ownership/bus-factor.sh /path/to/repo
-```
-
-**Output:** `code-ownership.json`
-
----
-
-### dora
-
-**Purpose:** DORA metrics calculation
-
-Calculates DevOps Research and Assessment metrics.
-
-```bash
-./utils/scanners/dora/dora.sh /path/to/repo
-```
-
-**Metrics:**
-- Deployment frequency
-- Lead time for changes
-- Change failure rate
-- Time to restore service
-
-**Output:** `dora.json`
-
----
-
-### test-coverage
-
-**Purpose:** Test coverage analysis
-
-Analyzes test coverage reports.
-
-```bash
-./utils/scanners/test-coverage/test-coverage.sh /path/to/repo
-```
-
-**Output:** `test-coverage.json`
-
----
-
-### documentation
-
-**Purpose:** Documentation analysis
-
-Analyzes project documentation quality.
-
-```bash
-./utils/scanners/documentation/documentation.sh /path/to/repo
-```
-
-**Output:** `documentation.json`
-
----
-
-### bundle-analysis
-
-**Purpose:** Frontend bundle analysis
-
-Analyzes JavaScript/TypeScript bundle size and composition.
-
-```bash
-./utils/scanners/bundle-analysis/bundle-analysis.sh /path/to/repo
-```
-
-**Output:** `bundle-analysis.json`
-
----
-
-### git
-
-**Purpose:** Git repository analysis
-
-Analyzes git history, contributors, and patterns.
-
-```bash
-./utils/scanners/git/git.sh /path/to/repo
-```
-
-**Output:** `git.json`
+**Key Features:**
+- Aggregate health score (0-100)
+- Multi-scanner metric aggregation
+- Actionable recommendations
+- Trend tracking
+
+[Full Documentation →](health.md)
 
 ---
 
 ## Scan Profiles
 
-Scanners are grouped into profiles for different use cases:
+Profiles combine scanners with specific feature configurations for common use cases.
 
-### quick
+| Profile | Scanners | Time | Use Case |
+|---------|----------|------|----------|
+| `quick` | sbom, packages, health | ~30s | Fast initial assessment |
+| `standard` | sbom, packages, code-security, quality, health | ~2min | Balanced analysis |
+| `security` | sbom, packages, crypto, code-security, devops | ~4min | Security assessment |
+| `full` | All 9 scanners | ~12min | Complete analysis |
+| `ai-security` | sbom, packages, code-security, technology | ~3min | AI/ML projects |
+| `ownership-only` | ownership | ~1min | Ownership analysis |
+| `quality-only` | quality | ~2min | Code quality only |
 
-Fast scan for initial assessment (~2 minutes)
+### Profile-Specific Configurations
 
-```bash
-./zero.sh hydrate owner/repo --quick
+Profiles can override default feature settings. For example, the `quick` profile disables slower features:
+
+```json
+{
+  "quick": {
+    "scanners": ["sbom", "packages", "health"],
+    "feature_overrides": {
+      "packages": {
+        "malcontent": {"enabled": false},
+        "provenance": {"enabled": false}
+      }
+    }
+  }
+}
 ```
 
-**Scanners:** `tech-discovery`, `package-sbom`, `package-vulns`, `licenses`
+See `config/zero.config.json` for all profile definitions.
 
----
+## Tool Dependencies
 
-### standard
+| Tool | Used By | Purpose | Install |
+|------|---------|---------|---------|
+| cdxgen | sbom | SBOM generation | `npm i -g @cyclonedx/cdxgen` |
+| syft | sbom | SBOM generation (fallback) | `brew install syft` |
+| osv-scanner | packages | Vulnerability scanning | `go install github.com/google/osv-scanner/...` |
+| malcontent | packages | Behavioral analysis | `brew install malcontent` |
+| semgrep | crypto, code-security, quality | Pattern analysis | `pip install semgrep` |
+| checkov | devops | IaC scanning | `pip install checkov` |
+| trivy | devops | Container/IaC scanning | `brew install trivy` |
 
-Balanced security analysis (~5 minutes)
+## Configuration
 
-```bash
-./zero.sh hydrate owner/repo
+Scanner configuration is managed in `config/zero.config.json`:
+
+```json
+{
+  "scanners": {
+    "sbom": {
+      "features": {
+        "generation": {"enabled": true, "tool": "auto"},
+        "integrity": {"enabled": true}
+      }
+    },
+    "packages": {
+      "features": {
+        "vulns": {"enabled": true},
+        "health": {"enabled": true},
+        "licenses": {"enabled": true, "blocked_licenses": ["GPL-3.0"]}
+      }
+    },
+    "technology": {
+      "features": {
+        "detection": {"enabled": true, "tier": "auto"},
+        "models": {"enabled": true},
+        "ai_security": {"enabled": true}
+      }
+    },
+    "ownership": {
+      "features": {
+        "contributors": {"enabled": true, "period_days": 90},
+        "bus_factor": {"enabled": true},
+        "codeowners": {"enabled": true}
+      }
+    },
+    "quality": {
+      "features": {
+        "tech_debt": {"enabled": true},
+        "test_coverage": {"enabled": true},
+        "documentation": {"enabled": true}
+      }
+    }
+  }
+}
 ```
 
-**Scanners:** `tech-discovery`, `package-sbom`, `package-vulns`, `package-health`, `licenses`, `code-secrets`, `code-vulns`
+## Output Location
 
----
+All scanner outputs are written to the analysis directory:
 
-### security
-
-Comprehensive security assessment (~10 minutes)
-
-```bash
-./zero.sh hydrate owner/repo --security
+```
+.zero/repos/<project>/analysis/
+├── sbom.json           # SBOM summary
+├── sbom.cdx.json       # Full CycloneDX SBOM
+├── packages.json       # Package analysis
+├── crypto.json         # Crypto analysis
+├── code-security.json  # Code security
+├── quality.json        # Code quality (includes tests, docs)
+├── devops.json         # DevOps analysis
+├── technology.json     # Technology ID + AI/ML (ML-BOM)
+├── ownership.json      # Code ownership
+└── health.json         # Aggregate health score
 ```
 
-**Scanners:** `tech-discovery`, `package-sbom`, `package-vulns`, `package-health`, `package-malcontent`, `package-provenance`, `licenses`, `code-secrets`, `code-vulns`, `iac-security`, `container-security`
+## Scanner Relationships
 
----
-
-### deep
-
-Full analysis including all scanners (~15 minutes)
-
-```bash
-./zero.sh hydrate owner/repo --deep
 ```
+                    ┌─────────────────────────────────────────┐
+                    │                  health                  │
+                    │    (aggregates all scanner outputs)      │
+                    └─────────────────────────────────────────┘
+                                        ▲
+            ┌───────────────────────────┼───────────────────────────┐
+            │                           │                           │
+    ┌───────┴───────┐           ┌───────┴───────┐           ┌───────┴───────┐
+    │    quality    │           │   ownership   │           │   technology  │
+    │  (debt,tests, │           │ (contributors,│           │ (detection,   │
+    │   docs,cplx)  │           │  bus factor)  │           │  AI/ML, MLBOM)│
+    └───────────────┘           └───────────────┘           └───────────────┘
 
-**Scanners:** All available scanners
-
----
-
-### crypto
-
-Comprehensive cryptographic analysis (~5 minutes)
-
-```bash
-./zero.sh hydrate owner/repo --crypto
+            ┌───────────────────────────────────────────────────────┐
+            │                                                       │
+    ┌───────┴───────┐   ┌───────────────┐   ┌───────────────┐   ┌───┴───────────┐
+    │ code-security │   │    crypto     │   │    devops     │   │   packages    │
+    │(vulns,secrets,│   │(ciphers,keys, │   │(iac,containers│   │(vulns,health, │
+    │     api)      │   │  tls,certs)   │   │  gha,dora)    │   │licenses,etc)  │
+    └───────────────┘   └───────────────┘   └───────────────┘   └───────┬───────┘
+                                                                        │
+                                                                        ▼
+                                                                ┌───────────────┐
+                                                                │     sbom      │
+                                                                │(source of     │
+                                                                │   truth)      │
+                                                                └───────────────┘
 ```
-
-**Scanners:** `tech-discovery`, `crypto-ciphers`, `crypto-keys`, `crypto-random`, `crypto-tls`, `code-secrets`, `code-vulns`, `digital-certificates`
-
----
-
-### packages
-
-Comprehensive dependency analysis (~8 minutes)
-
-```bash
-./zero.sh hydrate owner/repo --packages
-```
-
-**Scanners:** `package-sbom`, `package-vulns`, `package-health`, `package-malcontent`, `package-provenance`, `licenses`
-
----
 
 ## See Also
 
 - [Scanner Architecture](../architecture/scanners.md) - How scanners work
-- [RAG Pipeline](../architecture/rag-pipeline.md) - Pattern generation
 - [Output Formats](output-formats.md) - JSON output schemas
+- [Getting Started](../GETTING_STARTED.md) - Quick start guide
+- [RAG Technology Patterns](../../rag/technology-identification/README.md) - Technology detection patterns
