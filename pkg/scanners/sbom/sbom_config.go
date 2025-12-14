@@ -9,26 +9,26 @@ import (
 
 // SBOMConfigFile represents the structure of sbom.config.json
 type SBOMConfigFile struct {
-	Schema   string `json:"$schema"`
-	Version  string `json:"_version"`
-	Output   OutputConfig `json:"output"`
-	Dependencies DependenciesConfig `json:"dependencies"`
-	Metadata MetadataConfig `json:"metadata"`
+	Schema          string                `json:"$schema"`
+	Version         string                `json:"_version"`
+	Output          OutputConfig          `json:"output"`
+	Dependencies    DependenciesConfig    `json:"dependencies"`
+	Metadata        MetadataConfig        `json:"metadata"`
 	ToolPreferences ToolPreferencesConfig `json:"tool_preferences"`
 	PackageManagers PackageManagersConfig `json:"package_managers"`
-	Integrity IntegrityFileConfig `json:"integrity"`
-	Filtering FilteringConfig `json:"filtering"`
-	Compliance ComplianceConfig `json:"compliance"`
+	Integrity       IntegrityFileConfig   `json:"integrity"`
+	Filtering       FilteringConfig       `json:"filtering"`
+	Compliance      ComplianceConfig      `json:"compliance"`
 }
 
 // OutputConfig configures SBOM output format
 type OutputConfig struct {
-	Format             string `json:"format"`
-	SpecVersion        string `json:"spec_version"`
-	OutputFormat       string `json:"output_format"`
-	Filename           string `json:"filename"`
-	IncludeSerialNumber bool `json:"include_serial_number"`
-	IncludeTimestamp   bool `json:"include_timestamp"`
+	Format              string `json:"format"`
+	SpecVersion         string `json:"spec_version"`
+	OutputFormat        string `json:"output_format"`
+	Filename            string `json:"filename"`
+	IncludeSerialNumber bool   `json:"include_serial_number"`
+	IncludeTimestamp    bool   `json:"include_timestamp"`
 }
 
 // DependenciesConfig configures which dependencies to include
@@ -54,8 +54,8 @@ type MetadataConfig struct {
 
 // ToolPreferencesConfig configures tool selection per ecosystem
 type ToolPreferencesConfig struct {
-	Default         string `json:"default"`
-	FallbackEnabled bool   `json:"fallback_enabled"`
+	Default         string               `json:"default"`
+	FallbackEnabled bool                 `json:"fallback_enabled"`
 	JavaScript      *EcosystemToolConfig `json:"javascript,omitempty"`
 	Python          *EcosystemToolConfig `json:"python,omitempty"`
 	Rust            *EcosystemToolConfig `json:"rust,omitempty"`
@@ -114,9 +114,9 @@ type PNPMConfig struct {
 
 // PipConfig contains pip-specific settings
 type PipConfig struct {
-	RequirementsFile   string `json:"requirements_file"`
-	UseEnvironment     bool   `json:"use_environment"`
-	FetchPyPIMetadata  bool   `json:"fetch_pypi_metadata"`
+	RequirementsFile  string `json:"requirements_file"`
+	UseEnvironment    bool   `json:"use_environment"`
+	FetchPyPIMetadata bool   `json:"fetch_pypi_metadata"`
 }
 
 // PoetryConfig contains poetry-specific settings
@@ -172,7 +172,7 @@ type BundlerConfig struct {
 
 // ComposerConfig contains composer-specific settings
 type ComposerConfig struct {
-	IncludeDev            bool `json:"include_dev"`
+	IncludeDev             bool `json:"include_dev"`
 	FetchPackagistMetadata bool `json:"fetch_packagist_metadata"`
 }
 
@@ -186,10 +186,11 @@ type NuGetConfig struct {
 
 // IntegrityFileConfig configures integrity verification from config file
 type IntegrityFileConfig struct {
-	VerifyLockfiles  bool `json:"verify_lockfiles"`
-	RequireLockfile  bool `json:"require_lockfile"`
-	VerifyChecksums  bool `json:"verify_checksums"`
-	DetectDrift      bool `json:"detect_drift"`
+	VerifyLockfiles  bool   `json:"verify_lockfiles"`
+	RequireLockfile  bool   `json:"require_lockfile"`
+	VerifyChecksums  bool   `json:"verify_checksums"`
+	DetectDrift      bool   `json:"detect_drift"`
+	PreviousSBOMPath string `json:"previous_sbom_path"`
 }
 
 // FilteringConfig configures package filtering
@@ -261,4 +262,7 @@ func ApplySBOMConfig(cfg *FeatureConfig, sbomCfg *SBOMConfigFile) {
 	// Apply integrity settings
 	cfg.Integrity.VerifyLockfiles = sbomCfg.Integrity.VerifyLockfiles
 	cfg.Integrity.DetectDrift = sbomCfg.Integrity.DetectDrift
+	if sbomCfg.Integrity.PreviousSBOMPath != "" {
+		cfg.Integrity.PreviousSBOMPath = sbomCfg.Integrity.PreviousSBOMPath
+	}
 }
