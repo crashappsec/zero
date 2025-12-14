@@ -1,0 +1,178 @@
+{
+  "$schema": "./sbom.config.schema.json",
+  "_version": "1.0.0",
+  "_docs": "===================================================================================",
+  "_docs2": "ZERO SBOM CONFIGURATION - Package Manager SBOM Generation Settings",
+  "_docs3": "===================================================================================",
+  "_docs4": "This configuration controls SBOM generation across 13+ package manager ecosystems.",
+  "_docs5": "See rag/supply-chain/package-managers/ for detailed patterns per ecosystem.",
+  "_docs6": "===================================================================================",
+
+  "output": {
+    "format": "cyclonedx",
+    "spec_version": "1.5",
+    "output_format": "json",
+    "filename": "sbom.json",
+    "include_serial_number": true,
+    "include_timestamp": true
+  },
+
+  "dependencies": {
+    "include_dev": false,
+    "include_test": false,
+    "include_optional": true,
+    "include_peer": true,
+    "include_transitive": true,
+    "include_build": false
+  },
+
+  "metadata": {
+    "include_licenses": true,
+    "include_hashes": true,
+    "include_urls": true,
+    "include_descriptions": false,
+    "include_authors": false,
+    "include_purl": true,
+    "include_cpe": false
+  },
+
+  "tool_preferences": {
+    "default": "auto",
+    "fallback_enabled": true,
+    "javascript": {
+      "tool": "native",
+      "fallback": "cdxgen",
+      "options": {}
+    },
+    "python": {
+      "tool": "cyclonedx-py",
+      "fallback": "cdxgen",
+      "options": {}
+    },
+    "rust": {
+      "tool": "cargo-cyclonedx",
+      "fallback": "cdxgen",
+      "options": {}
+    },
+    "go": {
+      "tool": "cyclonedx-gomod",
+      "fallback": "cdxgen",
+      "options": {}
+    },
+    "java": {
+      "tool": "native",
+      "fallback": "cdxgen",
+      "options": {}
+    },
+    "ruby": {
+      "tool": "cyclonedx-ruby",
+      "fallback": "cdxgen",
+      "options": {}
+    },
+    "php": {
+      "tool": "cyclonedx-php-composer",
+      "fallback": "cdxgen",
+      "options": {}
+    },
+    "dotnet": {
+      "tool": "CycloneDX",
+      "fallback": "cdxgen",
+      "options": {}
+    }
+  },
+
+  "package_managers": {
+    "npm": {
+      "use_native_sbom": true,
+      "omit": ["dev"],
+      "package_lock_only": false,
+      "workspaces": true
+    },
+    "yarn": {
+      "berry_mode": false,
+      "production_only": true,
+      "workspaces": true
+    },
+    "pnpm": {
+      "production_only": true,
+      "workspaces": true
+    },
+    "pip": {
+      "requirements_file": "requirements.txt",
+      "use_environment": false,
+      "fetch_pypi_metadata": true
+    },
+    "poetry": {
+      "groups": ["main"],
+      "extras": [],
+      "from_lock_file": true
+    },
+    "uv": {
+      "include_dev": false,
+      "from_lock_file": true
+    },
+    "cargo": {
+      "include_dev": false,
+      "include_build": false,
+      "all_features": false,
+      "features": []
+    },
+    "go": {
+      "include_test": false,
+      "include_std": false,
+      "from_binary": false
+    },
+    "maven": {
+      "include_compile": true,
+      "include_runtime": true,
+      "include_test": false,
+      "include_provided": false,
+      "aggregate_modules": true
+    },
+    "gradle": {
+      "configurations": ["runtimeClasspath"],
+      "skip_configurations": ["testRuntimeClasspath", "testCompileClasspath"],
+      "use_lock_file": true
+    },
+    "bundler": {
+      "exclude_groups": ["development", "test"],
+      "include_groups": []
+    },
+    "composer": {
+      "include_dev": false,
+      "fetch_packagist_metadata": true
+    },
+    "nuget": {
+      "include_transitive": true,
+      "exclude_dev": true,
+      "use_lock_file": true,
+      "target_frameworks": []
+    }
+  },
+
+  "registries": {},
+
+  "integrity": {
+    "verify_lockfiles": true,
+    "require_lockfile": false,
+    "verify_checksums": true,
+    "detect_drift": true
+  },
+
+  "filtering": {
+    "exclude_patterns": [],
+    "include_patterns": ["*"],
+    "exclude_scopes": []
+  },
+
+  "compliance": {
+    "ntia_minimum": true,
+    "cisa_2025": false,
+    "required_fields": [
+      "supplier_name",
+      "component_name",
+      "version",
+      "unique_identifier"
+    ]
+  }
+}
