@@ -264,6 +264,7 @@ type ScanFindings struct {
 	// SBOM
 	SBOMPath        string   // Path to generated SBOM file(s)
 	SBOMPaths       []string // Multiple SBOM paths for multi-repo scans
+	SBOMSizeTotal   int64    // Total size of all SBOM files in bytes
 
 	// Packages
 	TotalPackages   int
@@ -345,14 +346,22 @@ func (t *Terminal) SummaryWithFindings(org string, duration int, success, failed
 	// Print findings section
 	fmt.Printf("\n%s\n", t.Color(Bold, "Findings"))
 
-	// SBOM path(s)
+	// SBOM path(s) and size
 	if findings.SBOMPath != "" {
-		fmt.Printf("  SBOM:            %s\n", t.Color(Cyan, findings.SBOMPath))
+		sizeStr := ""
+		if findings.SBOMSizeTotal > 0 {
+			sizeStr = " " + t.Color(Dim, fmt.Sprintf("(%s)", t.formatBytes(findings.SBOMSizeTotal)))
+		}
+		fmt.Printf("  SBOM:            %s%s\n", t.Color(Cyan, findings.SBOMPath), sizeStr)
 	} else if len(findings.SBOMPaths) > 0 {
+		sizeStr := ""
+		if findings.SBOMSizeTotal > 0 {
+			sizeStr = " " + t.Color(Dim, fmt.Sprintf("(%s total)", t.formatBytes(findings.SBOMSizeTotal)))
+		}
 		if len(findings.SBOMPaths) == 1 {
-			fmt.Printf("  SBOM:            %s\n", t.Color(Cyan, findings.SBOMPaths[0]))
+			fmt.Printf("  SBOM:            %s%s\n", t.Color(Cyan, findings.SBOMPaths[0]), sizeStr)
 		} else {
-			fmt.Printf("  SBOMs:           %s\n", t.Color(Cyan, fmt.Sprintf("%d files generated", len(findings.SBOMPaths))))
+			fmt.Printf("  SBOMs:           %s%s\n", t.Color(Cyan, fmt.Sprintf("%d files generated", len(findings.SBOMPaths))), sizeStr)
 			for _, p := range findings.SBOMPaths {
 				fmt.Printf("                   %s\n", t.Color(Dim, p))
 			}
@@ -467,6 +476,26 @@ func (t *Terminal) formatLicenseCounts(counts map[string]int) string {
 		return "(" + strings.Join(parts, ", ") + ", ...)"
 	}
 	return "(" + strings.Join(parts, ", ") + ")"
+}
+
+// formatBytes formats a byte size in human-readable form
+func (t *Terminal) formatBytes(bytes int64) string {
+	const (
+		KB = 1024
+		MB = KB * 1024
+		GB = MB * 1024
+	)
+
+	switch {
+	case bytes >= GB:
+		return fmt.Sprintf("%.1fGB", float64(bytes)/float64(GB))
+	case bytes >= MB:
+		return fmt.Sprintf("%.1fMB", float64(bytes)/float64(MB))
+	case bytes >= KB:
+		return fmt.Sprintf("%.1fKB", float64(bytes)/float64(KB))
+	default:
+		return fmt.Sprintf("%dB", bytes)
+	}
 }
 
 // Confirm asks a yes/no question and returns the answer
