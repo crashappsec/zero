@@ -731,16 +731,17 @@ type aggregatedScannerResult struct {
 // aggregateFindings reads scan results and aggregates findings across all repos
 // Only aggregates data from scanners that were actually run in this session
 func (h *Hydrate) aggregateFindings(statuses []*RepoStatus, runningScanners []string) *terminal.ScanFindings {
-	findings := &terminal.ScanFindings{
-		PackagesByEco: make(map[string]int),
-		VulnsByEco:    make(map[string]int),
-		LicenseCounts: make(map[string]int),
-	}
-
 	// Build set of running scanners for quick lookup
 	scannerSet := make(map[string]bool)
 	for _, s := range runningScanners {
 		scannerSet[s] = true
+	}
+
+	findings := &terminal.ScanFindings{
+		ScannersRun:   scannerSet,
+		PackagesByEco: make(map[string]int),
+		VulnsByEco:    make(map[string]int),
+		LicenseCounts: make(map[string]int),
 	}
 
 	for _, status := range statuses {

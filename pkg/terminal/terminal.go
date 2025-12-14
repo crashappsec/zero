@@ -258,6 +258,9 @@ func (t *Terminal) ScanComplete() {
 
 // ScanFindings holds aggregated scan findings
 type ScanFindings struct {
+	// Scanners that were run (used to conditionally show sections)
+	ScannersRun     map[string]bool
+
 	// SBOM
 	SBOMPath        string   // Path to generated SBOM file(s)
 	SBOMPaths       []string // Multiple SBOM paths for multi-repo scans
@@ -364,30 +367,32 @@ func (t *Terminal) SummaryWithFindings(org string, duration int, success, failed
 			t.Color(Dim, ecoStr))
 	}
 
-	// Vulnerabilities
-	totalVulns := findings.VulnCritical + findings.VulnHigh + findings.VulnMedium + findings.VulnLow
-	if totalVulns > 0 {
-		vulnStr := ""
-		if findings.VulnCritical > 0 {
-			vulnStr += t.Color(BoldRed, fmt.Sprintf("%d critical", findings.VulnCritical)) + ", "
+	// Vulnerabilities (only show if package-analysis scanner was run)
+	if findings.ScannersRun["package-analysis"] {
+		totalVulns := findings.VulnCritical + findings.VulnHigh + findings.VulnMedium + findings.VulnLow
+		if totalVulns > 0 {
+			vulnStr := ""
+			if findings.VulnCritical > 0 {
+				vulnStr += t.Color(BoldRed, fmt.Sprintf("%d critical", findings.VulnCritical)) + ", "
+			}
+			if findings.VulnHigh > 0 {
+				vulnStr += t.Color(Red, fmt.Sprintf("%d high", findings.VulnHigh)) + ", "
+			}
+			if findings.VulnMedium > 0 {
+				vulnStr += t.Color(Yellow, fmt.Sprintf("%d medium", findings.VulnMedium)) + ", "
+			}
+			if findings.VulnLow > 0 {
+				vulnStr += fmt.Sprintf("%d low", findings.VulnLow)
+			}
+			vulnStr = strings.TrimSuffix(vulnStr, ", ")
+			fmt.Printf("  Vulnerabilities: %s\n", vulnStr)
+		} else {
+			fmt.Printf("  Vulnerabilities: %s\n", t.Color(Green, "none found"))
 		}
-		if findings.VulnHigh > 0 {
-			vulnStr += t.Color(Red, fmt.Sprintf("%d high", findings.VulnHigh)) + ", "
-		}
-		if findings.VulnMedium > 0 {
-			vulnStr += t.Color(Yellow, fmt.Sprintf("%d medium", findings.VulnMedium)) + ", "
-		}
-		if findings.VulnLow > 0 {
-			vulnStr += fmt.Sprintf("%d low", findings.VulnLow)
-		}
-		vulnStr = strings.TrimSuffix(vulnStr, ", ")
-		fmt.Printf("  Vulnerabilities: %s\n", vulnStr)
-	} else {
-		fmt.Printf("  Vulnerabilities: %s\n", t.Color(Green, "none found"))
 	}
 
-	// Secrets
-	if findings.SecretsTotal > 0 {
+	// Secrets (only show if code-security scanner was run)
+	if findings.ScannersRun["code-security"] && findings.SecretsTotal > 0 {
 		secretStr := ""
 		if findings.SecretsCritical > 0 {
 			secretStr += t.Color(BoldRed, fmt.Sprintf("%d critical", findings.SecretsCritical)) + ", "
@@ -402,16 +407,16 @@ func (t *Terminal) SummaryWithFindings(org string, duration int, success, failed
 		fmt.Printf("  Secrets:         %s\n", secretStr)
 	}
 
-	// Licenses
-	if findings.LicenseTypes > 0 {
+	// Licenses (only show if package-analysis scanner was run)
+	if findings.ScannersRun["package-analysis"] && findings.LicenseTypes > 0 {
 		licStr := t.formatLicenseCounts(findings.LicenseCounts)
 		fmt.Printf("  Licenses:        %s %s\n",
 			t.Color(Cyan, fmt.Sprintf("%d types", findings.LicenseTypes)),
 			t.Color(Dim, licStr))
 	}
 
-	// Malcontent
-	if findings.MalcontentCrit > 0 || findings.MalcontentHigh > 0 {
+	// Malcontent (only show if package-analysis scanner was run)
+	if findings.ScannersRun["package-analysis"] && (findings.MalcontentCrit > 0 || findings.MalcontentHigh > 0) {
 		malStr := ""
 		if findings.MalcontentCrit > 0 {
 			malStr += t.Color(BoldRed, fmt.Sprintf("%d critical", findings.MalcontentCrit)) + ", "
@@ -423,8 +428,8 @@ func (t *Terminal) SummaryWithFindings(org string, duration int, success, failed
 		fmt.Printf("  Malcontent:      %s\n", malStr)
 	}
 
-	// Health
-	if findings.HealthCritical > 0 || findings.HealthWarnings > 0 {
+	// Health (only show if code-quality scanner was run)
+	if findings.ScannersRun["code-quality"] && (findings.HealthCritical > 0 || findings.HealthWarnings > 0) {
 		healthStr := ""
 		if findings.HealthCritical > 0 {
 			healthStr += t.Color(Red, fmt.Sprintf("%d critical", findings.HealthCritical)) + ", "
