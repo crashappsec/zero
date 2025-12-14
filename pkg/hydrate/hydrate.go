@@ -191,8 +191,8 @@ func (h *Hydrate) Run(ctx context.Context) ([]string, error) {
 	// Print per-scanner results table
 	h.printScannerResultsTable(repoStatuses, scanners, skipScanners)
 
-	// Aggregate findings from all repos
-	findings := h.aggregateFindings(repoStatuses)
+	// Aggregate findings from all repos (only for scanners that were run)
+	findings := h.aggregateFindings(repoStatuses, scanners)
 
 	// Print summary
 	duration := int(time.Since(start).Seconds())
@@ -710,11 +710,18 @@ type aggregatedScannerResult struct {
 }
 
 // aggregateFindings reads scan results and aggregates findings across all repos
-func (h *Hydrate) aggregateFindings(statuses []*RepoStatus) *terminal.ScanFindings {
+// Only aggregates data from scanners that were actually run in this session
+func (h *Hydrate) aggregateFindings(statuses []*RepoStatus, runningScanners []string) *terminal.ScanFindings {
 	findings := &terminal.ScanFindings{
 		PackagesByEco: make(map[string]int),
 		VulnsByEco:    make(map[string]int),
 		LicenseCounts: make(map[string]int),
+	}
+
+	// Build set of running scanners for quick lookup
+	scannerSet := make(map[string]bool)
+	for _, s := range runningScanners {
+		scannerSet[s] = true
 	}
 
 	for _, status := range statuses {
@@ -725,23 +732,27 @@ func (h *Hydrate) aggregateFindings(statuses []*RepoStatus) *terminal.ScanFindin
 		projectID := github.ProjectID(status.Repo.NameWithOwner)
 		analysisDir := filepath.Join(h.zeroHome, "repos", projectID, "analysis")
 
-		// Aggregate SBOM data
-		h.aggregateSBOM(analysisDir, findings)
+		// Aggregate SBOM data (from sbom scanner)
+		if scannerSet["sbom"] {
+			h.aggregateSBOM(analysisDir, findings)
+		}
 
-		// Aggregate vulnerability data
-		h.aggregateVulns(analysisDir, findings)
+		// Aggregate vulnerability data (from package-analysis scanner)
+		if scannerSet["package-analysis"] {
+			h.aggregateVulns(analysisDir, findings)
+			h.aggregateLicenses(analysisDir, findings)
+			h.aggregateMalcontent(analysisDir, findings)
+		}
 
-		// Aggregate license data
-		h.aggregateLicenses(analysisDir, findings)
+		// Aggregate secrets data (from code-security scanner)
+		if scannerSet["code-security"] {
+			h.aggregateSecrets(analysisDir, findings)
+		}
 
-		// Aggregate secrets data
-		h.aggregateSecrets(analysisDir, findings)
-
-		// Aggregate malcontent data
-		h.aggregateMalcontent(analysisDir, findings)
-
-		// Aggregate health data
-		h.aggregateHealth(analysisDir, findings)
+		// Aggregate health data (from code-quality scanner)
+		if scannerSet["code-quality"] {
+			h.aggregateHealth(analysisDir, findings)
+		}
 	}
 
 	return findings

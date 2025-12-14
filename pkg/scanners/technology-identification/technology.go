@@ -70,6 +70,11 @@ func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) 
 	repoPath := opts.RepoPath
 
 	// Run each enabled feature
+	if s.config.Technology.Enabled {
+		result.FeaturesRun = append(result.FeaturesRun, "technology")
+		s.runTechnologyFeature(ctx, repoPath, opts.SBOMPath, result)
+	}
+
 	if s.config.Models.Enabled {
 		result.FeaturesRun = append(result.FeaturesRun, "models")
 		s.runModelsFeature(ctx, repoPath, result)
@@ -1460,4 +1465,330 @@ func (s *TechnologyScanner) runGovernanceFeature(ctx context.Context, repoPath s
 	result.Findings.Governance = findings
 	summary.TotalIssues = len(findings)
 	result.Summary.Governance = summary
+}
+
+// =============================================================================
+// General Technology Detection Feature (migrated from health scanner)
+// =============================================================================
+
+// Config file patterns for technology detection
+var configPatterns = map[string]Technology{
+	// JavaScript/Node.js
+	"package.json":       {Name: "Node.js", Category: "runtime", Confidence: 90, Source: "config"},
+	"package-lock.json":  {Name: "npm", Category: "package-manager", Confidence: 90, Source: "config"},
+	"yarn.lock":          {Name: "Yarn", Category: "package-manager", Confidence: 90, Source: "config"},
+	"pnpm-lock.yaml":     {Name: "pnpm", Category: "package-manager", Confidence: 90, Source: "config"},
+	"tsconfig.json":      {Name: "TypeScript", Category: "language", Confidence: 95, Source: "config"},
+	"next.config.js":     {Name: "Next.js", Category: "framework", Confidence: 95, Source: "config"},
+	"next.config.mjs":    {Name: "Next.js", Category: "framework", Confidence: 95, Source: "config"},
+	"nuxt.config.js":     {Name: "Nuxt.js", Category: "framework", Confidence: 95, Source: "config"},
+	"nuxt.config.ts":     {Name: "Nuxt.js", Category: "framework", Confidence: 95, Source: "config"},
+	"angular.json":       {Name: "Angular", Category: "framework", Confidence: 95, Source: "config"},
+	"svelte.config.js":   {Name: "Svelte", Category: "framework", Confidence: 95, Source: "config"},
+	"jest.config.js":     {Name: "Jest", Category: "testing", Confidence: 90, Source: "config"},
+	"vitest.config.ts":   {Name: "Vitest", Category: "testing", Confidence: 90, Source: "config"},
+	"tailwind.config.js": {Name: "Tailwind CSS", Category: "styling", Confidence: 90, Source: "config"},
+
+	// Python
+	"requirements.txt": {Name: "Python", Category: "language", Confidence: 90, Source: "config"},
+	"pyproject.toml":   {Name: "Python", Category: "language", Confidence: 90, Source: "config"},
+	"Pipfile":          {Name: "Pipenv", Category: "package-manager", Confidence: 90, Source: "config"},
+	"poetry.lock":      {Name: "Poetry", Category: "package-manager", Confidence: 90, Source: "config"},
+	"uv.lock":          {Name: "uv", Category: "package-manager", Confidence: 90, Source: "config"},
+
+	// Go
+	"go.mod": {Name: "Go", Category: "language", Confidence: 95, Source: "config"},
+	"go.sum": {Name: "Go Modules", Category: "package-manager", Confidence: 90, Source: "config"},
+
+	// Rust
+	"Cargo.toml": {Name: "Rust", Category: "language", Confidence: 95, Source: "config"},
+	"Cargo.lock": {Name: "Cargo", Category: "package-manager", Confidence: 90, Source: "config"},
+
+	// Java/JVM
+	"pom.xml":          {Name: "Maven", Category: "build-tool", Confidence: 90, Source: "config"},
+	"build.gradle":     {Name: "Gradle", Category: "build-tool", Confidence: 90, Source: "config"},
+	"build.gradle.kts": {Name: "Gradle Kotlin", Category: "build-tool", Confidence: 90, Source: "config"},
+
+	// Ruby
+	"Gemfile":      {Name: "Ruby", Category: "language", Confidence: 90, Source: "config"},
+	"Gemfile.lock": {Name: "Bundler", Category: "package-manager", Confidence: 90, Source: "config"},
+
+	// PHP
+	"composer.json": {Name: "PHP", Category: "language", Confidence: 90, Source: "config"},
+	"composer.lock": {Name: "Composer", Category: "package-manager", Confidence: 90, Source: "config"},
+
+	// .NET
+	"*.csproj": {Name: "C#/.NET", Category: "language", Confidence: 90, Source: "config"},
+
+	// Infrastructure
+	"Dockerfile":          {Name: "Docker", Category: "container", Confidence: 95, Source: "config"},
+	"docker-compose.yml":  {Name: "Docker Compose", Category: "container", Confidence: 95, Source: "config"},
+	"docker-compose.yaml": {Name: "Docker Compose", Category: "container", Confidence: 95, Source: "config"},
+	"serverless.yml":      {Name: "Serverless Framework", Category: "iac", Confidence: 95, Source: "config"},
+	"serverless.yaml":     {Name: "Serverless Framework", Category: "iac", Confidence: 95, Source: "config"},
+	"Pulumi.yaml":         {Name: "Pulumi", Category: "iac", Confidence: 95, Source: "config"},
+	"cdk.json":            {Name: "AWS CDK", Category: "iac", Confidence: 95, Source: "config"},
+}
+
+// File extension to technology mapping
+var extensionMap = map[string]Technology{
+	".py":     {Name: "Python", Category: "language", Confidence: 80, Source: "extension"},
+	".js":     {Name: "JavaScript", Category: "language", Confidence: 80, Source: "extension"},
+	".ts":     {Name: "TypeScript", Category: "language", Confidence: 85, Source: "extension"},
+	".tsx":    {Name: "React/TypeScript", Category: "framework", Confidence: 85, Source: "extension"},
+	".jsx":    {Name: "React", Category: "framework", Confidence: 85, Source: "extension"},
+	".go":     {Name: "Go", Category: "language", Confidence: 85, Source: "extension"},
+	".rs":     {Name: "Rust", Category: "language", Confidence: 85, Source: "extension"},
+	".java":   {Name: "Java", Category: "language", Confidence: 85, Source: "extension"},
+	".kt":     {Name: "Kotlin", Category: "language", Confidence: 85, Source: "extension"},
+	".scala":  {Name: "Scala", Category: "language", Confidence: 85, Source: "extension"},
+	".rb":     {Name: "Ruby", Category: "language", Confidence: 80, Source: "extension"},
+	".php":    {Name: "PHP", Category: "language", Confidence: 80, Source: "extension"},
+	".cs":     {Name: "C#", Category: "language", Confidence: 85, Source: "extension"},
+	".swift":  {Name: "Swift", Category: "language", Confidence: 85, Source: "extension"},
+	".c":      {Name: "C", Category: "language", Confidence: 80, Source: "extension"},
+	".cpp":    {Name: "C++", Category: "language", Confidence: 80, Source: "extension"},
+	".cc":     {Name: "C++", Category: "language", Confidence: 80, Source: "extension"},
+	".vue":    {Name: "Vue.js", Category: "framework", Confidence: 90, Source: "extension"},
+	".svelte": {Name: "Svelte", Category: "framework", Confidence: 90, Source: "extension"},
+	".tf":     {Name: "Terraform", Category: "iac", Confidence: 90, Source: "extension"},
+	".sol":    {Name: "Solidity", Category: "language", Confidence: 90, Source: "extension"},
+	".zig":    {Name: "Zig", Category: "language", Confidence: 90, Source: "extension"},
+}
+
+// runTechnologyFeature detects general technologies (languages, frameworks, databases, etc.)
+func (s *TechnologyScanner) runTechnologyFeature(ctx context.Context, repoPath, sbomPath string, result *Result) {
+	var techs []Technology
+
+	if s.config.Technology.ScanConfig {
+		techs = append(techs, s.detectFromConfigFiles(repoPath)...)
+	}
+
+	if s.config.Technology.ScanSBOM && sbomPath != "" {
+		techs = append(techs, s.detectFromSBOM(sbomPath)...)
+	}
+
+	if s.config.Technology.ScanExtensions {
+		techs = append(techs, s.detectFromFileExtensions(repoPath)...)
+	}
+
+	// Deduplicate and consolidate
+	techs = s.consolidateTechnologies(techs)
+
+	// Build summary
+	summary := s.buildTechnologySummary(techs)
+
+	result.Summary.Technology = summary
+	result.Findings.Technology = techs
+}
+
+// detectFromConfigFiles detects technologies from config files
+func (s *TechnologyScanner) detectFromConfigFiles(repoPath string) []Technology {
+	var techs []Technology
+
+	for pattern, tech := range configPatterns {
+		// Skip glob patterns for now (handled separately)
+		if strings.Contains(pattern, "*") {
+			continue
+		}
+
+		// Check for directory patterns
+		if strings.Contains(pattern, "/") {
+			filePath := filepath.Join(repoPath, pattern)
+			if _, err := os.Stat(filePath); err == nil {
+				techs = append(techs, tech)
+			}
+			continue
+		}
+
+		// Direct file check
+		filePath := filepath.Join(repoPath, pattern)
+		if _, err := os.Stat(filePath); err == nil {
+			techs = append(techs, tech)
+		}
+	}
+
+	// Check for Terraform files
+	if matches, _ := filepath.Glob(filepath.Join(repoPath, "*.tf")); len(matches) > 0 {
+		techs = append(techs, Technology{Name: "Terraform", Category: "iac", Confidence: 90, Source: "config"})
+	}
+
+	// Check for .csproj files
+	if matches, _ := filepath.Glob(filepath.Join(repoPath, "*.csproj")); len(matches) > 0 {
+		techs = append(techs, Technology{Name: "C#/.NET", Category: "language", Confidence: 90, Source: "config"})
+	}
+
+	// Check for GitHub Actions
+	if _, err := os.Stat(filepath.Join(repoPath, ".github", "workflows")); err == nil {
+		techs = append(techs, Technology{Name: "GitHub Actions", Category: "ci-cd", Confidence: 95, Source: "config"})
+	}
+
+	// Check for GitLab CI
+	if _, err := os.Stat(filepath.Join(repoPath, ".gitlab-ci.yml")); err == nil {
+		techs = append(techs, Technology{Name: "GitLab CI", Category: "ci-cd", Confidence: 95, Source: "config"})
+	}
+
+	// Check for CircleCI
+	if _, err := os.Stat(filepath.Join(repoPath, ".circleci", "config.yml")); err == nil {
+		techs = append(techs, Technology{Name: "CircleCI", Category: "ci-cd", Confidence: 95, Source: "config"})
+	}
+
+	return techs
+}
+
+// detectFromSBOM detects technologies from SBOM components
+func (s *TechnologyScanner) detectFromSBOM(sbomPath string) []Technology {
+	var techs []Technology
+
+	data, err := os.ReadFile(sbomPath)
+	if err != nil {
+		return techs
+	}
+
+	var sbomData struct {
+		Components []struct {
+			Name    string `json:"name"`
+			Version string `json:"version"`
+		} `json:"components"`
+	}
+
+	if err := json.Unmarshal(data, &sbomData); err != nil {
+		return techs
+	}
+
+	sbomPatterns := map[string]Technology{
+		"react":         {Name: "React", Category: "framework", Confidence: 95, Source: "sbom"},
+		"vue":           {Name: "Vue.js", Category: "framework", Confidence: 95, Source: "sbom"},
+		"angular":       {Name: "Angular", Category: "framework", Confidence: 95, Source: "sbom"},
+		"express":       {Name: "Express.js", Category: "framework", Confidence: 95, Source: "sbom"},
+		"fastify":       {Name: "Fastify", Category: "framework", Confidence: 95, Source: "sbom"},
+		"django":        {Name: "Django", Category: "framework", Confidence: 95, Source: "sbom"},
+		"flask":         {Name: "Flask", Category: "framework", Confidence: 95, Source: "sbom"},
+		"fastapi":       {Name: "FastAPI", Category: "framework", Confidence: 95, Source: "sbom"},
+		"spring":        {Name: "Spring", Category: "framework", Confidence: 95, Source: "sbom"},
+		"rails":         {Name: "Ruby on Rails", Category: "framework", Confidence: 95, Source: "sbom"},
+		"gin-gonic":     {Name: "Gin", Category: "framework", Confidence: 95, Source: "sbom"},
+		"fiber":         {Name: "Fiber", Category: "framework", Confidence: 95, Source: "sbom"},
+		"postgres":      {Name: "PostgreSQL", Category: "database", Confidence: 85, Source: "sbom"},
+		"pg":            {Name: "PostgreSQL", Category: "database", Confidence: 85, Source: "sbom"},
+		"mysql":         {Name: "MySQL", Category: "database", Confidence: 85, Source: "sbom"},
+		"mongodb":       {Name: "MongoDB", Category: "database", Confidence: 85, Source: "sbom"},
+		"mongoose":      {Name: "MongoDB", Category: "database", Confidence: 85, Source: "sbom"},
+		"redis":         {Name: "Redis", Category: "database", Confidence: 85, Source: "sbom"},
+		"sqlite":        {Name: "SQLite", Category: "database", Confidence: 85, Source: "sbom"},
+		"elasticsearch": {Name: "Elasticsearch", Category: "database", Confidence: 85, Source: "sbom"},
+		"aws-sdk":       {Name: "AWS SDK", Category: "cloud", Confidence: 90, Source: "sbom"},
+		"boto3":         {Name: "AWS SDK (Python)", Category: "cloud", Confidence: 90, Source: "sbom"},
+		"@azure":        {Name: "Azure SDK", Category: "cloud", Confidence: 90, Source: "sbom"},
+		"@google-cloud": {Name: "Google Cloud SDK", Category: "cloud", Confidence: 90, Source: "sbom"},
+		"openai":        {Name: "OpenAI", Category: "ai", Confidence: 95, Source: "sbom"},
+		"anthropic":     {Name: "Anthropic", Category: "ai", Confidence: 95, Source: "sbom"},
+		"langchain":     {Name: "LangChain", Category: "ai", Confidence: 95, Source: "sbom"},
+		"tensorflow":    {Name: "TensorFlow", Category: "ai", Confidence: 95, Source: "sbom"},
+		"pytorch":       {Name: "PyTorch", Category: "ai", Confidence: 95, Source: "sbom"},
+		"torch":         {Name: "PyTorch", Category: "ai", Confidence: 95, Source: "sbom"},
+		"transformers":  {Name: "Hugging Face Transformers", Category: "ai", Confidence: 95, Source: "sbom"},
+	}
+
+	seen := make(map[string]bool)
+	for _, comp := range sbomData.Components {
+		nameLower := strings.ToLower(comp.Name)
+		for pattern, tech := range sbomPatterns {
+			if strings.Contains(nameLower, pattern) && !seen[tech.Name] {
+				t := tech
+				t.Version = comp.Version
+				techs = append(techs, t)
+				seen[tech.Name] = true
+			}
+		}
+	}
+
+	return techs
+}
+
+// detectFromFileExtensions detects technologies from file extensions
+func (s *TechnologyScanner) detectFromFileExtensions(repoPath string) []Technology {
+	extCounts := make(map[string]int)
+
+	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if info.IsDir() {
+			base := filepath.Base(path)
+			if base == "node_modules" || base == "vendor" || base == ".git" ||
+				base == "dist" || base == "build" || base == "__pycache__" ||
+				base == ".venv" || base == "venv" || base == "target" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		ext := strings.ToLower(filepath.Ext(path))
+		if ext != "" {
+			extCounts[ext]++
+		}
+		return nil
+	})
+
+	var techs []Technology
+	for ext, count := range extCounts {
+		if tech, ok := extensionMap[ext]; ok && count >= 3 {
+			techs = append(techs, tech)
+		}
+	}
+
+	return techs
+}
+
+// consolidateTechnologies deduplicates and consolidates technologies
+func (s *TechnologyScanner) consolidateTechnologies(techs []Technology) []Technology {
+	techMap := make(map[string]Technology)
+	for _, t := range techs {
+		existing, ok := techMap[t.Name]
+		if !ok || t.Confidence > existing.Confidence {
+			techMap[t.Name] = t
+		}
+	}
+
+	var result []Technology
+	for _, t := range techMap {
+		result = append(result, t)
+	}
+
+	// Sort by confidence (descending)
+	for i := 0; i < len(result)-1; i++ {
+		for j := i + 1; j < len(result); j++ {
+			if result[j].Confidence > result[i].Confidence {
+				result[i], result[j] = result[j], result[i]
+			}
+		}
+	}
+
+	return result
+}
+
+// buildTechnologySummary creates a summary of detected technologies
+func (s *TechnologyScanner) buildTechnologySummary(techs []Technology) *TechnologySummary {
+	summary := &TechnologySummary{
+		TotalTechnologies: len(techs),
+		ByCategory:        make(map[string]int),
+	}
+
+	for _, t := range techs {
+		summary.ByCategory[t.Category]++
+
+		switch t.Category {
+		case "language":
+			summary.PrimaryLanguages = append(summary.PrimaryLanguages, t.Name)
+		case "framework":
+			summary.Frameworks = append(summary.Frameworks, t.Name)
+		case "database":
+			summary.Databases = append(summary.Databases, t.Name)
+		case "cloud":
+			summary.CloudServices = append(summary.CloudServices, t.Name)
+		}
+	}
+
+	return summary
 }
