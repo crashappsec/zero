@@ -76,11 +76,25 @@ Verifies SBOM completeness against lockfiles.
 | `detect_drift` | bool | `true` | Detect drift from expected state |
 | `check_completeness` | bool | `true` | Verify all packages are in SBOM |
 
-**Supported Lockfiles:**
-- `package-lock.json` (npm v1 and v2+ formats)
-- `yarn.lock`
-- `go.sum`
-- `requirements.txt`
+**Supported Ecosystems and Lockfiles:**
+
+| Ecosystem | Manager | Manifest | Lock File | Native Tool |
+|-----------|---------|----------|-----------|-------------|
+| JavaScript | npm | `package.json` | `package-lock.json` | `npm sbom` |
+| JavaScript | yarn | `package.json` | `yarn.lock` | cyclonedx-yarn |
+| JavaScript | pnpm | `package.json` | `pnpm-lock.yaml` | cyclonedx-pnpm |
+| Python | pip | `requirements.txt` | (pip freeze) | cyclonedx-py |
+| Python | poetry | `pyproject.toml` | `poetry.lock` | cyclonedx-py |
+| Python | uv | `pyproject.toml` | `uv.lock` | cyclonedx-py |
+| Rust | cargo | `Cargo.toml` | `Cargo.lock` | cargo-cyclonedx |
+| Go | go mod | `go.mod` | `go.sum` | cyclonedx-gomod |
+| Java | maven | `pom.xml` | (effective-pom) | cyclonedx-maven |
+| Java | gradle | `build.gradle` | `gradle.lockfile` | cyclonedx-gradle |
+| Ruby | bundler | `Gemfile` | `Gemfile.lock` | cyclonedx-ruby |
+| PHP | composer | `composer.json` | `composer.lock` | cyclonedx-php |
+| .NET | nuget | `*.csproj` | `packages.lock.json` | CycloneDX .NET |
+
+See [Package Manager Patterns](/rag/supply-chain/package-managers/) for detailed ecosystem documentation.
 
 ## How It Works
 
@@ -232,6 +246,66 @@ for _, component := range sbomData.Components {
 
 Standard CycloneDX 1.5 format - see [CycloneDX Specification](https://cyclonedx.org/specification/overview/).
 
+## Configuration
+
+The SBOM scanner uses `config/sbom.config.json` for detailed configuration of package manager support, dependency inclusion, and output format.
+
+### SBOM Configuration File
+
+```json
+{
+  "$schema": "./sbom.config.schema.json",
+  "_version": "1.0.0",
+
+  "output": {
+    "format": "cyclonedx",
+    "spec_version": "1.5",
+    "output_format": "json"
+  },
+
+  "dependencies": {
+    "include_dev": false,
+    "include_test": false,
+    "include_optional": true,
+    "include_transitive": true
+  },
+
+  "metadata": {
+    "include_licenses": true,
+    "include_hashes": true,
+    "include_purl": true
+  },
+
+  "package_managers": {
+    "npm": {
+      "use_native_sbom": true,
+      "omit": ["dev"]
+    },
+    "poetry": {
+      "groups": ["main"],
+      "from_lock_file": true
+    }
+  }
+}
+```
+
+See [sbom.config.schema.json](/config/sbom.config.schema.json) for the full schema.
+
+### Package Manager-Specific Options
+
+Each ecosystem has specific configuration options:
+
+| Ecosystem | Key Options |
+|-----------|-------------|
+| npm/yarn/pnpm | `omit`, `workspaces`, `package_lock_only` |
+| pip/poetry/uv | `groups`, `extras`, `from_lock_file` |
+| cargo | `all_features`, `features`, `include_dev` |
+| go | `include_test`, `include_std`, `from_binary` |
+| maven/gradle | `include_compile`, `include_runtime`, `configurations` |
+| bundler | `exclude_groups`, `include_groups` |
+| composer | `include_dev`, `fetch_packagist_metadata` |
+| nuget | `target_frameworks`, `use_lock_file` |
+
 ## Prerequisites
 
 One of the following tools must be installed:
@@ -241,13 +315,62 @@ One of the following tools must be installed:
 | cdxgen | `npm install -g @cyclonedx/cdxgen` |
 | syft | `brew install syft` or `curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \| sh` |
 
+### Ecosystem-Specific Tools (Optional)
+
+For more accurate SBOMs, install ecosystem-specific tools:
+
+| Ecosystem | Tool | Install Command |
+|-----------|------|-----------------|
+| npm | npm sbom | Built into npm 9+ |
+| Python | cyclonedx-py | `pip install cyclonedx-bom` |
+| Rust | cargo-cyclonedx | `cargo install cargo-cyclonedx` |
+| Go | cyclonedx-gomod | `go install github.com/CycloneDX/cyclonedx-gomod/cmd/cyclonedx-gomod@latest` |
+| Java | cyclonedx-maven | Add plugin to pom.xml |
+| Java | cyclonedx-gradle | Add plugin to build.gradle |
+| Ruby | cyclonedx-ruby | `gem install cyclonedx-ruby` |
+| PHP | cyclonedx-php | `composer global require cyclonedx/cyclonedx-php-composer` |
+| .NET | CycloneDX | `dotnet tool install --global CycloneDX` |
+
 ## Related Scanners
 
 - **packages**: Depends on SBOM output for vulnerability scanning, health checks, and license analysis
-- **ai**: Uses SBOM component data for ML-BOM correlation
+- **technology**: Uses SBOM component data for technology detection and ML-BOM correlation
+
+## RAG Knowledge
+
+Detailed package manager patterns are available in the RAG knowledge base:
+
+```
+rag/supply-chain/package-managers/
+├── README.md                    # Overview and supported ecosystems
+├── npm/patterns.md              # npm (JavaScript)
+├── yarn/patterns.md             # Yarn Classic & Berry
+├── pnpm/patterns.md             # pnpm (JavaScript)
+├── pip/patterns.md              # pip (Python)
+├── poetry/patterns.md           # Poetry (Python)
+├── uv/patterns.md               # uv (Python, Rust-based)
+├── cargo/patterns.md            # Cargo (Rust)
+├── go/patterns.md               # Go Modules
+├── maven/patterns.md            # Maven (Java)
+├── gradle/patterns.md           # Gradle (Java/Kotlin)
+├── bundler/patterns.md          # Bundler (Ruby)
+├── composer/patterns.md         # Composer (PHP)
+└── nuget/patterns.md            # NuGet (.NET)
+```
+
+Each pattern file includes:
+- **TIER 1**: Manifest detection patterns
+- **TIER 2**: Lock file structure and parsing
+- **TIER 3**: Configuration extraction (registries, auth)
+- **SBOM Generation**: Tool-specific commands
+- **Best Practices**: Reproducible build recommendations
+- **Troubleshooting**: Common issues and solutions
 
 ## See Also
 
 - [Packages Scanner](packages.md) - Dependency analysis using SBOM data
 - [Scanner Architecture](../architecture/scanners.md) - How scanners work together
 - [CycloneDX Specification](https://cyclonedx.org/specification/overview/) - SBOM format details
+- [SBOM Configuration Schema](/config/sbom.config.schema.json) - Full configuration options
+- [SBOM Generation Best Practices](/rag/supply-chain/sbom-generation-best-practices.md) - Industry best practices
+- [Package Manager Specifications](/rag/supply-chain/package-manager-specifications.md) - Detailed specifications
