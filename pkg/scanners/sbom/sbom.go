@@ -54,6 +54,13 @@ func (s *SBOMScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scan
 	// Get feature config
 	cfg := getFeatureConfig(opts)
 
+	// Try to load sbom.config.json for additional configuration
+	if configPath := FindSBOMConfig(opts.RepoPath); configPath != "" {
+		if sbomCfg, err := LoadSBOMConfig(configPath); err == nil {
+			ApplySBOMConfig(&cfg, sbomCfg)
+		}
+	}
+
 	result := &Result{
 		FeaturesRun: []string{},
 		Summary:     Summary{},
@@ -371,7 +378,93 @@ func runIntegrity(repoPath, sbomPath string, components []Component, cfg Integri
 		}
 	}
 
+	// Detect drift from previous SBOM
+	if cfg.DetectDrift {
+		previousPath := cfg.PreviousSBOMPath
+		if previousPath == "" {
+			// Try to find previous SBOM in standard location
+			previousPath = filepath.Join(filepath.Dir(sbomPath), "sbom.cdx.json.previous")
+		}
+
+		if _, err := os.Stat(previousPath); err == nil {
+			drift, err := compareSBOMs(previousPath, sbomPath, components)
+			if err == nil {
+				findings.DriftDetails = drift
+				summary.DriftDetected = drift.TotalAdded > 0 || drift.TotalRemoved > 0 || drift.TotalChanged > 0
+			}
+		}
+	}
+
 	return summary, findings, nil
+}
+
+// compareSBOMs compares two SBOMs and returns the differences
+func compareSBOMs(previousPath, currentPath string, currentComponents []Component) (*DriftDetails, error) {
+	// Load previous SBOM
+	previousFindings, err := LoadSBOM(previousPath)
+	if err != nil {
+		return nil, fmt.Errorf("loading previous SBOM: %w", err)
+	}
+
+	drift := &DriftDetails{
+		PreviousSBOMPath: previousPath,
+	}
+
+	// Build maps for comparison
+	previousMap := make(map[string]Component) // name -> component
+	currentMap := make(map[string]Component)
+
+	for _, c := range previousFindings.Components {
+		key := c.Ecosystem + "/" + c.Name
+		previousMap[key] = c
+	}
+
+	for _, c := range currentComponents {
+		key := c.Ecosystem + "/" + c.Name
+		currentMap[key] = c
+	}
+
+	// Find added components (in current but not in previous)
+	for key, current := range currentMap {
+		if _, exists := previousMap[key]; !exists {
+			drift.Added = append(drift.Added, ComponentDiff{
+				Name:      current.Name,
+				Version:   current.Version,
+				Ecosystem: current.Ecosystem,
+			})
+		}
+	}
+
+	// Find removed components (in previous but not in current)
+	for key, previous := range previousMap {
+		if _, exists := currentMap[key]; !exists {
+			drift.Removed = append(drift.Removed, ComponentDiff{
+				Name:      previous.Name,
+				Version:   previous.Version,
+				Ecosystem: previous.Ecosystem,
+			})
+		}
+	}
+
+	// Find version changes
+	for key, current := range currentMap {
+		if previous, exists := previousMap[key]; exists {
+			if previous.Version != current.Version {
+				drift.VersionChanged = append(drift.VersionChanged, VersionChange{
+					Name:       current.Name,
+					Ecosystem:  current.Ecosystem,
+					OldVersion: previous.Version,
+					NewVersion: current.Version,
+				})
+			}
+		}
+	}
+
+	drift.TotalAdded = len(drift.Added)
+	drift.TotalRemoved = len(drift.Removed)
+	drift.TotalChanged = len(drift.VersionChanged)
+
+	return drift, nil
 }
 
 func verifyAgainstLockfiles(repoPath string, components []Component) []LockfileComparison {
@@ -390,35 +483,111 @@ func verifyAgainstLockfiles(repoPath string, components []Component) []LockfileC
 		compMap[eco][c.Name] = c.Version
 	}
 
-	// Check package-lock.json
-	pkgLockPath := filepath.Join(repoPath, "package-lock.json")
-	if _, err := os.Stat(pkgLockPath); err == nil {
-		comp := compareLockfile(pkgLockPath, "npm", compMap["npm"])
-		comparisons = append(comparisons, comp)
-	}
+	// Find all lockfiles recursively
+	lockfiles := findLockfilesRecursive(repoPath)
 
-	// Check yarn.lock
-	yarnLockPath := filepath.Join(repoPath, "yarn.lock")
-	if _, err := os.Stat(yarnLockPath); err == nil {
-		comp := compareYarnLock(yarnLockPath, compMap["npm"])
-		comparisons = append(comparisons, comp)
-	}
+	// Process each lockfile
+	for _, lockPath := range lockfiles {
+		var comp LockfileComparison
+		base := filepath.Base(lockPath)
 
-	// Check go.sum
-	goSumPath := filepath.Join(repoPath, "go.sum")
-	if _, err := os.Stat(goSumPath); err == nil {
-		comp := compareGoSum(goSumPath, compMap["golang"])
-		comparisons = append(comparisons, comp)
-	}
+		switch base {
+		case "package-lock.json":
+			comp = compareLockfile(lockPath, "npm", compMap["npm"])
+		case "yarn.lock":
+			comp = compareYarnLock(lockPath, compMap["npm"])
+		case "pnpm-lock.yaml":
+			comp = comparePnpmLock(lockPath, compMap["npm"])
+		case "go.sum":
+			comp = compareGoSum(lockPath, compMap["golang"])
+		case "requirements.txt":
+			comp = compareRequirements(lockPath, compMap["pypi"])
+		case "poetry.lock":
+			comp = comparePoetryLock(lockPath, compMap["pypi"])
+		case "uv.lock":
+			comp = compareUvLock(lockPath, compMap["pypi"])
+		case "Cargo.lock":
+			comp = compareCargoLock(lockPath, compMap["cargo"])
+		case "Gemfile.lock":
+			comp = compareGemfileLock(lockPath, compMap["gem"])
+		case "composer.lock":
+			comp = compareComposerLock(lockPath, compMap["composer"])
+		case "packages.lock.json":
+			comp = compareNugetLock(lockPath, compMap["nuget"])
+		case "gradle.lockfile":
+			comp = compareGradleLock(lockPath, compMap["maven"])
+		default:
+			continue
+		}
 
-	// Check requirements.txt
-	reqPath := filepath.Join(repoPath, "requirements.txt")
-	if _, err := os.Stat(reqPath); err == nil {
-		comp := compareRequirements(reqPath, compMap["pypi"])
+		// Include relative path for subdirectory lockfiles
+		relPath, _ := filepath.Rel(repoPath, lockPath)
+		if relPath != base {
+			comp.Lockfile = relPath
+		}
+
 		comparisons = append(comparisons, comp)
 	}
 
 	return comparisons
+}
+
+// findLockfilesRecursive finds all supported lockfiles in a directory tree
+func findLockfilesRecursive(root string) []string {
+	var lockfiles []string
+
+	// Supported lockfile names
+	lockfileNames := map[string]bool{
+		"package-lock.json":  true,
+		"yarn.lock":          true,
+		"pnpm-lock.yaml":     true,
+		"go.sum":             true,
+		"requirements.txt":   true,
+		"poetry.lock":        true,
+		"uv.lock":            true,
+		"Cargo.lock":         true,
+		"Gemfile.lock":       true,
+		"composer.lock":      true,
+		"packages.lock.json": true,
+		"gradle.lockfile":    true,
+	}
+
+	// Directories to skip
+	skipDirs := map[string]bool{
+		"node_modules": true,
+		"vendor":       true,
+		".git":         true,
+		".svn":         true,
+		"target":       true,
+		"build":        true,
+		"dist":         true,
+		".venv":        true,
+		"venv":         true,
+		"__pycache__":  true,
+	}
+
+	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+
+		// Skip excluded directories
+		if info.IsDir() {
+			if skipDirs[info.Name()] {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		// Check if this is a lockfile
+		if lockfileNames[info.Name()] {
+			lockfiles = append(lockfiles, path)
+		}
+
+		return nil
+	})
+
+	return lockfiles
 }
 
 func compareLockfile(lockPath, ecosystem string, sbomPkgs map[string]string) LockfileComparison {
@@ -654,6 +823,556 @@ func compareRequirements(reqPath string, sbomPkgs map[string]string) LockfileCom
 			}
 		}
 		if !found {
+			comp.Missing++
+		}
+	}
+
+	return comp
+}
+
+// =============================================================================
+// Additional Lockfile Parsers
+// =============================================================================
+
+// comparePnpmLock parses pnpm-lock.yaml and compares with SBOM
+func comparePnpmLock(lockPath string, sbomPkgs map[string]string) LockfileComparison {
+	comp := LockfileComparison{
+		Lockfile:  filepath.Base(lockPath),
+		Ecosystem: "npm",
+		InSBOM:    len(sbomPkgs),
+	}
+
+	file, err := os.Open(lockPath)
+	if err != nil {
+		return comp
+	}
+	defer file.Close()
+
+	lockPkgs := make(map[string]string)
+	scanner := bufio.NewScanner(file)
+
+	// pnpm-lock.yaml v9 format: package@version: under packages:
+	// pnpm-lock.yaml v6 format: /package/version: under packages:
+	inPackages := false
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		if strings.HasPrefix(line, "packages:") {
+			inPackages = true
+			continue
+		}
+
+		if inPackages && !strings.HasPrefix(line, " ") && line != "" {
+			inPackages = false
+		}
+
+		if inPackages {
+			line = strings.TrimSpace(line)
+			// v9 format: 'package@version':
+			if strings.HasSuffix(line, ":") && strings.Contains(line, "@") {
+				entry := strings.TrimSuffix(line, ":")
+				entry = strings.Trim(entry, "'\"")
+				// Handle scoped packages: @scope/name@version
+				atIdx := strings.LastIndex(entry, "@")
+				if atIdx > 0 {
+					name := entry[:atIdx]
+					version := entry[atIdx+1:]
+					lockPkgs[name] = version
+				}
+			}
+			// v6 format: /package/version:
+			if strings.HasPrefix(line, "/") && strings.HasSuffix(line, ":") {
+				entry := strings.TrimPrefix(line, "/")
+				entry = strings.TrimSuffix(entry, ":")
+				parts := strings.Split(entry, "/")
+				if len(parts) >= 2 {
+					// Handle scoped packages
+					if strings.HasPrefix(parts[0], "@") && len(parts) >= 3 {
+						name := parts[0] + "/" + parts[1]
+						version := parts[2]
+						lockPkgs[name] = version
+					} else {
+						name := parts[0]
+						version := parts[1]
+						lockPkgs[name] = version
+					}
+				}
+			}
+		}
+	}
+
+	comp.InLockfile = len(lockPkgs)
+
+	for name := range sbomPkgs {
+		if _, ok := lockPkgs[name]; ok {
+			comp.Matched++
+		} else {
+			comp.Extra++
+		}
+	}
+
+	for name := range lockPkgs {
+		if _, ok := sbomPkgs[name]; !ok {
+			comp.Missing++
+		}
+	}
+
+	return comp
+}
+
+// comparePoetryLock parses poetry.lock (TOML) and compares with SBOM
+func comparePoetryLock(lockPath string, sbomPkgs map[string]string) LockfileComparison {
+	comp := LockfileComparison{
+		Lockfile:  filepath.Base(lockPath),
+		Ecosystem: "pypi",
+		InSBOM:    len(sbomPkgs),
+	}
+
+	file, err := os.Open(lockPath)
+	if err != nil {
+		return comp
+	}
+	defer file.Close()
+
+	lockPkgs := make(map[string]string)
+	scanner := bufio.NewScanner(file)
+
+	var currentName, currentVersion string
+	inPackage := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Start of package block
+		if line == "[[package]]" {
+			if currentName != "" && currentVersion != "" {
+				lockPkgs[strings.ToLower(strings.ReplaceAll(currentName, "_", "-"))] = currentVersion
+			}
+			currentName = ""
+			currentVersion = ""
+			inPackage = true
+			continue
+		}
+
+		if inPackage {
+			if strings.HasPrefix(line, "name = ") {
+				currentName = strings.Trim(strings.TrimPrefix(line, "name = "), "\"")
+			}
+			if strings.HasPrefix(line, "version = ") {
+				currentVersion = strings.Trim(strings.TrimPrefix(line, "version = "), "\"")
+			}
+		}
+	}
+
+	// Don't forget the last package
+	if currentName != "" && currentVersion != "" {
+		lockPkgs[strings.ToLower(strings.ReplaceAll(currentName, "_", "-"))] = currentVersion
+	}
+
+	comp.InLockfile = len(lockPkgs)
+
+	for name := range sbomPkgs {
+		normalizedName := strings.ToLower(strings.ReplaceAll(name, "_", "-"))
+		if _, ok := lockPkgs[normalizedName]; ok {
+			comp.Matched++
+		} else {
+			comp.Extra++
+		}
+	}
+
+	for name := range lockPkgs {
+		found := false
+		for sbomName := range sbomPkgs {
+			if strings.ToLower(strings.ReplaceAll(sbomName, "_", "-")) == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			comp.Missing++
+		}
+	}
+
+	return comp
+}
+
+// compareUvLock parses uv.lock (TOML) and compares with SBOM
+func compareUvLock(lockPath string, sbomPkgs map[string]string) LockfileComparison {
+	comp := LockfileComparison{
+		Lockfile:  filepath.Base(lockPath),
+		Ecosystem: "pypi",
+		InSBOM:    len(sbomPkgs),
+	}
+
+	file, err := os.Open(lockPath)
+	if err != nil {
+		return comp
+	}
+	defer file.Close()
+
+	lockPkgs := make(map[string]string)
+	scanner := bufio.NewScanner(file)
+
+	var currentName, currentVersion string
+	inPackage := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Start of package block
+		if line == "[[package]]" {
+			if currentName != "" && currentVersion != "" {
+				lockPkgs[strings.ToLower(strings.ReplaceAll(currentName, "_", "-"))] = currentVersion
+			}
+			currentName = ""
+			currentVersion = ""
+			inPackage = true
+			continue
+		}
+
+		if inPackage {
+			if strings.HasPrefix(line, "name = ") {
+				currentName = strings.Trim(strings.TrimPrefix(line, "name = "), "\"")
+			}
+			if strings.HasPrefix(line, "version = ") {
+				currentVersion = strings.Trim(strings.TrimPrefix(line, "version = "), "\"")
+			}
+		}
+	}
+
+	// Don't forget the last package
+	if currentName != "" && currentVersion != "" {
+		lockPkgs[strings.ToLower(strings.ReplaceAll(currentName, "_", "-"))] = currentVersion
+	}
+
+	comp.InLockfile = len(lockPkgs)
+
+	for name := range sbomPkgs {
+		normalizedName := strings.ToLower(strings.ReplaceAll(name, "_", "-"))
+		if _, ok := lockPkgs[normalizedName]; ok {
+			comp.Matched++
+		} else {
+			comp.Extra++
+		}
+	}
+
+	for name := range lockPkgs {
+		found := false
+		for sbomName := range sbomPkgs {
+			if strings.ToLower(strings.ReplaceAll(sbomName, "_", "-")) == name {
+				found = true
+				break
+			}
+		}
+		if !found {
+			comp.Missing++
+		}
+	}
+
+	return comp
+}
+
+// compareCargoLock parses Cargo.lock (TOML) and compares with SBOM
+func compareCargoLock(lockPath string, sbomPkgs map[string]string) LockfileComparison {
+	comp := LockfileComparison{
+		Lockfile:  filepath.Base(lockPath),
+		Ecosystem: "cargo",
+		InSBOM:    len(sbomPkgs),
+	}
+
+	file, err := os.Open(lockPath)
+	if err != nil {
+		return comp
+	}
+	defer file.Close()
+
+	lockPkgs := make(map[string]string)
+	scanner := bufio.NewScanner(file)
+
+	var currentName, currentVersion string
+	inPackage := false
+
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// Start of package block
+		if line == "[[package]]" {
+			if currentName != "" && currentVersion != "" {
+				lockPkgs[currentName] = currentVersion
+			}
+			currentName = ""
+			currentVersion = ""
+			inPackage = true
+			continue
+		}
+
+		if inPackage {
+			if strings.HasPrefix(line, "name = ") {
+				currentName = strings.Trim(strings.TrimPrefix(line, "name = "), "\"")
+			}
+			if strings.HasPrefix(line, "version = ") {
+				currentVersion = strings.Trim(strings.TrimPrefix(line, "version = "), "\"")
+			}
+		}
+	}
+
+	// Don't forget the last package
+	if currentName != "" && currentVersion != "" {
+		lockPkgs[currentName] = currentVersion
+	}
+
+	comp.InLockfile = len(lockPkgs)
+
+	for name := range sbomPkgs {
+		if _, ok := lockPkgs[name]; ok {
+			comp.Matched++
+		} else {
+			comp.Extra++
+		}
+	}
+
+	for name := range lockPkgs {
+		if _, ok := sbomPkgs[name]; !ok {
+			comp.Missing++
+		}
+	}
+
+	return comp
+}
+
+// compareGemfileLock parses Gemfile.lock and compares with SBOM
+func compareGemfileLock(lockPath string, sbomPkgs map[string]string) LockfileComparison {
+	comp := LockfileComparison{
+		Lockfile:  filepath.Base(lockPath),
+		Ecosystem: "gem",
+		InSBOM:    len(sbomPkgs),
+	}
+
+	file, err := os.Open(lockPath)
+	if err != nil {
+		return comp
+	}
+	defer file.Close()
+
+	lockPkgs := make(map[string]string)
+	scanner := bufio.NewScanner(file)
+
+	inSpecs := false
+	for scanner.Scan() {
+		line := scanner.Text()
+
+		// GEM section with specs
+		if strings.TrimSpace(line) == "specs:" {
+			inSpecs = true
+			continue
+		}
+
+		// End of specs section (blank line or new section)
+		if inSpecs && (line == "" || !strings.HasPrefix(line, "    ")) {
+			if !strings.HasPrefix(line, " ") {
+				inSpecs = false
+			}
+			continue
+		}
+
+		// Parse gem entries: "    gem-name (version)"
+		if inSpecs && strings.HasPrefix(line, "    ") && !strings.HasPrefix(line, "      ") {
+			line = strings.TrimSpace(line)
+			if idx := strings.Index(line, " ("); idx > 0 {
+				name := line[:idx]
+				version := strings.TrimSuffix(line[idx+2:], ")")
+				lockPkgs[name] = version
+			}
+		}
+	}
+
+	comp.InLockfile = len(lockPkgs)
+
+	for name := range sbomPkgs {
+		if _, ok := lockPkgs[name]; ok {
+			comp.Matched++
+		} else {
+			comp.Extra++
+		}
+	}
+
+	for name := range lockPkgs {
+		if _, ok := sbomPkgs[name]; !ok {
+			comp.Missing++
+		}
+	}
+
+	return comp
+}
+
+// compareComposerLock parses composer.lock (JSON) and compares with SBOM
+func compareComposerLock(lockPath string, sbomPkgs map[string]string) LockfileComparison {
+	comp := LockfileComparison{
+		Lockfile:  filepath.Base(lockPath),
+		Ecosystem: "composer",
+		InSBOM:    len(sbomPkgs),
+	}
+
+	data, err := os.ReadFile(lockPath)
+	if err != nil {
+		return comp
+	}
+
+	var lockData struct {
+		Packages []struct {
+			Name    string `json:"name"`
+			Version string `json:"version"`
+		} `json:"packages"`
+		PackagesDev []struct {
+			Name    string `json:"name"`
+			Version string `json:"version"`
+		} `json:"packages-dev"`
+	}
+
+	if err := json.Unmarshal(data, &lockData); err != nil {
+		return comp
+	}
+
+	lockPkgs := make(map[string]string)
+
+	for _, pkg := range lockData.Packages {
+		// Composer versions often have "v" prefix
+		version := strings.TrimPrefix(pkg.Version, "v")
+		lockPkgs[pkg.Name] = version
+	}
+
+	for _, pkg := range lockData.PackagesDev {
+		version := strings.TrimPrefix(pkg.Version, "v")
+		lockPkgs[pkg.Name] = version
+	}
+
+	comp.InLockfile = len(lockPkgs)
+
+	for name := range sbomPkgs {
+		if _, ok := lockPkgs[name]; ok {
+			comp.Matched++
+		} else {
+			comp.Extra++
+		}
+	}
+
+	for name := range lockPkgs {
+		if _, ok := sbomPkgs[name]; !ok {
+			comp.Missing++
+		}
+	}
+
+	return comp
+}
+
+// compareNugetLock parses packages.lock.json (NuGet) and compares with SBOM
+func compareNugetLock(lockPath string, sbomPkgs map[string]string) LockfileComparison {
+	comp := LockfileComparison{
+		Lockfile:  filepath.Base(lockPath),
+		Ecosystem: "nuget",
+		InSBOM:    len(sbomPkgs),
+	}
+
+	data, err := os.ReadFile(lockPath)
+	if err != nil {
+		return comp
+	}
+
+	var lockData struct {
+		Version      int `json:"version"`
+		Dependencies map[string]map[string]struct {
+			Type     string `json:"type"`
+			Resolved string `json:"resolved"`
+		} `json:"dependencies"`
+	}
+
+	if err := json.Unmarshal(data, &lockData); err != nil {
+		return comp
+	}
+
+	lockPkgs := make(map[string]string)
+
+	// Dependencies are keyed by target framework, then by package name
+	for _, frameworkDeps := range lockData.Dependencies {
+		for name, pkg := range frameworkDeps {
+			lockPkgs[name] = pkg.Resolved
+		}
+	}
+
+	comp.InLockfile = len(lockPkgs)
+
+	for name := range sbomPkgs {
+		if _, ok := lockPkgs[name]; ok {
+			comp.Matched++
+		} else {
+			comp.Extra++
+		}
+	}
+
+	for name := range lockPkgs {
+		if _, ok := sbomPkgs[name]; !ok {
+			comp.Missing++
+		}
+	}
+
+	return comp
+}
+
+// compareGradleLock parses gradle.lockfile and compares with SBOM
+func compareGradleLock(lockPath string, sbomPkgs map[string]string) LockfileComparison {
+	comp := LockfileComparison{
+		Lockfile:  filepath.Base(lockPath),
+		Ecosystem: "maven",
+		InSBOM:    len(sbomPkgs),
+	}
+
+	file, err := os.Open(lockPath)
+	if err != nil {
+		return comp
+	}
+	defer file.Close()
+
+	lockPkgs := make(map[string]string)
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+
+		// Skip comments and empty lines
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		// Skip the "empty=" line
+		if strings.HasPrefix(line, "empty=") {
+			continue
+		}
+
+		// Format: group:artifact:version=configuration1,configuration2
+		if idx := strings.Index(line, "="); idx > 0 {
+			coords := line[:idx]
+			parts := strings.Split(coords, ":")
+			if len(parts) >= 3 {
+				// group:artifact:version
+				name := parts[0] + ":" + parts[1]
+				version := parts[2]
+				lockPkgs[name] = version
+			}
+		}
+	}
+
+	comp.InLockfile = len(lockPkgs)
+
+	for name := range sbomPkgs {
+		if _, ok := lockPkgs[name]; ok {
+			comp.Matched++
+		} else {
+			comp.Extra++
+		}
+	}
+
+	for name := range lockPkgs {
+		if _, ok := sbomPkgs[name]; !ok {
 			comp.Missing++
 		}
 	}

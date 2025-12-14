@@ -126,15 +126,26 @@ type ExtraPackage struct {
 
 // DriftDetails contains SBOM drift information
 type DriftDetails struct {
-	PreviousSBOMPath string   `json:"previous_sbom_path,omitempty"`
-	Added            []string `json:"added,omitempty"`
-	Removed          []string `json:"removed,omitempty"`
+	PreviousSBOMPath string          `json:"previous_sbom_path,omitempty"`
+	Added            []ComponentDiff `json:"added,omitempty"`
+	Removed          []ComponentDiff `json:"removed,omitempty"`
 	VersionChanged   []VersionChange `json:"version_changed,omitempty"`
+	TotalAdded       int             `json:"total_added"`
+	TotalRemoved     int             `json:"total_removed"`
+	TotalChanged     int             `json:"total_changed"`
+}
+
+// ComponentDiff represents a component that was added or removed
+type ComponentDiff struct {
+	Name      string `json:"name"`
+	Version   string `json:"version"`
+	Ecosystem string `json:"ecosystem,omitempty"`
 }
 
 // VersionChange represents a version change between SBOMs
 type VersionChange struct {
 	Name        string `json:"name"`
+	Ecosystem   string `json:"ecosystem,omitempty"`
 	OldVersion  string `json:"old_version"`
 	NewVersion  string `json:"new_version"`
 }
