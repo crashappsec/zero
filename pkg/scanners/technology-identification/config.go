@@ -2,13 +2,22 @@
 // Includes AI/ML security and ML-BOM generation
 package technologyidentification
 
-// FeatureConfig holds configuration for all AI/ML analysis features
+// FeatureConfig holds configuration for all technology identification features
 type FeatureConfig struct {
-	Models      ModelsConfig      `json:"models"`
-	Frameworks  FrameworksConfig  `json:"frameworks"`
-	Datasets    DatasetsConfig    `json:"datasets"`
-	Security    SecurityConfig    `json:"security"`
-	Governance  GovernanceConfig  `json:"governance"`
+	Technology  TechnologyDetectionConfig `json:"technology"`  // General technology detection
+	Models      ModelsConfig              `json:"models"`      // ML model detection
+	Frameworks  FrameworksConfig          `json:"frameworks"`  // AI/ML framework detection
+	Datasets    DatasetsConfig            `json:"datasets"`
+	Security    SecurityConfig            `json:"security"`
+	Governance  GovernanceConfig          `json:"governance"`
+}
+
+// TechnologyDetectionConfig configures general technology discovery
+type TechnologyDetectionConfig struct {
+	Enabled        bool `json:"enabled"`
+	ScanExtensions bool `json:"scan_extensions"` // Detect from file extensions
+	ScanConfig     bool `json:"scan_config"`     // Detect from config files
+	ScanSBOM       bool `json:"scan_sbom"`       // Detect from SBOM
 }
 
 // ModelsConfig configures ML model detection and inventory
@@ -66,6 +75,12 @@ type GovernanceConfig struct {
 // DefaultConfig returns default feature configuration
 func DefaultConfig() FeatureConfig {
 	return FeatureConfig{
+		Technology: TechnologyDetectionConfig{
+			Enabled:        true,
+			ScanExtensions: true,
+			ScanConfig:     true,
+			ScanSBOM:       true,
+		},
 		Models: ModelsConfig{
 			Enabled:            true,
 			DetectModelFiles:   true,
@@ -114,6 +129,7 @@ func DefaultConfig() FeatureConfig {
 // QuickConfig returns minimal config for fast scans
 func QuickConfig() FeatureConfig {
 	cfg := DefaultConfig()
+	cfg.Technology.ScanExtensions = false // Skip file extension scan (slow)
 	cfg.Models.QueryHuggingFace = false
 	cfg.Models.ExtractModelCards = false
 	cfg.Datasets.Enabled = false
@@ -136,6 +152,12 @@ func SecurityOnlyConfig() FeatureConfig {
 // FullConfig returns config with all features enabled
 func FullConfig() FeatureConfig {
 	return FeatureConfig{
+		Technology: TechnologyDetectionConfig{
+			Enabled:        true,
+			ScanExtensions: true,
+			ScanConfig:     true,
+			ScanSBOM:       true,
+		},
 		Models: ModelsConfig{
 			Enabled:            true,
 			DetectModelFiles:   true,

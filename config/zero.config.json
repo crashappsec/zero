@@ -381,20 +381,17 @@
       "name": "Quick",
       "description": "Fast essential analysis for rapid feedback",
       "estimated_time": "~30 seconds",
-      "scanners": ["sbom", "packages", "health"],
+      "scanners": ["sbom", "package-analysis"],
       "feature_overrides": {
         "sbom": {
           "integrity": {"enabled": false}
         },
-        "packages": {
+        "package-analysis": {
           "malcontent": {"enabled": false},
           "provenance": {"enabled": false},
           "bundle": {"enabled": false},
           "confusion": {"enabled": false},
           "reachability": {"enabled": false}
-        },
-        "health": {
-          "recommendations": {"max_recommendations": 5}
         }
       }
     },
@@ -402,9 +399,9 @@
       "name": "Standard",
       "description": "Balanced analysis covering security and code quality",
       "estimated_time": "~2 minutes",
-      "scanners": ["sbom", "packages", "code-security", "quality", "health"],
+      "scanners": ["sbom", "package-analysis", "code-security", "code-quality"],
       "feature_overrides": {
-        "packages": {
+        "package-analysis": {
           "bundle": {"enabled": false},
           "reachability": {"enabled": false}
         }
@@ -414,7 +411,7 @@
       "name": "Security",
       "description": "Security-focused analysis for vulnerability assessment",
       "estimated_time": "~4 minutes",
-      "scanners": ["sbom", "packages", "crypto", "code-security", "devops"],
+      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "devops"],
       "feature_overrides": {
         "devops": {
           "dora": {"enabled": false},
@@ -426,15 +423,15 @@
       "name": "Full",
       "description": "Complete analysis with all features enabled",
       "estimated_time": "~12 minutes",
-      "scanners": ["sbom", "packages", "crypto", "code-security", "quality", "devops", "technology", "ownership", "health"]
+      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "technology-identification", "code-ownership"]
     },
     "ai-security": {
       "name": "AI/ML Security",
       "description": "AI/ML focused security analysis with ML-BOM generation",
       "estimated_time": "~3 minutes",
-      "scanners": ["sbom", "packages", "code-security", "technology"],
+      "scanners": ["sbom", "package-analysis", "code-security", "technology-identification"],
       "feature_overrides": {
-        "packages": {
+        "package-analysis": {
           "bundle": {"enabled": false},
           "recommendations": {"enabled": false}
         }
@@ -446,11 +443,11 @@
       "estimated_time": "~1 minute",
       "scanners": ["sbom"]
     },
-    "packages-only": {
-      "name": "Packages Only",
+    "package-analysis-only": {
+      "name": "Package Analysis Only",
       "description": "Complete package/dependency analysis",
       "estimated_time": "~3 minutes",
-      "scanners": ["sbom", "packages"]
+      "scanners": ["sbom", "package-analysis"]
     },
     "crypto-only": {
       "name": "Cryptography Only",
@@ -464,11 +461,11 @@
       "estimated_time": "~3 minutes",
       "scanners": ["code-security"]
     },
-    "quality-only": {
-      "name": "Quality Only",
+    "code-quality-only": {
+      "name": "Code Quality Only",
       "description": "Code quality analysis: tech debt, complexity, coverage",
       "estimated_time": "~2 minutes",
-      "scanners": ["quality"]
+      "scanners": ["code-quality"]
     },
     "devops-only": {
       "name": "DevOps Only",
@@ -476,31 +473,25 @@
       "estimated_time": "~3 minutes",
       "scanners": ["devops"]
     },
-    "health-only": {
-      "name": "Health Only",
-      "description": "Project health scoring (requires other scanners for full data)",
-      "estimated_time": "~30 seconds",
-      "scanners": ["health"]
-    },
-    "technology-only": {
-      "name": "Technology Only",
+    "technology-identification-only": {
+      "name": "Technology Identification Only",
       "description": "Technology detection and AI/ML analysis with ML-BOM",
       "estimated_time": "~2 minutes",
-      "scanners": ["technology"]
+      "scanners": ["technology-identification"]
     },
-    "ownership-only": {
-      "name": "Ownership Only",
+    "code-ownership-only": {
+      "name": "Code Ownership Only",
       "description": "Code ownership and contributor analysis",
       "estimated_time": "~1 minute",
-      "scanners": ["ownership"]
+      "scanners": ["code-ownership"]
     },
     "compliance": {
       "name": "Compliance",
       "description": "License and policy compliance checks",
       "estimated_time": "~2 minutes",
-      "scanners": ["sbom", "packages", "technology"],
+      "scanners": ["sbom", "package-analysis", "technology-identification"],
       "feature_overrides": {
-        "packages": {
+        "package-analysis": {
           "vulns": {"enabled": false},
           "malcontent": {"enabled": false},
           "provenance": {"enabled": false},
@@ -511,7 +502,7 @@
           "confusion": {"enabled": false},
           "reachability": {"enabled": false}
         },
-        "technology": {
+        "technology-identification": {
           "ai_security": {"enabled": false},
           "infrastructure": {"enabled": false}
         }
@@ -521,13 +512,13 @@
       "name": "CI/CD",
       "description": "CI/CD pipeline and operational metrics",
       "estimated_time": "~3 minutes",
-      "scanners": ["devops", "ownership"],
+      "scanners": ["devops", "code-ownership"],
       "feature_overrides": {
         "devops": {
           "iac": {"enabled": false},
           "containers": {"enabled": false}
         },
-        "ownership": {
+        "code-ownership": {
           "orphans": {"enabled": false},
           "codeowners": {"enabled": false}
         }
@@ -537,9 +528,9 @@
       "name": "Supply Chain",
       "description": "Complete supply chain security analysis",
       "estimated_time": "~5 minutes",
-      "scanners": ["sbom", "packages", "technology"],
+      "scanners": ["sbom", "package-analysis", "technology-identification"],
       "feature_overrides": {
-        "technology": {
+        "technology-identification": {
           "infrastructure": {"enabled": false}
         }
       }
