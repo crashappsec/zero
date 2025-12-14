@@ -8,20 +8,20 @@ type Result struct {
 }
 
 // Summary holds summaries from all features
+// Note: Ownership analysis has been moved to the ownership scanner
 type Summary struct {
 	Technology    *TechnologySummary    `json:"technology,omitempty"`
 	Documentation *DocumentationSummary `json:"documentation,omitempty"`
 	Tests         *TestsSummary         `json:"tests,omitempty"`
-	Ownership     *OwnershipSummary     `json:"ownership,omitempty"`
 	Errors        []string              `json:"errors,omitempty"`
 }
 
 // Findings holds findings from all features
+// Note: Ownership findings are now in the ownership scanner
 type Findings struct {
 	Technology    *TechnologyFindings    `json:"technology,omitempty"`
 	Documentation *DocumentationFindings `json:"documentation,omitempty"`
 	Tests         *TestsFindings         `json:"tests,omitempty"`
-	Ownership     *OwnershipFindings     `json:"ownership,omitempty"`
 }
 
 // Feature summaries
@@ -66,15 +66,7 @@ type TestsSummary struct {
 	Error             string  `json:"error,omitempty"`
 }
 
-// OwnershipSummary contains code ownership summary
-type OwnershipSummary struct {
-	TotalContributors int    `json:"total_contributors"`
-	FilesAnalyzed     int    `json:"files_analyzed"`
-	HasCodeowners     bool   `json:"has_codeowners"`
-	CodeownersRules   int    `json:"codeowners_rules"`
-	OrphanedFiles     int    `json:"orphaned_files"`
-	Error             string `json:"error,omitempty"`
-}
+// Note: OwnershipSummary has been moved to pkg/scanners/ownership
 
 // Finding types
 
@@ -203,25 +195,4 @@ type TestIssue struct {
 	Suggestion  string `json:"suggestion,omitempty"`
 }
 
-// OwnershipFindings contains code ownership findings
-type OwnershipFindings struct {
-	Contributors  []Contributor   `json:"contributors"`
-	Codeowners    []CodeownerRule `json:"codeowners,omitempty"`
-	OrphanedFiles []string        `json:"orphaned_files,omitempty"`
-}
-
-// Contributor represents a code contributor
-type Contributor struct {
-	Name         string `json:"name"`
-	Email        string `json:"email"`
-	Commits      int    `json:"commits"`
-	FilesTouched int    `json:"files_touched"`
-	LinesAdded   int    `json:"lines_added"`
-	LinesRemoved int    `json:"lines_removed"`
-}
-
-// CodeownerRule represents a CODEOWNERS rule
-type CodeownerRule struct {
-	Pattern string   `json:"pattern"`
-	Owners  []string `json:"owners"`
-}
+// Note: OwnershipFindings, Contributor, CodeownerRule have been moved to pkg/scanners/ownership

@@ -1,5 +1,6 @@
 // Package health implements the consolidated project health super scanner
-// Features: technology, documentation, tests, ownership
+// Features: technology, documentation, tests
+// Note: Ownership analysis has been moved to the dedicated ownership scanner
 package health
 
 import (
@@ -15,9 +16,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/go-git/go-git/v5"
-	gitobj "github.com/go-git/go-git/v5/plumbing/object"
 
 	"github.com/crashappsec/zero/pkg/scanner"
 )
@@ -120,23 +118,7 @@ func (s *HealthScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*sc
 		}()
 	}
 
-	// Run ownership analysis
-	if cfg.Ownership.Enabled {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			summary, findings, err := runOwnershipAnalysis(ctx, opts.RepoPath, cfg.Ownership)
-			mu.Lock()
-			defer mu.Unlock()
-			result.FeaturesRun = append(result.FeaturesRun, "ownership")
-			if err != nil {
-				result.Summary.Errors = append(result.Summary.Errors, fmt.Sprintf("ownership: %v", err))
-				return
-			}
-			result.Summary.Ownership = summary
-			result.Findings.Ownership = findings
-		}()
-	}
+	// Note: Ownership analysis has been moved to the dedicated ownership scanner
 
 	wg.Wait()
 
@@ -215,23 +197,7 @@ func getFeatureConfig(opts *scanner.ScanOptions) FeatureConfig {
 		}
 	}
 
-	if ownCfg, ok := opts.FeatureConfig["ownership"].(map[string]interface{}); ok {
-		if enabled, ok := ownCfg["enabled"].(bool); ok {
-			cfg.Ownership.Enabled = enabled
-		}
-		if v, ok := ownCfg["analyze_contributors"].(bool); ok {
-			cfg.Ownership.AnalyzeContributors = v
-		}
-		if v, ok := ownCfg["check_codeowners"].(bool); ok {
-			cfg.Ownership.CheckCodeowners = v
-		}
-		if v, ok := ownCfg["detect_orphans"].(bool); ok {
-			cfg.Ownership.DetectOrphans = v
-		}
-		if v, ok := ownCfg["period_days"].(float64); ok {
-			cfg.Ownership.PeriodDays = int(v)
-		}
-	}
+	// Note: Ownership config parsing has been moved to pkg/scanners/ownership
 
 	return cfg
 }
@@ -1234,194 +1200,7 @@ func identifyCoverageIssues(coverage CoverageData, infra TestInfrastructure, thr
 }
 
 // =============================================================================
-// Code Ownership Analysis Feature
+// Code Ownership Analysis Feature (moved to ownership scanner)
 // =============================================================================
-
-func runOwnershipAnalysis(ctx context.Context, repoPath string, cfg OwnershipConfig) (*OwnershipSummary, *OwnershipFindings, error) {
-	repo, err := git.PlainOpen(repoPath)
-	if err != nil {
-		return nil, nil, fmt.Errorf("opening repository: %w", err)
-	}
-
-	periodDays := cfg.PeriodDays
-	if periodDays <= 0 {
-		periodDays = 90
-	}
-
-	now := time.Now()
-	since := now.AddDate(0, 0, -periodDays)
-
-	var fileOwners map[string][]string
-	var contributors map[string]Contributor
-	var orphanedFiles []string
-
-	if cfg.AnalyzeContributors || cfg.DetectOrphans {
-		fileOwners, contributors = analyzeOwnership(repo, since)
-	}
-
-	if cfg.DetectOrphans && fileOwners != nil {
-		for file, owners := range fileOwners {
-			if len(owners) == 0 {
-				orphanedFiles = append(orphanedFiles, file)
-			}
-		}
-	}
-
-	// Parse CODEOWNERS
-	var codeowners []CodeownerRule
-	if cfg.CheckCodeowners {
-		codeowners = parseCodeowners(repoPath)
-	}
-
-	// Build contributor list
-	var contribList []Contributor
-	for email, c := range contributors {
-		c.Email = email
-		contribList = append(contribList, c)
-	}
-	sort.Slice(contribList, func(i, j int) bool {
-		return contribList[i].Commits > contribList[j].Commits
-	})
-	if len(contribList) > 20 {
-		contribList = contribList[:20]
-	}
-
-	summary := &OwnershipSummary{
-		TotalContributors: len(contributors),
-		FilesAnalyzed:     len(fileOwners),
-		HasCodeowners:     len(codeowners) > 0,
-		CodeownersRules:   len(codeowners),
-		OrphanedFiles:     len(orphanedFiles),
-	}
-
-	findings := &OwnershipFindings{
-		Contributors:  contribList,
-		Codeowners:    codeowners,
-		OrphanedFiles: orphanedFiles,
-	}
-
-	return summary, findings, nil
-}
-
-func analyzeOwnership(repo *git.Repository, since time.Time) (map[string][]string, map[string]Contributor) {
-	fileOwners := make(map[string][]string)
-	contributors := make(map[string]Contributor)
-	fileContribs := make(map[string]map[string]bool)
-
-	ref, err := repo.Head()
-	if err != nil {
-		return fileOwners, contributors
-	}
-
-	commitIter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
-	if err != nil {
-		return fileOwners, contributors
-	}
-
-	var commits []*gitobj.Commit
-	commitIter.ForEach(func(c *gitobj.Commit) error {
-		if c.Author.When.After(since) {
-			commits = append(commits, c)
-		}
-		return nil
-	})
-
-	for i, c := range commits {
-		email := c.Author.Email
-		contrib := contributors[email]
-		contrib.Name = c.Author.Name
-		contrib.Commits++
-
-		if i < len(commits)-1 {
-			parent := commits[i+1]
-			files := getChangedFiles(c, parent)
-			for _, f := range files {
-				if fileContribs[f] == nil {
-					fileContribs[f] = make(map[string]bool)
-				}
-				fileContribs[f][email] = true
-			}
-			contrib.FilesTouched += len(files)
-		}
-
-		contributors[email] = contrib
-	}
-
-	for file, contribs := range fileContribs {
-		for email := range contribs {
-			fileOwners[file] = append(fileOwners[file], email)
-		}
-	}
-
-	return fileOwners, contributors
-}
-
-func getChangedFiles(commit, parent *gitobj.Commit) []string {
-	var files []string
-
-	commitTree, err := commit.Tree()
-	if err != nil {
-		return files
-	}
-	parentTree, err := parent.Tree()
-	if err != nil {
-		return files
-	}
-
-	changes, err := parentTree.Diff(commitTree)
-	if err != nil {
-		return files
-	}
-
-	for _, change := range changes {
-		name := change.To.Name
-		if name == "" {
-			name = change.From.Name
-		}
-		if name != "" {
-			files = append(files, name)
-		}
-	}
-
-	return files
-}
-
-func parseCodeowners(repoPath string) []CodeownerRule {
-	var rules []CodeownerRule
-
-	paths := []string{
-		filepath.Join(repoPath, "CODEOWNERS"),
-		filepath.Join(repoPath, ".github", "CODEOWNERS"),
-		filepath.Join(repoPath, "docs", "CODEOWNERS"),
-	}
-
-	var content []byte
-	for _, p := range paths {
-		if data, err := os.ReadFile(p); err == nil {
-			content = data
-			break
-		}
-	}
-
-	if content == nil {
-		return rules
-	}
-
-	scanner := bufio.NewScanner(strings.NewReader(string(content)))
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-
-		parts := strings.Fields(line)
-		if len(parts) >= 2 {
-			rules = append(rules, CodeownerRule{
-				Pattern: parts[0],
-				Owners:  parts[1:],
-			})
-		}
-	}
-
-	return rules
-}
+// Note: Ownership analysis has been extracted to pkg/scanners/ownership
+// The health scanner now focuses on technology, documentation, and tests only.

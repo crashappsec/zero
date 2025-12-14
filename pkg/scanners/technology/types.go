@@ -1,4 +1,4 @@
-package ai
+package technology
 
 // Result holds all AI/ML analysis results (ML-BOM)
 type Result struct {

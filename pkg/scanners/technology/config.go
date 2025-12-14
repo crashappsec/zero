@@ -1,6 +1,6 @@
-// Package ai provides the consolidated AI/ML security super scanner
-// Generates ML-BOM (Machine Learning Bill of Materials) in CycloneDX format
-package ai
+// Package technology provides the consolidated technology identification super scanner
+// Includes AI/ML security and ML-BOM generation
+package technology
 
 // FeatureConfig holds configuration for all AI/ML analysis features
 type FeatureConfig struct {
