@@ -1,6 +1,6 @@
-// Package technologyidentification provides the consolidated technology identification super scanner
+// Package techid provides the consolidated technology identification super scanner
 // Includes AI/ML security and ML-BOM generation
-package technologyidentification
+package techid
 
 // FeatureConfig holds configuration for all technology identification features
 type FeatureConfig struct {
