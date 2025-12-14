@@ -50,6 +50,11 @@ type RepoStatus struct {
 	ScanOK    bool
 	Progress  *scanner.Progress
 	Duration  time.Duration
+
+	// SBOM stats (populated after scan)
+	SBOMPackages int    // Number of packages in SBOM
+	SBOMSize     int64  // Size of SBOM file in bytes
+	SBOMPath     string // Path to SBOM file
 }
 
 // Hydrate orchestrates the clone and scan process
@@ -409,10 +414,16 @@ func (h *Hydrate) scanReposParallel(ctx context.Context, statuses []*RepoStatus,
 			// Run scan (simplified - no line updates in parallel mode)
 			h.scanRepoSimple(ctx, s, scanners, skipScanners)
 
-			// Print result
+			// Print result with SBOM stats if available
 			mu.Lock()
 			if s.ScanOK {
-				h.term.Success("%s complete (%ds)", s.Repo.Name, int(s.Duration.Seconds()))
+				if s.SBOMPackages > 0 || s.SBOMSize > 0 {
+					h.term.Success("%s complete (%ds) - %d packages, %s",
+						s.Repo.Name, int(s.Duration.Seconds()),
+						s.SBOMPackages, formatBytes(s.SBOMSize))
+				} else {
+					h.term.Success("%s complete (%ds)", s.Repo.Name, int(s.Duration.Seconds()))
+				}
 				success++
 			} else {
 				h.term.Error("%s failed", s.Repo.Name)
@@ -474,6 +485,36 @@ func (h *Hydrate) scanRepoSimple(ctx context.Context, status *RepoStatus, scanne
 
 	status.ScanOK = allSuccess
 	status.Duration = time.Since(start)
+
+	// Extract SBOM stats if sbom scanner was run
+	h.extractSBOMStats(status, outputDir)
+}
+
+// extractSBOMStats reads SBOM file to get package count and file size
+func (h *Hydrate) extractSBOMStats(status *RepoStatus, outputDir string) {
+	sbomPath := filepath.Join(outputDir, "sbom.cdx.json")
+	status.SBOMPath = sbomPath
+
+	// Get file size
+	info, err := os.Stat(sbomPath)
+	if err != nil {
+		return
+	}
+	status.SBOMSize = info.Size()
+
+	// Read SBOM to get package count
+	data, err := os.ReadFile(sbomPath)
+	if err != nil {
+		return
+	}
+
+	var sbom struct {
+		Components []json.RawMessage `json:"components"`
+	}
+	if err := json.Unmarshal(data, &sbom); err != nil {
+		return
+	}
+	status.SBOMPackages = len(sbom.Components)
 }
 
 // scanRepoWithProgress runs all scanners with real-time line updates
@@ -723,6 +764,26 @@ func formatNumber(n int) string {
 	return result
 }
 
+// formatBytes formats a byte size in human-readable form
+func formatBytes(bytes int64) string {
+	const (
+		KB = 1024
+		MB = KB * 1024
+		GB = MB * 1024
+	)
+
+	switch {
+	case bytes >= GB:
+		return fmt.Sprintf("%.1fGB", float64(bytes)/float64(GB))
+	case bytes >= MB:
+		return fmt.Sprintf("%.1fMB", float64(bytes)/float64(MB))
+	case bytes >= KB:
+		return fmt.Sprintf("%.1fKB", float64(bytes)/float64(KB))
+	default:
+		return fmt.Sprintf("%dB", bytes)
+	}
+}
+
 func contains(slice []string, item string) bool {
 	for _, s := range slice {
 		if s == item {
@@ -863,11 +924,13 @@ func (h *Hydrate) aggregateFindings(statuses []*RepoStatus, runningScanners []st
 		// Aggregate SBOM data (from sbom scanner)
 		if scannerSet["sbom"] {
 			h.aggregateSBOM(analysisDir, findings)
-			// Add SBOM path to findings
+			// Add SBOM path and size to findings
 			sbomPath := filepath.Join(analysisDir, "sbom.cdx.json")
 			if _, err := os.Stat(sbomPath); err == nil {
 				findings.SBOMPaths = append(findings.SBOMPaths, sbomPath)
 			}
+			// Add SBOM size from status (already extracted in scan phase)
+			findings.SBOMSizeTotal += status.SBOMSize
 		}
 
 		// Aggregate vulnerability data (from package-analysis scanner)
@@ -890,64 +953,77 @@ func (h *Hydrate) aggregateFindings(statuses []*RepoStatus, runningScanners []st
 }
 
 func (h *Hydrate) aggregateSBOM(dir string, findings *terminal.ScanFindings) {
-	path := filepath.Join(dir, "package-sbom.json")
+	path := filepath.Join(dir, "sbom.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return
 	}
 
+	// v3.5 SBOM scanner output format
 	var result struct {
 		Summary struct {
-			TotalPackages int            `json:"total_packages"`
-			ByEcosystem   map[string]int `json:"by_ecosystem"`
+			Generation *struct {
+				TotalComponents int            `json:"total_components"`
+				ByEcosystem     map[string]int `json:"by_ecosystem"`
+			} `json:"generation"`
 		} `json:"summary"`
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
 		return
 	}
 
-	findings.TotalPackages += result.Summary.TotalPackages
-	for eco, count := range result.Summary.ByEcosystem {
-		findings.PackagesByEco[eco] += count
+	if result.Summary.Generation != nil {
+		findings.TotalPackages += result.Summary.Generation.TotalComponents
+		for eco, count := range result.Summary.Generation.ByEcosystem {
+			findings.PackagesByEco[eco] += count
+		}
 	}
 }
 
 func (h *Hydrate) aggregateVulns(dir string, findings *terminal.ScanFindings) {
-	path := filepath.Join(dir, "package-vulns.json")
+	path := filepath.Join(dir, "package-analysis.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return
 	}
 
+	// v3.5 package-analysis scanner output format
 	var result struct {
 		Summary struct {
-			Critical int `json:"critical"`
-			High     int `json:"high"`
-			Medium   int `json:"medium"`
-			Low      int `json:"low"`
+			Vulns *struct {
+				Critical int `json:"critical"`
+				High     int `json:"high"`
+				Medium   int `json:"medium"`
+				Low      int `json:"low"`
+			} `json:"vulns"`
 		} `json:"summary"`
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
 		return
 	}
 
-	findings.VulnCritical += result.Summary.Critical
-	findings.VulnHigh += result.Summary.High
-	findings.VulnMedium += result.Summary.Medium
-	findings.VulnLow += result.Summary.Low
+	if result.Summary.Vulns != nil {
+		findings.VulnCritical += result.Summary.Vulns.Critical
+		findings.VulnHigh += result.Summary.Vulns.High
+		findings.VulnMedium += result.Summary.Vulns.Medium
+		findings.VulnLow += result.Summary.Vulns.Low
+	}
 }
 
 func (h *Hydrate) aggregateLicenses(dir string, findings *terminal.ScanFindings) {
-	path := filepath.Join(dir, "licenses.json")
+	path := filepath.Join(dir, "package-analysis.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return
 	}
 
+	// v3.5 package-analysis scanner output format
 	var result struct {
 		Summary struct {
-			UniqueLicenses int            `json:"unique_licenses"`
-			LicenseCounts  map[string]int `json:"license_counts"`
+			Licenses *struct {
+				UniqueLicenses int            `json:"unique_licenses"`
+				LicenseCounts  map[string]int `json:"license_counts"`
+			} `json:"licenses"`
 		} `json:"summary"`
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
@@ -955,58 +1031,70 @@ func (h *Hydrate) aggregateLicenses(dir string, findings *terminal.ScanFindings)
 	}
 
 	// Track unique license types
-	if result.Summary.UniqueLicenses > findings.LicenseTypes {
-		findings.LicenseTypes = result.Summary.UniqueLicenses
-	}
-	for lic, count := range result.Summary.LicenseCounts {
-		findings.LicenseCounts[lic] += count
+	if result.Summary.Licenses != nil {
+		if result.Summary.Licenses.UniqueLicenses > findings.LicenseTypes {
+			findings.LicenseTypes = result.Summary.Licenses.UniqueLicenses
+		}
+		for lic, count := range result.Summary.Licenses.LicenseCounts {
+			findings.LicenseCounts[lic] += count
+		}
 	}
 }
 
 func (h *Hydrate) aggregateSecrets(dir string, findings *terminal.ScanFindings) {
-	path := filepath.Join(dir, "code-secrets.json")
+	path := filepath.Join(dir, "code-security.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return
 	}
 
+	// v3.5 code-security scanner output format
 	var result struct {
 		Summary struct {
-			Critical      int `json:"critical"`
-			High          int `json:"high"`
-			Medium        int `json:"medium"`
-			TotalFindings int `json:"total_findings"`
+			Secrets *struct {
+				Critical      int `json:"critical"`
+				High          int `json:"high"`
+				Medium        int `json:"medium"`
+				TotalFindings int `json:"total_findings"`
+			} `json:"secrets"`
 		} `json:"summary"`
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
 		return
 	}
 
-	findings.SecretsCritical += result.Summary.Critical
-	findings.SecretsHigh += result.Summary.High
-	findings.SecretsMedium += result.Summary.Medium
-	findings.SecretsTotal += result.Summary.TotalFindings
+	if result.Summary.Secrets != nil {
+		findings.SecretsCritical += result.Summary.Secrets.Critical
+		findings.SecretsHigh += result.Summary.Secrets.High
+		findings.SecretsMedium += result.Summary.Secrets.Medium
+		findings.SecretsTotal += result.Summary.Secrets.TotalFindings
+	}
 }
 
 func (h *Hydrate) aggregateMalcontent(dir string, findings *terminal.ScanFindings) {
-	path := filepath.Join(dir, "package-malcontent.json")
+	path := filepath.Join(dir, "package-analysis.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return
 	}
 
+	// v3.5 package-analysis scanner output format
 	var result struct {
 		Summary struct {
-			Critical int `json:"critical"`
-			High     int `json:"high"`
+			Malcontent *struct {
+				Critical int `json:"critical"`
+				High     int `json:"high"`
+			} `json:"malcontent"`
 		} `json:"summary"`
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
 		return
 	}
 
-	findings.MalcontentCrit += result.Summary.Critical
-	findings.MalcontentHigh += result.Summary.High
+	if result.Summary.Malcontent != nil {
+		findings.MalcontentCrit += result.Summary.Malcontent.Critical
+		findings.MalcontentHigh += result.Summary.Malcontent.High
+	}
 }
 
 // Note: aggregateHealth was removed as the health scanner no longer exists.
