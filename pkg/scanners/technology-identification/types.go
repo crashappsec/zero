@@ -9,6 +9,7 @@ type Result struct {
 
 // Summary holds summaries from all features
 type Summary struct {
+	Technology *TechnologySummary `json:"technology,omitempty"` // General technology detection
 	Models     *ModelsSummary     `json:"models,omitempty"`
 	Frameworks *FrameworksSummary `json:"frameworks,omitempty"`
 	Datasets   *DatasetsSummary   `json:"datasets,omitempty"`
@@ -19,6 +20,7 @@ type Summary struct {
 
 // Findings holds detailed findings from all features
 type Findings struct {
+	Technology []Technology        `json:"technology,omitempty"` // General technology detection
 	Models     []MLModel           `json:"models,omitempty"`
 	Frameworks []Framework         `json:"frameworks,omitempty"`
 	Datasets   []Dataset           `json:"datasets,omitempty"`
@@ -27,6 +29,26 @@ type Findings struct {
 }
 
 // Feature summaries
+
+// TechnologySummary contains general technology detection summary
+type TechnologySummary struct {
+	TotalTechnologies int            `json:"total_technologies"`
+	ByCategory        map[string]int `json:"by_category"`
+	PrimaryLanguages  []string       `json:"primary_languages,omitempty"`
+	Frameworks        []string       `json:"frameworks,omitempty"`
+	Databases         []string       `json:"databases,omitempty"`
+	CloudServices     []string       `json:"cloud_services,omitempty"`
+	Error             string         `json:"error,omitempty"`
+}
+
+// Technology represents a detected technology (language, framework, database, etc.)
+type Technology struct {
+	Name       string `json:"name"`
+	Category   string `json:"category"`   // language, framework, database, container, iac, ci-cd, etc.
+	Version    string `json:"version,omitempty"`
+	Confidence int    `json:"confidence"` // 0-100
+	Source     string `json:"source"`     // config, extension, sbom
+}
 
 // ModelsSummary contains ML model inventory summary
 type ModelsSummary struct {
