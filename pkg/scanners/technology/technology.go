@@ -1,6 +1,6 @@
-// Package ai provides the consolidated AI/ML security super scanner
-// Generates ML-BOM (Machine Learning Bill of Materials) in CycloneDX format
-package ai
+// Package technology provides the consolidated technology identification super scanner
+// Includes AI/ML security and ML-BOM generation
+package technology
 
 import (
 	"bufio"
@@ -18,39 +18,39 @@ import (
 )
 
 const (
-	Name        = "ai"
-	Description = "AI/ML security analysis and ML-BOM generation"
+	Name        = "technology"
+	Description = "Technology identification, AI/ML security analysis and ML-BOM generation"
 )
 
-// AIScanner implements the AI/ML super scanner
-type AIScanner struct {
+// TechnologyScanner implements the technology identification super scanner
+type TechnologyScanner struct {
 	config FeatureConfig
 }
 
 // init registers the scanner
 func init() {
-	scanner.Register(&AIScanner{
+	scanner.Register(&TechnologyScanner{
 		config: DefaultConfig(),
 	})
 }
 
 // Name returns the scanner name
-func (s *AIScanner) Name() string {
+func (s *TechnologyScanner) Name() string {
 	return Name
 }
 
 // Description returns the scanner description
-func (s *AIScanner) Description() string {
+func (s *TechnologyScanner) Description() string {
 	return Description
 }
 
-// Dependencies returns scanner dependencies (none for AI scanner)
-func (s *AIScanner) Dependencies() []string {
+// Dependencies returns scanner dependencies (none for technology scanner)
+func (s *TechnologyScanner) Dependencies() []string {
 	return []string{}
 }
 
 // EstimateDuration returns estimated scan duration based on file count
-func (s *AIScanner) EstimateDuration(fileCount int) time.Duration {
+func (s *TechnologyScanner) EstimateDuration(fileCount int) time.Duration {
 	// Base time + time per file for pattern scanning
 	base := 5 * time.Second
 	perFile := 10 * time.Millisecond
@@ -58,7 +58,7 @@ func (s *AIScanner) EstimateDuration(fileCount int) time.Duration {
 }
 
 // Run executes the AI/ML analysis
-func (s *AIScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scanner.ScanResult, error) {
+func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scanner.ScanResult, error) {
 	startTime := time.Now()
 
 	result := &Result{
@@ -118,7 +118,7 @@ func (s *AIScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scanne
 }
 
 // runModelsFeature detects ML models in the repository
-func (s *AIScanner) runModelsFeature(ctx context.Context, repoPath string, result *Result) {
+func (s *TechnologyScanner) runModelsFeature(ctx context.Context, repoPath string, result *Result) {
 	summary := &ModelsSummary{
 		BySource: make(map[string]int),
 		ByFormat: make(map[string]int),
@@ -203,7 +203,7 @@ func (s *AIScanner) runModelsFeature(ctx context.Context, repoPath string, resul
 }
 
 // detectModelFiles scans for model files by extension
-func (s *AIScanner) detectModelFiles(repoPath string) []MLModel {
+func (s *TechnologyScanner) detectModelFiles(repoPath string) []MLModel {
 	var models []MLModel
 
 	// Use RAG-loaded formats with fallback to hardcoded
@@ -473,7 +473,7 @@ var modelLoadPatterns = []struct {
 }
 
 // scanCodeForModels scans Python/JS files for model loading patterns
-func (s *AIScanner) scanCodeForModels(repoPath string) []MLModel {
+func (s *TechnologyScanner) scanCodeForModels(repoPath string) []MLModel {
 	var models []MLModel
 	seen := make(map[string]bool)
 
@@ -552,7 +552,7 @@ var configModelPatterns = []struct {
 }
 
 // scanConfigsForModels scans YAML/JSON config files for model references
-func (s *AIScanner) scanConfigsForModels(repoPath string) []MLModel {
+func (s *TechnologyScanner) scanConfigsForModels(repoPath string) []MLModel {
 	var models []MLModel
 	seen := make(map[string]bool)
 
@@ -635,7 +635,7 @@ func (s *AIScanner) scanConfigsForModels(repoPath string) []MLModel {
 }
 
 // enrichWithHuggingFaceMetadata queries HuggingFace API for model metadata
-func (s *AIScanner) enrichWithHuggingFaceMetadata(ctx context.Context, models []MLModel) {
+func (s *TechnologyScanner) enrichWithHuggingFaceMetadata(ctx context.Context, models []MLModel) {
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	for i := range models {
@@ -726,7 +726,7 @@ func (s *AIScanner) enrichWithHuggingFaceMetadata(ctx context.Context, models []
 }
 
 // modelExists checks if a model with the given name already exists
-func (s *AIScanner) modelExists(models []MLModel, name string) bool {
+func (s *TechnologyScanner) modelExists(models []MLModel, name string) bool {
 	for _, m := range models {
 		if m.Name == name {
 			return true
@@ -736,7 +736,7 @@ func (s *AIScanner) modelExists(models []MLModel, name string) bool {
 }
 
 // enrichWithReplicateMetadata queries Replicate API for model metadata
-func (s *AIScanner) enrichWithReplicateMetadata(ctx context.Context, models []MLModel) {
+func (s *TechnologyScanner) enrichWithReplicateMetadata(ctx context.Context, models []MLModel) {
 	client := &http.Client{Timeout: 10 * time.Second}
 
 	for i := range models {
@@ -810,7 +810,7 @@ func (s *AIScanner) enrichWithReplicateMetadata(ctx context.Context, models []ML
 }
 
 // enrichModelSourceURLs adds source URLs for models from various registries
-func (s *AIScanner) enrichModelSourceURLs(models []MLModel) {
+func (s *TechnologyScanner) enrichModelSourceURLs(models []MLModel) {
 	for i := range models {
 		if models[i].SourceURL != "" {
 			continue
@@ -869,7 +869,7 @@ func (s *AIScanner) enrichModelSourceURLs(models []MLModel) {
 }
 
 // runFrameworksFeature detects AI/ML frameworks
-func (s *AIScanner) runFrameworksFeature(ctx context.Context, repoPath string, result *Result) {
+func (s *TechnologyScanner) runFrameworksFeature(ctx context.Context, repoPath string, result *Result) {
 	summary := &FrameworksSummary{
 		ByCategory: make(map[string]int),
 	}
@@ -1003,7 +1003,7 @@ var frameworkPatterns = []struct {
 }
 
 // detectFrameworks scans for AI/ML framework usage
-func (s *AIScanner) detectFrameworks(repoPath string) []Framework {
+func (s *TechnologyScanner) detectFrameworks(repoPath string) []Framework {
 	var frameworks []Framework
 	detected := make(map[string]*Framework)
 
@@ -1073,7 +1073,7 @@ func (s *AIScanner) detectFrameworks(repoPath string) []Framework {
 }
 
 // runDatasetsFeature detects training datasets
-func (s *AIScanner) runDatasetsFeature(ctx context.Context, repoPath string, result *Result) {
+func (s *TechnologyScanner) runDatasetsFeature(ctx context.Context, repoPath string, result *Result) {
 	summary := &DatasetsSummary{
 		BySource: make(map[string]int),
 	}
@@ -1113,7 +1113,7 @@ var datasetPatterns = []struct {
 }
 
 // detectDatasets scans for dataset loading patterns
-func (s *AIScanner) detectDatasets(repoPath string) []Dataset {
+func (s *TechnologyScanner) detectDatasets(repoPath string) []Dataset {
 	var datasets []Dataset
 	seen := make(map[string]bool)
 
@@ -1176,7 +1176,7 @@ func (s *AIScanner) detectDatasets(repoPath string) []Dataset {
 }
 
 // runSecurityFeature checks for AI/ML security issues
-func (s *AIScanner) runSecurityFeature(ctx context.Context, repoPath string, result *Result) {
+func (s *TechnologyScanner) runSecurityFeature(ctx context.Context, repoPath string, result *Result) {
 	summary := &SecuritySummary{
 		ByCategory: make(map[string]int),
 	}
@@ -1228,7 +1228,7 @@ func (s *AIScanner) runSecurityFeature(ctx context.Context, repoPath string, res
 }
 
 // checkPickleFiles identifies unsafe pickle model files
-func (s *AIScanner) checkPickleFiles(models []MLModel) []SecurityFinding {
+func (s *TechnologyScanner) checkPickleFiles(models []MLModel) []SecurityFinding {
 	var findings []SecurityFinding
 
 	for _, model := range models {
@@ -1254,7 +1254,7 @@ func (s *AIScanner) checkPickleFiles(models []MLModel) []SecurityFinding {
 }
 
 // checkUnsafeLoading detects unsafe model loading patterns
-func (s *AIScanner) checkUnsafeLoading(repoPath string) []SecurityFinding {
+func (s *TechnologyScanner) checkUnsafeLoading(repoPath string) []SecurityFinding {
 	var findings []SecurityFinding
 
 	// Pattern for torch.load without weights_only=True
@@ -1307,7 +1307,7 @@ func (s *AIScanner) checkUnsafeLoading(repoPath string) []SecurityFinding {
 }
 
 // checkAPIKeyExposure detects hardcoded API keys
-func (s *AIScanner) checkAPIKeyExposure(repoPath string) []SecurityFinding {
+func (s *TechnologyScanner) checkAPIKeyExposure(repoPath string) []SecurityFinding {
 	var findings []SecurityFinding
 
 	// Patterns for API keys
@@ -1390,7 +1390,7 @@ func (s *AIScanner) checkAPIKeyExposure(repoPath string) []SecurityFinding {
 }
 
 // runGovernanceFeature checks AI governance requirements
-func (s *AIScanner) runGovernanceFeature(ctx context.Context, repoPath string, result *Result) {
+func (s *TechnologyScanner) runGovernanceFeature(ctx context.Context, repoPath string, result *Result) {
 	summary := &GovernanceSummary{}
 	var findings []GovernanceFinding
 
