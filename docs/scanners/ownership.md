@@ -1,14 +1,14 @@
 # Ownership Scanner
 
-The Ownership scanner analyzes code ownership patterns, contributor activity, and team health metrics. It helps identify knowledge concentration risks, orphaned code, and ownership gaps.
+The Ownership scanner analyzes code ownership patterns, contributor activity, programming languages, and developer competency. It helps identify knowledge concentration risks, orphaned code, ownership gaps, and developer expertise by language.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
-| **Name** | `ownership` |
+| **Name** | `code-ownership` |
 | **Version** | 1.0.0 |
-| **Output File** | `ownership.json` |
+| **Output File** | `code-ownership.json` |
 | **Dependencies** | None |
 | **Estimated Time** | 30-60 seconds |
 
@@ -21,27 +21,20 @@ Analyzes git commit history to identify contributors and their activity.
 **Configuration:**
 ```json
 {
-  "contributors": {
-    "enabled": true,
-    "period_days": 90,
-    "include_lines_changed": true,
-    "group_by_email_domain": false
-  }
+  "analyze_contributors": true,
+  "period_days": 90
 }
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `enabled` | bool | `true` | Enable contributor analysis |
+| `analyze_contributors` | bool | `true` | Enable contributor analysis |
 | `period_days` | int | `90` | Analysis period in days |
-| `include_lines_changed` | bool | `true` | Track lines added/removed |
-| `group_by_email_domain` | bool | `false` | Group contributors by email domain |
 
 **Contributor Metrics:**
-- Total commits (all time)
-- Commits in last 30/90/365 days
-- Lines added/removed (in period)
-- First and last commit dates
+- Total commits in period
+- Files touched
+- Lines added/removed
 - Primary file areas
 
 **Output:**
@@ -51,246 +44,221 @@ Analyzes git commit history to identify contributors and their activity.
     {
       "name": "Jane Developer",
       "email": "jane@example.com",
-      "total_commits": 450,
-      "commits_30d": 25,
-      "commits_90d": 85,
-      "commits_365d": 350,
-      "lines_added_90d": 5420,
-      "lines_removed_90d": 2100,
-      "first_commit": "2022-01-15T10:30:00Z",
-      "last_commit": "2024-12-10T14:22:00Z",
-      "primary_areas": ["src/api/", "src/services/"]
+      "commits": 45,
+      "files_touched": 120,
+      "lines_added": 5420,
+      "lines_removed": 2100
     }
   ]
 }
 ```
 
-### 2. Bus Factor (`bus_factor`)
+### 2. Languages (`languages`)
 
-Calculates the bus factor - the minimum number of contributors who account for 50% of commits.
+Detects programming languages used in the repository using go-enry (GitHub Linguist port).
 
 **Configuration:**
 ```json
 {
-  "bus_factor": {
-    "enabled": true,
-    "period_days": 365,
-    "weight_by_recency": true
-  }
+  "detect_languages": true
 }
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `enabled` | bool | `true` | Enable bus factor calculation |
-| `period_days` | int | `365` | Period for calculation |
-| `weight_by_recency` | bool | `true` | Weight recent commits higher |
+| `detect_languages` | bool | `true` | Enable language detection |
 
-**Risk Classification:**
+**Language Detection Features:**
+- Accurate language identification using GitHub's Linguist algorithms
+- Excludes vendored files (node_modules, vendor/, etc.)
+- Excludes generated files
+- Filters to programming languages only (excludes data, markup, prose)
+- File count and percentage by language
 
-| Bus Factor | Risk Level | Description |
-|------------|------------|-------------|
-| 1 | Critical | Single point of failure |
-| 2 | High | High knowledge concentration |
-| 3-4 | Medium | Moderate risk |
-| 5+ | Low | Well-distributed knowledge |
+**Output (Summary):**
+```json
+{
+  "summary": {
+    "languages_detected": 7,
+    "top_languages": [
+      {
+        "name": "Go",
+        "file_count": 245,
+        "percentage": 65.5
+      },
+      {
+        "name": "TypeScript",
+        "file_count": 89,
+        "percentage": 23.8
+      },
+      {
+        "name": "Python",
+        "file_count": 32,
+        "percentage": 8.6
+      }
+    ]
+  }
+}
+```
 
-**File-Level Bus Factor:**
-Also calculates bus factor per directory/file area to identify concentrated ownership.
+### 3. Developer Competency (`competency`)
 
-### 3. CODEOWNERS (`codeowners`)
+Analyzes developer expertise by tracking commits per language and commit types (features, bug fixes, refactors).
+
+**Configuration:**
+```json
+{
+  "analyze_competency": true,
+  "period_days": 90
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `analyze_competency` | bool | `true` | Enable competency analysis |
+| `period_days` | int | `90` | Analysis period in days |
+
+**Competency Metrics:**
+- Commits by language
+- Feature vs bug fix vs refactor ratio
+- Competency score based on:
+  - Total commit volume
+  - Bug fix ratio (indicates deeper understanding)
+  - Language breadth (number of languages)
+
+**Commit Classification:**
+Commits are classified based on message patterns:
+- **Feature**: `feat`, `feature`, `add`, `implement`, `create`, `new`, `introduce`, `support`
+- **Bug Fix**: `fix`, `bug`, `issue`, `patch`, `hotfix`, `resolve`, `closes #`, `fixes #`
+- **Refactor**: `refactor`, `cleanup`, `clean up`, `reorganize`, `restructure`, `simplify`, `optimize`
+
+**Output:**
+```json
+{
+  "competencies": [
+    {
+      "name": "Jane Developer",
+      "email": "jane@example.com",
+      "total_commits": 85,
+      "feature_commits": 45,
+      "bug_fix_commits": 28,
+      "refactor_commits": 8,
+      "other_commits": 4,
+      "top_language": "Go",
+      "languages": [
+        {
+          "language": "Go",
+          "file_count": 45,
+          "commits": 52,
+          "feature_commits": 30,
+          "bug_fix_commits": 15,
+          "percentage": 61.2
+        },
+        {
+          "language": "TypeScript",
+          "file_count": 28,
+          "commits": 25,
+          "feature_commits": 12,
+          "bug_fix_commits": 10,
+          "percentage": 29.4
+        }
+      ],
+      "competency_score": 142.5
+    }
+  ]
+}
+```
+
+**Competency Score Formula:**
+```
+score = commits * (1 + bug_fix_bonus) * language_bonus
+
+where:
+  bug_fix_bonus = (bug_fix_commits / total_commits) * 0.5  # Up to 50% bonus
+  language_bonus = 1.0 + (language_count - 1) * 0.1        # 10% per additional language
+```
+
+### 4. CODEOWNERS (`codeowners`)
 
 Parses and validates CODEOWNERS file.
 
 **Configuration:**
 ```json
 {
-  "codeowners": {
-    "enabled": true,
-    "check_coverage": true,
-    "validate_owners": true,
-    "check_conflicts": true
-  }
+  "check_codeowners": true
 }
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `enabled` | bool | `true` | Enable CODEOWNERS analysis |
-| `check_coverage` | bool | `true` | Calculate path coverage |
-| `validate_owners` | bool | `true` | Validate owner references |
-| `check_conflicts` | bool | `true` | Check for conflicting rules |
+| `check_codeowners` | bool | `true` | Enable CODEOWNERS analysis |
 
 **CODEOWNERS Locations:**
-- `.github/CODEOWNERS`
 - `CODEOWNERS`
+- `.github/CODEOWNERS`
 - `docs/CODEOWNERS`
 
-**Analysis Output:**
+**Output:**
 ```json
 {
-  "codeowners": {
-    "file_found": true,
-    "location": ".github/CODEOWNERS",
-    "rules_count": 25,
-    "coverage_percentage": 85.5,
-    "owners": ["@frontend-team", "@backend-team", "@security-team"],
-    "rules": [
-      {
-        "pattern": "*.js",
-        "owners": ["@frontend-team"],
-        "line": 5
-      },
-      {
-        "pattern": "/src/api/",
-        "owners": ["@backend-team", "@security-team"],
-        "line": 8
-      }
-    ],
-    "uncovered_paths": ["scripts/", "docs/internal/"],
-    "issues": []
-  }
+  "codeowners": [
+    {
+      "pattern": "*.js",
+      "owners": ["@frontend-team"]
+    },
+    {
+      "pattern": "/src/api/",
+      "owners": ["@backend-team", "@security-team"]
+    }
+  ]
 }
 ```
 
-### 4. Orphaned Code (`orphans`)
+### 5. Orphaned Code (`orphans`)
 
-Identifies files and directories with no recent activity or clear ownership.
+Identifies files with no recent activity or clear ownership.
 
 **Configuration:**
 ```json
 {
-  "orphans": {
-    "enabled": true,
-    "inactive_days": 180,
-    "check_codeowners_coverage": true,
-    "exclude_patterns": ["vendor/", "node_modules/", "*.generated.*"]
-  }
+  "detect_orphans": true,
+  "period_days": 90
 }
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `enabled` | bool | `true` | Enable orphan detection |
-| `inactive_days` | int | `180` | Days without commits to flag |
-| `check_codeowners_coverage` | bool | `true` | Check if covered by CODEOWNERS |
-| `exclude_patterns` | []string | (see above) | Patterns to exclude |
+| `detect_orphans` | bool | `true` | Enable orphan detection |
+| `period_days` | int | `90` | Days without commits to flag |
 
 **Orphan Criteria:**
-- No commits in `inactive_days`
-- Not covered by CODEOWNERS
+- No commits in analysis period
 - No identifiable owner from git history
 
 **Output:**
 ```json
 {
   "orphaned_files": [
-    {
-      "path": "src/legacy/old_module.py",
-      "last_modified": "2023-06-15T10:00:00Z",
-      "days_inactive": 545,
-      "last_author": "former-employee@example.com",
-      "in_codeowners": false,
-      "lines_of_code": 850
-    }
-  ],
-  "orphaned_directories": [
-    {
-      "path": "src/deprecated/",
-      "files_count": 15,
-      "total_lines": 3200,
-      "last_activity": "2023-03-20T08:00:00Z"
-    }
+    "src/legacy/old_module.py",
+    "src/deprecated/unused.go"
   ]
 }
 ```
 
-### 5. Code Churn (`churn`)
+### 6. File Ownership (`file_owners`)
 
-Identifies high-churn files that may indicate instability or ongoing issues.
-
-**Configuration:**
-```json
-{
-  "churn": {
-    "enabled": true,
-    "period_days": 90,
-    "min_changes": 5,
-    "top_n": 30
-  }
-}
-```
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `enabled` | bool | `true` | Enable churn analysis |
-| `period_days` | int | `90` | Analysis period |
-| `min_changes` | int | `5` | Minimum changes to flag |
-| `top_n` | int | `30` | Number of top files to report |
-
-**Churn Indicators:**
-- Change frequency (commits touching file)
-- Number of contributors modifying file
-- Lines changed (adds + deletes)
-- Churn ratio (changes / file size)
+Tracks which developers have contributed to each file.
 
 **Output:**
 ```json
 {
-  "high_churn_files": [
+  "file_owners": [
     {
-      "file": "src/api/handlers.go",
-      "changes_90d": 45,
-      "contributors": 8,
-      "lines_added": 2500,
-      "lines_removed": 1800,
-      "churn_ratio": 2.5,
-      "risk_level": "high"
+      "path": "src/api/handlers.go",
+      "top_contributors": ["jane@example.com", "bob@example.com"],
+      "commit_count": 45
     }
   ]
-}
-```
-
-### 6. Activity Patterns (`patterns`)
-
-Analyzes commit patterns to understand team activity.
-
-**Configuration:**
-```json
-{
-  "patterns": {
-    "enabled": true,
-    "include_time_distribution": true,
-    "include_message_analysis": true
-  }
-}
-```
-
-**Analyzed Patterns:**
-- Most active day of week
-- Most active hour
-- Commit frequency trends
-- Weekend/after-hours commits
-- Commit message patterns (fix, feat, refactor, etc.)
-
-**Output:**
-```json
-{
-  "patterns": {
-    "most_active_day": "Tuesday",
-    "most_active_hour": 14,
-    "avg_commits_per_week": 45,
-    "weekend_commits_percentage": 5.2,
-    "commit_types": {
-      "feat": 35,
-      "fix": 28,
-      "refactor": 15,
-      "docs": 12,
-      "other": 10
-    },
-    "first_commit": "2021-03-15T09:00:00Z",
-    "last_commit": "2024-12-14T16:30:00Z"
-  }
 }
 ```
 
@@ -298,32 +266,42 @@ Analyzes commit patterns to understand team activity.
 
 ### Technical Flow
 
-1. **Git Repository Open**: Uses go-git to access repository
-2. **Commit Enumeration**: Walks commit history within period
-3. **Contributor Analysis**: Aggregates commits by author
-4. **File Diff Analysis**: Calculates lines changed per commit
-5. **CODEOWNERS Parsing**: Parses and validates ownership rules
-6. **Orphan Detection**: Cross-references activity with ownership
-7. **Churn Calculation**: Identifies frequently modified files
-8. **Pattern Analysis**: Analyzes temporal commit patterns
+1. **Language Detection**: Scans repository using go-enry library
+2. **Git Repository Open**: Uses go-git to access repository
+3. **Commit Enumeration**: Walks commit history within period
+4. **Contributor Analysis**: Aggregates commits by author
+5. **Competency Tracking**: Tracks per-language contributions and commit types
+6. **File Diff Analysis**: Calculates files changed per commit
+7. **CODEOWNERS Parsing**: Parses ownership rules
+8. **Orphan Detection**: Identifies files with no recent activity
 
 ### Architecture
 
 ```
-Git Repository
+Repository
     │
-    ├─► Contributors ─────► Author aggregation ─────► Contributor List
+    ├─► Languages ────────► go-enry detection ───────► Language Stats
     │
-    ├─► Bus Factor ───────► Commit distribution ────► Risk Score
+    ├─► Contributors ─────► Author aggregation ──────► Contributor List
     │
-    ├─► CODEOWNERS ───────► File parsing ───────────► Ownership Rules
+    ├─► Competency ───────► Per-language tracking ───► Developer Profiles
     │
-    ├─► Orphans ──────────► Activity analysis ──────► Orphaned Code
+    ├─► CODEOWNERS ───────► File parsing ────────────► Ownership Rules
     │
-    ├─► Churn ────────────► Change frequency ───────► High-Churn Files
+    ├─► Orphans ──────────► Activity analysis ───────► Orphaned Files
     │
-    └─► Patterns ─────────► Temporal analysis ──────► Activity Patterns
+    └─► File Owners ──────► Commit attribution ──────► File Ownership
 ```
+
+### Language Detection
+
+The scanner uses [go-enry](https://github.com/go-enry/go-enry), the official Go port of GitHub's Linguist library:
+
+- **Accurate detection**: Uses same algorithms as GitHub language detection
+- **Filename-based**: Fast path using filename patterns (Makefile, Dockerfile, etc.)
+- **Extension-based**: Falls back to file extension matching
+- **Content-based**: Can analyze file content for ambiguous cases
+- **Filtering**: Excludes vendored, generated, and documentation files
 
 ## Usage
 
@@ -331,40 +309,23 @@ Git Repository
 
 ```bash
 # Run ownership scanner
-./zero scan --scanner ownership /path/to/repo
+./zero scan --scanner code-ownership /path/to/repo
 
 # Run with specific period
-./zero scan --scanner ownership --period-days 180 /path/to/repo
+./zero scan --scanner code-ownership --period-days 180 /path/to/repo
 ```
 
 ### Programmatic Usage
 
 ```go
-import "github.com/crashappsec/zero/pkg/scanners/ownership"
+import codeownership "github.com/crashappsec/zero/pkg/scanners/code-ownership"
 
+scanner := &codeownership.OwnershipScanner{}
 opts := &scanner.ScanOptions{
     RepoPath:  "/path/to/repo",
     OutputDir: "/path/to/output",
-    FeatureConfig: map[string]interface{}{
-        "contributors": map[string]interface{}{
-            "enabled": true,
-            "period_days": 90,
-        },
-        "bus_factor": map[string]interface{}{
-            "enabled": true,
-        },
-        "codeowners": map[string]interface{}{
-            "enabled": true,
-            "check_coverage": true,
-        },
-        "orphans": map[string]interface{}{
-            "enabled": true,
-            "inactive_days": 180,
-        },
-    },
 }
 
-scanner := &ownership.OwnershipScanner{}
 result, err := scanner.Run(ctx, opts)
 ```
 
@@ -372,85 +333,109 @@ result, err := scanner.Run(ctx, opts)
 
 ```json
 {
-  "scanner": "ownership",
+  "analyzer": "code-ownership",
   "version": "1.0.0",
-  "metadata": {
-    "features_run": ["contributors", "bus_factor", "codeowners", "orphans", "churn", "patterns"],
-    "analysis_period_days": 90
-  },
+  "timestamp": "2024-12-14T10:00:00Z",
+  "duration_seconds": 5,
+  "repository": "/path/to/repo",
   "summary": {
-    "contributors": {
-      "total_contributors": 25,
-      "active_30d": 12,
-      "active_90d": 18,
-      "top_contributor": "jane@example.com"
-    },
-    "bus_factor": {
-      "overall": 4,
-      "risk_level": "medium",
-      "critical_areas": ["src/core/"]
-    },
-    "codeowners": {
-      "file_found": true,
-      "rules_count": 25,
-      "coverage_percentage": 85.5,
-      "unique_owners": 5
-    },
-    "orphans": {
-      "orphaned_files": 12,
-      "orphaned_directories": 2,
-      "total_orphaned_lines": 4500
-    },
-    "churn": {
-      "high_churn_files": 8,
-      "files_analyzed": 450
-    },
-    "patterns": {
-      "avg_commits_per_week": 45,
-      "most_active_day": "Tuesday"
-    }
+    "total_contributors": 25,
+    "files_analyzed": 450,
+    "has_codeowners": true,
+    "codeowners_rules": 15,
+    "orphaned_files": 12,
+    "period_days": 90,
+    "languages_detected": 7,
+    "top_languages": [
+      {"name": "Go", "file_count": 245, "percentage": 65.5},
+      {"name": "TypeScript", "file_count": 89, "percentage": 23.8}
+    ]
   },
   "findings": {
     "contributors": [...],
-    "bus_factor": {
-      "overall": 4,
-      "by_directory": {
-        "src/api/": 2,
-        "src/core/": 1,
-        "src/web/": 3
-      }
-    },
-    "codeowners": {...},
-    "orphans": {...},
-    "churn": {...},
-    "patterns": {...}
+    "codeowners": [...],
+    "orphaned_files": [...],
+    "file_owners": [...],
+    "competencies": [...]
+  },
+  "metadata": {
+    "features_run": ["ownership", "languages", "competency"],
+    "period_days": 90
   }
 }
+```
+
+## Configuration
+
+### FeatureConfig
+
+```go
+type FeatureConfig struct {
+    Enabled             bool // Enable scanner (default: true)
+    AnalyzeContributors bool // Analyze git contributors (default: true)
+    CheckCodeowners     bool // Validate CODEOWNERS file (default: true)
+    DetectOrphans       bool // Find files with no recent commits (default: true)
+    AnalyzeCompetency   bool // Analyze developer competency by language (default: true)
+    DetectLanguages     bool // Detect programming languages in repo (default: true)
+    PeriodDays          int  // Analysis period in days (default: 90)
+}
+```
+
+### Config Presets
+
+| Preset | Description |
+|--------|-------------|
+| `DefaultConfig()` | All features enabled, 90-day period |
+| `QuickConfig()` | Languages and CODEOWNERS only (fast) |
+| `FullConfig()` | All features, 180-day period |
+
+## Shared Language Detection Library
+
+The language detection functionality is available as a shared library for use by other scanners:
+
+```go
+import "github.com/crashappsec/zero/pkg/languages"
+
+// Detect language from file path
+lang := languages.DetectFromPath("src/main.go")  // Returns "Go"
+
+// Detect with file content for accuracy
+lang := languages.DetectFromFile("/path/to/file.py")
+
+// Check language type
+if languages.IsProgrammingLanguage(lang) {
+    // Process programming language
+}
+
+// Scan directory for language statistics
+opts := languages.DefaultScanOptions()
+stats, err := languages.ScanDirectory("/path/to/repo", opts)
 ```
 
 ## Prerequisites
 
 No external tools required. Uses:
 - go-git library for git analysis
+- go-enry library for language detection
 - File system access for CODEOWNERS parsing
 
 ## Profiles
 
-| Profile | contributors | bus_factor | codeowners | orphans | churn | patterns |
-|---------|--------------|------------|------------|---------|-------|----------|
-| `quick` | - | - | - | - | - | - |
-| `standard` | Yes | Yes | Yes | - | - | - |
-| `full` | Yes | Yes | Yes | Yes | Yes | Yes |
-| `ownership-only` | Yes | Yes | Yes | Yes | Yes | Yes |
+| Profile | languages | contributors | competency | codeowners | orphans |
+|---------|-----------|--------------|------------|------------|---------|
+| `quick` | Yes | - | - | Yes | - |
+| `standard` | Yes | Yes | - | Yes | - |
+| `full` | Yes | Yes | Yes | Yes | Yes |
 
 ## Related Scanners
 
 - **devops**: DORA metrics complement ownership data
 - **health**: Uses ownership for project health scoring
-- **quality**: Code quality often correlates with ownership
+- **code**: Code quality often correlates with ownership
 
 ## See Also
 
 - [DevOps Scanner](devops.md) - DORA metrics and git analysis
 - [Health Scanner](health.md) - Overall project health
+- [go-enry documentation](https://github.com/go-enry/go-enry)
 - [CODEOWNERS documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
