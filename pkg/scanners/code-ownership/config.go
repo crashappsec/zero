@@ -1,5 +1,5 @@
-// Package ownership provides code ownership and CODEOWNERS analysis
-package ownership
+// Package codeownership provides code ownership and CODEOWNERS analysis
+package codeownership
 
 // FeatureConfig holds configuration for code ownership analysis
 type FeatureConfig struct {

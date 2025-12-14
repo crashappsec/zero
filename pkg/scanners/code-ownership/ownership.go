@@ -1,5 +1,5 @@
-// Package ownership provides the code ownership and CODEOWNERS analysis super scanner
-package ownership
+// Package codeownership provides the code ownership and CODEOWNERS analysis super scanner
+package codeownership
 
 import (
 	"bufio"
@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	Name        = "ownership"
+	Name        = "code-ownership"
 	Description = "Code ownership and CODEOWNERS analysis"
 )
 

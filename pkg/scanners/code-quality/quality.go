@@ -1,6 +1,6 @@
-// Package quality provides the consolidated code quality super scanner
+// Package codequality provides the consolidated code quality super scanner
 // Features: tech_debt, complexity, test_coverage, code_docs
-package quality
+package codequality
 
 import (
 	"bufio"
@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	Name    = "quality"
+	Name    = "code-quality"
 	Version = "3.2.0"
 )
 

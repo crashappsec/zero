@@ -1,7 +1,7 @@
-// Package health implements the consolidated project health super scanner
+// Package codehealth implements the consolidated project health super scanner
 // Features: technology, documentation, tests
-// Note: Ownership analysis has been moved to the dedicated ownership scanner
-package health
+// Note: Ownership analysis has been moved to the code-ownership scanner
+package codehealth
 
 import (
 	"bufio"
@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	Name    = "health"
+	Name    = "code-health"
 	Version = "1.0.0"
 )
 

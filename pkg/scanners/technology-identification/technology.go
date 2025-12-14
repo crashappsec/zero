@@ -1,6 +1,6 @@
-// Package technology provides the consolidated technology identification super scanner
+// Package technologyidentification provides the consolidated technology identification super scanner
 // Includes AI/ML security and ML-BOM generation
-package technology
+package technologyidentification
 
 import (
 	"bufio"
@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	Name        = "technology"
+	Name        = "technology-identification"
 	Description = "Technology identification, AI/ML security analysis and ML-BOM generation"
 )
 
