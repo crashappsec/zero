@@ -14,6 +14,30 @@
       "description": "Schema version",
       "const": "1.0.0"
     },
+    "_docs": {
+      "type": "string",
+      "description": "Documentation comment"
+    },
+    "_docs2": {
+      "type": "string",
+      "description": "Documentation comment"
+    },
+    "_docs3": {
+      "type": "string",
+      "description": "Documentation comment"
+    },
+    "_docs4": {
+      "type": "string",
+      "description": "Documentation comment"
+    },
+    "_docs5": {
+      "type": "string",
+      "description": "Documentation comment"
+    },
+    "_docs6": {
+      "type": "string",
+      "description": "Documentation comment"
+    },
     "output": {
       "type": "object",
       "description": "SBOM output configuration",
@@ -610,7 +634,7 @@
         "skip_configurations": {
           "type": "array",
           "items": { "type": "string" },
-          "default": ["testRuntimeClasspath"],
+          "default": ["testRuntimeClasspath", "testCompileClasspath"],
           "description": "Gradle configurations to skip"
         },
         "use_lock_file": {

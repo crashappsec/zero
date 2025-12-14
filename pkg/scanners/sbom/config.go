@@ -20,10 +20,11 @@ type GenerationConfig struct {
 
 // IntegrityConfig configures SBOM integrity verification
 type IntegrityConfig struct {
-	Enabled           bool `json:"enabled"`
-	VerifyLockfiles   bool `json:"verify_lockfiles"`   // Compare SBOM against lockfiles
-	DetectDrift       bool `json:"detect_drift"`       // Detect drift from previous SBOM
-	CheckCompleteness bool `json:"check_completeness"` // Verify all deps are captured
+	Enabled           bool   `json:"enabled"`
+	VerifyLockfiles   bool   `json:"verify_lockfiles"`   // Compare SBOM against lockfiles
+	DetectDrift       bool   `json:"detect_drift"`       // Detect drift from previous SBOM
+	CheckCompleteness bool   `json:"check_completeness"` // Verify all deps are captured
+	PreviousSBOMPath  string `json:"previous_sbom_path"` // Path to previous SBOM for diff
 }
 
 // DefaultConfig returns default feature configuration
