@@ -311,6 +311,11 @@ func (h *Hydrate) cloneRepo(ctx context.Context, status *RepoStatus) {
 
 // scanRepos scans all repositories sequentially with live progress
 func (h *Hydrate) scanRepos(ctx context.Context, statuses []*RepoStatus, scanners, skipScanners []string) (success, failed int) {
+	// Use parallel scanning if configured and multiple repos
+	if h.opts.ParallelRepos > 1 && len(statuses) > 1 {
+		return h.scanReposParallel(ctx, statuses, scanners, skipScanners)
+	}
+
 	// Process repos sequentially for clear progress display
 	for _, status := range statuses {
 		// Check for cancellation
@@ -366,6 +371,109 @@ func (h *Hydrate) scanRepos(ctx context.Context, statuses []*RepoStatus, scanner
 	}
 
 	return success, failed
+}
+
+// scanReposParallel runs scans on multiple repos concurrently
+func (h *Hydrate) scanReposParallel(ctx context.Context, statuses []*RepoStatus, scanners, skipScanners []string) (success, failed int) {
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	sem := make(chan struct{}, h.opts.ParallelRepos)
+
+	// Print header for parallel mode
+	fmt.Printf("\n  Scanning %d repos in parallel (%d concurrent)...\n\n",
+		len(statuses), h.opts.ParallelRepos)
+
+	for _, status := range statuses {
+		if !status.CloneOK {
+			mu.Lock()
+			failed++
+			mu.Unlock()
+			continue
+		}
+
+		wg.Add(1)
+		go func(s *RepoStatus) {
+			defer wg.Done()
+
+			// Acquire semaphore
+			select {
+			case sem <- struct{}{}:
+				defer func() { <-sem }()
+			case <-ctx.Done():
+				return
+			}
+
+			// Initialize progress
+			s.Progress = scanner.NewProgress(scanners)
+
+			// Run scan (simplified - no line updates in parallel mode)
+			h.scanRepoSimple(ctx, s, scanners, skipScanners)
+
+			// Print result
+			mu.Lock()
+			if s.ScanOK {
+				h.term.Success("%s complete (%ds)", s.Repo.Name, int(s.Duration.Seconds()))
+				success++
+			} else {
+				h.term.Error("%s failed", s.Repo.Name)
+				failed++
+			}
+			mu.Unlock()
+		}(status)
+	}
+
+	wg.Wait()
+	fmt.Println()
+	return success, failed
+}
+
+// scanRepoSimple runs scanners without real-time line updates (for parallel mode)
+func (h *Hydrate) scanRepoSimple(ctx context.Context, status *RepoStatus, scanners, skipScanners []string) {
+	start := time.Now()
+
+	// Get scanners from registry
+	scannerList, err := scanner.GetByNames(scanners)
+	if err != nil {
+		status.ScanOK = false
+		status.Duration = time.Since(start)
+		return
+	}
+
+	// Build output directory
+	projectID := github.ProjectID(status.Repo.NameWithOwner)
+	outputDir := filepath.Join(h.zeroHome, "repos", projectID, "analysis")
+
+	// Run scanners
+	opts := scanner.RunOptions{
+		RepoPath:     status.RepoPath,
+		OutputDir:    outputDir,
+		Scanners:     scannerList,
+		SkipScanners: skipScanners,
+		Parallel:     h.opts.ParallelScanners,
+		Timeout:      time.Duration(h.cfg.Settings.ScannerTimeoutSeconds) * time.Second,
+	}
+
+	result, err := h.runner.RunScanners(ctx, opts)
+	if err != nil {
+		status.ScanOK = false
+		status.Duration = time.Since(start)
+		return
+	}
+
+	// Check results
+	allSuccess := result.Success
+	for name, r := range result.Results {
+		if r.Status == scanner.StatusFailed {
+			allSuccess = false
+		}
+		// Update progress tracking
+		if status.Progress.Results[name] != nil {
+			status.Progress.Results[name].Status = r.Status
+		}
+	}
+
+	status.ScanOK = allSuccess
+	status.Duration = time.Since(start)
 }
 
 // scanRepoWithProgress runs all scanners with real-time line updates
