@@ -156,7 +156,8 @@
     "verify_lockfiles": true,
     "require_lockfile": false,
     "verify_checksums": true,
-    "detect_drift": true
+    "detect_drift": true,
+    "previous_sbom_path": ""
   },
 
   "filtering": {

@@ -1,6 +1,6 @@
-// Package packages implements the consolidated package analysis super scanner
+// Package packageanalysis implements the consolidated package analysis super scanner
 // NOTE: This scanner DEPENDS ON the sbom scanner output. It does NOT generate SBOMs.
-package packages
+package packageanalysis
 
 import (
 	"bufio"
@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	Name    = "packages"
+	Name    = "package-analysis"
 	Version = "3.0.0"
 )
 
