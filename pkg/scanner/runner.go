@@ -475,16 +475,47 @@ func extractSummaryString(name string, result *ScanResult) string {
 
 	case "code-ownership":
 		contributors := getIntFromMap(summary, "total_contributors")
+		languages := getIntFromMap(summary, "languages_detected")
+		isShallow := false
+		if v, ok := summary["is_shallow_clone"].(bool); ok {
+			isShallow = v
+		}
 		hasCodeowners := false
 		if v, ok := summary["has_codeowners"].(bool); ok {
 			hasCodeowners = v
 		}
 		rules := getIntFromMap(summary, "codeowners_rules")
-		if hasCodeowners {
-			return fmt.Sprintf("CODEOWNERS: %d rules, %d contributors", rules, contributors)
+
+		// Get top language from top_languages array
+		topLang := ""
+		if langs, ok := summary["top_languages"].([]interface{}); ok && len(langs) > 0 {
+			if first, ok := langs[0].(map[string]interface{}); ok {
+				if name, ok := first["name"].(string); ok {
+					topLang = name
+				}
+			}
+		}
+
+		// Build summary with languages
+		parts := []string{}
+		if languages > 0 {
+			if topLang != "" {
+				parts = append(parts, fmt.Sprintf("%d langs (%s)", languages, topLang))
+			} else {
+				parts = append(parts, fmt.Sprintf("%d langs", languages))
+			}
 		}
 		if contributors > 0 {
-			return fmt.Sprintf("%d contributors, no CODEOWNERS", contributors)
+			parts = append(parts, fmt.Sprintf("%d contributors", contributors))
+		} else if isShallow {
+			parts = append(parts, "shallow clone")
+		}
+		if hasCodeowners {
+			parts = append(parts, fmt.Sprintf("CODEOWNERS: %d rules", rules))
+		}
+
+		if len(parts) > 0 {
+			return strings.Join(parts, ", ")
 		}
 		return "no ownership data"
 

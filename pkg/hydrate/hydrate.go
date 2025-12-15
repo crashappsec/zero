@@ -477,9 +477,11 @@ func (h *Hydrate) scanRepoSimple(ctx context.Context, status *RepoStatus, scanne
 		if r.Status == scanner.StatusFailed {
 			allSuccess = false
 		}
-		// Update progress tracking
+		// Update progress tracking (copy status and summary)
 		if status.Progress.Results[name] != nil {
 			status.Progress.Results[name].Status = r.Status
+			status.Progress.Results[name].Summary = r.Summary
+			status.Progress.Results[name].Duration = r.Duration
 		}
 	}
 
