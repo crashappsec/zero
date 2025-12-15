@@ -15,6 +15,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	gitobj "github.com/go-git/go-git/v5/plumbing/object"
 
+	"github.com/crashappsec/zero/pkg/github"
 	"github.com/crashappsec/zero/pkg/languages"
 	"github.com/crashappsec/zero/pkg/scanner"
 )
@@ -592,4 +593,220 @@ func (s *OwnershipScanner) isShallowClone(repoPath string) bool {
 		return true
 	}
 	return false
+}
+
+// ============================================================================
+// Enhanced Ownership Analysis (v2.0)
+// ============================================================================
+
+// RunEnhancedAnalysis performs enhanced ownership analysis with all v2.0 features
+func (s *OwnershipScanner) RunEnhancedAnalysis(
+	ctx context.Context,
+	opts *scanner.ScanOptions,
+	enhancedCfg EnhancedOwnershipConfig,
+) (*Findings, *Summary, error) {
+	findings := &Findings{}
+	summary := &Summary{}
+
+	// Check for GitHub token
+	ghClient := github.NewOwnershipClient(enhancedCfg.GitHub.MaxPRs)
+	summary.GitHubTokenPresent = ghClient.HasToken()
+
+	if !summary.GitHubTokenPresent && enhancedCfg.GitHub.Enabled {
+		summary.Warnings = append(summary.Warnings, GitHubTokenMessage)
+	}
+
+	// Get basic contributor data first
+	repo, err := git.PlainOpen(opts.RepoPath)
+	if err != nil {
+		return nil, nil, fmt.Errorf("opening repository: %w", err)
+	}
+
+	periodDays := 90
+	since := time.Now().AddDate(0, 0, -periodDays)
+
+	// Analyze with competency
+	fileOwners, contributors, devProfiles := s.analyzeOwnershipWithCompetency(repo, since)
+
+	// Convert to contributor data for scoring
+	var contribData []ContributorData
+	for email, contrib := range contributors {
+		cd := ContributorData{
+			Name:        contrib.Name,
+			Email:       email,
+			Commits:     contrib.Commits,
+			LinesAdded:  contrib.LinesAdded,
+			LinesRemoved: contrib.LinesRemoved,
+		}
+
+		// Get last commit date from profile
+		if profile, exists := devProfiles[email]; exists {
+			cd.CommitDates = []time.Time{} // Would need to track in analyzeOwnershipWithCompetency
+			_ = profile // Use profile for additional data
+		}
+
+		contribData = append(contribData, cd)
+	}
+
+	// Calculate enhanced ownership scores
+	scorer := NewOwnershipScorer(enhancedCfg.Weights)
+	now := time.Now()
+	findings.EnhancedOwnership = scorer.CalculateEnhancedOwnership(contribData, now)
+
+	// Calculate bus factor
+	summary.BusFactor, summary.BusFactorRisk = CalculateBusFactor(findings.EnhancedOwnership, 0.5)
+
+	// Calculate ownership coverage
+	var fileOwnerships []FileOwnership
+	for file, owners := range fileOwners {
+		fileOwnerships = append(fileOwnerships, FileOwnership{
+			Path:            file,
+			TopContributors: owners,
+			CommitCount:     len(owners),
+		})
+	}
+	summary.OwnershipCoverage = CalculateOwnershipCoverage(fileOwnerships, 1)
+
+	// Analyze CODEOWNERS
+	if enhancedCfg.CODEOWNERS.Validate {
+		analyzer := NewCODEOWNERSAnalyzer(enhancedCfg.CODEOWNERS)
+		var contribList []Contributor
+		for email, c := range contributors {
+			c.Email = email
+			contribList = append(contribList, c)
+		}
+		codeownersAnalysis, err := analyzer.Analyze(opts.RepoPath, contribList)
+		if err == nil {
+			findings.CodeownersAnalysis = codeownersAnalysis
+			summary.CodeownersIssues = len(codeownersAnalysis.ValidationIssues)
+		}
+	}
+
+	// Detect monorepo
+	if enhancedCfg.Monorepo.Enabled {
+		detector := NewMonorepoDetector(enhancedCfg.Monorepo)
+		monorepoAnalysis, err := detector.Detect(opts.RepoPath)
+		if err == nil && monorepoAnalysis != nil {
+			findings.Monorepo = monorepoAnalysis
+			summary.IsMonorepo = monorepoAnalysis.IsMonorepo
+			summary.WorkspaceCount = len(monorepoAnalysis.Workspaces)
+		}
+	}
+
+	// Fetch PR review data if GitHub token available
+	if summary.GitHubTokenPresent && enhancedCfg.GitHub.FetchPRReviews {
+		// Extract owner/repo from path or git remote
+		owner, repoName := extractRepoInfo(opts.RepoPath)
+		if owner != "" && repoName != "" {
+			prs, totalPRs, err := ghClient.FetchPRReviews(owner, repoName)
+			if err != nil {
+				summary.Warnings = append(summary.Warnings, fmt.Sprintf("PR analysis error: %v", err))
+			} else if prs == nil && totalPRs > enhancedCfg.GitHub.MaxPRs {
+				// Too many PRs, skipped
+				summary.PRAnalysisSkipped = true
+				findings.PRAnalysis = &PRAnalysis{
+					Skipped:    true,
+					SkipReason: "pr_count_exceeded",
+					TotalPRs:   totalPRs,
+					Threshold:  enhancedCfg.GitHub.MaxPRs,
+				}
+				summary.Warnings = append(summary.Warnings,
+					fmt.Sprintf("PR analysis skipped: repository has %d PRs (threshold: %d). Increase max_prs in config to analyze.",
+						totalPRs, enhancedCfg.GitHub.MaxPRs))
+			} else if prs != nil {
+				// Aggregate reviewer stats
+				reviewerStats := github.AggregateReviewerStats(prs)
+				findings.PRAnalysis = &PRAnalysis{
+					PRsAnalyzed: len(prs),
+					TotalPRs:    totalPRs,
+				}
+
+				// Convert to PRReviewer type
+				for login, stats := range reviewerStats {
+					findings.PRAnalysis.Reviewers = append(findings.PRAnalysis.Reviewers, PRReviewer{
+						Name:           login,
+						ReviewsGiven:   stats.ReviewsGiven,
+						ApprovalsGiven: stats.Approvals,
+						CommentsGiven:  stats.Comments,
+					})
+				}
+
+				// Update enhanced ownership with PR review data
+				for i := range findings.EnhancedOwnership {
+					owner := &findings.EnhancedOwnership[i]
+					// Try to match by email or name
+					for login, stats := range reviewerStats {
+						if strings.EqualFold(login, owner.Name) || strings.Contains(strings.ToLower(owner.Email), strings.ToLower(login)) {
+							owner.PRReviewsGiven = stats.ReviewsGiven
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Generate incident contacts
+	if enhancedCfg.Contacts.Enabled {
+		contactGen := NewContactGenerator(enhancedCfg.Contacts)
+		codeownersRules := s.parseCodeowners(opts.RepoPath)
+		findings.IncidentContacts = contactGen.GenerateKeyPathContacts(
+			opts.RepoPath,
+			findings.EnhancedOwnership,
+			codeownersRules,
+		)
+	}
+
+	return findings, summary, nil
+}
+
+// extractRepoInfo attempts to get owner/repo from git remote
+func extractRepoInfo(repoPath string) (owner, repo string) {
+	r, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return "", ""
+	}
+
+	remotes, err := r.Remotes()
+	if err != nil || len(remotes) == 0 {
+		return "", ""
+	}
+
+	// Get origin remote URL
+	for _, remote := range remotes {
+		if remote.Config().Name == "origin" {
+			urls := remote.Config().URLs
+			if len(urls) > 0 {
+				return parseGitURL(urls[0])
+			}
+		}
+	}
+
+	return "", ""
+}
+
+// parseGitURL extracts owner/repo from a git URL
+func parseGitURL(url string) (owner, repo string) {
+	// Handle SSH format: git@github.com:owner/repo.git
+	if strings.HasPrefix(url, "git@") {
+		parts := strings.Split(url, ":")
+		if len(parts) == 2 {
+			path := strings.TrimSuffix(parts[1], ".git")
+			pathParts := strings.Split(path, "/")
+			if len(pathParts) >= 2 {
+				return pathParts[0], pathParts[1]
+			}
+		}
+	}
+
+	// Handle HTTPS format: https://github.com/owner/repo.git
+	if strings.Contains(url, "github.com") {
+		url = strings.TrimSuffix(url, ".git")
+		parts := strings.Split(url, "/")
+		if len(parts) >= 2 {
+			return parts[len(parts)-2], parts[len(parts)-1]
+		}
+	}
+
+	return "", ""
 }
