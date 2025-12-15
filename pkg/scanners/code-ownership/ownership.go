@@ -108,6 +108,13 @@ func (s *OwnershipScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (
 		return scanResult, nil
 	}
 
+	// Check for shallow clone
+	if isShallow := s.isShallowClone(opts.RepoPath); isShallow {
+		result.Summary.IsShallowClone = true
+		result.Summary.Warnings = append(result.Summary.Warnings,
+			"Repository is a shallow clone. Contributor and competency analysis will be limited.")
+	}
+
 	periodDays := cfg.PeriodDays
 	if periodDays <= 0 {
 		periodDays = 90
@@ -193,14 +200,13 @@ func (s *OwnershipScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (
 		}
 	}
 
-	result.Summary = Summary{
-		TotalContributors: len(contributors),
-		FilesAnalyzed:     len(fileOwners),
-		HasCodeowners:     len(codeowners) > 0,
-		CodeownersRules:   len(codeowners),
-		OrphanedFiles:     len(orphanedFiles),
-		PeriodDays:        periodDays,
-	}
+	// Update summary (preserve IsShallowClone and Warnings set earlier)
+	result.Summary.TotalContributors = len(contributors)
+	result.Summary.FilesAnalyzed = len(fileOwners)
+	result.Summary.HasCodeowners = len(codeowners) > 0
+	result.Summary.CodeownersRules = len(codeowners)
+	result.Summary.OrphanedFiles = len(orphanedFiles)
+	result.Summary.PeriodDays = periodDays
 
 	// Add language stats to summary
 	if langStats != nil {
@@ -576,4 +582,14 @@ func (s *OwnershipScanner) parseCodeowners(repoPath string) []CodeownerRule {
 	}
 
 	return rules
+}
+
+// isShallowClone checks if the repository is a shallow clone
+// by looking for the .git/shallow file
+func (s *OwnershipScanner) isShallowClone(repoPath string) bool {
+	shallowFile := filepath.Join(repoPath, ".git", "shallow")
+	if _, err := os.Stat(shallowFile); err == nil {
+		return true
+	}
+	return false
 }
