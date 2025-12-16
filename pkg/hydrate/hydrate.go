@@ -69,6 +69,12 @@ type RepoStatus struct {
 	OwnershipPeriodAdjusted  bool   // Whether analysis period was extended
 	OwnershipActivityStatus  string // Repo activity status
 
+	// Tech-id stats (populated after scan)
+	TechIDTotalTech     int      // Total technologies detected
+	TechIDTopTechs      []string // Top 3 technologies
+	TechIDTotalModels   int      // ML models detected
+	TechIDSecurityCount int      // Security findings
+
 	// Scanners that were run
 	ScannersRun []string
 }
@@ -518,6 +524,7 @@ func (h *Hydrate) scanRepoSimple(ctx context.Context, status *RepoStatus, scanne
 	// Extract stats from scanner outputs
 	h.extractSBOMStats(status, outputDir)
 	h.extractOwnershipStats(status, outputDir)
+	h.extractTechIDStats(status, outputDir)
 }
 
 // extractSBOMStats reads SBOM file to get package count and file size
@@ -545,6 +552,45 @@ func (h *Hydrate) extractSBOMStats(status *RepoStatus, outputDir string) {
 		return
 	}
 	status.SBOMPackages = len(sbom.Components)
+}
+
+// extractTechIDStats reads tech-id.json to get technology detection stats
+func (h *Hydrate) extractTechIDStats(status *RepoStatus, outputDir string) {
+	techIDPath := filepath.Join(outputDir, "tech-id.json")
+
+	data, err := os.ReadFile(techIDPath)
+	if err != nil {
+		return
+	}
+
+	var techID struct {
+		Summary struct {
+			Technology *struct {
+				TotalTechnologies int      `json:"total_technologies"`
+				TopTechnologies   []string `json:"top_technologies"`
+			} `json:"technology"`
+			Models *struct {
+				TotalModels int `json:"total_models"`
+			} `json:"models"`
+			Security *struct {
+				TotalFindings int `json:"total_findings"`
+			} `json:"security"`
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal(data, &techID); err != nil {
+		return
+	}
+
+	if techID.Summary.Technology != nil {
+		status.TechIDTotalTech = techID.Summary.Technology.TotalTechnologies
+		status.TechIDTopTechs = techID.Summary.Technology.TopTechnologies
+	}
+	if techID.Summary.Models != nil {
+		status.TechIDTotalModels = techID.Summary.Models.TotalModels
+	}
+	if techID.Summary.Security != nil {
+		status.TechIDSecurityCount = techID.Summary.Security.TotalFindings
+	}
 }
 
 // extractOwnershipStats reads code-ownership.json to get contributor and language stats
@@ -701,6 +747,7 @@ func (h *Hydrate) scanRepoWithProgress(ctx context.Context, status *RepoStatus, 
 	// Extract stats from scanner outputs
 	h.extractSBOMStats(status, outputDir)
 	h.extractOwnershipStats(status, outputDir)
+	h.extractTechIDStats(status, outputDir)
 }
 
 // shouldWarnSlowScanners checks if we should warn about slow scanners
@@ -987,6 +1034,19 @@ func formatScanCompleteMessage(s *RepoStatus) string {
 	// SBOM was run - show package stats
 	if hasSBOM && (s.SBOMPackages > 0 || s.SBOMSize > 0) {
 		return fmt.Sprintf("%s - %d packages, %s", base, s.SBOMPackages, formatBytes(s.SBOMSize))
+	}
+
+	// Tech-id only - show technology stats
+	hasTechIDOnly := len(s.ScannersRun) == 1 && s.ScannersRun[0] == "tech-id"
+	if hasTechIDOnly && s.TechIDTotalTech > 0 {
+		result := fmt.Sprintf("%s - %d tech", base, s.TechIDTotalTech)
+		if len(s.TechIDTopTechs) > 0 {
+			result += ": " + strings.Join(s.TechIDTopTechs, ", ")
+		}
+		if s.TechIDTotalModels > 0 {
+			result += fmt.Sprintf(", %d models", s.TechIDTotalModels)
+		}
+		return result
 	}
 
 	// Fallback to basic message
