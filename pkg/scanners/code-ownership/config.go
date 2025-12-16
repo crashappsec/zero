@@ -4,6 +4,7 @@ package codeownership
 // FeatureConfig holds configuration for code ownership analysis
 type FeatureConfig struct {
 	Enabled             bool `json:"enabled"`
+	EnhancedMode        bool `json:"enhanced_mode"`        // Use enhanced v2.0 analysis with weighted scoring
 	AnalyzeContributors bool `json:"analyze_contributors"` // Analyze git contributors
 	CheckCodeowners     bool `json:"check_codeowners"`     // Validate CODEOWNERS file
 	DetectOrphans       bool `json:"detect_orphans"`       // Find files with no recent commits
@@ -16,6 +17,7 @@ type FeatureConfig struct {
 func DefaultConfig() FeatureConfig {
 	return FeatureConfig{
 		Enabled:             true,
+		EnhancedMode:        true, // Use enhanced v2.0 analysis by default
 		AnalyzeContributors: true,
 		CheckCodeowners:     true,
 		DetectOrphans:       true,

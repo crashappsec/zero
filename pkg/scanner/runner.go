@@ -474,44 +474,64 @@ func extractSummaryString(name string, result *ScanResult) string {
 		return fmt.Sprintf("%d%% coverage, %d tests", coverage, totalTests)
 
 	case "code-ownership":
+		// Get key ownership metrics
+		busFactor := getIntFromMap(summary, "bus_factor")
+		busFactorRisk := ""
+		if v, ok := summary["bus_factor_risk"].(string); ok {
+			busFactorRisk = v
+		}
 		contributors := getIntFromMap(summary, "total_contributors")
-		languages := getIntFromMap(summary, "languages_detected")
-		isShallow := false
-		if v, ok := summary["is_shallow_clone"].(bool); ok {
-			isShallow = v
+		totalCommits := getIntFromMap(summary, "total_commits")
+		allTimeContributors := getIntFromMap(summary, "all_time_contributors")
+		daysSinceLastCommit := getIntFromMap(summary, "days_since_last_commit")
+		periodAdjusted := false
+		if v, ok := summary["analysis_period_adjusted"].(bool); ok {
+			periodAdjusted = v
 		}
 		hasCodeowners := false
 		if v, ok := summary["has_codeowners"].(bool); ok {
 			hasCodeowners = v
 		}
-		rules := getIntFromMap(summary, "codeowners_rules")
 
-		// Get top language from top_languages array
-		topLang := ""
-		if langs, ok := summary["top_languages"].([]interface{}); ok && len(langs) > 0 {
-			if first, ok := langs[0].(map[string]interface{}); ok {
-				if name, ok := first["name"].(string); ok {
-					topLang = name
-				}
-			}
-		}
-
-		// Build summary with languages
+		// Build ownership-focused summary
 		parts := []string{}
-		if languages > 0 {
-			if topLang != "" {
-				parts = append(parts, fmt.Sprintf("%d langs (%s)", languages, topLang))
+
+		// Bus factor is the key metric (show risk even if 0)
+		if busFactor > 0 {
+			if busFactorRisk != "" {
+				parts = append(parts, fmt.Sprintf("bus factor: %s", busFactorRisk))
 			} else {
-				parts = append(parts, fmt.Sprintf("%d langs", languages))
+				parts = append(parts, fmt.Sprintf("bus factor: %d", busFactor))
 			}
+		} else if busFactorRisk != "" {
+			parts = append(parts, fmt.Sprintf("bus factor: %s", busFactorRisk))
 		}
+
+		// Show contributors info
 		if contributors > 0 {
-			parts = append(parts, fmt.Sprintf("%d contributors", contributors))
-		} else if isShallow {
-			parts = append(parts, "shallow clone")
+			if allTimeContributors > contributors {
+				parts = append(parts, fmt.Sprintf("%d active (%d all-time)", contributors, allTimeContributors))
+			} else {
+				parts = append(parts, fmt.Sprintf("%d contributors", contributors))
+			}
+		} else if allTimeContributors > 0 {
+			// No recent activity but has historical data
+			parts = append(parts, fmt.Sprintf("%d all-time contributors", allTimeContributors))
 		}
-		if hasCodeowners {
-			parts = append(parts, fmt.Sprintf("CODEOWNERS: %d rules", rules))
+
+		// Show last activity if repo is stale
+		if daysSinceLastCommit > 90 && totalCommits > 0 {
+			parts = append(parts, fmt.Sprintf("last activity %dd ago", daysSinceLastCommit))
+		}
+
+		// CODEOWNERS status
+		if !hasCodeowners {
+			parts = append(parts, "no CODEOWNERS")
+		}
+
+		// Note if period was extended
+		if periodAdjusted {
+			parts = append(parts, "period extended")
 		}
 
 		if len(parts) > 0 {

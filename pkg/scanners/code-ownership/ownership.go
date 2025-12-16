@@ -4,6 +4,7 @@ package codeownership
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -84,19 +85,18 @@ func (s *OwnershipScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (
 		return scanResult, nil
 	}
 
+	// Use enhanced v2.0 analysis if enabled
+	if cfg.EnhancedMode {
+		return s.runEnhancedMode(ctx, opts, startTime)
+	}
+
 	result.FeaturesRun = append(result.FeaturesRun, "ownership")
 
-	// Detect languages in repository
+	// Get languages (from cache or detect)
 	var langStats *languages.DirectoryStats
 	if cfg.DetectLanguages {
 		result.FeaturesRun = append(result.FeaturesRun, "languages")
-		langOpts := languages.DefaultScanOptions()
-		langOpts.OnlyProgramming = true
-		var err error
-		langStats, err = languages.ScanDirectory(opts.RepoPath, langOpts)
-		if err != nil {
-			result.Summary.Errors = append(result.Summary.Errors, fmt.Sprintf("scanning languages: %v", err))
-		}
+		langStats = s.getLanguageStats(opts)
 	}
 
 	// Open git repository
@@ -381,6 +381,13 @@ func (s *OwnershipScanner) analyzeOwnershipWithCompetency(repo *git.Repository, 
 		contrib.Name = c.Author.Name
 		contrib.Commits++
 
+		// Track commit dates for recency and consistency scoring
+		commitTime := c.Author.When
+		contrib.CommitDates = append(contrib.CommitDates, commitTime)
+		if contrib.LastCommit.IsZero() || commitTime.After(contrib.LastCommit) {
+			contrib.LastCommit = commitTime
+		}
+
 		// Get or create developer profile
 		profile := devProfiles[email]
 		if profile == nil {
@@ -595,6 +602,99 @@ func (s *OwnershipScanner) isShallowClone(repoPath string) bool {
 	return false
 }
 
+// getLanguageStats reads cached language data from the analysis directory,
+// falling back to scanning if not available
+func (s *OwnershipScanner) getLanguageStats(opts *scanner.ScanOptions) *languages.DirectoryStats {
+	// Try to read cached languages.json from output directory
+	if opts.OutputDir != "" {
+		langFile := filepath.Join(opts.OutputDir, "languages.json")
+		if data, err := os.ReadFile(langFile); err == nil {
+			var stats languages.DirectoryStats
+			if err := json.Unmarshal(data, &stats); err == nil {
+				return &stats
+			}
+		}
+	}
+
+	// Fallback: run language detection ourselves
+	langOpts := languages.DefaultScanOptions()
+	langOpts.OnlyProgramming = true
+	stats, err := languages.ScanDirectory(opts.RepoPath, langOpts)
+	if err != nil {
+		return nil
+	}
+	return stats
+}
+
+// ============================================================================
+// Historical Stats Collection
+// ============================================================================
+
+// historicalStats holds full-history repository statistics
+type historicalStats struct {
+	TotalCommits         int
+	UniqueContributors   int
+	LastCommitDate       string
+	LastCommitTime       time.Time
+	DaysSinceLastCommit  int
+	ActivityStatus       string
+}
+
+// collectHistoricalStats gathers full-history repository statistics
+func (s *OwnershipScanner) collectHistoricalStats(repo *git.Repository) historicalStats {
+	stats := historicalStats{}
+
+	ref, err := repo.Head()
+	if err != nil {
+		return stats
+	}
+
+	commitIter, err := repo.Log(&git.LogOptions{From: ref.Hash()})
+	if err != nil {
+		return stats
+	}
+
+	contributors := make(map[string]bool)
+	var lastCommitTime time.Time
+	commitCount := 0
+
+	commitIter.ForEach(func(c *gitobj.Commit) error {
+		commitCount++
+		contributors[c.Author.Email] = true
+
+		// Track most recent commit
+		if lastCommitTime.IsZero() || c.Author.When.After(lastCommitTime) {
+			lastCommitTime = c.Author.When
+		}
+		return nil
+	})
+
+	stats.TotalCommits = commitCount
+	stats.UniqueContributors = len(contributors)
+
+	if !lastCommitTime.IsZero() {
+		stats.LastCommitTime = lastCommitTime
+		stats.LastCommitDate = lastCommitTime.Format("2006-01-02")
+		stats.DaysSinceLastCommit = int(time.Since(lastCommitTime).Hours() / 24)
+
+		// Determine activity status
+		switch {
+		case stats.DaysSinceLastCommit <= ActivityThresholds.Active:
+			stats.ActivityStatus = "active"
+		case stats.DaysSinceLastCommit <= ActivityThresholds.Recent:
+			stats.ActivityStatus = "recent"
+		case stats.DaysSinceLastCommit <= ActivityThresholds.Stale:
+			stats.ActivityStatus = "stale"
+		case stats.DaysSinceLastCommit <= ActivityThresholds.Inactive:
+			stats.ActivityStatus = "inactive"
+		default:
+			stats.ActivityStatus = "abandoned"
+		}
+	}
+
+	return stats
+}
+
 // ============================================================================
 // Enhanced Ownership Analysis (v2.0)
 // ============================================================================
@@ -622,35 +722,61 @@ func (s *OwnershipScanner) RunEnhancedAnalysis(
 		return nil, nil, fmt.Errorf("opening repository: %w", err)
 	}
 
-	periodDays := 90
-	since := time.Now().AddDate(0, 0, -periodDays)
+	// Collect historical repo stats first (full history)
+	histStats := s.collectHistoricalStats(repo)
+	summary.TotalCommits = histStats.TotalCommits
+	summary.AllTimeContributors = histStats.UniqueContributors
+	summary.LastCommitDate = histStats.LastCommitDate
+	summary.DaysSinceLastCommit = histStats.DaysSinceLastCommit
+	summary.RepoActivityStatus = histStats.ActivityStatus
 
-	// Analyze with competency
-	fileOwners, contributors, devProfiles := s.analyzeOwnershipWithCompetency(repo, since)
+	// Use adaptive period detection: if no recent activity, extend the analysis window
+	periodDays := 90
+	now := time.Now()
+
+	// Check if there are commits within the default 90-day window
+	if histStats.DaysSinceLastCommit > periodDays {
+		// No recent commits - extend to cover the last active period
+		// Use a graduated approach: extend to cover at least some commits
+		if histStats.DaysSinceLastCommit <= 180 {
+			periodDays = 180 // Extend to 6 months
+		} else if histStats.DaysSinceLastCommit <= 365 {
+			periodDays = 365 // Extend to 1 year
+		} else {
+			periodDays = histStats.DaysSinceLastCommit + 30 // Extend to cover all recent activity + buffer
+		}
+		summary.AnalysisPeriodAdjusted = true
+		summary.Warnings = append(summary.Warnings,
+			fmt.Sprintf("No commits in last 90 days. Analysis period extended to %d days to capture recent activity.", periodDays))
+	}
+
+	since := now.AddDate(0, 0, -periodDays)
+	summary.PeriodDays = periodDays
+
+	// Analyze with competency using adaptive period
+	fileOwners, contributors, _ := s.analyzeOwnershipWithCompetency(repo, since)
+
+	// Set period-specific contributor count
+	summary.TotalContributors = len(contributors)
+	summary.FilesAnalyzed = len(fileOwners)
 
 	// Convert to contributor data for scoring
 	var contribData []ContributorData
 	for email, contrib := range contributors {
 		cd := ContributorData{
-			Name:        contrib.Name,
-			Email:       email,
-			Commits:     contrib.Commits,
-			LinesAdded:  contrib.LinesAdded,
+			Name:         contrib.Name,
+			Email:        email,
+			Commits:      contrib.Commits,
+			LinesAdded:   contrib.LinesAdded,
 			LinesRemoved: contrib.LinesRemoved,
+			LastCommit:   contrib.LastCommit,
+			CommitDates:  contrib.CommitDates,
 		}
-
-		// Get last commit date from profile
-		if profile, exists := devProfiles[email]; exists {
-			cd.CommitDates = []time.Time{} // Would need to track in analyzeOwnershipWithCompetency
-			_ = profile // Use profile for additional data
-		}
-
 		contribData = append(contribData, cd)
 	}
 
 	// Calculate enhanced ownership scores
 	scorer := NewOwnershipScorer(enhancedCfg.Weights)
-	now := time.Now()
 	findings.EnhancedOwnership = scorer.CalculateEnhancedOwnership(contribData, now)
 
 	// Calculate bus factor
@@ -809,4 +935,113 @@ func parseGitURL(url string) (owner, repo string) {
 	}
 
 	return "", ""
+}
+
+// runEnhancedMode runs the v2.0 enhanced ownership analysis
+func (s *OwnershipScanner) runEnhancedMode(ctx context.Context, opts *scanner.ScanOptions, startTime time.Time) (*scanner.ScanResult, error) {
+	// Get enhanced config
+	enhancedCfg := DefaultEnhancedConfig()
+
+	// Run enhanced analysis
+	findings, summary, err := s.RunEnhancedAnalysis(ctx, opts, enhancedCfg)
+	if err != nil {
+		return nil, fmt.Errorf("enhanced analysis: %w", err)
+	}
+
+	// Get language stats (from cache or detect)
+	langStats := s.getLanguageStats(opts)
+
+	// Add language stats to summary
+	if langStats != nil {
+		summary.LanguagesDetected = langStats.LanguageCount
+		topLangs := languages.TopLanguages(langStats, 5)
+		for _, ls := range topLangs {
+			summary.TopLanguages = append(summary.TopLanguages, LanguageInfo{
+				Name:       ls.Language,
+				FileCount:  ls.FileCount,
+				Percentage: ls.Percentage,
+			})
+		}
+	}
+
+	// Check for shallow clone
+	if isShallow := s.isShallowClone(opts.RepoPath); isShallow {
+		summary.IsShallowClone = true
+		// Only add warning if not already present
+		hasWarning := false
+		for _, w := range summary.Warnings {
+			if strings.Contains(w, "shallow clone") {
+				hasWarning = true
+				break
+			}
+		}
+		if !hasWarning {
+			summary.Warnings = append(summary.Warnings,
+				"Repository is a shallow clone. Contributor and competency analysis will be limited.")
+		}
+	}
+
+	// Parse CODEOWNERS for summary
+	codeowners := s.parseCodeowners(opts.RepoPath)
+	summary.HasCodeowners = len(codeowners) > 0
+	summary.CodeownersRules = len(codeowners)
+	// Note: summary.PeriodDays is already set in RunEnhancedAnalysis (may be adaptive)
+
+	// Store codeowners in findings if not already there
+	if len(findings.Codeowners) == 0 {
+		findings.Codeowners = codeowners
+	}
+
+	// Build features list
+	featuresRun := []string{"ownership", "languages", "competency", "enhanced_scoring"}
+	if enhancedCfg.CODEOWNERS.Validate {
+		featuresRun = append(featuresRun, "codeowners_validation")
+	}
+	if enhancedCfg.Monorepo.Enabled {
+		featuresRun = append(featuresRun, "monorepo_detection")
+	}
+	if enhancedCfg.Contacts.Enabled {
+		featuresRun = append(featuresRun, "incident_contacts")
+	}
+	if enhancedCfg.GitHub.Enabled && summary.GitHubTokenPresent {
+		featuresRun = append(featuresRun, "github_integration")
+	}
+
+	// Create scan result
+	scanResult := scanner.NewScanResult(Name, "2.0.0", startTime)
+	scanResult.Repository = opts.RepoPath
+	if err := scanResult.SetSummary(summary); err != nil {
+		return nil, fmt.Errorf("failed to set summary: %w", err)
+	}
+	if err := scanResult.SetFindings(findings); err != nil {
+		return nil, fmt.Errorf("failed to set findings: %w", err)
+	}
+
+	// Add metadata
+	metadata := map[string]any{
+		"features_run":           featuresRun,
+		"period_days":            summary.PeriodDays,
+		"period_adjusted":        summary.AnalysisPeriodAdjusted,
+		"enhanced_mode":          true,
+		"total_commits":          summary.TotalCommits,
+		"all_time_contributors":  summary.AllTimeContributors,
+		"repo_activity_status":   summary.RepoActivityStatus,
+		"days_since_last_commit": summary.DaysSinceLastCommit,
+	}
+	if err := scanResult.SetMetadata(metadata); err != nil {
+		return nil, fmt.Errorf("failed to set metadata: %w", err)
+	}
+
+	// Write output
+	if opts.OutputDir != "" {
+		if err := os.MkdirAll(opts.OutputDir, 0755); err != nil {
+			return nil, fmt.Errorf("creating output dir: %w", err)
+		}
+		resultFile := filepath.Join(opts.OutputDir, Name+".json")
+		if err := scanResult.WriteJSON(resultFile); err != nil {
+			return nil, fmt.Errorf("writing result: %w", err)
+		}
+	}
+
+	return scanResult, nil
 }

@@ -15,6 +15,7 @@ import (
 
 	"github.com/crashappsec/zero/pkg/config"
 	"github.com/crashappsec/zero/pkg/github"
+	"github.com/crashappsec/zero/pkg/languages"
 	"github.com/crashappsec/zero/pkg/scanner"
 	"github.com/crashappsec/zero/pkg/terminal"
 )
@@ -55,6 +56,21 @@ type RepoStatus struct {
 	SBOMPackages int    // Number of packages in SBOM
 	SBOMSize     int64  // Size of SBOM file in bytes
 	SBOMPath     string // Path to SBOM file
+
+	// Code ownership stats (populated after scan)
+	OwnershipContributors    int    // Number of contributors in analysis period
+	OwnershipAllTime         int    // All-time contributors
+	OwnershipLanguages       int    // Number of languages detected
+	OwnershipTopLanguage     string // Top language by file count
+	OwnershipBusFactor       int    // Bus factor (0 if not calculated)
+	OwnershipBusFactorRisk   string // Bus factor risk level
+	OwnershipTotalCommits    int    // Total commits in repo
+	OwnershipLastCommitDays  int    // Days since last commit
+	OwnershipPeriodAdjusted  bool   // Whether analysis period was extended
+	OwnershipActivityStatus  string // Repo activity status
+
+	// Scanners that were run
+	ScannersRun []string
 }
 
 // Hydrate orchestrates the clone and scan process
@@ -247,7 +263,11 @@ func (h *Hydrate) cloneRepo(ctx context.Context, status *RepoStatus) {
 	// Check if already cloned (must have .git directory to be valid)
 	gitDir := filepath.Join(repoPath, ".git")
 	if _, err := os.Stat(gitDir); err == nil {
-		// Already exists, just update stats
+		// Already exists - check if we need to deepen history for ownership analysis
+		if h.needsDeepHistory() && h.isShallowRepo(repoPath) {
+			h.deepenHistory(ctx, repoPath)
+		}
+
 		status.CloneOK = true
 		status.FileCount = h.countFiles(repoPath)
 
@@ -276,7 +296,7 @@ func (h *Hydrate) cloneRepo(ctx context.Context, status *RepoStatus) {
 		return
 	}
 
-	// Clone with depth=1 (prefer HTTPS for broader compatibility)
+	// Clone with configurable depth (prefer HTTPS for broader compatibility)
 	cloneURL := repo.CloneURL
 	if cloneURL == "" && repo.NameWithOwner != "" {
 		// Build HTTPS URL from nameWithOwner
@@ -286,11 +306,18 @@ func (h *Hydrate) cloneRepo(ctx context.Context, status *RepoStatus) {
 		// Fallback to SSH URL if HTTPS is unavailable
 		cloneURL = repo.SSHURL
 	}
-	cmd := exec.CommandContext(ctx, "git", "clone",
-		"--depth", "1",
-		cloneURL,
-		repoPath,
-	)
+
+	// Determine clone depth - use configured depth, profile default, or 1
+	cloneDepth := 1
+	if h.opts.Depth > 0 {
+		cloneDepth = h.opts.Depth
+	} else if h.needsDeepHistory() {
+		// Profiles that need git history for ownership analysis
+		cloneDepth = 100 // Enough commits for 90-day analysis
+	}
+
+	cloneArgs := []string{"clone", "--depth", fmt.Sprintf("%d", cloneDepth), cloneURL, repoPath}
+	cmd := exec.CommandContext(ctx, "git", cloneArgs...)
 	cmd.Stdout = nil
 	cmd.Stderr = nil
 
@@ -301,6 +328,9 @@ func (h *Hydrate) cloneRepo(ctx context.Context, status *RepoStatus) {
 
 	status.CloneOK = true
 	status.FileCount = h.countFiles(repoPath)
+
+	// Detect and cache languages (available to all scanners)
+	h.detectAndCacheLanguages(repo, repoPath)
 
 	commit := h.getCommitHash(repoPath)
 	size := h.getRepoSize(repoPath)
@@ -362,7 +392,8 @@ func (h *Hydrate) scanRepos(ctx context.Context, statuses []*RepoStatus, scanner
 		// Move cursor past all scanner lines and print completion
 		fmt.Println() // Ensure we're on a new line
 		if status.ScanOK {
-			h.term.Success("%s complete (%ds)", status.Repo.Name, int(status.Duration.Seconds()))
+			msg := formatScanCompleteMessage(status)
+			h.term.Success(msg)
 		} else {
 			h.term.Error("%s failed", status.Repo.Name)
 		}
@@ -414,16 +445,11 @@ func (h *Hydrate) scanReposParallel(ctx context.Context, statuses []*RepoStatus,
 			// Run scan (simplified - no line updates in parallel mode)
 			h.scanRepoSimple(ctx, s, scanners, skipScanners)
 
-			// Print result with SBOM stats if available
+			// Print result with scanner-appropriate stats
 			mu.Lock()
 			if s.ScanOK {
-				if s.SBOMPackages > 0 || s.SBOMSize > 0 {
-					h.term.Success("%s complete (%ds) - %d packages, %s",
-						s.Repo.Name, int(s.Duration.Seconds()),
-						s.SBOMPackages, formatBytes(s.SBOMSize))
-				} else {
-					h.term.Success("%s complete (%ds)", s.Repo.Name, int(s.Duration.Seconds()))
-				}
+				msg := formatScanCompleteMessage(s)
+				h.term.Success(msg)
 				success++
 			} else {
 				h.term.Error("%s failed", s.Repo.Name)
@@ -487,9 +513,11 @@ func (h *Hydrate) scanRepoSimple(ctx context.Context, status *RepoStatus, scanne
 
 	status.ScanOK = allSuccess
 	status.Duration = time.Since(start)
+	status.ScannersRun = scanners
 
-	// Extract SBOM stats if sbom scanner was run
+	// Extract stats from scanner outputs
 	h.extractSBOMStats(status, outputDir)
+	h.extractOwnershipStats(status, outputDir)
 }
 
 // extractSBOMStats reads SBOM file to get package count and file size
@@ -517,6 +545,53 @@ func (h *Hydrate) extractSBOMStats(status *RepoStatus, outputDir string) {
 		return
 	}
 	status.SBOMPackages = len(sbom.Components)
+}
+
+// extractOwnershipStats reads code-ownership.json to get contributor and language stats
+func (h *Hydrate) extractOwnershipStats(status *RepoStatus, outputDir string) {
+	ownershipPath := filepath.Join(outputDir, "code-ownership.json")
+
+	data, err := os.ReadFile(ownershipPath)
+	if err != nil {
+		return
+	}
+
+	var ownership struct {
+		Summary struct {
+			TotalContributors      int    `json:"total_contributors"`
+			AllTimeContributors    int    `json:"all_time_contributors"`
+			LanguagesDetected      int    `json:"languages_detected"`
+			BusFactor              int    `json:"bus_factor"`
+			BusFactorRisk          string `json:"bus_factor_risk"`
+			TotalCommits           int    `json:"total_commits"`
+			DaysSinceLastCommit    int    `json:"days_since_last_commit"`
+			AnalysisPeriodAdjusted bool   `json:"analysis_period_adjusted"`
+			RepoActivityStatus     string `json:"repo_activity_status"`
+			TopLanguages           []struct {
+				Name       string  `json:"name"`
+				FileCount  int     `json:"file_count"`
+				Percentage float64 `json:"percentage"`
+			} `json:"top_languages"`
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal(data, &ownership); err != nil {
+		return
+	}
+
+	status.OwnershipContributors = ownership.Summary.TotalContributors
+	status.OwnershipAllTime = ownership.Summary.AllTimeContributors
+	status.OwnershipLanguages = ownership.Summary.LanguagesDetected
+	status.OwnershipBusFactor = ownership.Summary.BusFactor
+	status.OwnershipBusFactorRisk = ownership.Summary.BusFactorRisk
+	status.OwnershipTotalCommits = ownership.Summary.TotalCommits
+	status.OwnershipLastCommitDays = ownership.Summary.DaysSinceLastCommit
+	status.OwnershipPeriodAdjusted = ownership.Summary.AnalysisPeriodAdjusted
+	status.OwnershipActivityStatus = ownership.Summary.RepoActivityStatus
+
+	// Get top language name
+	if len(ownership.Summary.TopLanguages) > 0 {
+		status.OwnershipTopLanguage = ownership.Summary.TopLanguages[0].Name
+	}
 }
 
 // scanRepoWithProgress runs all scanners with real-time line updates
@@ -601,6 +676,7 @@ func (h *Hydrate) scanRepoWithProgress(ctx context.Context, status *RepoStatus, 
 	}
 
 	status.ScanOK = result.Success
+	status.ScannersRun = scanners
 
 	// Copy results to progress tracker
 	for name, res := range result.Results {
@@ -611,6 +687,10 @@ func (h *Hydrate) scanRepoWithProgress(ctx context.Context, status *RepoStatus, 
 			r.Error = res.Error
 		}
 	}
+
+	// Extract stats from scanner outputs
+	h.extractSBOMStats(status, outputDir)
+	h.extractOwnershipStats(status, outputDir)
 }
 
 // shouldWarnSlowScanners checks if we should warn about slow scanners
@@ -714,6 +794,68 @@ func (h *Hydrate) getCommitHash(path string) string {
 	return strings.TrimSpace(string(out))
 }
 
+// needsDeepHistory returns true if the current profile requires git history for analysis
+func (h *Hydrate) needsDeepHistory() bool {
+	profile := strings.ToLower(h.opts.Profile)
+	// Profiles that include code-ownership scanner need git history
+	deepHistoryProfiles := []string{
+		"code-ownership-only",
+		"ownership",
+		"full",
+		"health",
+	}
+	for _, p := range deepHistoryProfiles {
+		if profile == p {
+			return true
+		}
+	}
+	return false
+}
+
+// isShallowRepo checks if the repository is a shallow clone
+func (h *Hydrate) isShallowRepo(repoPath string) bool {
+	shallowFile := filepath.Join(repoPath, ".git", "shallow")
+	_, err := os.Stat(shallowFile)
+	return err == nil
+}
+
+// detectAndCacheLanguages runs language detection and caches results for all scanners
+func (h *Hydrate) detectAndCacheLanguages(repo github.Repository, repoPath string) {
+	// Build analysis directory path
+	projectID := github.ProjectID(repo.NameWithOwner)
+	analysisDir := filepath.Join(h.zeroHome, "repos", projectID, "analysis")
+
+	// Create analysis directory if needed
+	if err := os.MkdirAll(analysisDir, 0755); err != nil {
+		return // Best effort - scanners can detect languages themselves if this fails
+	}
+
+	// Run language detection
+	opts := languages.DefaultScanOptions()
+	opts.OnlyProgramming = true
+	stats, err := languages.ScanDirectory(repoPath, opts)
+	if err != nil {
+		return
+	}
+
+	// Write to languages.json
+	langFile := filepath.Join(analysisDir, "languages.json")
+	data, err := json.MarshalIndent(stats, "", "  ")
+	if err != nil {
+		return
+	}
+	os.WriteFile(langFile, data, 0644)
+}
+
+// deepenHistory fetches more commit history for a shallow clone
+func (h *Hydrate) deepenHistory(ctx context.Context, repoPath string) {
+	// Fetch more commits (100 should cover 90 days of activity for most repos)
+	cmd := exec.CommandContext(ctx, "git", "-C", repoPath, "fetch", "--deepen=100")
+	cmd.Stdout = nil
+	cmd.Stderr = nil
+	cmd.Run() // Ignore errors - best effort
+}
+
 func (h *Hydrate) getRepoSize(path string) string {
 	cmd := exec.Command("du", "-sh", path)
 	out, err := cmd.Output()
@@ -784,6 +926,71 @@ func formatBytes(bytes int64) string {
 	default:
 		return fmt.Sprintf("%dB", bytes)
 	}
+}
+
+// formatScanCompleteMessage creates an appropriate completion message based on which scanners were run
+func formatScanCompleteMessage(s *RepoStatus) string {
+	base := fmt.Sprintf("%s complete (%ds)", s.Repo.Name, int(s.Duration.Seconds()))
+
+	// Check which scanners were run to show appropriate stats
+	hasOwnershipOnly := len(s.ScannersRun) == 1 && s.ScannersRun[0] == "code-ownership"
+	hasSBOM := containsScanner(s.ScannersRun, "sbom")
+
+	// Code ownership only - show ownership stats (bus factor, contributors)
+	if hasOwnershipOnly {
+		// Build a comprehensive ownership summary
+		parts := []string{}
+
+		// Bus factor risk is the key metric
+		if s.OwnershipBusFactorRisk != "" {
+			parts = append(parts, fmt.Sprintf("bus factor: %s", s.OwnershipBusFactorRisk))
+		}
+
+		// Show contributor info (prefer period-specific, fallback to all-time)
+		if s.OwnershipContributors > 0 {
+			if s.OwnershipAllTime > s.OwnershipContributors {
+				parts = append(parts, fmt.Sprintf("%d contributors (%d all-time)", s.OwnershipContributors, s.OwnershipAllTime))
+			} else {
+				parts = append(parts, fmt.Sprintf("%d contributors", s.OwnershipContributors))
+			}
+		} else if s.OwnershipAllTime > 0 {
+			parts = append(parts, fmt.Sprintf("%d all-time contributors", s.OwnershipAllTime))
+		}
+
+		// Show activity status if repo is stale
+		if s.OwnershipLastCommitDays > 90 && s.OwnershipTotalCommits > 0 {
+			parts = append(parts, fmt.Sprintf("last commit %dd ago", s.OwnershipLastCommitDays))
+		}
+
+		// Note if period was adjusted
+		if s.OwnershipPeriodAdjusted {
+			parts = append(parts, "period extended")
+		}
+
+		if len(parts) > 0 {
+			return fmt.Sprintf("%s - %s", base, strings.Join(parts, ", "))
+		}
+		// Truly no data
+		return fmt.Sprintf("%s - no ownership data", base)
+	}
+
+	// SBOM was run - show package stats
+	if hasSBOM && (s.SBOMPackages > 0 || s.SBOMSize > 0) {
+		return fmt.Sprintf("%s - %d packages, %s", base, s.SBOMPackages, formatBytes(s.SBOMSize))
+	}
+
+	// Fallback to basic message
+	return base
+}
+
+// containsScanner checks if a scanner name is in the list
+func containsScanner(scanners []string, name string) bool {
+	for _, s := range scanners {
+		if s == name {
+			return true
+		}
+	}
+	return false
 }
 
 func contains(slice []string, item string) bool {
