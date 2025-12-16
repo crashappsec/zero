@@ -626,11 +626,21 @@ func (h *Hydrate) scanRepoWithProgress(ctx context.Context, status *RepoStatus, 
 
 		switch st {
 		case scanner.StatusRunning:
-			status.Progress.SetRunning(name)
+			// Only set running state if not already running (avoids resetting start time on status updates)
 			startTimesMu.Lock()
-			scannerStartTimes[name] = time.Now()
+			_, hasStartTime := scannerStartTimes[name]
+			if !hasStartTime {
+				scannerStartTimes[name] = time.Now()
+				status.Progress.SetRunning(name)
+			}
 			startTimesMu.Unlock()
-			h.term.UpdateScannerStatus(linesUp, name, "running", terminal.IconArrow, terminal.Cyan, "")
+
+			// Show real-time status message if provided, otherwise show "running"
+			displayStatus := "running"
+			if summary != "" {
+				displayStatus = summary
+			}
+			h.term.UpdateScannerStatus(linesUp, name, displayStatus, terminal.IconArrow, terminal.Cyan, "")
 
 		case scanner.StatusComplete:
 			startTimesMu.Lock()

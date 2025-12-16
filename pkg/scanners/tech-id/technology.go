@@ -69,7 +69,69 @@ func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) 
 
 	repoPath := opts.RepoPath
 
-	// Run each enabled feature
+	// Status callback - use OnStatus from options if provided, otherwise verbose fallback
+	onStatus := func(msg string) {
+		if opts.OnStatus != nil {
+			opts.OnStatus(msg)
+		} else if opts.Verbose {
+			fmt.Printf("[tech-id] %s\n", msg)
+		}
+	}
+
+	// Step 1: Check semgrep is installed (required)
+	onStatus("Checking semgrep installation...")
+	if !HasSemgrep() {
+		return nil, fmt.Errorf("semgrep is required but not installed. Install with: pip install semgrep")
+	}
+
+	// Step 2: Refresh semgrep rules from RAG patterns
+	var ruleManager *RuleManager
+	onStatus("Loading RAG technology patterns...")
+	ruleManager = NewRuleManager(RuleManagerConfig{
+		TTL:      s.config.Semgrep.CacheTTL,
+		OnStatus: onStatus,
+	})
+	refreshResult := ruleManager.RefreshRules(ctx, s.config.Semgrep.ForceRefresh)
+	if refreshResult.Error != nil {
+		return nil, fmt.Errorf("failed to refresh semgrep rules: %w", refreshResult.Error)
+	}
+	result.FeaturesRun = append(result.FeaturesRun, "semgrep_rules")
+	result.Summary.SemgrepRulesLoaded = refreshResult.TotalRules
+
+	// Log rule loading results (printed directly as persistent log line)
+	if refreshResult.Refreshed {
+		fmt.Printf("          ▸ Converted RAG patterns → %d semgrep rules (%d tech, %d secrets, %d AI/ML)\n",
+			refreshResult.TotalRules, refreshResult.TechRules, refreshResult.SecretRules, refreshResult.AIMLRules)
+	} else {
+		fmt.Printf("          ▸ Using cached semgrep rules (%d patterns)\n", refreshResult.TotalRules)
+	}
+
+	// Step 3: Run semgrep with generated rules
+	rulePaths := ruleManager.GetRulePaths()
+	if len(rulePaths) == 0 {
+		return nil, fmt.Errorf("no semgrep rules were generated from RAG patterns")
+	}
+	onStatus(fmt.Sprintf("Running semgrep with %d rule files...", len(rulePaths)))
+	semgrepResult := RunSemgrepWithRules(ctx, repoPath, ruleManager, onStatus)
+	if semgrepResult.Error != nil {
+		return nil, fmt.Errorf("semgrep scan failed: %w", semgrepResult.Error)
+	}
+
+	// Report semgrep results
+	techCount := len(semgrepResult.Technologies)
+	secretCount := len(semgrepResult.Secrets)
+	if techCount > 0 || secretCount > 0 {
+		onStatus(fmt.Sprintf("Semgrep found %d technologies, %d secrets in %.1fs",
+			techCount, secretCount, semgrepResult.Duration.Seconds()))
+	} else {
+		onStatus(fmt.Sprintf("Semgrep scan completed in %.1fs (no findings)", semgrepResult.Duration.Seconds()))
+	}
+
+	// Merge semgrep findings into result
+	s.mergeSemgrepFindings(semgrepResult, result)
+	result.FeaturesRun = append(result.FeaturesRun, "semgrep_scan")
+
+	// Run each enabled feature (Go-native detection)
 	if s.config.Technology.Enabled {
 		result.FeaturesRun = append(result.FeaturesRun, "technology")
 		s.runTechnologyFeature(ctx, repoPath, opts.SBOMPath, result)
@@ -120,6 +182,56 @@ func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) 
 	}
 
 	return scanResult, nil
+}
+
+// mergeSemgrepFindings merges semgrep results into the main result
+func (s *TechnologyScanner) mergeSemgrepFindings(semgrepResult *SemgrepResult, result *Result) {
+	if semgrepResult == nil {
+		return
+	}
+
+	// Count total findings
+	result.Summary.SemgrepFindings = len(semgrepResult.Findings) + len(semgrepResult.Secrets)
+
+	// Merge technology findings with file locations for inline display
+	for _, f := range semgrepResult.Findings {
+		tech := Technology{
+			Name:       f.Technology,
+			Category:   f.Category,
+			Confidence: f.Confidence,
+			Source:     "semgrep",
+			File:       f.File,
+			Line:       f.Line,
+			Match:      f.Match,
+		}
+		result.Findings.Technology = append(result.Findings.Technology, tech)
+	}
+
+	// Merge secret findings into security findings
+	for _, sf := range semgrepResult.Secrets {
+		finding := SecurityFinding{
+			ID:          sf.RuleID,
+			Category:    "api_key_exposure",
+			Severity:    sf.Severity,
+			Title:       fmt.Sprintf("Exposed %s", sf.SecretType),
+			Description: sf.Message,
+			File:        sf.File,
+			Line:        sf.Line,
+			Remediation: "Remove the secret and rotate credentials",
+		}
+		result.Findings.Security = append(result.Findings.Security, finding)
+	}
+
+	// Update technology summary with semgrep-detected technologies
+	if result.Summary.Technology == nil {
+		result.Summary.Technology = &TechnologySummary{
+			ByCategory: make(map[string]int),
+		}
+	}
+	for tech, count := range semgrepResult.Technologies {
+		result.Summary.Technology.TotalTechnologies += count
+		result.Summary.Technology.ByCategory[tech] += count
+	}
 }
 
 // runModelsFeature detects ML models in the repository

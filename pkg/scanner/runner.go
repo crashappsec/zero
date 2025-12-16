@@ -139,6 +139,12 @@ func (r *NativeRunner) RunScanners(ctx context.Context, opts RunOptions) (*RunRe
 					OutputDir: outputDir,
 					SBOMPath:  sbomPath,
 					Timeout:   timeout,
+					// Forward status messages to progress callback
+					OnStatus: func(msg string) {
+						if r.OnProgress != nil {
+							r.OnProgress(scanner.Name(), StatusRunning, msg)
+						}
+					},
 				}
 				sbomMu.RUnlock()
 
@@ -666,6 +672,70 @@ func extractSummaryString(name string, result *ScanResult) string {
 			return fmt.Sprintf("%d recommendations (%d security, %d health)", total, security, health)
 		}
 		return fmt.Sprintf("%d package recommendations", total)
+
+	case "tech-id":
+		// Get semgrep stats
+		semgrepRules := getIntFromMap(summary, "semgrep_rules_loaded")
+		semgrepFindings := getIntFromMap(summary, "semgrep_findings")
+
+		// Get technology summary
+		var techSummary map[string]interface{}
+		if ts, ok := summary["technology"].(map[string]interface{}); ok {
+			techSummary = ts
+		}
+
+		totalTech := 0
+		if techSummary != nil {
+			totalTech = getIntFromMap(techSummary, "total_technologies")
+		}
+
+		// Get models summary
+		var modelsSummary map[string]interface{}
+		if ms, ok := summary["models"].(map[string]interface{}); ok {
+			modelsSummary = ms
+		}
+
+		totalModels := 0
+		if modelsSummary != nil {
+			totalModels = getIntFromMap(modelsSummary, "total_models")
+		}
+
+		// Get security summary
+		var securitySummary map[string]interface{}
+		if ss, ok := summary["security"].(map[string]interface{}); ok {
+			securitySummary = ss
+		}
+
+		securityFindings := 0
+		if securitySummary != nil {
+			securityFindings = getIntFromMap(securitySummary, "total_findings")
+		}
+
+		// Build summary parts
+		parts := []string{}
+
+		if semgrepRules > 0 {
+			parts = append(parts, fmt.Sprintf("%d rules loaded", semgrepRules))
+		}
+
+		if totalTech > 0 {
+			parts = append(parts, fmt.Sprintf("%d technologies", totalTech))
+		}
+
+		if totalModels > 0 {
+			parts = append(parts, fmt.Sprintf("%d ML models", totalModels))
+		}
+
+		if securityFindings > 0 {
+			parts = append(parts, fmt.Sprintf("%d security findings", securityFindings))
+		} else if semgrepFindings > 0 {
+			parts = append(parts, fmt.Sprintf("%d findings", semgrepFindings))
+		}
+
+		if len(parts) > 0 {
+			return strings.Join(parts, ", ")
+		}
+		return "no technologies detected"
 	}
 
 	return "complete"

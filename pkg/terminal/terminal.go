@@ -222,6 +222,17 @@ func (t *Terminal) UpdateScannerStatus(linesUp int, name string, status string, 
 	)
 }
 
+// LogScannerStatus logs a scanner status message on a new line (doesn't update in place)
+func (t *Terminal) LogScannerStatus(name string, status string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	fmt.Printf("          %s %s: %s\n",
+		t.Color(Dim, IconArrow),
+		t.Color(Dim, name),
+		t.Color(Dim, status),
+	)
+}
+
 // Progress prints an in-place progress line (overwrites current line)
 func (t *Terminal) Progress(completed, total int, active string) {
 	t.mu.Lock()

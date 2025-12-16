@@ -9,13 +9,15 @@ type Result struct {
 
 // Summary holds summaries from all features
 type Summary struct {
-	Technology *TechnologySummary `json:"technology,omitempty"` // General technology detection
-	Models     *ModelsSummary     `json:"models,omitempty"`
-	Frameworks *FrameworksSummary `json:"frameworks,omitempty"`
-	Datasets   *DatasetsSummary   `json:"datasets,omitempty"`
-	Security   *SecuritySummary   `json:"security,omitempty"`
-	Governance *GovernanceSummary `json:"governance,omitempty"`
-	Errors     []string           `json:"errors,omitempty"`
+	Technology         *TechnologySummary `json:"technology,omitempty"` // General technology detection
+	Models             *ModelsSummary     `json:"models,omitempty"`
+	Frameworks         *FrameworksSummary `json:"frameworks,omitempty"`
+	Datasets           *DatasetsSummary   `json:"datasets,omitempty"`
+	Security           *SecuritySummary   `json:"security,omitempty"`
+	Governance         *GovernanceSummary `json:"governance,omitempty"`
+	SemgrepRulesLoaded int                `json:"semgrep_rules_loaded,omitempty"` // Number of semgrep rules loaded
+	SemgrepFindings    int                `json:"semgrep_findings,omitempty"`     // Findings from semgrep
+	Errors             []string           `json:"errors,omitempty"`
 }
 
 // Findings holds detailed findings from all features
@@ -47,7 +49,10 @@ type Technology struct {
 	Category   string `json:"category"`   // language, framework, database, container, iac, ci-cd, etc.
 	Version    string `json:"version,omitempty"`
 	Confidence int    `json:"confidence"` // 0-100
-	Source     string `json:"source"`     // config, extension, sbom
+	Source     string `json:"source"`     // config, extension, sbom, semgrep
+	File       string `json:"file,omitempty"`       // File where detected (for semgrep findings)
+	Line       int    `json:"line,omitempty"`       // Line number (for semgrep findings)
+	Match      string `json:"match,omitempty"`      // Matched code snippet
 }
 
 // ModelsSummary contains ML model inventory summary

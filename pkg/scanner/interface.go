@@ -43,6 +43,10 @@ type ScanOptions struct {
 	// Verbose enables verbose logging
 	Verbose bool
 
+	// OnStatus is called with progress messages during scanning
+	// This allows scanners to report what they're doing in real-time
+	OnStatus func(message string)
+
 	// ExtraArgs contains scanner-specific options
 	ExtraArgs map[string]string
 
