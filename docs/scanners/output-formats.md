@@ -455,6 +455,114 @@ Consolidated DevOps and infrastructure findings:
 }
 ```
 
+## SARIF Export
+
+Zero supports exporting findings in SARIF (Static Analysis Results Interchange Format) v2.1.0 for integration with IDEs, CI/CD systems, and security tools.
+
+### Generating SARIF Output
+
+```bash
+# Export single repo to SARIF
+./zero report --repo owner/repo --format sarif
+
+# Export to file
+./zero report --repo owner/repo --format sarif --output findings.sarif.json
+
+# Export entire org
+./zero report --org myorg --format sarif
+```
+
+### SARIF Structure
+
+Zero generates separate SARIF runs for each scanner type:
+
+| Tool Name | Source Scanner | Findings |
+|-----------|---------------|----------|
+| `zero-code-security` | code-security | SAST vulnerabilities |
+| `zero-secrets` | code-security | Detected secrets |
+| `zero-package-vulns` | package-analysis | Dependency vulnerabilities |
+| `zero-crypto` | crypto | Weak ciphers, hardcoded keys |
+| `zero-code-quality` | code-quality | Tech debt, complexity |
+
+### Example SARIF Output
+
+```json
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "zero-code-security",
+          "version": "1.0.0",
+          "informationUri": "https://github.com/crashappsec/zero",
+          "rules": [
+            {
+              "id": "sql-injection",
+              "name": "sql-injection",
+              "shortDescription": {
+                "text": "SQL injection vulnerability"
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "sql-injection",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "SQL injection vulnerability"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "src/db/users.js"
+                },
+                "region": {
+                  "startLine": 42
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Severity Mapping
+
+| Zero Severity | SARIF Level |
+|---------------|-------------|
+| critical | error |
+| high | error |
+| medium | warning |
+| low | note |
+| info | note |
+
+### Using SARIF with GitHub Code Scanning
+
+Upload SARIF to GitHub for code scanning integration:
+
+```yaml
+# .github/workflows/security.yml
+- name: Run Zero Security Scan
+  run: ./zero hydrate . && ./zero report --repo ${{ github.repository }} --format sarif --output results.sarif
+
+- name: Upload SARIF
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: results.sarif
+```
+
 ## See Also
 
 - [Scanner Reference](reference.md) - Available scanners
