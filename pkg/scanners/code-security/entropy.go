@@ -374,6 +374,32 @@ func isUniformAlphanumeric(s string) bool {
 
 // inferSecretType tries to determine the type of secret based on patterns
 func (a *EntropyAnalyzer) inferSecretType(value, context string) string {
+	// First, try to match against RAG patterns
+	if secretType := a.matchRAGPatterns(value); secretType != "" {
+		return secretType
+	}
+
+	// Fall back to hardcoded heuristics for context-based inference
+	return a.inferSecretTypeFromContext(value, context)
+}
+
+// matchRAGPatterns attempts to match value against RAG secret patterns
+func (a *EntropyAnalyzer) matchRAGPatterns(value string) string {
+	patterns, err := LoadRAGSecretPatterns()
+	if err != nil || len(patterns) == 0 {
+		return "" // Fall back to hardcoded patterns
+	}
+
+	for _, p := range patterns {
+		if p.Pattern != nil && p.Pattern.MatchString(value) {
+			return p.Name
+		}
+	}
+	return ""
+}
+
+// inferSecretTypeFromContext uses hardcoded heuristics for type inference
+func (a *EntropyAnalyzer) inferSecretTypeFromContext(value, context string) string {
 	valueLower := strings.ToLower(value)
 	contextLower := strings.ToLower(context)
 

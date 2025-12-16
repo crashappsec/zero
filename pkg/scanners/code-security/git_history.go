@@ -17,16 +17,40 @@ type GitHistoryScanner struct {
 
 // secretPattern defines a pattern for detecting a specific secret type
 type secretPattern struct {
-	name     string
-	pattern  *regexp.Regexp
-	severity string
+	name        string
+	pattern     *regexp.Regexp
+	severity    string
+	description string
+	technology  string
 }
 
 // NewGitHistoryScanner creates a new git history scanner
 func NewGitHistoryScanner(config GitHistoryConfig) *GitHistoryScanner {
 	scanner := &GitHistoryScanner{config: config}
-	scanner.initPatterns()
+	scanner.loadPatterns()
 	return scanner
+}
+
+// loadPatterns loads secret patterns from RAG files, with fallback to hardcoded patterns
+func (s *GitHistoryScanner) loadPatterns() {
+	// Try to load patterns from RAG files
+	ragPatterns, err := LoadRAGSecretPatterns()
+	if err == nil && len(ragPatterns) > 0 {
+		s.patterns = make([]*secretPattern, 0, len(ragPatterns))
+		for _, rp := range ragPatterns {
+			s.patterns = append(s.patterns, &secretPattern{
+				name:        rp.Name,
+				pattern:     rp.Pattern,
+				severity:    rp.Severity,
+				description: rp.Description,
+				technology:  rp.Technology,
+			})
+		}
+		return
+	}
+
+	// Fallback to hardcoded patterns if RAG loading fails
+	s.initFallbackPatterns()
 }
 
 // GitHistoryResult holds results from git history scanning
@@ -37,8 +61,9 @@ type GitHistoryResult struct {
 	SecretsRemoved int
 }
 
-// initPatterns initializes secret detection patterns
-func (s *GitHistoryScanner) initPatterns() {
+// initFallbackPatterns initializes hardcoded secret detection patterns as fallback
+// These are used when RAG patterns cannot be loaded
+func (s *GitHistoryScanner) initFallbackPatterns() {
 	s.patterns = []*secretPattern{
 		// AWS
 		{
