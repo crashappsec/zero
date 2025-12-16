@@ -117,8 +117,14 @@ func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) 
 		return nil, fmt.Errorf("semgrep scan failed: %w", semgrepResult.Error)
 	}
 
-	// Report semgrep results
-	techCount := len(semgrepResult.Technologies)
+	// Report semgrep results - count unique technologies from findings
+	uniqueTechs := make(map[string]bool)
+	for _, f := range semgrepResult.Findings {
+		if f.Technology != "" {
+			uniqueTechs[f.Technology] = true
+		}
+	}
+	techCount := len(uniqueTechs)
 	secretCount := len(semgrepResult.Secrets)
 	if techCount > 0 || secretCount > 0 {
 		onStatus(fmt.Sprintf("Semgrep found %d technologies, %d secrets in %.1fs",
@@ -228,10 +234,18 @@ func (s *TechnologyScanner) mergeSemgrepFindings(semgrepResult *SemgrepResult, r
 			ByCategory: make(map[string]int),
 		}
 	}
-	for tech, count := range semgrepResult.Technologies {
-		result.Summary.Technology.TotalTechnologies += count
-		result.Summary.Technology.ByCategory[tech] += count
+	// semgrepResult.Technologies is keyed by category -> count
+	for category, count := range semgrepResult.Technologies {
+		result.Summary.Technology.ByCategory[category] += count
 	}
+	// Count unique technologies from findings for TotalTechnologies
+	uniqueTechs := make(map[string]bool)
+	for _, f := range semgrepResult.Findings {
+		if f.Technology != "" {
+			uniqueTechs[f.Technology] = true
+		}
+	}
+	result.Summary.Technology.TotalTechnologies += len(uniqueTechs)
 }
 
 // runModelsFeature detects ML models in the repository
