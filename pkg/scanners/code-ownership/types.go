@@ -1,6 +1,8 @@
 // Package codeownership provides code ownership and CODEOWNERS analysis
 package codeownership
 
+import "time"
+
 // Result holds all code ownership analysis results
 type Result struct {
 	FeaturesRun []string `json:"features_run"`
@@ -22,8 +24,16 @@ type Summary struct {
 	Warnings          []string       `json:"warnings,omitempty"`
 	Errors            []string       `json:"errors,omitempty"`
 
+	// Historical commit stats (full history, not just period)
+	TotalCommits         int    `json:"total_commits,omitempty"`           // Total commits in repo history
+	AllTimeContributors  int    `json:"all_time_contributors,omitempty"`   // Total unique contributors ever
+	LastCommitDate       string `json:"last_commit_date,omitempty"`        // ISO 8601 date of most recent commit
+	DaysSinceLastCommit  int    `json:"days_since_last_commit,omitempty"`  // Days since last commit
+	RepoActivityStatus   string `json:"repo_activity_status,omitempty"`    // active, recent, stale, inactive, abandoned
+	AnalysisPeriodAdjusted bool  `json:"analysis_period_adjusted,omitempty"` // True if period was extended due to inactivity
+
 	// Enhanced ownership fields (v2.0)
-	BusFactor           int     `json:"bus_factor,omitempty"`             // Number of people who need to leave before knowledge is lost
+	BusFactor           int     `json:"bus_factor"`                       // Number of people who need to leave before knowledge is lost
 	BusFactorRisk       string  `json:"bus_factor_risk,omitempty"`        // critical, warning, healthy
 	OwnershipCoverage   float64 `json:"ownership_coverage,omitempty"`     // 0-1, percentage of files with clear owners
 	CodeownersIssues    int     `json:"codeowners_issues,omitempty"`      // Number of validation issues
@@ -59,12 +69,14 @@ type Findings struct {
 
 // Contributor represents a code contributor
 type Contributor struct {
-	Name         string `json:"name"`
-	Email        string `json:"email"`
-	Commits      int    `json:"commits"`
-	FilesTouched int    `json:"files_touched"`
-	LinesAdded   int    `json:"lines_added"`
-	LinesRemoved int    `json:"lines_removed"`
+	Name         string      `json:"name"`
+	Email        string      `json:"email"`
+	Commits      int         `json:"commits"`
+	FilesTouched int         `json:"files_touched"`
+	LinesAdded   int         `json:"lines_added"`
+	LinesRemoved int         `json:"lines_removed"`
+	LastCommit   time.Time   `json:"-"` // Not serialized, used for scoring
+	CommitDates  []time.Time `json:"-"` // Not serialized, used for consistency scoring
 }
 
 // DeveloperProfile represents a developer's competency profile across languages
