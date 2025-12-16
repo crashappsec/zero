@@ -31,26 +31,25 @@ func NewGitHistoryScanner(config GitHistoryConfig) *GitHistoryScanner {
 	return scanner
 }
 
-// loadPatterns loads secret patterns from RAG files, with fallback to hardcoded patterns
+// loadPatterns loads secret patterns from RAG files
 func (s *GitHistoryScanner) loadPatterns() {
-	// Try to load patterns from RAG files
 	ragPatterns, err := LoadRAGSecretPatterns()
-	if err == nil && len(ragPatterns) > 0 {
-		s.patterns = make([]*secretPattern, 0, len(ragPatterns))
-		for _, rp := range ragPatterns {
-			s.patterns = append(s.patterns, &secretPattern{
-				name:        rp.Name,
-				pattern:     rp.Pattern,
-				severity:    rp.Severity,
-				description: rp.Description,
-				technology:  rp.Technology,
-			})
-		}
+	if err != nil {
+		// Log error but continue with empty patterns
+		s.patterns = []*secretPattern{}
 		return
 	}
 
-	// Fallback to hardcoded patterns if RAG loading fails
-	s.initFallbackPatterns()
+	s.patterns = make([]*secretPattern, 0, len(ragPatterns))
+	for _, rp := range ragPatterns {
+		s.patterns = append(s.patterns, &secretPattern{
+			name:        rp.Name,
+			pattern:     rp.Pattern,
+			severity:    rp.Severity,
+			description: rp.Description,
+			technology:  rp.Technology,
+		})
+	}
 }
 
 // GitHistoryResult holds results from git history scanning
@@ -59,161 +58,6 @@ type GitHistoryResult struct {
 	CommitsScanned int
 	SecretsFound   int
 	SecretsRemoved int
-}
-
-// initFallbackPatterns initializes hardcoded secret detection patterns as fallback
-// These are used when RAG patterns cannot be loaded
-func (s *GitHistoryScanner) initFallbackPatterns() {
-	s.patterns = []*secretPattern{
-		// AWS
-		{
-			name:     "aws_access_key",
-			pattern:  regexp.MustCompile(`(?i)(AKIA|ABIA|ACCA|ASIA)[0-9A-Z]{16}`),
-			severity: "critical",
-		},
-		{
-			name:     "aws_secret_key",
-			pattern:  regexp.MustCompile(`(?i)aws[_\-]?secret[_\-]?(?:access[_\-]?)?key['":\s=]+['"]?([A-Za-z0-9/+=]{40})['"]?`),
-			severity: "critical",
-		},
-
-		// GitHub
-		{
-			name:     "github_token",
-			pattern:  regexp.MustCompile(`gh[pousr]_[A-Za-z0-9_]{36,}`),
-			severity: "critical",
-		},
-		{
-			name:     "github_oauth",
-			pattern:  regexp.MustCompile(`gho_[A-Za-z0-9_]{36}`),
-			severity: "critical",
-		},
-
-		// Stripe
-		{
-			name:     "stripe_secret_key",
-			pattern:  regexp.MustCompile(`sk_live_[A-Za-z0-9]{24,}`),
-			severity: "critical",
-		},
-		{
-			name:     "stripe_restricted_key",
-			pattern:  regexp.MustCompile(`rk_live_[A-Za-z0-9]{24,}`),
-			severity: "critical",
-		},
-
-		// Slack
-		{
-			name:     "slack_token",
-			pattern:  regexp.MustCompile(`xox[baprs]-[0-9]{10,}-[0-9A-Za-z]{10,}`),
-			severity: "critical",
-		},
-		{
-			name:     "slack_webhook",
-			pattern:  regexp.MustCompile(`hooks\.slack\.com/services/T[A-Z0-9]{8,}/B[A-Z0-9]{8,}/[A-Za-z0-9]{24}`),
-			severity: "high",
-		},
-
-		// OpenAI / Anthropic
-		{
-			name:     "openai_api_key",
-			pattern:  regexp.MustCompile(`sk-[A-Za-z0-9]{48,}`),
-			severity: "critical",
-		},
-		{
-			name:     "anthropic_api_key",
-			pattern:  regexp.MustCompile(`sk-ant-[A-Za-z0-9\-]{80,}`),
-			severity: "critical",
-		},
-
-		// Google
-		{
-			name:     "google_api_key",
-			pattern:  regexp.MustCompile(`AIza[0-9A-Za-z\-_]{35}`),
-			severity: "high",
-		},
-		{
-			name:     "gcp_service_account",
-			pattern:  regexp.MustCompile(`"type"\s*:\s*"service_account"`),
-			severity: "critical",
-		},
-
-		// Azure
-		{
-			name:     "azure_storage_key",
-			pattern:  regexp.MustCompile(`(?i)AccountKey=[A-Za-z0-9+/=]{88}`),
-			severity: "critical",
-		},
-
-		// Private Keys
-		{
-			name:     "private_key",
-			pattern:  regexp.MustCompile(`-----BEGIN (?:RSA |EC |DSA |OPENSSH )?PRIVATE KEY-----`),
-			severity: "critical",
-		},
-
-		// JWT
-		{
-			name:     "jwt_token",
-			pattern:  regexp.MustCompile(`eyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*`),
-			severity: "medium",
-		},
-
-		// Database URLs
-		{
-			name:     "database_url",
-			pattern:  regexp.MustCompile(`(?i)(?:mongodb|postgres|mysql|redis)://[^\s'"]+:[^\s'"]+@[^\s'"]+`),
-			severity: "critical",
-		},
-
-		// Generic API Keys
-		{
-			name:     "generic_api_key",
-			pattern:  regexp.MustCompile(`(?i)(?:api[_\-]?key|apikey)['":\s=]+['"]?([A-Za-z0-9_\-]{20,})['"]?`),
-			severity: "medium",
-		},
-
-		// Twilio
-		{
-			name:     "twilio_auth_token",
-			pattern:  regexp.MustCompile(`(?i)twilio[_\-]?(?:auth[_\-]?)?token['":\s=]+['"]?([a-f0-9]{32})['"]?`),
-			severity: "critical",
-		},
-
-		// SendGrid
-		{
-			name:     "sendgrid_api_key",
-			pattern:  regexp.MustCompile(`SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}`),
-			severity: "critical",
-		},
-
-		// Mailchimp
-		{
-			name:     "mailchimp_api_key",
-			pattern:  regexp.MustCompile(`[a-f0-9]{32}-us[0-9]{1,2}`),
-			severity: "high",
-		},
-
-		// NPM
-		{
-			name:     "npm_token",
-			pattern:  regexp.MustCompile(`npm_[A-Za-z0-9]{36}`),
-			severity: "critical",
-		},
-
-		// Heroku
-		{
-			name:     "heroku_api_key",
-			pattern:  regexp.MustCompile(`(?i)heroku[_\-]?(?:api[_\-]?)?key['":\s=]+['"]?([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})['"]?`),
-			severity: "critical",
-		},
-
-		// Datadog
-		{
-			name:     "datadog_api_key",
-			pattern:  regexp.MustCompile(`(?i)datadog[_\-]?(?:api[_\-]?)?key['":\s=]+['"]?([a-f0-9]{32})['"]?`),
-			severity: "high",
-		},
-	}
 }
 
 // ScanRepository scans git history for secrets

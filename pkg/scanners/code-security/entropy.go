@@ -372,99 +372,17 @@ func isUniformAlphanumeric(s string) bool {
 	return false
 }
 
-// inferSecretType tries to determine the type of secret based on patterns
+// inferSecretType tries to determine the type of secret based on RAG patterns
 func (a *EntropyAnalyzer) inferSecretType(value, context string) string {
-	// First, try to match against RAG patterns
-	if secretType := a.matchRAGPatterns(value); secretType != "" {
-		return secretType
-	}
-
-	// Fall back to hardcoded heuristics for context-based inference
-	return a.inferSecretTypeFromContext(value, context)
-}
-
-// matchRAGPatterns attempts to match value against RAG secret patterns
-func (a *EntropyAnalyzer) matchRAGPatterns(value string) string {
 	patterns, err := LoadRAGSecretPatterns()
 	if err != nil || len(patterns) == 0 {
-		return "" // Fall back to hardcoded patterns
+		return "high_entropy_string"
 	}
 
 	for _, p := range patterns {
 		if p.Pattern != nil && p.Pattern.MatchString(value) {
 			return p.Name
 		}
-	}
-	return ""
-}
-
-// inferSecretTypeFromContext uses hardcoded heuristics for type inference
-func (a *EntropyAnalyzer) inferSecretTypeFromContext(value, context string) string {
-	valueLower := strings.ToLower(value)
-	contextLower := strings.ToLower(context)
-
-	// AWS patterns
-	if strings.HasPrefix(value, "AKIA") || strings.HasPrefix(value, "ABIA") ||
-		strings.HasPrefix(value, "ACCA") || strings.HasPrefix(value, "ASIA") {
-		return "aws_access_key"
-	}
-	if strings.Contains(contextLower, "aws") && len(value) == 40 {
-		return "aws_secret_key"
-	}
-
-	// GitHub patterns
-	if strings.HasPrefix(value, "ghp_") || strings.HasPrefix(value, "gho_") ||
-		strings.HasPrefix(value, "ghu_") || strings.HasPrefix(value, "ghs_") ||
-		strings.HasPrefix(value, "ghr_") {
-		return "github_token"
-	}
-
-	// Stripe patterns
-	if strings.HasPrefix(valueLower, "sk_live_") || strings.HasPrefix(valueLower, "rk_live_") {
-		return "stripe_secret_key"
-	}
-
-	// Slack patterns
-	if strings.HasPrefix(valueLower, "xoxb-") || strings.HasPrefix(valueLower, "xoxp-") ||
-		strings.HasPrefix(valueLower, "xoxa-") || strings.HasPrefix(valueLower, "xoxr-") {
-		return "slack_token"
-	}
-
-	// OpenAI/Anthropic patterns
-	if strings.HasPrefix(valueLower, "sk-") && len(value) > 40 {
-		if strings.Contains(contextLower, "anthropic") {
-			return "anthropic_api_key"
-		}
-		return "openai_api_key"
-	}
-
-	// Private key patterns
-	if strings.Contains(contextLower, "private") && strings.Contains(contextLower, "key") {
-		return "private_key"
-	}
-
-	// Database patterns
-	if strings.Contains(contextLower, "database") || strings.Contains(contextLower, "db_") ||
-		strings.Contains(contextLower, "mysql") || strings.Contains(contextLower, "postgres") ||
-		strings.Contains(contextLower, "mongo") {
-		return "database_credential"
-	}
-
-	// JWT patterns
-	if strings.Contains(contextLower, "jwt") || strings.HasPrefix(value, "eyJ") {
-		return "jwt_token"
-	}
-
-	// Generic API key
-	if strings.Contains(contextLower, "api_key") || strings.Contains(contextLower, "apikey") ||
-		strings.Contains(contextLower, "api-key") {
-		return "api_key"
-	}
-
-	// Generic secret
-	if strings.Contains(contextLower, "secret") || strings.Contains(contextLower, "password") ||
-		strings.Contains(contextLower, "token") || strings.Contains(contextLower, "credential") {
-		return "generic_secret"
 	}
 
 	return "high_entropy_string"
