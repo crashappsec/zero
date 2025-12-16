@@ -1,0 +1,493 @@
+// Package techid provides the consolidated technology identification super scanner
+// This file converts RAG markdown patterns to Semgrep YAML rules
+package techid
+
+import (
+	"bufio"
+	"fmt"
+	"os"
+	"path/filepath"
+	"regexp"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+)
+
+// SemgrepRule represents a single semgrep rule
+type SemgrepRule struct {
+	ID            string                 `yaml:"id"`
+	Message       string                 `yaml:"message"`
+	Severity      string                 `yaml:"severity"`
+	Languages     []string               `yaml:"languages"`
+	Metadata      map[string]interface{} `yaml:"metadata,omitempty"`
+	Pattern       string                 `yaml:"pattern,omitempty"`
+	PatternEither []PatternItem          `yaml:"pattern-either,omitempty"`
+	PatternRegex  string                 `yaml:"pattern-regex,omitempty"`
+}
+
+// PatternItem represents a pattern in pattern-either
+type PatternItem struct {
+	Pattern string `yaml:"pattern"`
+}
+
+// SemgrepRules represents the full rules file
+type SemgrepRules struct {
+	Rules []SemgrepRule `yaml:"rules"`
+}
+
+// RAGPattern holds parsed pattern data from markdown
+type RAGPattern struct {
+	Name        string
+	Category    string
+	Description string
+	Packages    map[string][]string // ecosystem -> package names
+	Imports     map[string][]ImportPattern // language -> patterns
+	EnvVars     []string
+	Secrets     []SecretPattern
+	Confidence  map[string]int
+}
+
+// ImportPattern represents an import detection pattern
+type ImportPattern struct {
+	Pattern     string
+	Description string
+	Type        string
+}
+
+// SecretPattern represents a secret detection pattern
+type SecretPattern struct {
+	Name        string
+	Pattern     string
+	Severity    string
+	Description string
+}
+
+// ConvertRAGToSemgrep converts all RAG patterns to semgrep rules
+func ConvertRAGToSemgrep(ragDir, outputDir string) (*ConversionResult, error) {
+	result := &ConversionResult{
+		TechDiscovery: SemgrepRules{Rules: []SemgrepRule{}},
+		Secrets:       SemgrepRules{Rules: []SemgrepRule{}},
+		AIML:          SemgrepRules{Rules: []SemgrepRule{}},
+	}
+
+	// Find all patterns.md files in technology-identification
+	techIDDir := filepath.Join(ragDir, "technology-identification")
+	patternFiles, err := findPatternFiles(techIDDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find pattern files: %w", err)
+	}
+
+	for _, pf := range patternFiles {
+		pattern, err := parsePatternFile(pf)
+		if err != nil {
+			continue // Skip files that fail to parse
+		}
+
+		rules := convertPatternToRules(pattern, pf, ragDir)
+		for _, rule := range rules {
+			if strings.Contains(rule.ID, ".secret.") {
+				result.Secrets.Rules = append(result.Secrets.Rules, rule)
+			} else if strings.Contains(pattern.Category, "ai-ml") {
+				result.AIML.Rules = append(result.AIML.Rules, rule)
+			} else {
+				result.TechDiscovery.Rules = append(result.TechDiscovery.Rules, rule)
+			}
+		}
+	}
+
+	// Write output files
+	if err := os.MkdirAll(outputDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create output dir: %w", err)
+	}
+
+	if len(result.TechDiscovery.Rules) > 0 {
+		if err := writeYAML(filepath.Join(outputDir, "tech-discovery.yaml"), result.TechDiscovery); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(result.Secrets.Rules) > 0 {
+		if err := writeYAML(filepath.Join(outputDir, "secrets.yaml"), result.Secrets); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(result.AIML.Rules) > 0 {
+		if err := writeYAML(filepath.Join(outputDir, "ai-ml.yaml"), result.AIML); err != nil {
+			return nil, err
+		}
+	}
+
+	result.TotalRules = len(result.TechDiscovery.Rules) + len(result.Secrets.Rules) + len(result.AIML.Rules)
+	return result, nil
+}
+
+// ConversionResult holds the conversion output
+type ConversionResult struct {
+	TechDiscovery SemgrepRules
+	Secrets       SemgrepRules
+	AIML          SemgrepRules
+	TotalRules    int
+}
+
+// findPatternFiles recursively finds all patterns.md files
+func findPatternFiles(dir string) ([]string, error) {
+	var files []string
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil // Skip errors
+		}
+		if !info.IsDir() && info.Name() == "patterns.md" {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files, err
+}
+
+// parsePatternFile parses a RAG patterns.md file
+func parsePatternFile(path string) (*RAGPattern, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	pattern := &RAGPattern{
+		Packages:   make(map[string][]string),
+		Imports:    make(map[string][]ImportPattern),
+		Confidence: make(map[string]int),
+	}
+
+	scanner := bufio.NewScanner(file)
+	var currentSection string
+	var currentSubsection string
+
+	// Regex patterns for parsing
+	nameRe := regexp.MustCompile(`^#\s+(.+)$`)
+	categoryRe := regexp.MustCompile(`\*\*Category\*\*:\s*(.+)`)
+	descRe := regexp.MustCompile(`\*\*Description\*\*:\s*(.+)`)
+	packageRe := regexp.MustCompile(`^-\s*` + "`" + `([^` + "`" + `]+)` + "`")
+	patternRe := regexp.MustCompile(`\*\*Pattern\*\*:\s*` + "`" + `([^` + "`" + `]+)` + "`")
+	secretPatternRe := regexp.MustCompile(`\*\*Pattern\*\*:\s*` + "`" + `([^` + "`" + `]+)` + "`")
+	severityRe := regexp.MustCompile(`\*\*Severity\*\*:\s*(\w+)`)
+
+	var inSecretsSection bool
+	var currentSecret *SecretPattern
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmed := strings.TrimSpace(line)
+
+		// Parse name from first heading
+		if pattern.Name == "" {
+			if m := nameRe.FindStringSubmatch(trimmed); m != nil {
+				pattern.Name = m[1]
+				continue
+			}
+		}
+
+		// Parse category
+		if m := categoryRe.FindStringSubmatch(trimmed); m != nil {
+			pattern.Category = m[1]
+			continue
+		}
+
+		// Parse description
+		if m := descRe.FindStringSubmatch(trimmed); m != nil {
+			pattern.Description = m[1]
+			continue
+		}
+
+		// Track sections
+		if strings.HasPrefix(trimmed, "## ") {
+			currentSection = strings.TrimPrefix(trimmed, "## ")
+			currentSubsection = ""
+			inSecretsSection = strings.Contains(currentSection, "Secrets")
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "### ") {
+			currentSubsection = strings.TrimPrefix(trimmed, "### ")
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "#### ") && inSecretsSection {
+			// Start of a new secret pattern
+			secretName := strings.TrimPrefix(trimmed, "#### ")
+			currentSecret = &SecretPattern{Name: secretName}
+			pattern.Secrets = append(pattern.Secrets, *currentSecret)
+			continue
+		}
+
+		// Parse packages
+		if strings.Contains(currentSection, "Package Detection") {
+			if m := packageRe.FindStringSubmatch(trimmed); m != nil {
+				ecosystem := strings.ToLower(currentSubsection)
+				pattern.Packages[ecosystem] = append(pattern.Packages[ecosystem], m[1])
+			}
+		}
+
+		// Parse import patterns
+		if strings.Contains(currentSection, "Import Detection") {
+			if m := patternRe.FindStringSubmatch(trimmed); m != nil {
+				lang := strings.ToLower(currentSubsection)
+				pattern.Imports[lang] = append(pattern.Imports[lang], ImportPattern{
+					Pattern: m[1],
+				})
+			}
+		}
+
+		// Parse environment variables
+		if strings.Contains(currentSection, "Environment Variables") {
+			if m := packageRe.FindStringSubmatch(trimmed); m != nil {
+				pattern.EnvVars = append(pattern.EnvVars, m[1])
+			}
+		}
+
+		// Parse secrets
+		if inSecretsSection && len(pattern.Secrets) > 0 {
+			lastIdx := len(pattern.Secrets) - 1
+			if m := secretPatternRe.FindStringSubmatch(trimmed); m != nil {
+				pattern.Secrets[lastIdx].Pattern = m[1]
+			}
+			if m := severityRe.FindStringSubmatch(trimmed); m != nil {
+				pattern.Secrets[lastIdx].Severity = m[1]
+			}
+		}
+	}
+
+	return pattern, nil
+}
+
+// convertPatternToRules converts a parsed pattern to semgrep rules
+func convertPatternToRules(pattern *RAGPattern, filePath, ragDir string) []SemgrepRule {
+	var rules []SemgrepRule
+
+	// Generate base ID from path
+	relPath, _ := filepath.Rel(ragDir, filePath)
+	baseID := pathToID(relPath)
+
+	// Create import detection rules for each language
+	for lang, imports := range pattern.Imports {
+		if len(imports) == 0 {
+			continue
+		}
+
+		semgrepLang := mapLanguage(lang)
+		if semgrepLang == "" {
+			continue
+		}
+
+		var patterns []string
+		for _, imp := range imports {
+			converted := regexToSemgrep(imp.Pattern, lang)
+			if converted != "" {
+				patterns = append(patterns, converted)
+			}
+		}
+
+		if len(patterns) == 0 {
+			continue
+		}
+
+		ruleID := fmt.Sprintf("zero.%s.import.%s", baseID, semgrepLang)
+		rule := SemgrepRule{
+			ID:        ruleID,
+			Message:   fmt.Sprintf("%s library import detected", pattern.Name),
+			Severity:  "INFO",
+			Languages: []string{semgrepLang},
+			Metadata: map[string]interface{}{
+				"technology":     pattern.Name,
+				"category":       pattern.Category,
+				"detection_type": "import",
+				"confidence":     getConfidence(pattern, "import"),
+			},
+		}
+
+		if len(patterns) == 1 {
+			rule.Pattern = patterns[0]
+		} else {
+			for _, p := range patterns {
+				rule.PatternEither = append(rule.PatternEither, PatternItem{Pattern: p})
+			}
+		}
+
+		rules = append(rules, rule)
+	}
+
+	// Create secret detection rules
+	for _, secret := range pattern.Secrets {
+		if secret.Pattern == "" {
+			continue
+		}
+
+		ruleID := fmt.Sprintf("zero.%s.secret.%s", baseID, sanitizeID(secret.Name))
+		rule := SemgrepRule{
+			ID:        ruleID,
+			Message:   fmt.Sprintf("Potential %s %s exposed", pattern.Name, secret.Name),
+			Severity:  mapSeverity(secret.Severity),
+			Languages: []string{"generic"},
+			Metadata: map[string]interface{}{
+				"technology":  pattern.Name,
+				"category":    "secrets",
+				"secret_type": secret.Name,
+				"confidence":  95,
+			},
+			PatternRegex: secret.Pattern,
+		}
+		rules = append(rules, rule)
+	}
+
+	return rules
+}
+
+// pathToID converts a file path to a rule ID component
+func pathToID(path string) string {
+	// Remove patterns.md and file extension
+	path = strings.TrimSuffix(path, "/patterns.md")
+	path = strings.TrimPrefix(path, "technology-identification/")
+	// Replace path separators with dots
+	id := strings.ReplaceAll(path, "/", ".")
+	id = strings.ReplaceAll(id, "\\", ".")
+	// Sanitize
+	id = regexp.MustCompile(`[^a-z0-9.-]`).ReplaceAllString(strings.ToLower(id), "-")
+	return id
+}
+
+// sanitizeID sanitizes a string for use in a rule ID
+func sanitizeID(s string) string {
+	s = strings.ToLower(s)
+	s = regexp.MustCompile(`[^a-z0-9]+`).ReplaceAllString(s, "-")
+	s = strings.Trim(s, "-")
+	return s
+}
+
+// mapLanguage maps RAG language names to semgrep language names
+func mapLanguage(lang string) string {
+	mapping := map[string]string{
+		"python":     "python",
+		"javascript": "javascript",
+		"typescript": "typescript",
+		"go":         "go",
+		"ruby":       "ruby",
+		"java":       "java",
+		"php":        "php",
+		"csharp":     "csharp",
+		"c#":         "csharp",
+		"rust":       "rust",
+	}
+	return mapping[lang]
+}
+
+// mapSeverity maps RAG severity to semgrep severity
+func mapSeverity(sev string) string {
+	mapping := map[string]string{
+		"critical": "ERROR",
+		"high":     "WARNING",
+		"medium":   "WARNING",
+		"low":      "INFO",
+	}
+	if mapped, ok := mapping[strings.ToLower(sev)]; ok {
+		return mapped
+	}
+	return "INFO"
+}
+
+// getConfidence returns the confidence score for a detection type
+func getConfidence(pattern *RAGPattern, detType string) int {
+	key := strings.ReplaceAll(detType, " ", "_") + "_detection"
+	if conf, ok := pattern.Confidence[key]; ok {
+		return conf
+	}
+	return 85 // Default
+}
+
+// regexToSemgrep converts a regex pattern to semgrep pattern syntax
+func regexToSemgrep(regex, language string) string {
+	pattern := regex
+
+	switch language {
+	case "python":
+		// `^import openai` -> `import openai`
+		if strings.HasPrefix(pattern, "^import ") {
+			return strings.TrimPrefix(pattern, "^")
+		}
+		// `^from openai import` -> `from openai import $X`
+		if strings.HasPrefix(pattern, "^from ") && strings.Contains(pattern, " import") {
+			re := regexp.MustCompile(`\^from\s+(\S+)\s+import`)
+			if m := re.FindStringSubmatch(pattern); m != nil {
+				return fmt.Sprintf("from %s import $X", m[1])
+			}
+		}
+		// `import\s+psycopg2` -> `import psycopg2`
+		if strings.HasPrefix(pattern, "import\\s+") {
+			module := strings.TrimPrefix(pattern, "import\\s+")
+			// Unescape dots for semgrep
+			module = strings.ReplaceAll(module, `\.`, ".")
+			return fmt.Sprintf("import %s", module)
+		}
+		// `from\s+psycopg2` -> `from psycopg2 import $X`
+		if strings.HasPrefix(pattern, "from\\s+") {
+			module := strings.TrimPrefix(pattern, "from\\s+")
+			// Unescape dots for semgrep
+			module = strings.ReplaceAll(module, `\.`, ".")
+			// Skip patterns that just have "from X" without a complete module
+			if strings.TrimSpace(module) == "" || strings.HasSuffix(module, ".") {
+				return ""
+			}
+			return fmt.Sprintf("from %s import $X", module)
+		}
+
+	case "javascript", "typescript":
+		// `from\s+['"]pg['"]` -> `import $X from "pg"`
+		fromRe := regexp.MustCompile(`from\s*\['\"\]([^\[]+)\['\"\]`)
+		if m := fromRe.FindStringSubmatch(pattern); m != nil {
+			return fmt.Sprintf(`import $X from "%s"`, m[1])
+		}
+		// `require\(['"]pg['"]\)` -> `require("pg")`
+		requireRe := regexp.MustCompile(`require\s*\\\(\s*\['\"\]([^\[]+)\['\"\]\s*\\\)`)
+		if m := requireRe.FindStringSubmatch(pattern); m != nil {
+			return fmt.Sprintf(`require("%s")`, m[1])
+		}
+		// Simple require pattern
+		if strings.Contains(pattern, "require") {
+			simpleReqRe := regexp.MustCompile(`require\(['"]([^'"]+)['"]\)`)
+			if m := simpleReqRe.FindStringSubmatch(pattern); m != nil {
+				return fmt.Sprintf(`require("%s")`, m[1])
+			}
+		}
+
+	case "go":
+		// `"github\.com/lib/pq"` -> `import "github.com/lib/pq"`
+		if strings.HasPrefix(pattern, `"`) && strings.HasSuffix(pattern, `"`) {
+			// Unescape dots and return the full quoted string
+			unescaped := strings.ReplaceAll(pattern, `\.`, ".")
+			return fmt.Sprintf("import %s", unescaped)
+		}
+		// Patterns without closing quote - skip
+		if strings.HasPrefix(pattern, `"`) && !strings.HasSuffix(pattern, `"`) {
+			return "" // Invalid pattern
+		}
+
+	case "ruby":
+		// `require\s+['"]pg['"]` -> `require "pg"`
+		if strings.HasPrefix(pattern, "require") {
+			rubyRe := regexp.MustCompile(`require\s*\['\"\]([^\[]+)\['\"\]`)
+			if m := rubyRe.FindStringSubmatch(pattern); m != nil {
+				return fmt.Sprintf(`require "%s"`, m[1])
+			}
+		}
+	}
+
+	return ""
+}
+
+// writeYAML writes rules to a YAML file
+func writeYAML(path string, rules SemgrepRules) error {
+	data, err := yaml.Marshal(rules)
+	if err != nil {
+		return fmt.Errorf("failed to marshal rules: %w", err)
+	}
+	return os.WriteFile(path, data, 0644)
+}
