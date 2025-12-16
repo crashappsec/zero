@@ -1,14 +1,14 @@
-# Quality Scanner
+# Code Quality Scanner
 
-The Quality scanner provides comprehensive code quality analysis, including technical debt detection, complexity analysis, test coverage, and documentation quality assessment.
+The Code Quality scanner provides comprehensive code quality analysis, including technical debt detection, complexity analysis, test coverage, and documentation quality assessment.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
-| **Name** | `quality` |
+| **Name** | `code-quality` |
 | **Version** | 3.2.0 |
-| **Output File** | `quality.json` |
+| **Output File** | `code-quality.json` |
 | **Dependencies** | None |
 | **Estimated Time** | 30-90 seconds |
 
@@ -318,17 +318,17 @@ Analyzes project documentation quality and completeness.
 ### Command Line
 
 ```bash
-# Run quality scanner only
-./zero scan --scanner quality /path/to/repo
+# Run code-quality scanner only
+./zero scan --scanner code-quality /path/to/repo
 
-# Run quality profile
-./zero hydrate owner/repo --profile quality-only
+# Run code-quality profile
+./zero hydrate owner/repo --profile code-quality-only
 ```
 
 ### Programmatic Usage
 
 ```go
-import "github.com/crashappsec/zero/pkg/scanners/quality"
+import "github.com/crashappsec/zero/pkg/scanners/code-quality"
 
 opts := &scanner.ScanOptions{
     RepoPath:  "/path/to/repo",
@@ -353,7 +353,7 @@ opts := &scanner.ScanOptions{
     },
 }
 
-scanner := &quality.QualityScanner{}
+scanner := &codequality.CodeQualityScanner{}
 result, err := scanner.Run(ctx, opts)
 ```
 
@@ -361,7 +361,7 @@ result, err := scanner.Run(ctx, opts)
 
 ```json
 {
-  "scanner": "quality",
+  "scanner": "code-quality",
   "version": "3.2.0",
   "metadata": {
     "features_run": ["tech_debt", "complexity", "test_coverage", "documentation"]

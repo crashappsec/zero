@@ -432,12 +432,12 @@ result, err := scanner.Run(ctx, opts)
 
 ## Related Scanners
 
-- **health**: Overlaps on code ownership via git analysis
+- **code-ownership**: Overlaps on code ownership via git analysis
 - **code-security**: May detect similar issues in IaC
 
 ## See Also
 
-- [Health Scanner](health.md) - Project health and ownership analysis
+- [Code Ownership Scanner](ownership.md) - Code ownership analysis
 - [DORA Metrics](https://dora.dev/research/) - DevOps performance metrics
 - [Checkov](https://www.checkov.io/) - IaC security scanner
 - [Trivy](https://trivy.dev/) - Container and IaC scanner

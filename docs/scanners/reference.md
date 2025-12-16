@@ -24,13 +24,13 @@ The `sbom` scanner runs first as the **source of truth**, and `package-analysis`
 | Scanner | Features | Output | Docs |
 |---------|----------|--------|------|
 | **sbom** | generation, integrity | `sbom.json` + `sbom.cdx.json` | [sbom.md](sbom.md) |
-| **package-analysis** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | `package-analysis.json` | [packages.md](packages.md) |
+| **package-analysis** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | `package-analysis.json` | [package-analysis.md](package-analysis.md) |
 | **crypto** | ciphers, keys, random, tls, certificates | `crypto.json` | [crypto.md](crypto.md) |
 | **code-security** | vulns, secrets, api | `code-security.json` | [code-security.md](code-security.md) |
-| **code-quality** | tech_debt, complexity, test_coverage, documentation | `code-quality.json` | [quality.md](quality.md) |
+| **code-quality** | tech_debt, complexity, test_coverage, documentation | `code-quality.json` | [code-quality.md](quality.md) |
 | **devops** | iac, containers, github_actions, dora, git | `devops.json` | [devops.md](devops.md) |
-| **tech-id** | technology, models, frameworks, datasets, security, governance, semgrep_rules | `tech-id.json` | [technology.md](technology.md) |
-| **code-ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | `code-ownership.json` | [ownership.md](ownership.md) |
+| **tech-id** | technology, models, frameworks, datasets, security, governance, semgrep_rules | `technology.json` | [tech-id.md](technology.md) |
+| **code-ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | `code-ownership.json` | [code-ownership.md](ownership.md) |
 
 ## Quick Reference
 
@@ -205,9 +205,9 @@ Profiles can override default feature settings. For example, the `quick` profile
 ```json
 {
   "quick": {
-    "scanners": ["sbom", "packages", "health"],
+    "scanners": ["sbom", "package-analysis"],
     "feature_overrides": {
-      "packages": {
+      "package-analysis": {
         "malcontent": {"enabled": false},
         "provenance": {"enabled": false}
       }

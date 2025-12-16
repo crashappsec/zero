@@ -430,12 +430,11 @@ No external tools required. Uses:
 ## Related Scanners
 
 - **devops**: DORA metrics complement ownership data
-- **health**: Uses ownership for project health scoring
-- **code**: Code quality often correlates with ownership
+- **code-quality**: Code quality often correlates with ownership
 
 ## See Also
 
 - [DevOps Scanner](devops.md) - DORA metrics and git analysis
-- [Health Scanner](health.md) - Overall project health
+- [Code Quality Scanner](quality.md) - Code quality analysis
 - [go-enry documentation](https://github.com/go-enry/go-enry)
 - [CODEOWNERS documentation](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)

@@ -248,3 +248,444 @@ func TestBuildTechnologySummary(t *testing.T) {
 		t.Errorf("Expected 2 primary languages, got %d", len(summary.PrimaryLanguages))
 	}
 }
+
+func TestTechnologyScanner_Name(t *testing.T) {
+	s := &TechnologyScanner{}
+	if s.Name() != "tech-id" {
+		t.Errorf("Name() = %q, want %q", s.Name(), "tech-id")
+	}
+}
+
+func TestTechnologyScanner_Description(t *testing.T) {
+	s := &TechnologyScanner{}
+	desc := s.Description()
+	if desc == "" {
+		t.Error("Description() should not be empty")
+	}
+}
+
+func TestTechnologyScanner_Dependencies(t *testing.T) {
+	s := &TechnologyScanner{}
+	deps := s.Dependencies()
+	// Returns empty slice, not nil
+	if len(deps) != 0 {
+		t.Errorf("Dependencies() = %v, want empty slice", deps)
+	}
+}
+
+func TestTechnologyScanner_EstimateDuration(t *testing.T) {
+	s := &TechnologyScanner{}
+
+	tests := []struct {
+		fileCount int
+		wantMin   int
+	}{
+		{0, 5},     // Base is 5 seconds
+		{500, 10},  // 5s + 500*10ms = 10s
+		{1000, 15}, // 5s + 1000*10ms = 15s
+		{5000, 55}, // 5s + 5000*10ms = 55s
+	}
+
+	for _, tt := range tests {
+		got := s.EstimateDuration(tt.fileCount)
+		if got.Seconds() < float64(tt.wantMin) {
+			t.Errorf("EstimateDuration(%d) = %v, want at least %ds", tt.fileCount, got, tt.wantMin)
+		}
+	}
+}
+
+func TestDefaultConfig(t *testing.T) {
+	cfg := DefaultConfig()
+
+	if !cfg.Technology.Enabled {
+		t.Error("Technology should be enabled by default")
+	}
+	if !cfg.Models.Enabled {
+		t.Error("Models should be enabled by default")
+	}
+	if !cfg.Frameworks.Enabled {
+		t.Error("Frameworks should be enabled by default")
+	}
+	if !cfg.Security.Enabled {
+		t.Error("Security should be enabled by default")
+	}
+	if !cfg.Governance.Enabled {
+		t.Error("Governance should be enabled by default")
+	}
+	if !cfg.Semgrep.Enabled {
+		t.Error("Semgrep should be enabled by default")
+	}
+	if !cfg.Security.CheckPickleFiles {
+		t.Error("Security.CheckPickleFiles should be enabled by default")
+	}
+	if !cfg.Security.CheckAPIKeyExposure {
+		t.Error("Security.CheckAPIKeyExposure should be enabled by default")
+	}
+}
+
+func TestQuickConfig(t *testing.T) {
+	cfg := QuickConfig()
+
+	if cfg.Semgrep.Enabled {
+		t.Error("Semgrep should be disabled in quick config")
+	}
+	if cfg.Technology.ScanExtensions {
+		t.Error("Technology.ScanExtensions should be disabled in quick config")
+	}
+	if cfg.Models.QueryHuggingFace {
+		t.Error("Models.QueryHuggingFace should be disabled in quick config")
+	}
+	if cfg.Datasets.Enabled {
+		t.Error("Datasets should be disabled in quick config")
+	}
+	if cfg.Governance.Enabled {
+		t.Error("Governance should be disabled in quick config")
+	}
+}
+
+func TestSecurityOnlyConfig(t *testing.T) {
+	cfg := SecurityOnlyConfig()
+
+	if !cfg.Security.Enabled {
+		t.Error("Security should be enabled in security-only config")
+	}
+	if !cfg.Security.CheckPickleFiles {
+		t.Error("Security.CheckPickleFiles should be enabled in security-only config")
+	}
+	if !cfg.Security.DetectUnsafeLoading {
+		t.Error("Security.DetectUnsafeLoading should be enabled in security-only config")
+	}
+	if !cfg.Security.CheckAPIKeyExposure {
+		t.Error("Security.CheckAPIKeyExposure should be enabled in security-only config")
+	}
+	if cfg.Governance.Enabled {
+		t.Error("Governance should be disabled in security-only config")
+	}
+	if cfg.Datasets.Enabled {
+		t.Error("Datasets should be disabled in security-only config")
+	}
+}
+
+func TestFullConfig(t *testing.T) {
+	cfg := FullConfig()
+
+	// All major features should be enabled
+	if !cfg.Technology.Enabled {
+		t.Error("Technology should be enabled in full config")
+	}
+	if !cfg.Models.Enabled {
+		t.Error("Models should be enabled in full config")
+	}
+	if !cfg.Frameworks.Enabled {
+		t.Error("Frameworks should be enabled in full config")
+	}
+	if !cfg.Datasets.Enabled {
+		t.Error("Datasets should be enabled in full config")
+	}
+	if !cfg.Security.Enabled {
+		t.Error("Security should be enabled in full config")
+	}
+	if !cfg.Governance.Enabled {
+		t.Error("Governance should be enabled in full config")
+	}
+	if !cfg.Semgrep.Enabled {
+		t.Error("Semgrep should be enabled in full config")
+	}
+
+	// Full config specifics
+	if !cfg.Models.QueryTFHub {
+		t.Error("Models.QueryTFHub should be enabled in full config")
+	}
+	if !cfg.Datasets.ScanDataFiles {
+		t.Error("Datasets.ScanDataFiles should be enabled in full config")
+	}
+	if !cfg.Governance.RequireModelCards {
+		t.Error("Governance.RequireModelCards should be enabled in full config")
+	}
+	if !cfg.Governance.RequireDatasetInfo {
+		t.Error("Governance.RequireDatasetInfo should be enabled in full config")
+	}
+	if len(cfg.Governance.BlockedLicenses) == 0 {
+		t.Error("Governance.BlockedLicenses should have entries in full config")
+	}
+}
+
+func TestDetectFromConfigFiles(t *testing.T) {
+	// Create temp directory with test config files
+	tmpDir, err := os.MkdirTemp("", "config-detect-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create package.json for Node/React detection
+	packageJSON := `{
+		"name": "test-app",
+		"dependencies": {
+			"react": "^18.2.0",
+			"express": "^4.18.0"
+		}
+	}`
+	if err := os.WriteFile(filepath.Join(tmpDir, "package.json"), []byte(packageJSON), 0644); err != nil {
+		t.Fatalf("Failed to write package.json: %v", err)
+	}
+
+	// Create requirements.txt for Python detection
+	requirementsTxt := `flask==2.0.0
+pandas>=1.0.0
+torch
+`
+	if err := os.WriteFile(filepath.Join(tmpDir, "requirements.txt"), []byte(requirementsTxt), 0644); err != nil {
+		t.Fatalf("Failed to write requirements.txt: %v", err)
+	}
+
+	// Create Dockerfile
+	dockerfile := `FROM python:3.11
+RUN pip install flask
+CMD ["python", "app.py"]
+`
+	if err := os.WriteFile(filepath.Join(tmpDir, "Dockerfile"), []byte(dockerfile), 0644); err != nil {
+		t.Fatalf("Failed to write Dockerfile: %v", err)
+	}
+
+	scanner := &TechnologyScanner{}
+	techs := scanner.detectFromConfigFiles(tmpDir)
+
+	// Should detect Node.js, React, Express, Python, Flask, PyTorch, Docker
+	if len(techs) == 0 {
+		t.Error("detectFromConfigFiles() should detect technologies")
+	}
+
+	// Check for expected technologies
+	techNames := make(map[string]bool)
+	for _, tech := range techs {
+		techNames[tech.Name] = true
+	}
+
+	expectedTechs := []string{"Node.js", "Docker"}
+	for _, expected := range expectedTechs {
+		if !techNames[expected] {
+			t.Errorf("Expected to detect %s", expected)
+		}
+	}
+}
+
+func TestDetectFromFileExtensions(t *testing.T) {
+	// Create temp directory with various source files
+	tmpDir, err := os.MkdirTemp("", "ext-detect-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create at least 3 files per extension (the detection requires count >= 3)
+	testFiles := map[string]string{
+		"main.go":    "package main",
+		"utils.go":   "package utils",
+		"handler.go": "package handler",
+		"app.py":     "print('hello')",
+		"utils.py":   "def util(): pass",
+		"config.py":  "DEBUG = True",
+		"index.js":   "console.log('hi')",
+		"app.js":     "const app = {}",
+		"utils.js":   "export function util() {}",
+	}
+
+	for name, content := range testFiles {
+		if err := os.WriteFile(filepath.Join(tmpDir, name), []byte(content), 0644); err != nil {
+			t.Fatalf("Failed to write %s: %v", name, err)
+		}
+	}
+
+	scanner := &TechnologyScanner{}
+	techs := scanner.detectFromFileExtensions(tmpDir)
+
+	// Should detect Go, Python, JavaScript (each has >= 3 files)
+	if len(techs) < 3 {
+		t.Errorf("detectFromFileExtensions() detected %d technologies, want at least 3", len(techs))
+	}
+
+	// Check for expected languages
+	techNames := make(map[string]bool)
+	for _, tech := range techs {
+		techNames[tech.Name] = true
+	}
+
+	expectedLangs := []string{"Go", "Python", "JavaScript"}
+	for _, expected := range expectedLangs {
+		if !techNames[expected] {
+			t.Errorf("Expected to detect %s", expected)
+		}
+	}
+}
+
+func TestConsolidateTechnologies(t *testing.T) {
+	// Test that duplicate technologies are consolidated
+	techs := []Technology{
+		{Name: "Python", Category: "language", Confidence: 80, Source: "extension"},
+		{Name: "Python", Category: "language", Confidence: 90, Source: "config"},
+		{Name: "Go", Category: "language", Confidence: 95, Source: "extension"},
+	}
+
+	scanner := &TechnologyScanner{}
+	consolidated := scanner.consolidateTechnologies(techs)
+
+	// Should have 2 unique technologies (Python and Go)
+	if len(consolidated) != 2 {
+		t.Errorf("consolidateTechnologies() returned %d techs, want 2", len(consolidated))
+	}
+
+	// Python should have higher confidence (90)
+	for _, tech := range consolidated {
+		if tech.Name == "Python" && tech.Confidence != 90 {
+			t.Errorf("Python confidence = %d, want 90 (highest)", tech.Confidence)
+		}
+	}
+}
+
+func TestModelExists(t *testing.T) {
+	models := []MLModel{
+		{Name: "gpt-4"},
+		{Name: "bert-base-uncased"},
+		{Name: "llama-2-7b"},
+	}
+
+	scanner := &TechnologyScanner{}
+
+	tests := []struct {
+		name     string
+		expected bool
+	}{
+		{"gpt-4", true},
+		{"bert-base-uncased", true},
+		{"llama-2-7b", true},
+		{"nonexistent-model", false},
+		{"GPT-4", false}, // case sensitive
+	}
+
+	for _, tt := range tests {
+		got := scanner.modelExists(models, tt.name)
+		if got != tt.expected {
+			t.Errorf("modelExists(%q) = %v, want %v", tt.name, got, tt.expected)
+		}
+	}
+}
+
+func TestCheckPickleFiles(t *testing.T) {
+	// checkPickleFiles only flags models with SecurityRisk == "high" AND Format == "pickle"
+	models := []MLModel{
+		{Name: "safe-model", Format: "safetensors", FilePath: "model.safetensors", SecurityRisk: "low"},
+		{Name: "unsafe-model", Format: "pickle", FilePath: "model.pkl", SecurityRisk: "high"},
+		{Name: "another-unsafe", Format: "pickle", FilePath: "weights.pickle", SecurityRisk: "high"},
+		{Name: "onnx-model", Format: "onnx", FilePath: "model.onnx", SecurityRisk: "low"},
+		{Name: "pickle-low-risk", Format: "pickle", FilePath: "low.pkl", SecurityRisk: "low"}, // Not flagged
+	}
+
+	scanner := &TechnologyScanner{}
+	findings := scanner.checkPickleFiles(models)
+
+	// Should find 2 high-risk pickle files (unsafe-model and another-unsafe)
+	if len(findings) != 2 {
+		t.Errorf("checkPickleFiles() found %d findings, want 2", len(findings))
+	}
+
+	// Verify severity is high
+	for _, f := range findings {
+		if f.Severity != "high" {
+			t.Errorf("Pickle file finding severity = %q, want high", f.Severity)
+		}
+		if f.Category != "pickle_rce" {
+			t.Errorf("Pickle file finding category = %q, want pickle_rce", f.Category)
+		}
+	}
+}
+
+func TestCheckUnsafeLoading(t *testing.T) {
+	// Create temp directory with test files
+	tmpDir, err := os.MkdirTemp("", "unsafe-loading-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create Python file with unsafe torch.load
+	unsafeCode := `
+import torch
+
+model = torch.load("model.pt")  # Unsafe - no weights_only
+`
+	if err := os.WriteFile(filepath.Join(tmpDir, "unsafe.py"), []byte(unsafeCode), 0644); err != nil {
+		t.Fatalf("Failed to write unsafe.py: %v", err)
+	}
+
+	// Create Python file with safe torch.load
+	safeCode := `
+import torch
+
+model = torch.load("model.pt", weights_only=True)  # Safe
+`
+	if err := os.WriteFile(filepath.Join(tmpDir, "safe.py"), []byte(safeCode), 0644); err != nil {
+		t.Fatalf("Failed to write safe.py: %v", err)
+	}
+
+	scanner := &TechnologyScanner{}
+	findings := scanner.checkUnsafeLoading(tmpDir)
+
+	// Should find the unsafe torch.load
+	if len(findings) == 0 {
+		t.Error("checkUnsafeLoading() should find unsafe torch.load")
+	}
+
+	// Verify finding details
+	for _, f := range findings {
+		if f.Category != "unsafe_loading" {
+			t.Errorf("Unsafe loading finding category = %q, want unsafe_loading", f.Category)
+		}
+	}
+}
+
+func TestCheckAPIKeyExposure(t *testing.T) {
+	// Create temp directory with code files
+	// Note: checkAPIKeyExposure skips files with "test" or "example" in the path
+	tmpDir, err := os.MkdirTemp("", "apikey")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create a src subdirectory to avoid "test" in path
+	srcDir := filepath.Join(tmpDir, "src")
+	if err := os.MkdirAll(srcDir, 0755); err != nil {
+		t.Fatalf("Failed to create src dir: %v", err)
+	}
+
+	// Create file with exposed API keys - must match patterns:
+	// OpenAI: sk-[a-zA-Z0-9]{20,}
+	// Anthropic: sk-ant-[a-zA-Z0-9-]{20,}
+	exposedCode := `
+import openai
+
+openai.api_key = "sk-abcdefghij1234567890abcdefghij1234567890abcd"
+`
+	if err := os.WriteFile(filepath.Join(srcDir, "config.py"), []byte(exposedCode), 0644); err != nil {
+		t.Fatalf("Failed to write config.py: %v", err)
+	}
+
+	scanner := &TechnologyScanner{}
+	findings := scanner.checkAPIKeyExposure(tmpDir)
+
+	// Should find exposed API keys
+	if len(findings) == 0 {
+		t.Error("checkAPIKeyExposure() should find exposed API keys")
+	}
+
+	// Verify finding details
+	for _, f := range findings {
+		if f.Category != "api_key_exposure" {
+			t.Errorf("API key exposure finding category = %q, want api_key_exposure", f.Category)
+		}
+		if f.Severity != "high" && f.Severity != "critical" {
+			t.Errorf("API key exposure finding severity = %q, want high or critical", f.Severity)
+		}
+	}
+}
