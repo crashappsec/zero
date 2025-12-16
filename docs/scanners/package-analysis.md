@@ -1,14 +1,14 @@
-# Packages Scanner
+# Package Analysis Scanner
 
-The Packages scanner provides comprehensive supply chain security analysis for all project dependencies. It **depends on the SBOM scanner** and does not generate its own SBOM.
+The Package Analysis scanner provides comprehensive supply chain security analysis for all project dependencies. It **depends on the SBOM scanner** and does not generate its own SBOM.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
-| **Name** | `packages` |
+| **Name** | `package-analysis` |
 | **Version** | 3.0.0 |
-| **Output File** | `packages.json` |
+| **Output File** | `package-analysis.json` |
 | **Dependencies** | `sbom` (required) |
 | **Estimated Time** | 60-180 seconds |
 
@@ -336,7 +336,7 @@ SBOM Scanner Output
 └─────────┴─────────┴─────────┴──────────┘
         │
         ▼
-    packages.json
+    package-analysis.json
 ```
 
 ## Usage
@@ -344,11 +344,11 @@ SBOM Scanner Output
 ### Command Line
 
 ```bash
-# Run packages scanner (requires sbom to run first)
-./zero scan --scanner packages /path/to/repo
+# Run package-analysis scanner (requires sbom to run first)
+./zero scan --scanner package-analysis /path/to/repo
 
-# Run packages profile (includes sbom + packages)
-./zero hydrate owner/repo --profile packages-only
+# Run package-analysis profile (includes sbom + package-analysis)
+./zero hydrate owner/repo --profile package-analysis-only
 ```
 
 ### Configuration Profiles
@@ -364,7 +364,7 @@ SBOM Scanner Output
 
 ```json
 {
-  "scanner": "packages",
+  "scanner": "package-analysis",
   "version": "3.0.0",
   "metadata": {
     "features_run": ["vulns", "health", "licenses", "malcontent"],
@@ -443,6 +443,6 @@ SBOM Scanner Output
 ## See Also
 
 - [SBOM Scanner](sbom.md) - Generates the component data this scanner consumes
-- [AI Scanner](ai.md) - ML-BOM generation for AI dependencies
+- [Tech-ID Scanner](technology.md) - ML-BOM generation for AI dependencies
 - [OSV Database](https://osv.dev/) - Vulnerability data source
 - [deps.dev](https://deps.dev/) - Package health data source

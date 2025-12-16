@@ -1,14 +1,14 @@
-# Technology Scanner
+# Tech-ID Scanner
 
-The Technology scanner provides comprehensive technology identification and AI/ML analysis, generating both a technology inventory and an **ML-BOM (Machine Learning Bill of Materials)**. It detects languages, frameworks, AI models, datasets, and infrastructure components using RAG-based patterns.
+The Tech-ID scanner provides comprehensive technology identification and AI/ML analysis, generating both a technology inventory and an **ML-BOM (Machine Learning Bill of Materials)**. It detects languages, frameworks, AI models, datasets, and infrastructure components using RAG-based Semgrep patterns.
 
 ## Overview
 
 | Property | Value |
 |----------|-------|
-| **Name** | `technology` |
+| **Name** | `tech-id` |
 | **Version** | 1.0.0 |
-| **Output File** | `technology.json` |
+| **Output File** | `tech-id.json` (also `technology.json` for compatibility) |
 | **Dependencies** | None (optionally uses SBOM for enrichment) |
 | **Estimated Time** | 30-90 seconds |
 
@@ -326,14 +326,14 @@ rag/technology-identification/
 ### Command Line
 
 ```bash
-# Run technology scanner only
-./zero scan --scanner technology /path/to/repo
+# Run tech-id scanner only
+./zero scan --scanner tech-id /path/to/repo
 
 # Run with quick detection (Tier 1 only)
-./zero scan --scanner technology --tier quick /path/to/repo
+./zero scan --scanner tech-id --tier quick /path/to/repo
 
 # Run with deep detection (all tiers)
-./zero scan --scanner technology --tier deep /path/to/repo
+./zero scan --scanner tech-id --tier deep /path/to/repo
 ```
 
 ### Configuration Profiles
@@ -349,7 +349,7 @@ rag/technology-identification/
 
 ```json
 {
-  "scanner": "technology",
+  "scanner": "tech-id",
   "version": "1.0.0",
   "metadata": {
     "features_run": ["detection", "models", "frameworks", "datasets", "ai_security", "ai_governance"]
@@ -444,14 +444,13 @@ No required external tools. Optional for enhanced detection:
 ## Related Scanners
 
 - **sbom**: Provides package data for Tier 1 detection enrichment
-- **packages**: Detects framework dependencies
+- **package-analysis**: Detects framework dependencies
 - **code-security**: May detect overlapping secrets
-- **health**: Uses technology data for project assessment
 
 ## See Also
 
 - [RAG Technology Patterns](../../rag/technology-identification/README.md) - Pattern database
-- [Packages Scanner](packages.md) - Dependency analysis
+- [Package Analysis Scanner](package-analysis.md) - Dependency analysis
 - [Code Security Scanner](code-security.md) - Secret detection
 - [OWASP ML Security Top 10](https://owasp.org/www-project-machine-learning-security-top-10/)
 - [HuggingFace Model Hub](https://huggingface.co/models)

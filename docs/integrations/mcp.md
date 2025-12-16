@@ -175,19 +175,18 @@ Load context for an agent (for custom analysis):
 Analysis data is stored at:
 ```
 ~/.zero/repos/{owner}/{repo}/
-├── repo/                    # Cloned repository
+├── repo/                      # Cloned repository
 └── analysis/
-    ├── manifest.json        # Scan metadata
-    ├── package-sbom.json    # SBOM data
-    ├── sbom.cdx.json        # CycloneDX SBOM
-    ├── package-vulns.json   # Vulnerability findings
-    ├── package-health.json  # Package health
-    ├── code-secrets.json    # Secret detection
-    ├── crypto-ciphers.json  # Cipher analysis
-    ├── crypto-keys.json     # Key analysis
-    ├── crypto-random.json   # RNG analysis
-    ├── crypto-tls.json      # TLS analysis
-    └── ...
+    ├── manifest.json          # Scan metadata
+    ├── sbom.json              # SBOM summary
+    ├── sbom.cdx.json          # CycloneDX SBOM
+    ├── package-analysis.json  # Package analysis (vulns, health, licenses)
+    ├── crypto.json            # Crypto analysis (ciphers, keys, tls, random)
+    ├── code-security.json     # Code security (vulns, secrets, api)
+    ├── code-quality.json      # Code quality (tech debt, coverage, docs)
+    ├── devops.json            # DevOps (iac, containers, gha, dora)
+    ├── technology.json        # Tech-ID (detection, models, ML-BOM)
+    └── code-ownership.json    # Ownership (contributors, bus factor)
 ```
 
 ### Direct File Access
