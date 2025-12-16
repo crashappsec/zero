@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/crashappsec/zero/pkg/config"
+	"github.com/crashappsec/zero/pkg/sarif"
 	"github.com/crashappsec/zero/pkg/terminal"
 )
 
@@ -18,7 +19,7 @@ type Options struct {
 	Org      string
 	Repo     string
 	Type     string // "summary", "security", "licenses", "sbom", "supply-chain", "full"
-	Format   string // "text", "json", "markdown", "html"
+	Format   string // "text", "json", "markdown", "html", "sarif"
 	Output   string // Output file path
 	Scanners []string
 }
@@ -102,6 +103,8 @@ func (r *Report) reportOrg(org string) error {
 		return r.outputJSON(findings)
 	case "markdown":
 		return r.outputMarkdown(findings)
+	case "sarif":
+		return r.outputOrgSARIF(findings)
 	default:
 		return r.outputText(findings)
 	}
@@ -124,6 +127,8 @@ func (r *Report) reportSingleRepo(repo string) error {
 		return r.outputJSON(repoFindings)
 	case "markdown":
 		return r.outputRepoMarkdown(repoFindings)
+	case "sarif":
+		return r.outputRepoSARIF(parts[0], parts[1])
 	default:
 		return r.outputRepoText(repoFindings)
 	}
@@ -989,4 +994,57 @@ func truncate(s string, max int) string {
 		return s
 	}
 	return s[:max-3] + "..."
+}
+
+// outputRepoSARIF outputs findings for a single repo in SARIF format
+func (r *Report) outputRepoSARIF(owner, name string) error {
+	analysisDir := filepath.Join(r.zeroHome, "repos", owner, name, "analysis")
+	repoPath := filepath.Join(r.zeroHome, "repos", owner, name, "repo")
+
+	exporter := sarif.NewExporter(analysisDir, repoPath)
+	log, err := exporter.Export()
+	if err != nil {
+		return fmt.Errorf("exporting SARIF: %w", err)
+	}
+
+	if r.opts.Output != "" {
+		return log.WriteJSON(r.opts.Output)
+	}
+
+	data, err := json.MarshalIndent(log, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(data))
+	return nil
+}
+
+// outputOrgSARIF outputs findings for an org in SARIF format
+func (r *Report) outputOrgSARIF(findings *OrgFindings) error {
+	log := sarif.NewLog()
+
+	for repoName := range findings.Repos {
+		analysisDir := filepath.Join(r.zeroHome, "repos", findings.Org, repoName, "analysis")
+		repoPath := filepath.Join(r.zeroHome, "repos", findings.Org, repoName, "repo")
+
+		exporter := sarif.NewExporter(analysisDir, repoPath)
+		repoLog, err := exporter.Export()
+		if err != nil {
+			continue
+		}
+
+		// Merge runs from each repo
+		log.Runs = append(log.Runs, repoLog.Runs...)
+	}
+
+	if r.opts.Output != "" {
+		return log.WriteJSON(r.opts.Output)
+	}
+
+	data, err := json.MarshalIndent(log, "", "  ")
+	if err != nil {
+		return err
+	}
+	fmt.Println(string(data))
+	return nil
 }
