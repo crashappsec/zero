@@ -379,6 +379,9 @@ func (s *TechnologyScanner) runModelsFeature(ctx context.Context, repoPath strin
 	result.Summary.Models = summary
 }
 
+// Minimum file size for model detection (10KB) - avoids test data and small files
+const minModelFileSize = 10 * 1024
+
 // detectModelFiles scans for model files by extension
 func (s *TechnologyScanner) detectModelFiles(repoPath string) []MLModel {
 	var models []MLModel
@@ -394,13 +397,37 @@ func (s *TechnologyScanner) detectModelFiles(repoPath string) []MLModel {
 		// Skip common non-model directories
 		if info.IsDir() {
 			name := info.Name()
-			if name == ".git" || name == "node_modules" || name == "__pycache__" || name == ".venv" || name == "venv" {
+			if name == ".git" || name == "node_modules" || name == "__pycache__" || name == ".venv" || name == "venv" || name == "test" || name == "tests" || name == "testdata" {
 				return filepath.SkipDir
 			}
 			return nil
 		}
 
+		// Skip files smaller than minimum size (likely test data)
+		if info.Size() < minModelFileSize {
+			return nil
+		}
+
 		ext := strings.ToLower(filepath.Ext(path))
+		fileName := strings.ToLower(info.Name())
+
+		// Special handling for .pb files - only detect saved_model.pb
+		if ext == ".pb" {
+			if !isTensorFlowSavedModel(path, fileName) {
+				return nil
+			}
+			// Add TensorFlow SavedModel format info
+			relPath, _ := filepath.Rel(repoPath, path)
+			models = append(models, MLModel{
+				Name:         info.Name(),
+				Source:       "local",
+				Format:       "tensorflow",
+				FilePath:     relPath,
+				SecurityRisk: "medium",
+			})
+			return nil
+		}
+
 		if formatInfo, ok := fileFormats[ext]; ok {
 			relPath, _ := filepath.Rel(repoPath, path)
 
@@ -423,6 +450,33 @@ func (s *TechnologyScanner) detectModelFiles(repoPath string) []MLModel {
 	})
 
 	return models
+}
+
+// isTensorFlowSavedModel checks if a .pb file is a TensorFlow SavedModel
+func isTensorFlowSavedModel(path, fileName string) bool {
+	// Must be named saved_model.pb
+	if fileName != "saved_model.pb" {
+		return false
+	}
+
+	// Check if it's in a SavedModel directory structure
+	// SavedModel directories typically contain saved_model.pb and a variables/ subdirectory
+	dir := filepath.Dir(path)
+	variablesDir := filepath.Join(dir, "variables")
+	if info, err := os.Stat(variablesDir); err == nil && info.IsDir() {
+		return true
+	}
+
+	// Also accept if parent directory looks like a model name
+	parentName := filepath.Base(dir)
+	modelDirPatterns := []string{"saved_model", "model", "checkpoint", "export"}
+	for _, pattern := range modelDirPatterns {
+		if strings.Contains(strings.ToLower(parentName), pattern) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Model loading patterns to detect in code

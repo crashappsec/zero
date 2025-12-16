@@ -399,7 +399,7 @@ func (h *Hydrate) scanRepos(ctx context.Context, statuses []*RepoStatus, scanner
 		fmt.Println() // Ensure we're on a new line
 		if status.ScanOK {
 			msg := formatScanCompleteMessage(status)
-			h.term.Success(msg)
+			h.term.Success("%s", msg)
 		} else {
 			h.term.Error("%s failed", status.Repo.Name)
 		}
@@ -455,7 +455,7 @@ func (h *Hydrate) scanReposParallel(ctx context.Context, statuses []*RepoStatus,
 			mu.Lock()
 			if s.ScanOK {
 				msg := formatScanCompleteMessage(s)
-				h.term.Success(msg)
+				h.term.Success("%s", msg)
 				success++
 			} else {
 				h.term.Error("%s failed", s.Repo.Name)
@@ -1036,9 +1036,9 @@ func formatScanCompleteMessage(s *RepoStatus) string {
 		return fmt.Sprintf("%s - %d packages, %s", base, s.SBOMPackages, formatBytes(s.SBOMSize))
 	}
 
-	// Tech-id only - show technology stats
-	hasTechIDOnly := len(s.ScannersRun) == 1 && s.ScannersRun[0] == "tech-id"
-	if hasTechIDOnly && s.TechIDTotalTech > 0 {
+	// Tech-id was run - show technology stats (if SBOM didn't already return above)
+	hasTechID := containsScanner(s.ScannersRun, "tech-id")
+	if hasTechID && s.TechIDTotalTech > 0 {
 		result := fmt.Sprintf("%s - %d tech", base, s.TechIDTotalTech)
 		if len(s.TechIDTopTechs) > 0 {
 			result += ": " + strings.Join(s.TechIDTopTechs, ", ")
@@ -1224,11 +1224,34 @@ func (h *Hydrate) aggregateFindings(statuses []*RepoStatus, runningScanners []st
 			h.aggregateSecrets(analysisDir, findings)
 		}
 
+		// Aggregate tech-id data (from tech-id scanner)
+		if scannerSet["tech-id"] {
+			h.aggregateTechID(analysisDir, findings)
+		}
+
 		// Note: aggregateHealth was removed as the health scanner no longer exists.
 		// The code-quality scanner provides different metrics (tech debt, complexity, coverage).
 	}
 
+	// Deduplicate top technologies across repos
+	if len(findings.TechTopList) > 0 {
+		findings.TechTopList = deduplicateAndLimit(findings.TechTopList, 5)
+	}
+
 	return findings
+}
+
+// deduplicateAndLimit removes duplicates and limits to n items
+func deduplicateAndLimit(items []string, limit int) []string {
+	seen := make(map[string]bool)
+	result := make([]string, 0, limit)
+	for _, item := range items {
+		if !seen[item] && len(result) < limit {
+			seen[item] = true
+			result = append(result, item)
+		}
+	}
+	return result
 }
 
 func (h *Hydrate) aggregateSBOM(dir string, findings *terminal.ScanFindings) {
@@ -1378,3 +1401,59 @@ func (h *Hydrate) aggregateMalcontent(dir string, findings *terminal.ScanFinding
 
 // Note: aggregateHealth was removed as the health scanner no longer exists.
 // The code-quality scanner provides different metrics (tech debt, complexity, coverage).
+
+func (h *Hydrate) aggregateTechID(dir string, findings *terminal.ScanFindings) {
+	path := filepath.Join(dir, "tech-id.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+
+	// tech-id scanner output format
+	var result struct {
+		Summary struct {
+			Technology *struct {
+				TotalTechnologies int            `json:"total_technologies"`
+				ByCategory        map[string]int `json:"by_category"`
+				TopTechnologies   []string       `json:"top_technologies"`
+			} `json:"technology"`
+			Models *struct {
+				TotalModels int `json:"total_models"`
+			} `json:"models"`
+			Frameworks *struct {
+				TotalFrameworks int `json:"total_frameworks"`
+			} `json:"frameworks"`
+			Security *struct {
+				TotalFindings int `json:"total_findings"`
+			} `json:"security"`
+		} `json:"summary"`
+	}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return
+	}
+
+	if result.Summary.Technology != nil {
+		findings.TechTotalTechs += result.Summary.Technology.TotalTechnologies
+		// Merge category counts
+		if findings.TechByCategory == nil {
+			findings.TechByCategory = make(map[string]int)
+		}
+		for cat, count := range result.Summary.Technology.ByCategory {
+			findings.TechByCategory[cat] += count
+		}
+		// Collect top technologies (deduplicate later)
+		findings.TechTopList = append(findings.TechTopList, result.Summary.Technology.TopTechnologies...)
+	}
+
+	if result.Summary.Models != nil {
+		findings.TechMLModels += result.Summary.Models.TotalModels
+	}
+
+	if result.Summary.Frameworks != nil {
+		findings.TechMLFrameworks += result.Summary.Frameworks.TotalFrameworks
+	}
+
+	if result.Summary.Security != nil {
+		findings.TechSecurityCount += result.Summary.Security.TotalFindings
+	}
+}

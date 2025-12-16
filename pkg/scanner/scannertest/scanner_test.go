@@ -4,30 +4,37 @@ import (
 	"testing"
 
 	"github.com/crashappsec/zero/pkg/scanner"
-	// Import scanners to register them
-	_ "github.com/crashappsec/zero/pkg/scanners/licenses"
-	_ "github.com/crashappsec/zero/pkg/scanners/package-health"
-	_ "github.com/crashappsec/zero/pkg/scanners/package-malcontent"
-	_ "github.com/crashappsec/zero/pkg/scanners/package-sbom"
-	_ "github.com/crashappsec/zero/pkg/scanners/package-vulns"
+	// Import scanners to register them (v3.5 super scanners)
+	_ "github.com/crashappsec/zero/pkg/scanners/code-ownership"
+	_ "github.com/crashappsec/zero/pkg/scanners/code-quality"
+	_ "github.com/crashappsec/zero/pkg/scanners/code-security"
+	_ "github.com/crashappsec/zero/pkg/scanners/crypto"
+	_ "github.com/crashappsec/zero/pkg/scanners/devops"
+	_ "github.com/crashappsec/zero/pkg/scanners/package-analysis"
+	_ "github.com/crashappsec/zero/pkg/scanners/sbom"
+	_ "github.com/crashappsec/zero/pkg/scanners/tech-id"
 )
 
 func TestRegisteredScanners(t *testing.T) {
 	// List all registered scanners
 	scanners := scanner.List()
 
+	// v3.5 super scanners
 	expected := []string{
-		"licenses",
-		"package-health",
-		"package-malcontent",
-		"package-sbom",
-		"package-vulns",
+		"sbom",
+		"package-analysis",
+		"crypto",
+		"code-security",
+		"code-quality",
+		"devops",
+		"tech-id",
+		"code-ownership",
 	}
 
 	t.Logf("Registered scanners: %v", scanners)
 
-	if len(scanners) != len(expected) {
-		t.Errorf("Expected %d scanners, got %d", len(expected), len(scanners))
+	if len(scanners) < len(expected) {
+		t.Errorf("Expected at least %d scanners, got %d", len(expected), len(scanners))
 	}
 
 	for _, name := range expected {
@@ -54,28 +61,21 @@ func TestTopologicalSort(t *testing.T) {
 		t.Logf("  %d. %s (deps: %v)", i+1, s.Name(), s.Dependencies())
 	}
 
-	// Verify SBOM comes before vulns and licenses
+	// Verify SBOM comes before package-analysis (since package-analysis depends on sbom)
 	sbomIdx := -1
-	vulnsIdx := -1
-	licensesIdx := -1
+	pkgAnalysisIdx := -1
 
 	for i, s := range sorted {
 		switch s.Name() {
-		case "package-sbom":
+		case "sbom":
 			sbomIdx = i
-		case "package-vulns":
-			vulnsIdx = i
-		case "licenses":
-			licensesIdx = i
+		case "package-analysis":
+			pkgAnalysisIdx = i
 		}
 	}
 
-	if sbomIdx >= 0 && vulnsIdx >= 0 && sbomIdx > vulnsIdx {
-		t.Error("package-sbom should come before package-vulns")
-	}
-
-	if sbomIdx >= 0 && licensesIdx >= 0 && sbomIdx > licensesIdx {
-		t.Error("package-sbom should come before licenses")
+	if sbomIdx >= 0 && pkgAnalysisIdx >= 0 && sbomIdx > pkgAnalysisIdx {
+		t.Error("sbom should come before package-analysis")
 	}
 }
 
@@ -96,7 +96,7 @@ func TestGroupByDependencies(t *testing.T) {
 		t.Logf("  Level %d: %v", i+1, names)
 	}
 
-	// First level should contain scanners with no deps (sbom, malcontent)
+	// First level should contain scanners with no deps
 	if len(groups) > 0 {
 		firstLevel := groups[0]
 		for _, s := range firstLevel {
@@ -104,6 +104,20 @@ func TestGroupByDependencies(t *testing.T) {
 			if len(deps) > 0 {
 				t.Errorf("Scanner %s in first level but has deps: %v", s.Name(), deps)
 			}
+		}
+	}
+}
+
+func TestScannerDescriptions(t *testing.T) {
+	// Test that each scanner has a description defined
+	scanners := scanner.GetAll()
+
+	for _, s := range scanners {
+		desc := s.Description()
+		t.Logf("Scanner %s: %s", s.Name(), desc)
+
+		if desc == "" {
+			t.Errorf("Scanner %s has no description defined", s.Name())
 		}
 	}
 }

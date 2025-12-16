@@ -11,6 +11,73 @@ All notable changes to Zero will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [6.2.0] - 2025-12-16
+
+### Tech-ID Scanner Enhancements
+
+This release significantly improves the tech-id (formerly AI/technology) scanner with Semgrep integration and better model detection.
+
+### Added
+
+- **Semgrep Integration**: Tech-ID scanner now uses Semgrep for technology detection
+  - RAG-to-Semgrep converter automatically converts markdown patterns to YAML rules
+  - Rule caching with TTL-based freshness checks for performance
+  - Status messages show rule loading and scanning progress
+
+- **Aggregate Technology Summary**: Final scan output shows aggregated stats across all repos
+  - Technologies detected with top technologies list
+  - Category breakdown (languages, frameworks, etc.)
+  - AI/ML models and frameworks count
+  - Security findings count
+
+- **Model Detection Improvements**:
+  - Context-aware `.pb` file detection (only `saved_model.pb` in proper directories)
+  - Minimum file size check (10KB) to filter small test files
+  - Test/testdata directory exclusions
+
+- **Code Ownership Enhancements**:
+  - Adaptive period detection for repos with limited recent activity
+  - Historical stats showing all-time contributors
+  - Activity status classification (active, maintained, slow, stale)
+
+- **Unit Tests**: Added comprehensive tests for tech-id scanner
+  - TensorFlow SavedModel detection tests
+  - Model file format validation tests
+  - File size and directory exclusion tests
+
+### Changed
+
+- Scanner names updated for consistency:
+  - `technology` → `tech-id`
+  - `packages` → `package-analysis`
+  - `quality` → `code-quality`
+  - `ownership` → `code-ownership`
+
+- Output files renamed to match scanner names:
+  - `technology.json` → `tech-id.json`
+  - `packages.json` → `package-analysis.json`
+  - `quality.json` → `code-quality.json`
+  - `ownership.json` → `code-ownership.json`
+
+### Fixed
+
+- **Model Detection False Positives**: Removed `.bin` from model formats (caused false positives)
+- **TensorFlow SavedModel**: Only detects with proper context (variables dir or model-related parent)
+- **Format String Security**: Fixed potential format string vulnerability in hydrate.go
+- **Test Compatibility**: Updated scanner tests to use v3.5 scanner names
+
+### Removed
+
+- Removed legacy bash scanner implementations
+
+### Documentation
+
+- Updated scanner reference with correct scanner names
+- Updated output file names in documentation
+- Updated scan profiles to reflect 8 scanner architecture
+
+---
+
 ## [6.1.0] - 2025-12-13
 
 ### New Feature: AI Super Scanner (ML-BOM)
