@@ -36,6 +36,7 @@ type Findings struct {
 type TechnologySummary struct {
 	TotalTechnologies int            `json:"total_technologies"`
 	ByCategory        map[string]int `json:"by_category"`
+	TopTechnologies   []string       `json:"top_technologies,omitempty"` // Top 3 most detected technologies
 	PrimaryLanguages  []string       `json:"primary_languages,omitempty"`
 	Frameworks        []string       `json:"frameworks,omitempty"`
 	Databases         []string       `json:"databases,omitempty"`
