@@ -47,7 +47,18 @@ type SecretsSummary struct {
 	RiskLevel     string         `json:"risk_level"`
 	ByType        map[string]int `json:"by_type"`
 	FilesAffected int            `json:"files_affected"`
-	Error         string         `json:"error,omitempty"`
+
+	// Enhanced detection sources
+	BySource        map[string]int `json:"by_source,omitempty"`         // semgrep, entropy, git_history
+	EntropyFindings int            `json:"entropy_findings,omitempty"`  // Findings from entropy analysis
+	HistoryFindings int            `json:"history_findings,omitempty"`  // Findings from git history
+	RemovedSecrets  int            `json:"removed_secrets,omitempty"`   // Secrets later removed from history
+
+	// AI analysis results
+	FalsePositives   int `json:"false_positives,omitempty"`   // AI-identified false positives
+	ConfirmedSecrets int `json:"confirmed_secrets,omitempty"` // AI-confirmed real secrets
+
+	Error string `json:"error,omitempty"`
 }
 
 // APISummary contains API security summary
@@ -88,6 +99,44 @@ type SecretFinding struct {
 	Line     int    `json:"line"`
 	Column   int    `json:"column"`
 	Snippet  string `json:"snippet"`
+
+	// Detection source tracking
+	Entropy         float64 `json:"entropy,omitempty"`          // Shannon entropy score (0-8)
+	EntropyLevel    string  `json:"entropy_level,omitempty"`    // "low", "medium", "high"
+	DetectionSource string  `json:"detection_source,omitempty"` // "semgrep", "entropy", "git_history"
+
+	// Git history context
+	CommitInfo *CommitInfo `json:"commit_info,omitempty"` // For git history findings
+
+	// AI analysis results
+	AIConfidence    float64 `json:"ai_confidence,omitempty"`     // 0.0-1.0
+	AIReasoning     string  `json:"ai_reasoning,omitempty"`      // Why it's FP or real
+	IsFalsePositive *bool   `json:"is_false_positive,omitempty"` // AI determination
+
+	// Remediation guidance
+	Rotation        *RotationGuide `json:"rotation,omitempty"`         // Rotation steps, URLs, commands
+	ServiceProvider string         `json:"service_provider,omitempty"` // "aws", "github", "stripe", etc.
+}
+
+// CommitInfo contains git commit context for history findings
+type CommitInfo struct {
+	Hash      string `json:"hash"`
+	ShortHash string `json:"short_hash"`
+	Author    string `json:"author"`
+	Email     string `json:"email"`
+	Date      string `json:"date"`
+	Message   string `json:"message"`
+	IsRemoved bool   `json:"is_removed"` // Was the secret later removed?
+}
+
+// RotationGuide contains remediation guidance for rotating a secret
+type RotationGuide struct {
+	Priority       string   `json:"priority"`                  // "immediate", "high", "medium", "low"
+	Steps          []string `json:"steps"`                     // Step-by-step rotation instructions
+	RotationURL    string   `json:"rotation_url,omitempty"`    // Direct link to rotation page
+	CLICommand     string   `json:"cli_command,omitempty"`     // CLI command to rotate
+	AutomationHint string   `json:"automation_hint,omitempty"` // Vault, Secrets Manager, etc.
+	ExpiresIn      string   `json:"expires_in,omitempty"`      // When the secret expires
 }
 
 // APIFinding represents an API security finding

@@ -61,18 +61,32 @@ Static Application Security Testing (SAST) using Semgrep.
 
 ### 2. Secrets (`secrets`)
 
-RAG-based secret and credential detection with optional API validation to reduce false positives.
+Multi-source secret and credential detection combining Semgrep rules, entropy analysis, and git history scanning. Includes optional AI-powered false positive reduction and rotation recommendations.
 
 **Configuration:**
 ```json
 {
   "secrets": {
     "enabled": true,
-    "detection_method": "rag",
-    "rag_patterns_path": "rag/technology-identification",
-    "validate_with_api": true,
     "redact_secrets": true,
-    "min_confidence": 0.8
+    "entropy_analysis": {
+      "enabled": true,
+      "min_length": 16,
+      "high_threshold": 4.5,
+      "med_threshold": 3.5
+    },
+    "git_history_scan": {
+      "enabled": false,
+      "max_commits": 1000,
+      "max_age": "1y",
+      "scan_removed": true
+    },
+    "ai_analysis": {
+      "enabled": false,
+      "max_findings": 50,
+      "confidence_threshold": 0.8
+    },
+    "rotation_guidance": true
   }
 }
 ```
@@ -80,58 +94,123 @@ RAG-based secret and credential detection with optional API validation to reduce
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `enabled` | bool | `true` | Enable secret detection |
-| `detection_method` | string | `"rag"` | Detection method (`rag` for RAG-based patterns) |
-| `rag_patterns_path` | string | `"rag/technology-identification"` | Path to RAG patterns |
-| `validate_with_api` | bool | `true` | Validate secrets via API to reduce false positives |
 | `redact_secrets` | bool | `true` | Mask secret values in output |
-| `min_confidence` | float | `0.8` | Minimum confidence for detection (0-1) |
 
-**How RAG-Based Secrets Detection Works:**
+**Entropy Analysis (enabled by default):**
 
-1. **Technology Detection**: First identifies technologies in the codebase (e.g., OpenAI, AWS, Stripe)
-2. **Pattern Matching**: Uses technology-specific secret patterns from RAG database
-3. **API Validation**: Optionally validates secrets against provider APIs to confirm they're active
-4. **Confidence Scoring**: Assigns confidence based on pattern specificity and context
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `entropy_analysis.enabled` | bool | `true` | Enable Shannon entropy detection |
+| `entropy_analysis.min_length` | int | `16` | Minimum string length to analyze |
+| `entropy_analysis.high_threshold` | float | `4.5` | Entropy threshold for high confidence |
+| `entropy_analysis.med_threshold` | float | `3.5` | Entropy threshold for medium confidence |
 
-**Detected Secret Types (from RAG patterns):**
+**Git History Scanning (disabled by default):**
 
-| Technology | Pattern | Severity | Validation |
-|------------|---------|----------|------------|
-| OpenAI | `sk-[A-Za-z0-9]{48}` | Critical | `/v1/models` endpoint |
-| OpenAI (proj) | `sk-proj-[A-Za-z0-9_-]{100,}` | Critical | `/v1/models` endpoint |
-| Anthropic | `sk-ant-[A-Za-z0-9_-]{90,}` | Critical | Messages API |
-| AWS | `AKIA[0-9A-Z]{16}` | Critical | STS GetCallerIdentity |
-| GitHub | `ghp_[A-Za-z0-9]{36}` | High | User API |
-| Stripe | `sk_live_[A-Za-z0-9]{24,}` | Critical | Account API |
-| Stripe (test) | `sk_test_[A-Za-z0-9]{24,}` | Medium | Account API |
-| Slack | `xoxb-[A-Za-z0-9-]+` | High | Auth test API |
-| SendGrid | `SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}` | High | API validation |
-| Twilio | `SK[a-f0-9]{32}` | High | Account validation |
-| Datadog | `[a-f0-9]{32}` (with context) | High | Validate endpoint |
-| HuggingFace | `hf_[A-Za-z0-9]{34}` | High | WhoAmI endpoint |
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `git_history_scan.enabled` | bool | `false` | Enable git history scanning |
+| `git_history_scan.max_commits` | int | `1000` | Maximum commits to scan |
+| `git_history_scan.max_age` | string | `"1y"` | Maximum age (e.g., "90d", "6m", "2y") |
+| `git_history_scan.scan_removed` | bool | `true` | Track if secrets were later removed |
 
-**API Validation Benefits:**
+**AI Analysis (disabled by default, requires ANTHROPIC_API_KEY):**
 
-- **Reduces false positives**: Only reports secrets that are actually valid
-- **Identifies active vs revoked**: Distinguishes between active and inactive credentials
-- **Low cost**: Uses free/minimal-cost validation endpoints
-- **Optional**: Can be disabled for air-gapped environments
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `ai_analysis.enabled` | bool | `false` | Enable Claude-powered FP reduction |
+| `ai_analysis.max_findings` | int | `50` | Maximum findings to analyze |
+| `ai_analysis.confidence_threshold` | float | `0.8` | Threshold to mark as false positive |
+
+**Rotation Guidance (enabled by default):**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `rotation_guidance` | bool | `true` | Add rotation recommendations to findings |
+
+**How Multi-Source Secrets Detection Works:**
+
+1. **Semgrep Detection**: Pattern-based detection using Semgrep's secrets ruleset
+2. **Entropy Analysis**: Shannon entropy calculation to find high-randomness strings
+3. **Git History Scanning**: Scans commit history to find secrets that were committed (even if later removed)
+4. **Deduplication**: Merges results from all sources, removing duplicates
+5. **AI Analysis (Optional)**: Uses Claude to analyze findings and identify false positives
+6. **Rotation Guidance**: Adds service-specific rotation instructions
+
+**Entropy Analysis:**
+
+Entropy analysis detects high-randomness strings that may be secrets:
+
+| Entropy Level | Range | Description |
+|---------------|-------|-------------|
+| High | ≥4.5 | Very likely to be a secret (API keys, tokens) |
+| Medium | 3.5-4.5 | Possible secret, needs review |
+| Low | <3.5 | Unlikely to be a secret |
+
+Built-in false positive filters:
+- Placeholder patterns (`example`, `test`, `YOUR_KEY_HERE`)
+- UUIDs and git SHAs
+- Known example keys (e.g., `AKIAIOSFODNN7EXAMPLE`)
+- Hash outputs with context indicators
+
+**Git History Scanning:**
+
+Scans git commit history to find secrets that were:
+- Committed and still present
+- Committed but later removed
+- Exposed across multiple commits
+
+| Pattern | Description | Severity |
+|---------|-------------|----------|
+| AWS Access Key | `AKIA[0-9A-Z]{16}` | Critical |
+| GitHub Token | `ghp_[A-Za-z0-9]{36,}` | Critical |
+| Stripe Live Key | `sk_live_[A-Za-z0-9]{24,}` | Critical |
+| OpenAI Key | `sk-[A-Za-z0-9]{48,}` | Critical |
+| Private Key | `-----BEGIN.*PRIVATE KEY-----` | Critical |
+| Slack Token | `xox[baprs]-*` | Critical |
+| Database URL | `postgres://.*:.*@` | Critical |
+| JWT Token | `eyJ...` | Medium |
+
+**AI-Powered False Positive Reduction:**
+
+When `ANTHROPIC_API_KEY` is set and AI analysis is enabled:
+- Analyzes finding context (surrounding code)
+- Identifies placeholder/example values
+- Assigns confidence score (0-1)
+- Provides reasoning for determination
+- Only analyzes medium+ severity findings
+
+**Rotation Recommendations:**
+
+Each finding includes service-specific rotation guidance:
+
+```json
+{
+  "rotation": {
+    "priority": "immediate",
+    "steps": [
+      "1. Log into AWS Console",
+      "2. Navigate to IAM > Security credentials",
+      "3. Create new access key pair",
+      "4. Update applications",
+      "5. Delete old key"
+    ],
+    "rotation_url": "https://console.aws.amazon.com/iam/",
+    "cli_command": "aws iam create-access-key",
+    "automation_hint": "Use AWS Secrets Manager"
+  },
+  "service_provider": "aws"
+}
+```
+
+Supported providers: AWS, GitHub, Stripe, Slack, OpenAI, Anthropic, Google/GCP, Azure, databases, private keys, NPM, PyPI, Heroku, Vercel, and more.
 
 **Redaction:**
-When `redact_secrets` is enabled, secrets longer than 16 characters are partially masked:
+When `redact_secrets` is enabled, secrets are partially masked:
 ```
 Before: sk-abcdef123456789012345678901234567890123456789012
-After:  sk-********
+After:  sk-a****9012
 ```
-
-**Confidence Levels:**
-
-| Confidence | Description |
-|------------|-------------|
-| 95-100% | Very distinctive pattern (e.g., `sk-ant-`, `AKIA`) |
-| 85-94% | Strong pattern with context |
-| 70-84% | Moderate pattern, may need validation |
-| <70% | Weak pattern, high false positive risk |
 
 **Risk Score Calculation:**
 ```
@@ -298,19 +377,30 @@ result, err := scanner.Run(ctx, opts)
       }
     },
     "secrets": {
-      "total_findings": 5,
+      "total_findings": 8,
       "critical": 1,
-      "high": 3,
-      "medium": 1,
-      "low": 0,
-      "files_affected": 3,
+      "high": 4,
+      "medium": 2,
+      "low": 1,
+      "files_affected": 5,
       "by_type": {
         "aws_credential": 1,
         "github_token": 2,
-        "api_key": 2
+        "api_key": 2,
+        "high_entropy_string": 3
       },
-      "risk_score": 45,
-      "risk_level": "high"
+      "by_source": {
+        "semgrep": 5,
+        "entropy": 2,
+        "git_history": 1
+      },
+      "entropy_findings": 2,
+      "history_findings": 1,
+      "removed_secrets": 1,
+      "false_positives": 2,
+      "confirmed_secrets": 3,
+      "risk_score": 35,
+      "risk_level": "critical"
     },
     "api": {
       "total_findings": 8,
@@ -351,7 +441,35 @@ result, err := scanner.Run(ctx, opts)
         "file": "config/settings.py",
         "line": 15,
         "column": 10,
-        "snippet": "AWS_ACCESS_K********"
+        "snippet": "AKIA****MPLE",
+        "entropy": 3.8,
+        "entropy_level": "medium",
+        "detection_source": "semgrep",
+        "service_provider": "aws",
+        "rotation": {
+          "priority": "immediate",
+          "steps": ["1. Create new key", "2. Update apps", "3. Delete old key"],
+          "rotation_url": "https://console.aws.amazon.com/iam/"
+        }
+      },
+      {
+        "rule_id": "git-history-github_token",
+        "type": "github_token",
+        "severity": "critical",
+        "message": "Secret found in git history",
+        "file": "src/auth.js",
+        "line": 42,
+        "snippet": "ghp_****wxyz",
+        "detection_source": "git_history",
+        "commit_info": {
+          "hash": "abc123def456",
+          "short_hash": "abc123de",
+          "author": "Developer",
+          "date": "2025-01-15T10:30:00Z",
+          "message": "Add auth config",
+          "is_removed": true
+        },
+        "service_provider": "github"
       }
     ],
     "api": [
