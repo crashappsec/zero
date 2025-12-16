@@ -11,11 +11,17 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/crashappsec/zero/pkg/scanner"
 )
+
+// ruleLoadMessageOnce ensures we only print the rule loading message once
+var ruleLoadMessageOnce sync.Once
+var ruleLoadMessagePrinted bool
 
 const (
 	Name        = "tech-id"
@@ -98,13 +104,16 @@ func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) 
 	result.FeaturesRun = append(result.FeaturesRun, "semgrep_rules")
 	result.Summary.SemgrepRulesLoaded = refreshResult.TotalRules
 
-	// Log rule loading results (printed directly as persistent log line)
-	if refreshResult.Refreshed {
-		fmt.Printf("          ▸ Converted RAG patterns → %d semgrep rules (%d tech, %d secrets, %d AI/ML)\n",
-			refreshResult.TotalRules, refreshResult.TechRules, refreshResult.SecretRules, refreshResult.AIMLRules)
-	} else {
-		fmt.Printf("          ▸ Using cached semgrep rules (%d patterns)\n", refreshResult.TotalRules)
-	}
+	// Log rule loading results only once (for first repo in batch)
+	ruleLoadMessageOnce.Do(func() {
+		if refreshResult.Refreshed {
+			fmt.Printf("          ▸ Converted RAG patterns → %d semgrep rules (%d tech, %d secrets, %d AI/ML)\n",
+				refreshResult.TotalRules, refreshResult.TechRules, refreshResult.SecretRules, refreshResult.AIMLRules)
+		} else {
+			fmt.Printf("          ▸ Using cached semgrep rules (%d patterns)\n", refreshResult.TotalRules)
+		}
+		ruleLoadMessagePrinted = true
+	})
 
 	// Step 3: Run semgrep with generated rules
 	rulePaths := ruleManager.GetRulePaths()
@@ -187,6 +196,17 @@ func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) 
 		return nil, fmt.Errorf("failed to set metadata: %w", err)
 	}
 
+	// Write output to disk
+	if opts.OutputDir != "" {
+		if err := os.MkdirAll(opts.OutputDir, 0755); err != nil {
+			return nil, fmt.Errorf("creating output dir: %w", err)
+		}
+		resultFile := filepath.Join(opts.OutputDir, Name+".json")
+		if err := scanResult.WriteJSON(resultFile); err != nil {
+			return nil, fmt.Errorf("writing result: %w", err)
+		}
+	}
+
 	return scanResult, nil
 }
 
@@ -238,14 +258,40 @@ func (s *TechnologyScanner) mergeSemgrepFindings(semgrepResult *SemgrepResult, r
 	for category, count := range semgrepResult.Technologies {
 		result.Summary.Technology.ByCategory[category] += count
 	}
-	// Count unique technologies from findings for TotalTechnologies
-	uniqueTechs := make(map[string]bool)
+
+	// Count technologies and track frequency for top technologies
+	techCounts := make(map[string]int)
 	for _, f := range semgrepResult.Findings {
 		if f.Technology != "" {
-			uniqueTechs[f.Technology] = true
+			techCounts[f.Technology]++
 		}
 	}
-	result.Summary.Technology.TotalTechnologies += len(uniqueTechs)
+	result.Summary.Technology.TotalTechnologies += len(techCounts)
+
+	// Get top 3 technologies by frequency
+	type techFreq struct {
+		name  string
+		count int
+	}
+	var techList []techFreq
+	for name, count := range techCounts {
+		techList = append(techList, techFreq{name, count})
+	}
+	sort.Slice(techList, func(i, j int) bool {
+		return techList[i].count > techList[j].count
+	})
+
+	// Take top 3
+	topN := 3
+	if len(techList) < topN {
+		topN = len(techList)
+	}
+	for i := 0; i < topN; i++ {
+		result.Summary.Technology.TopTechnologies = append(
+			result.Summary.Technology.TopTechnologies,
+			techList[i].name,
+		)
+	}
 }
 
 // runModelsFeature detects ML models in the repository
@@ -1901,8 +1947,12 @@ func (s *TechnologyScanner) buildTechnologySummary(techs []Technology) *Technolo
 		ByCategory:        make(map[string]int),
 	}
 
+	// Count by name for top technologies
+	techCounts := make(map[string]int)
+
 	for _, t := range techs {
 		summary.ByCategory[t.Category]++
+		techCounts[t.Name]++
 
 		switch t.Category {
 		case "language":
@@ -1914,6 +1964,27 @@ func (s *TechnologyScanner) buildTechnologySummary(techs []Technology) *Technolo
 		case "cloud":
 			summary.CloudServices = append(summary.CloudServices, t.Name)
 		}
+	}
+
+	// Build top technologies list (top 3 by frequency)
+	type techFreq struct {
+		name  string
+		count int
+	}
+	var techList []techFreq
+	for name, count := range techCounts {
+		techList = append(techList, techFreq{name, count})
+	}
+	sort.Slice(techList, func(i, j int) bool {
+		return techList[i].count > techList[j].count
+	})
+
+	topN := 3
+	if len(techList) < topN {
+		topN = len(techList)
+	}
+	for i := 0; i < topN; i++ {
+		summary.TopTechnologies = append(summary.TopTechnologies, techList[i].name)
 	}
 
 	return summary

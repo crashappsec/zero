@@ -674,10 +674,6 @@ func extractSummaryString(name string, result *ScanResult) string {
 		return fmt.Sprintf("%d package recommendations", total)
 
 	case "tech-id":
-		// Get semgrep stats
-		semgrepRules := getIntFromMap(summary, "semgrep_rules_loaded")
-		semgrepFindings := getIntFromMap(summary, "semgrep_findings")
-
 		// Get technology summary
 		var techSummary map[string]interface{}
 		if ts, ok := summary["technology"].(map[string]interface{}); ok {
@@ -685,8 +681,17 @@ func extractSummaryString(name string, result *ScanResult) string {
 		}
 
 		totalTech := 0
+		var topTechs []string
 		if techSummary != nil {
 			totalTech = getIntFromMap(techSummary, "total_technologies")
+			// Get top technologies
+			if tt, ok := techSummary["top_technologies"].([]interface{}); ok {
+				for _, t := range tt {
+					if s, ok := t.(string); ok {
+						topTechs = append(topTechs, s)
+					}
+				}
+			}
 		}
 
 		// Get models summary
@@ -711,30 +716,25 @@ func extractSummaryString(name string, result *ScanResult) string {
 			securityFindings = getIntFromMap(securitySummary, "total_findings")
 		}
 
-		// Build summary parts
-		parts := []string{}
-
-		if semgrepRules > 0 {
-			parts = append(parts, fmt.Sprintf("%d rules loaded", semgrepRules))
-		}
-
+		// Build summary - show total and top technologies
 		if totalTech > 0 {
-			parts = append(parts, fmt.Sprintf("%d technologies", totalTech))
+			result := fmt.Sprintf("%d tech", totalTech)
+			if len(topTechs) > 0 {
+				result += ": " + strings.Join(topTechs, ", ")
+			}
+			if totalModels > 0 {
+				result += fmt.Sprintf(", %d models", totalModels)
+			}
+			if securityFindings > 0 {
+				result += fmt.Sprintf(", %d security", securityFindings)
+			}
+			return result
 		}
 
 		if totalModels > 0 {
-			parts = append(parts, fmt.Sprintf("%d ML models", totalModels))
+			return fmt.Sprintf("%d ML models", totalModels)
 		}
 
-		if securityFindings > 0 {
-			parts = append(parts, fmt.Sprintf("%d security findings", securityFindings))
-		} else if semgrepFindings > 0 {
-			parts = append(parts, fmt.Sprintf("%d findings", semgrepFindings))
-		}
-
-		if len(parts) > 0 {
-			return strings.Join(parts, ", ")
-		}
 		return "no technologies detected"
 	}
 
