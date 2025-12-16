@@ -60,7 +60,7 @@ type SemgrepFinding struct {
 // SemgrepResult contains results from running semgrep
 type SemgrepResult struct {
 	Findings       []SemgrepFinding
-	Technologies   map[string]int // Tech name -> count
+	Technologies   map[string]int // Category -> count (for ByCategory summary)
 	Secrets        []SemgrepFinding
 	Error          error
 	Duration       time.Duration
@@ -201,8 +201,9 @@ func parseSemgrepOutput(data []byte, basePath string) ([]SemgrepFinding, []Semgr
 			secrets = append(secrets, finding)
 		} else {
 			findings = append(findings, finding)
-			if technology != "" {
-				techCounts[technology]++
+			// Count by category for ByCategory summary (not by technology name)
+			if category != "" {
+				techCounts[category]++
 			}
 		}
 	}

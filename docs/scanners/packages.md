@@ -89,7 +89,7 @@ Analyzes license compliance across the dependency tree.
   "licenses": {
     "enabled": true,
     "include_dev": false,
-    "blocked_licenses": ["GPL-3.0", "AGPL-3.0"],
+    "blocked_licenses": [],
     "allowed_licenses": []
   }
 }
