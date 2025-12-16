@@ -202,19 +202,21 @@ type GovernanceFinding struct {
 }
 
 // Model file formats and their security characteristics
+// NOTE: .bin removed (too generic, causes false positives)
+// NOTE: .pb requires context check (must be saved_model.pb or in SavedModel directory)
 var ModelFileFormats = map[string]ModelFormatInfo{
 	".pt":          {Name: "PyTorch Pickle", Format: "pickle", Risk: "high", RiskReason: "Arbitrary code execution during deserialization"},
 	".pth":         {Name: "PyTorch Pickle", Format: "pickle", Risk: "high", RiskReason: "Arbitrary code execution during deserialization"},
 	".pkl":         {Name: "Python Pickle", Format: "pickle", Risk: "high", RiskReason: "Arbitrary code execution during deserialization"},
 	".pickle":      {Name: "Python Pickle", Format: "pickle", Risk: "high", RiskReason: "Arbitrary code execution during deserialization"},
-	".bin":         {Name: "Binary Weights", Format: "binary", Risk: "medium", RiskReason: "May contain pickle data"},
+	// .bin removed - too generic, matches test data and other binary files
 	".safetensors": {Name: "SafeTensors", Format: "safetensors", Risk: "low", RiskReason: "Secure format, no code execution"},
 	".onnx":        {Name: "ONNX", Format: "onnx", Risk: "medium", RiskReason: "Custom operators may execute code"},
 	".gguf":        {Name: "GGUF", Format: "gguf", Risk: "low", RiskReason: "Inference-only format"},
 	".ggml":        {Name: "GGML", Format: "ggml", Risk: "low", RiskReason: "Inference-only format"},
 	".h5":          {Name: "HDF5/Keras", Format: "keras", Risk: "medium", RiskReason: "May contain Lambda layers with code"},
 	".keras":       {Name: "Keras", Format: "keras", Risk: "medium", RiskReason: "May contain Lambda layers with code"},
-	".pb":          {Name: "TensorFlow SavedModel", Format: "tensorflow", Risk: "medium", RiskReason: "May contain custom ops"},
+	// .pb handled specially in detectModelFiles - only saved_model.pb files
 	".tflite":      {Name: "TensorFlow Lite", Format: "tflite", Risk: "low", RiskReason: "Mobile inference format"},
 	".mlmodel":     {Name: "Core ML", Format: "coreml", Risk: "low", RiskReason: "Apple inference format"},
 }

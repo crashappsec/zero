@@ -305,6 +305,14 @@ type ScanFindings struct {
 	// Health
 	HealthCritical  int
 	HealthWarnings  int
+
+	// Tech-ID (Technology Detection)
+	TechTotalTechs    int              // Total unique technologies detected
+	TechByCategory    map[string]int   // Technologies by category (language, framework, etc.)
+	TechTopList       []string         // Top technologies across all repos
+	TechMLModels      int              // ML models detected
+	TechMLFrameworks  int              // AI/ML frameworks detected
+	TechSecurityCount int              // Security findings from AI/ML analysis
 }
 
 // Summary prints the hydrate summary
@@ -460,6 +468,45 @@ func (t *Terminal) SummaryWithFindings(org string, duration int, success, failed
 		healthStr = strings.TrimSuffix(healthStr, ", ")
 		fmt.Printf("  Package health:  %s\n", healthStr)
 	}
+
+	// Tech-ID (only show if tech-id scanner was run)
+	if findings.ScannersRun["tech-id"] && findings.TechTotalTechs > 0 {
+		// Show top technologies
+		if len(findings.TechTopList) > 0 {
+			techStr := strings.Join(findings.TechTopList, ", ")
+			fmt.Printf("  Technologies:    %s %s\n",
+				t.Color(Cyan, fmt.Sprintf("%d detected", findings.TechTotalTechs)),
+				t.Color(Dim, "("+techStr+")"))
+		} else {
+			fmt.Printf("  Technologies:    %s\n", t.Color(Cyan, fmt.Sprintf("%d detected", findings.TechTotalTechs)))
+		}
+
+		// Show category breakdown if available
+		if len(findings.TechByCategory) > 0 {
+			catStr := t.formatCategoryCounts(findings.TechByCategory)
+			fmt.Printf("                   %s\n", t.Color(Dim, catStr))
+		}
+
+		// Show ML/AI info if detected
+		if findings.TechMLModels > 0 || findings.TechMLFrameworks > 0 {
+			mlStr := ""
+			if findings.TechMLModels > 0 {
+				mlStr += fmt.Sprintf("%d models", findings.TechMLModels)
+			}
+			if findings.TechMLFrameworks > 0 {
+				if mlStr != "" {
+					mlStr += ", "
+				}
+				mlStr += fmt.Sprintf("%d frameworks", findings.TechMLFrameworks)
+			}
+			fmt.Printf("  AI/ML:           %s\n", t.Color(Cyan, mlStr))
+		}
+
+		// Show security findings if any
+		if findings.TechSecurityCount > 0 {
+			fmt.Printf("  AI Security:     %s\n", t.Color(Yellow, fmt.Sprintf("%d findings", findings.TechSecurityCount)))
+		}
+	}
 }
 
 func (t *Terminal) formatEcosystemCounts(counts map[string]int) string {
@@ -485,6 +532,17 @@ func (t *Terminal) formatLicenseCounts(counts map[string]int) string {
 	if len(parts) > 5 {
 		parts = parts[:5]
 		return "(" + strings.Join(parts, ", ") + ", ...)"
+	}
+	return "(" + strings.Join(parts, ", ") + ")"
+}
+
+func (t *Terminal) formatCategoryCounts(counts map[string]int) string {
+	if len(counts) == 0 {
+		return ""
+	}
+	parts := make([]string, 0, len(counts))
+	for cat, count := range counts {
+		parts = append(parts, fmt.Sprintf("%s: %d", cat, count))
 	}
 	return "(" + strings.Join(parts, ", ") + ")"
 }
