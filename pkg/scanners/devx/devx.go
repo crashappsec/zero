@@ -1,6 +1,6 @@
 // Package devex provides the consolidated developer experience super scanner
 // Features: onboarding, tooling, workflow
-package devex
+package devx
 
 import (
 	"context"
@@ -17,35 +17,35 @@ import (
 )
 
 const (
-	Name    = "devex"
+	Name    = "devx"
 	Version = "1.0.0"
 )
 
 func init() {
-	scanner.Register(&DevExScanner{})
+	scanner.Register(&DevXScanner{})
 }
 
-// DevExScanner consolidates developer experience analysis
-type DevExScanner struct{}
+// DevXScanner consolidates developer experience analysis
+type DevXScanner struct{}
 
-func (s *DevExScanner) Name() string {
+func (s *DevXScanner) Name() string {
 	return Name
 }
 
-func (s *DevExScanner) Description() string {
+func (s *DevXScanner) Description() string {
 	return "Developer experience analysis: onboarding friction, tooling complexity, workflow efficiency"
 }
 
-func (s *DevExScanner) Dependencies() []string {
+func (s *DevXScanner) Dependencies() []string {
 	return []string{"tech-id"}
 }
 
-func (s *DevExScanner) EstimateDuration(fileCount int) time.Duration {
+func (s *DevXScanner) EstimateDuration(fileCount int) time.Duration {
 	est := 5 + fileCount/1000
 	return time.Duration(est) * time.Second
 }
 
-func (s *DevExScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scanner.ScanResult, error) {
+func (s *DevXScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scanner.ScanResult, error) {
 	start := time.Now()
 
 	cfg := getConfig(opts)
@@ -73,15 +73,15 @@ func (s *DevExScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*sca
 		}()
 	}
 
-	if cfg.Tooling.Enabled {
+	if cfg.Sprawl.Enabled {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			summary, findings := s.runTooling(ctx, opts, cfg.Tooling)
+			summary, findings := s.runSprawl(ctx, opts, cfg.Sprawl)
 			mu.Lock()
-			result.FeaturesRun = append(result.FeaturesRun, "tooling")
-			result.Summary.Tooling = summary
-			result.Findings.Tooling = findings
+			result.FeaturesRun = append(result.FeaturesRun, "sprawl")
+			result.Summary.Sprawl = summary
+			result.Findings.Sprawl = findings
 			mu.Unlock()
 		}()
 	}
@@ -176,7 +176,7 @@ var configFilePatterns = map[string]configFileInfo{
 	".gitlab-ci.yml":    {"gitlab-ci", "ci"},
 }
 
-func (s *DevExScanner) runOnboarding(ctx context.Context, opts *scanner.ScanOptions, cfg OnboardingConfig) (*OnboardingSummary, *OnboardingFindings) {
+func (s *DevXScanner) runOnboarding(ctx context.Context, opts *scanner.ScanOptions, cfg OnboardingConfig) (*OnboardingSummary, *OnboardingFindings) {
 	summary := &OnboardingSummary{
 		MissingDocs: []string{},
 	}
@@ -235,12 +235,11 @@ func (s *DevExScanner) runOnboarding(ctx context.Context, opts *scanner.ScanOpti
 		}
 	}
 
-	// Check prerequisites
-	if cfg.CheckPrerequisites {
-		prereqs := detectPrerequisites(opts.RepoPath)
-		findings.Prerequisites = prereqs
-		summary.PrerequisiteCount = len(prereqs)
-	}
+	// Prerequisites are now derived from tech-id scanner
+	// We still detect them locally as a fallback
+	prereqs := detectPrerequisites(opts.RepoPath)
+	findings.Prerequisites = prereqs
+	summary.PrerequisiteCount = len(prereqs)
 
 	// Analyze README quality
 	if cfg.CheckReadmeQuality {
@@ -838,7 +837,8 @@ func getConfigComplexity(lineCount int) string {
 }
 
 // ============================================================================
-// TOOLING FEATURE
+// SPRAWL FEATURE
+// Separates Tool Sprawl (dev tools) from Technology Sprawl (tech stack)
 // Uses tech-id scanner results for technology detection
 // ============================================================================
 
@@ -867,70 +867,109 @@ type TechIDResult struct {
 	} `json:"findings"`
 }
 
-func (s *DevExScanner) runTooling(ctx context.Context, opts *scanner.ScanOptions, cfg ToolingConfig) (*ToolingSummary, *ToolingFindings) {
-	summary := &ToolingSummary{
-		ToolsByCategory: make(map[string]int),
+// DevOpsResult represents the structure of devops scanner output (optional)
+// Used for DORA metrics context
+type DevOpsResult struct {
+	Summary struct {
+		DORA *struct {
+			DeploymentFrequency string  `json:"deployment_frequency"` // elite, high, medium, low
+			LeadTime            string  `json:"lead_time"`            // elite, high, medium, low
+			ChangeFailureRate   float64 `json:"change_failure_rate"`
+			MTTR                string  `json:"mttr"`                 // elite, high, medium, low
+			OverallPerformance  string  `json:"overall_performance"`
+		} `json:"dora,omitempty"`
+	} `json:"summary"`
+}
+
+// Tool categories represent dev tools (configuration burden)
+var toolCategories = map[string]bool{
+	"linter":    true,
+	"formatter": true,
+	"bundler":   true,
+	"test":      true,
+	"ci-cd":     true,
+	"build":     true,
+	"coverage":  true,
+}
+
+// Technology categories represent technologies (learning curve)
+var technologyCategories = map[string]bool{
+	"language":       true,
+	"framework":      true,
+	"database":       true,
+	"cloud":          true,
+	"container":      true,
+	"infrastructure": true,
+}
+
+func (s *DevXScanner) runSprawl(ctx context.Context, opts *scanner.ScanOptions, cfg SprawlConfig) (*SprawlSummary, *SprawlFindings) {
+	summary := &SprawlSummary{
+		ToolSprawl: ToolSprawlMetrics{
+			ByCategory: make(map[string]int),
+		},
+		TechnologySprawl: TechSprawlMetrics{
+			ByCategory: make(map[string]int),
+		},
 	}
-	findings := &ToolingFindings{
-		DetectedTools:  []DetectedTool{},
+	findings := &SprawlFindings{
+		Tools:          []DetectedTool{},
+		Technologies:   []DetectedTech{},
 		ConfigAnalysis: []ConfigAnalysis{},
 		SprawlIssues:   []SprawlIssue{},
-		Languages:      []Language{},
 	}
 
 	// Load tech-id results (from dependency scanner)
 	techIDData := loadTechIDResults(opts.OutputDir)
 
-	// Convert tech-id findings to devex tool format
+	// Separate tech-id findings into tools vs technologies
 	if techIDData != nil && len(techIDData.Findings.Technology) > 0 {
-		toolNames := make(map[string]bool)
+		toolSeen := make(map[string]bool)
+		techSeen := make(map[string]bool)
 
 		for _, tech := range techIDData.Findings.Technology {
-			// Map tech-id categories to devex tool categories
-			devexCategory := mapTechIDCategory(tech.Category)
+			category := mapTechIDCategory(tech.Category)
 
-			if !toolNames[tech.Name] {
-				toolNames[tech.Name] = true
-				findings.DetectedTools = append(findings.DetectedTools, DetectedTool{
-					Name:       tech.Name,
-					Category:   devexCategory,
-					ConfigFile: tech.File,
-					Version:    tech.Version,
-				})
-				summary.ToolsByCategory[devexCategory]++
+			// Determine if this is a tool or technology
+			if isToolCategory(category) {
+				if !toolSeen[tech.Name] {
+					toolSeen[tech.Name] = true
+					findings.Tools = append(findings.Tools, DetectedTool{
+						Name:       tech.Name,
+						Category:   category,
+						ConfigFile: tech.File,
+						Version:    tech.Version,
+					})
+					summary.ToolSprawl.ByCategory[category]++
+				}
+			} else if isTechnologyCategory(category) {
+				if !techSeen[tech.Name] {
+					techSeen[tech.Name] = true
+					findings.Technologies = append(findings.Technologies, DetectedTech{
+						Name:       tech.Name,
+						Category:   category,
+						Confidence: tech.Confidence,
+						Source:     tech.Source,
+					})
+					summary.TechnologySprawl.ByCategory[category]++
+				}
 			}
 		}
 
-		summary.ToolSprawlIndex = len(toolNames)
-
-		// Use tech-id summary data for languages
-		if techIDData.Summary.Technology != nil {
-			for _, lang := range techIDData.Summary.Technology.PrimaryLanguages {
-				findings.Languages = append(findings.Languages, Language{
-					Name: lang,
-				})
-			}
-			summary.LanguageCount = len(techIDData.Summary.Technology.PrimaryLanguages)
-		}
+		summary.ToolSprawl.Index = len(toolSeen)
+		summary.TechnologySprawl.Index = len(techSeen)
 	}
 
-	// Count specific tool types
-	summary.BuildToolCount = summary.ToolsByCategory["bundler"] + summary.ToolsByCategory["build"]
-	summary.LinterCount = summary.ToolsByCategory["linter"] + summary.ToolsByCategory["formatter"]
-	summary.TestToolCount = summary.ToolsByCategory["test"] + summary.ToolsByCategory["coverage"]
+	// Set tool sprawl level
+	summary.ToolSprawl.Level = getSprawlLevel(summary.ToolSprawl.Index, cfg.MaxRecommendedTools)
 
-	// Determine sprawl level
-	if summary.ToolSprawlIndex > 20 {
-		summary.SprawlLevel = "excessive"
-	} else if summary.ToolSprawlIndex > 14 {
-		summary.SprawlLevel = "high"
-	} else if summary.ToolSprawlIndex > 8 {
-		summary.SprawlLevel = "moderate"
-	} else {
-		summary.SprawlLevel = "low"
-	}
+	// Set technology sprawl level
+	summary.TechnologySprawl.Level = getSprawlLevel(summary.TechnologySprawl.Index, cfg.MaxRecommendedTechnologies)
 
-	// Analyze config file complexity (still done locally - measures config file quality)
+	// Calculate learning curve score
+	summary.LearningCurveScore = calculateLearningCurveScore(summary, findings)
+	summary.LearningCurve = getLearningCurveLevel(summary.LearningCurveScore)
+
+	// Analyze config file complexity
 	if cfg.CheckConfigComplexity {
 		configs := analyzeConfigComplexity(opts.RepoPath)
 		findings.ConfigAnalysis = configs
@@ -955,18 +994,114 @@ func (s *DevExScanner) runTooling(ctx context.Context, opts *scanner.ScanOptions
 	}
 
 	// Identify sprawl issues
-	if cfg.CheckToolSprawl {
-		sprawlIssues := identifySprawlIssues(findings.DetectedTools, cfg.MaxRecommendedTools)
+	if cfg.CheckToolSprawl || cfg.CheckTechnologySprawl {
+		sprawlIssues := identifySprawlIssues(findings.Tools, findings.Technologies, cfg)
 		findings.SprawlIssues = sprawlIssues
 	}
 
-	// Calculate CI/CD complexity
-	summary.CICDComplexity = calculateCICDComplexity(opts.RepoPath)
+	// Calculate combined score (0-100, higher is simpler)
+	summary.CombinedScore = calculateSprawlScore(summary)
 
-	// Calculate overall score (0-100, higher is simpler)
-	summary.Score = calculateToolingScore(summary)
+	// Optionally load DORA context for insights
+	summary.DORAContext = loadDORAContext(opts.OutputDir, summary)
 
 	return summary, findings
+}
+
+// isToolCategory returns true if the category represents a dev tool
+func isToolCategory(category string) bool {
+	return toolCategories[category]
+}
+
+// isTechnologyCategory returns true if the category represents a technology
+func isTechnologyCategory(category string) bool {
+	return technologyCategories[category]
+}
+
+// getSprawlLevel returns the sprawl level based on index and threshold
+func getSprawlLevel(index, threshold int) string {
+	ratio := float64(index) / float64(threshold)
+	if ratio > 2.0 {
+		return "excessive"
+	} else if ratio > 1.4 {
+		return "high"
+	} else if ratio > 0.8 {
+		return "moderate"
+	}
+	return "low"
+}
+
+// calculateLearningCurveScore estimates the learning curve based on technology sprawl
+// Lower score = steeper learning curve
+func calculateLearningCurveScore(summary *SprawlSummary, findings *SprawlFindings) int {
+	score := 100
+
+	// Deduct for number of languages (each additional language adds learning burden)
+	langCount := summary.TechnologySprawl.ByCategory["language"]
+	if langCount > 4 {
+		score -= 25
+	} else if langCount > 2 {
+		score -= 10
+	}
+
+	// Deduct for frameworks (framework complexity varies)
+	frameworkCount := summary.TechnologySprawl.ByCategory["framework"]
+	if frameworkCount > 5 {
+		score -= 20
+	} else if frameworkCount > 3 {
+		score -= 10
+	}
+
+	// Deduct for databases (each DB has different paradigms)
+	dbCount := summary.TechnologySprawl.ByCategory["database"]
+	if dbCount > 3 {
+		score -= 15
+	} else if dbCount > 1 {
+		score -= 5
+	}
+
+	// Deduct for cloud services (complex to understand)
+	cloudCount := summary.TechnologySprawl.ByCategory["cloud"]
+	if cloudCount > 5 {
+		score -= 20
+	} else if cloudCount > 2 {
+		score -= 10
+	}
+
+	// Deduct for infrastructure complexity
+	infraCount := summary.TechnologySprawl.ByCategory["infrastructure"] + summary.TechnologySprawl.ByCategory["container"]
+	if infraCount > 3 {
+		score -= 15
+	} else if infraCount > 1 {
+		score -= 5
+	}
+
+	// Overall technology count penalty
+	totalTech := summary.TechnologySprawl.Index
+	if totalTech > 20 {
+		score -= 20
+	} else if totalTech > 15 {
+		score -= 10
+	} else if totalTech > 10 {
+		score -= 5
+	}
+
+	if score < 0 {
+		score = 0
+	}
+	return score
+}
+
+// getLearningCurveLevel converts score to level
+func getLearningCurveLevel(score int) string {
+	if score >= 80 {
+		return "low"
+	} else if score >= 60 {
+		return "moderate"
+	} else if score >= 40 {
+		return "high"
+	}
+	return "steep"
 }
 
 // loadTechIDResults loads the tech-id scanner output from the analysis directory
@@ -987,6 +1122,61 @@ func loadTechIDResults(outputDir string) *TechIDResult {
 	}
 
 	return &result
+}
+
+// loadDORAContext optionally loads devops.json for DORA metrics context
+// This provides insights like "high sprawl but elite deployment frequency"
+func loadDORAContext(outputDir string, summary *SprawlSummary) *DORAContext {
+	if outputDir == "" {
+		return nil
+	}
+
+	devopsPath := filepath.Join(outputDir, "devops.json")
+	data, err := os.ReadFile(devopsPath)
+	if err != nil {
+		return nil // devops.json not available, skip DORA context
+	}
+
+	var devops DevOpsResult
+	if err := json.Unmarshal(data, &devops); err != nil {
+		return nil
+	}
+
+	if devops.Summary.DORA == nil {
+		return nil
+	}
+
+	ctx := &DORAContext{
+		OverallPerformance: devops.Summary.DORA.OverallPerformance,
+	}
+
+	// Generate insight based on sprawl + DORA combination
+	ctx.Insight = generateDORAInsight(summary, devops.Summary.DORA.OverallPerformance)
+
+	return ctx
+}
+
+// generateDORAInsight creates an insight string based on sprawl and DORA performance
+func generateDORAInsight(summary *SprawlSummary, doraPerformance string) string {
+	sprawlLevel := summary.ToolSprawl.Level
+	if summary.TechnologySprawl.Level == "excessive" || summary.TechnologySprawl.Level == "high" {
+		sprawlLevel = summary.TechnologySprawl.Level
+	}
+
+	switch {
+	case sprawlLevel == "excessive" && doraPerformance == "elite":
+		return "High sprawl but elite DORA performance - team manages complexity well"
+	case sprawlLevel == "excessive" && (doraPerformance == "medium" || doraPerformance == "low"):
+		return "High sprawl correlating with lower DORA performance - consider simplification"
+	case sprawlLevel == "high" && doraPerformance == "elite":
+		return "Moderate sprawl with elite DORA - good balance of tools and velocity"
+	case sprawlLevel == "low" && doraPerformance == "low":
+		return "Low sprawl but low DORA performance - tooling may not be the bottleneck"
+	case sprawlLevel == "low" && doraPerformance == "elite":
+		return "Low sprawl with elite DORA - excellent developer experience"
+	default:
+		return ""
+	}
 }
 
 // mapTechIDCategory maps tech-id categories to devex-friendly categories
@@ -1158,16 +1348,26 @@ func calculateConfigComplexityScore(analysis *ConfigAnalysis) int {
 
 // detectLanguages is no longer needed - we use tech-id scanner data instead
 
-func identifySprawlIssues(tools []DetectedTool, maxRecommended int) []SprawlIssue {
+func identifySprawlIssues(tools []DetectedTool, technologies []DetectedTech, cfg SprawlConfig) []SprawlIssue {
 	var issues []SprawlIssue
 
 	// Check for excessive tools
-	if len(tools) > maxRecommended {
+	if len(tools) > cfg.MaxRecommendedTools {
 		issues = append(issues, SprawlIssue{
-			Category:    "excessive",
+			Category:    "tool_sprawl",
 			Severity:    "medium",
-			Description: fmt.Sprintf("Tool count (%d) exceeds recommended maximum (%d)", len(tools), maxRecommended),
+			Description: fmt.Sprintf("Tool count (%d) exceeds recommended maximum (%d)", len(tools), cfg.MaxRecommendedTools),
 			Suggestion:  "Consider consolidating tools or removing unused ones",
+		})
+	}
+
+	// Check for excessive technologies
+	if len(technologies) > cfg.MaxRecommendedTechnologies {
+		issues = append(issues, SprawlIssue{
+			Category:    "technology_sprawl",
+			Severity:    "medium",
+			Description: fmt.Sprintf("Technology count (%d) exceeds recommended maximum (%d)", len(technologies), cfg.MaxRecommendedTechnologies),
+			Suggestion:  "High technology sprawl increases onboarding time and cognitive load",
 		})
 	}
 
@@ -1208,7 +1408,7 @@ func identifySprawlIssues(tools []DetectedTool, maxRecommended int) []SprawlIssu
 	// Check for multiple CI systems
 	ciTools := []string{}
 	for _, t := range tools {
-		if t.Category == "ci" {
+		if t.Category == "ci-cd" {
 			ciTools = append(ciTools, t.Name)
 		}
 	}
@@ -1222,77 +1422,56 @@ func identifySprawlIssues(tools []DetectedTool, maxRecommended int) []SprawlIssu
 		})
 	}
 
+	// Check for multiple languages (learning curve)
+	langTech := []string{}
+	for _, t := range technologies {
+		if t.Category == "language" {
+			langTech = append(langTech, t.Name)
+		}
+	}
+	if len(langTech) > 4 {
+		issues = append(issues, SprawlIssue{
+			Category:    "learning_curve",
+			Severity:    "medium",
+			Description: fmt.Sprintf("Multiple programming languages (%d): %s", len(langTech), strings.Join(langTech, ", ")),
+			Tools:       langTech,
+			Suggestion:  "Many languages increase onboarding time; consider if all are necessary",
+		})
+	}
+
 	return issues
 }
 
-func calculateCICDComplexity(repoPath string) int {
-	complexity := 0
-
-	// Count GitHub workflow files and their jobs
-	workflowDir := filepath.Join(repoPath, ".github", "workflows")
-	if entries, err := os.ReadDir(workflowDir); err == nil {
-		complexity += len(entries) * 10 // Each workflow adds 10
-
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-			path := filepath.Join(workflowDir, entry.Name())
-			if data, err := os.ReadFile(path); err == nil {
-				content := string(data)
-				// Count jobs
-				jobCount := strings.Count(content, "jobs:")
-				complexity += jobCount * 5
-
-				// Count steps (approximate)
-				stepCount := strings.Count(content, "- name:")
-				complexity += stepCount
-			}
-		}
-	}
-
-	// Cap at 100
-	if complexity > 100 {
-		complexity = 100
-	}
-
-	return complexity
-}
-
-func calculateToolingScore(summary *ToolingSummary) int {
+// calculateSprawlScore returns combined score (0-100, higher is simpler)
+func calculateSprawlScore(summary *SprawlSummary) int {
 	score := 100
 
-	// Deduct for tool sprawl
-	if summary.ToolSprawlIndex > 20 {
+	// Tool sprawl impact (40% weight)
+	switch summary.ToolSprawl.Level {
+	case "excessive":
 		score -= 30
-	} else if summary.ToolSprawlIndex > 14 {
-		score -= 20
-	} else if summary.ToolSprawlIndex > 10 {
-		score -= 10
-	}
-
-	// Deduct for config complexity
-	switch summary.ConfigComplexity {
 	case "high":
 		score -= 20
+	case "moderate":
+		score -= 10
+	}
+
+	// Technology sprawl impact (40% weight)
+	switch summary.TechnologySprawl.Level {
+	case "excessive":
+		score -= 30
+	case "high":
+		score -= 20
+	case "moderate":
+		score -= 10
+	}
+
+	// Config complexity impact (20% weight)
+	switch summary.ConfigComplexity {
+	case "high":
+		score -= 15
 	case "medium":
-		score -= 10
-	}
-
-	// Deduct for many languages (context switching)
-	if summary.LanguageCount > 5 {
-		score -= 15
-	} else if summary.LanguageCount > 3 {
-		score -= 5
-	}
-
-	// Deduct for CI/CD complexity
-	if summary.CICDComplexity > 80 {
-		score -= 15
-	} else if summary.CICDComplexity > 50 {
-		score -= 10
-	} else if summary.CICDComplexity > 30 {
-		score -= 5
+		score -= 8
 	}
 
 	if score < 0 {
@@ -1306,7 +1485,7 @@ func calculateToolingScore(summary *ToolingSummary) int {
 // WORKFLOW FEATURE
 // ============================================================================
 
-func (s *DevExScanner) runWorkflow(ctx context.Context, opts *scanner.ScanOptions, cfg WorkflowConfig) (*WorkflowSummary, *WorkflowFindings) {
+func (s *DevXScanner) runWorkflow(ctx context.Context, opts *scanner.ScanOptions, cfg WorkflowConfig) (*WorkflowSummary, *WorkflowFindings) {
 	summary := &WorkflowSummary{}
 	findings := &WorkflowFindings{
 		PRTemplates:    []PRTemplate{},

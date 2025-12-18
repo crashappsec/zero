@@ -3,9 +3,9 @@
 Zero provides security analysis tools and specialist AI agents for repository assessment.
 Named after characters from the movie Hackers (1995) - "Hack the planet!"
 
-## Super Scanner Architecture (v3.5)
+## Super Scanner Architecture (v3.6)
 
-Zero uses **8 consolidated super scanners** with configurable features:
+Zero uses **9 consolidated super scanners** with configurable features:
 
 | Scanner | Features | Description |
 |---------|----------|-------------|
@@ -17,11 +17,13 @@ Zero uses **8 consolidated super scanners** with configurable features:
 | **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security |
 | **tech-id** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | Technology detection and ML-BOM generation |
 | **code-ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | Code ownership analysis |
+| **devx** | onboarding, sprawl, workflow | Developer experience analysis (depends on tech-id) |
 
 **Key architecture notes:**
 - `sbom` scanner runs first and generates `sbom.cdx.json` (CycloneDX format)
 - `package-analysis` scanner depends on sbom output - does not generate its own SBOM
 - `tech-id` scanner generates ML-BOM (Machine Learning Bill of Materials)
+- `devx` scanner depends on tech-id for technology detection (tool vs technology sprawl)
 - Each scanner produces **one JSON output file** with all feature results
 
 ## Orchestrator: Zero

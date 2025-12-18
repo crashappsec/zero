@@ -1,11 +1,11 @@
 // Package devex provides the consolidated developer experience super scanner
 // Features: onboarding, tooling, workflow
-package devex
+package devx
 
 // FeatureConfig holds configuration for all developer experience features
 type FeatureConfig struct {
 	Onboarding OnboardingConfig `json:"onboarding"`
-	Tooling    ToolingConfig    `json:"tooling"`
+	Sprawl     SprawlConfig     `json:"sprawl"`
 	Workflow   WorkflowConfig   `json:"workflow"`
 }
 
@@ -15,16 +15,23 @@ type OnboardingConfig struct {
 	CheckReadmeQuality bool `json:"check_readme_quality"` // Check for setup instructions in README
 	CheckContributing  bool `json:"check_contributing"`   // Check for CONTRIBUTING.md
 	CheckEnvSetup      bool `json:"check_env_setup"`      // Check for .env.example, docker-compose
-	CheckPrerequisites bool `json:"check_prerequisites"`  // Check for required tool documentation
 }
 
-// ToolingConfig configures tooling complexity analysis
-type ToolingConfig struct {
-	Enabled              bool `json:"enabled"`
-	CheckToolSprawl      bool `json:"check_tool_sprawl"`       // Count distinct tools
-	CheckConfigComplexity bool `json:"check_config_complexity"` // Analyze config file complexity
-	MaxRecommendedTools  int  `json:"max_recommended_tools"`   // Threshold for tool sprawl warning
+// SprawlConfig configures sprawl analysis (tool + technology sprawl)
+type SprawlConfig struct {
+	Enabled                    bool     `json:"enabled"`
+	CheckToolSprawl            bool     `json:"check_tool_sprawl"`             // Count dev tools
+	CheckTechnologySprawl      bool     `json:"check_technology_sprawl"`       // Count technologies
+	CheckConfigComplexity      bool     `json:"check_config_complexity"`       // Analyze config file complexity
+	MaxRecommendedTools        int      `json:"max_recommended_tools"`         // Threshold for tool sprawl warning (default: 10)
+	MaxRecommendedTechnologies int      `json:"max_recommended_technologies"`  // Threshold for tech sprawl warning (default: 15)
+	ToolCategories             []string `json:"tool_categories"`               // Categories for tools
+	TechnologyCategories       []string `json:"technology_categories"`         // Categories for technologies
 }
+
+// ToolingConfig is kept for backward compatibility
+// Deprecated: use SprawlConfig instead
+type ToolingConfig = SprawlConfig
 
 // WorkflowConfig configures workflow efficiency analysis
 type WorkflowConfig struct {
@@ -42,13 +49,16 @@ func DefaultConfig() FeatureConfig {
 			CheckReadmeQuality: true,
 			CheckContributing:  true,
 			CheckEnvSetup:      true,
-			CheckPrerequisites: true,
 		},
-		Tooling: ToolingConfig{
-			Enabled:              true,
-			CheckToolSprawl:      true,
-			CheckConfigComplexity: true,
-			MaxRecommendedTools:  10,
+		Sprawl: SprawlConfig{
+			Enabled:                    true,
+			CheckToolSprawl:            true,
+			CheckTechnologySprawl:      true,
+			CheckConfigComplexity:      true,
+			MaxRecommendedTools:        10,
+			MaxRecommendedTechnologies: 15,
+			ToolCategories:             []string{"linter", "formatter", "bundler", "test", "ci-cd", "build"},
+			TechnologyCategories:       []string{"language", "framework", "database", "cloud", "container", "infrastructure"},
 		},
 		Workflow: WorkflowConfig{
 			Enabled:           true,
@@ -62,7 +72,7 @@ func DefaultConfig() FeatureConfig {
 // QuickConfig returns minimal config for fast scans
 func QuickConfig() FeatureConfig {
 	cfg := DefaultConfig()
-	cfg.Tooling.CheckConfigComplexity = false // Skip detailed config analysis
+	cfg.Sprawl.CheckConfigComplexity = false // Skip detailed config analysis
 	return cfg
 }
 

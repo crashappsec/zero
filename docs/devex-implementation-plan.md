@@ -20,13 +20,13 @@ tech-id scanner                    devops scanner
     └── Outputs: tech-id.json           │   - MTTR
                     │                   │
                     ▼                   └── Outputs: devops.json
-              devex scanner                        │
+              devx scanner                        │
                     │                              │
                     ├── Loads: tech-id.json ◄──────┘ (optional)
                     │
                     ├── Analyzes: onboarding, technology sprawl, workflow
                     │
-                    └── Outputs: devex.json
+                    └── Outputs: devx.json
 ```
 
 ## Relationship to Productivity Frameworks
@@ -151,36 +151,31 @@ Measures development workflow quality (SPACE "Efficiency" dimension):
 
 | Task | Description |
 |------|-------------|
-| ✅ Scanner skeleton | `pkg/scanners/devex/` with types, config, main scanner |
+| ✅ Scanner skeleton | `pkg/scanners/devx/` with types, config, main scanner |
 | ✅ Tech-id dependency | Declared in `Dependencies()`, loads tech-id.json |
 | ✅ Onboarding feature | README analysis, env detection |
-| ✅ Tooling feature | Uses tech-id data, config complexity analysis |
+| ✅ Sprawl feature | Separate tool sprawl + technology sprawl with category breakdowns |
 | ✅ Workflow feature | PR templates, local dev setup, feedback tools |
 | ✅ Config integration | Added to `zero.config.json` |
-| ✅ Profile integration | Added to `full` profile, new `devex-only` profile |
+| ✅ Profile integration | Added to `full` profile, new `devx-only` profile |
+| ✅ Split sprawl metrics | Separate tool sprawl (dev tools) from technology sprawl (all tech) |
+| ✅ Category breakdown | Show sprawl by category (languages, frameworks, etc.) |
+| ✅ Learning curve score | Estimate based on technology count and complexity |
+| ✅ DORA integration | Optionally load devops.json for context insights |
+| ✅ Removed check_prerequisites | Prerequisites now derived from tech-id data |
 
 ### TODO
 
-#### DevEx Scanner Changes
+#### Tech-ID / RAG Pipeline Changes (Required for Enhanced DevEx)
 
 | Task | Description |
 |------|-------------|
-| ⬜ Remove check_prerequisites | Use tech-id data instead of local detection |
-| ⬜ Split sprawl metrics | Separate tool sprawl (dev tools) from technology sprawl (all tech) |
-| ⬜ Add category breakdown | Show sprawl by category (languages, frameworks, etc.) |
-| ⬜ DORA integration | Optionally load devops.json for context |
-| ⬜ Learning curve score | Estimate based on technology count and complexity |
-
-#### Tech-ID / RAG Pipeline Changes (Required for DevEx)
-
-| Task | Description |
-|------|-------------|
-| ⬜ Audit all RAG patterns.md | Ensure all patterns have complete sections (see checklist below) |
-| ⬜ Extend RAG converter for ALL sections | Parse and convert all RAG sections to Semgrep rules |
-| ⬜ Add category metadata to RAG patterns | Ensure all patterns.md have `Category: developer-tools/linting` etc. |
-| ⬜ Map RAG categories to tool/technology | `developer-tools/*` → Tool, `languages/*` → Technology |
-| ⬜ Add missing RAG patterns | Build tools (Make, Gradle, Maven, CMake), formatters (Black, gofmt) |
-| ⬜ Remove hardcoded configPatterns | Once RAG covers all config file detection |
+| ✅ Audit all RAG patterns.md | Ensure all patterns have complete sections (see checklist below) |
+| ✅ Extend RAG converter for ALL sections | Parse and convert all RAG sections to Semgrep rules |
+| ✅ Add category metadata to RAG patterns | Ensure all patterns.md have `Category: developer-tools/linting` etc. |
+| ✅ Map RAG categories to tool/technology | `developer-tools/*` → Tool, `languages/*` → Technology |
+| ✅ Add missing RAG patterns | Build tools (Make, Gradle, Maven, CMake), formatters (Black, gofmt, rustfmt) |
+| ⬜ Remove hardcoded configPatterns | Once RAG covers all config file detection (optional) |
 
 #### RAG Pattern Sections Checklist
 
@@ -188,23 +183,25 @@ Each `patterns.md` should have these sections, and the RAG → Semgrep converter
 
 | Section | Currently Converted? | Semgrep Rule Type |
 |---------|---------------------|-------------------|
-| `Package Detection` | ❌ No | Could use SBOM data instead |
-| `Configuration Files` | ❌ No | `paths:` patterns for file detection |
+| `Package Detection` | ⚠️ Partial | Could use SBOM data instead |
+| `Configuration Files` | ✅ Yes | `pattern-regex:` for file detection + metadata |
 | `Import Detection` | ✅ Yes | `pattern:` for code imports |
-| `Environment Variables` | ❌ No | `pattern-regex:` for env var usage |
+| `Environment Variables` | ⚠️ Parsed | Stored in pattern metadata |
 | `Secrets Detection` | ✅ Yes | `pattern-regex:` for secret patterns |
-| `Detection Confidence` | ⚠️ Partial | `metadata.confidence` in rules |
+| `Detection Confidence` | ✅ Yes | `metadata.confidence` in rules |
+| `Homepage` | ✅ Yes | `metadata.homepage` in rules |
+| `Category` | ✅ Yes | `metadata.category` + `metadata.tool_type` |
 
 #### RAG Converter Enhancement Tasks
 
 | Task | Description |
 |------|-------------|
-| ⬜ Parse "Configuration Files" section | Generate rules with `paths:` to match config filenames |
-| ⬜ Parse "Package Detection" section | Optional: cross-reference with SBOM data |
-| ⬜ Parse "Environment Variables" section | Generate rules to detect env var usage in code |
-| ⬜ Preserve category hierarchy | `developer-tools/linting` → metadata for tool/tech classification |
-| ⬜ Add file extension support | Use `File extensions:` hints for language targeting |
-| ⬜ Handle "Detection Notes" | Add to rule `message` or `metadata.notes` |
+| ✅ Parse "Configuration Files" section | Generate rules with `pattern-regex:` to match config filenames |
+| ⚠️ Parse "Package Detection" section | Optional: cross-reference with SBOM data |
+| ✅ Parse "Environment Variables" section | Stored in pattern struct for metadata |
+| ✅ Preserve category hierarchy | `developer-tools/linting` → `metadata.tool_type: linter` |
+| ⚠️ Add file extension support | Use `File extensions:` hints for language targeting |
+| ⚠️ Handle "Detection Notes" | Add to rule `message` or `metadata.notes` |
 
 #### Tech-ID Scanner Refactor Tasks
 
@@ -349,11 +346,11 @@ Option C: Add config file patterns to hardcoded Go maps with proper categories
 ### Scanner Config (zero.config.json)
 
 ```json
-"devex": {
+"devx": {
   "name": "Developer Experience",
   "description": "Developer experience analysis: onboarding friction, sprawl analysis, workflow efficiency",
   "estimated_time": "15-30s",
-  "output_file": "devex.json",
+  "output_file": "devx.json",
   "dependencies": ["tech-id"],
   "features": {
     "onboarding": {
@@ -387,17 +384,17 @@ Option C: Add config file patterns to hardcoded Go maps with proper categories
 | Profile | Includes DevEx | Notes |
 |---------|---------------|-------|
 | `full` | ✅ | Complete analysis |
-| `devex-only` | ✅ | DevEx + tech-id only |
+| `devx-only` | ✅ | DevEx + tech-id only |
 | `standard` | ❌ | Security/quality focus |
 | `quick` | ❌ | Fast feedback |
 
 ## Output Schema
 
-### devex.json
+### devx.json
 
 ```json
 {
-  "scanner": "devex",
+  "scanner": "devx",
   "version": "1.0.0",
   "summary": {
     "onboarding": {
@@ -507,7 +504,7 @@ DevEx is strongest at measuring the **infrastructure that enables efficiency** -
 
 5. **SPACE survey integration**: Optional webhook/API to collect satisfaction data
 
-6. **Comparison mode**: Compare devex scores across repos or over time
+6. **Comparison mode**: Compare devx scores across repos or over time
 
 ## References
 
@@ -520,8 +517,8 @@ DevEx is strongest at measuring the **infrastructure that enables efficiency** -
 
 | File | Purpose |
 |------|---------|
-| `pkg/scanners/devex/devex.go` | Main scanner implementation |
-| `pkg/scanners/devex/types.go` | Type definitions |
-| `pkg/scanners/devex/config.go` | Feature configuration |
+| `pkg/scanners/devx/devx.go` | Main scanner implementation |
+| `pkg/scanners/devx/types.go` | Type definitions |
+| `pkg/scanners/devx/config.go` | Feature configuration |
 | `config/zero.config.json` | Scanner and profile config |
 | `pkg/scanners/all.go` | Scanner registration |

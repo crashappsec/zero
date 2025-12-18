@@ -1,4 +1,4 @@
-package devex
+package devx
 
 // Result holds all feature results
 type Result struct {
@@ -10,7 +10,7 @@ type Result struct {
 // Summary holds summaries from all features
 type Summary struct {
 	Onboarding *OnboardingSummary `json:"onboarding,omitempty"`
-	Tooling    *ToolingSummary    `json:"tooling,omitempty"`
+	Sprawl     *SprawlSummary     `json:"sprawl,omitempty"`
 	Workflow   *WorkflowSummary   `json:"workflow,omitempty"`
 	Errors     []string           `json:"errors,omitempty"`
 }
@@ -18,7 +18,7 @@ type Summary struct {
 // Findings holds findings from all features
 type Findings struct {
 	Onboarding *OnboardingFindings `json:"onboarding,omitempty"`
-	Tooling    *ToolingFindings    `json:"tooling,omitempty"`
+	Sprawl     *SprawlFindings     `json:"sprawl,omitempty"`
 	Workflow   *WorkflowFindings   `json:"workflow,omitempty"`
 }
 
@@ -97,39 +97,72 @@ type ReadmeAnalysis struct {
 }
 
 // ============================================================================
-// TOOLING TYPES
+// SPRAWL TYPES (replaces TOOLING)
 // ============================================================================
 
-// ToolingSummary contains tooling complexity summary
-type ToolingSummary struct {
-	Score               int            `json:"score"`                 // Overall tooling score (0-100, higher is simpler)
-	ToolSprawlIndex     int            `json:"tool_sprawl_index"`     // Number of distinct tools
-	SprawlLevel         string         `json:"sprawl_level"`          // low, moderate, high, excessive
-	ConfigComplexity    string         `json:"config_complexity"`     // low, medium, high
-	TotalConfigLines    int            `json:"total_config_lines"`    // Total lines across all configs
-	BuildToolCount      int            `json:"build_tool_count"`      // Build/bundler tools
-	LinterCount         int            `json:"linter_count"`          // Linting tools
-	TestToolCount       int            `json:"test_tool_count"`       // Testing frameworks
-	LanguageCount       int            `json:"language_count"`        // Programming languages detected
-	CICDComplexity      int            `json:"cicd_complexity"`       // CI/CD pipeline complexity
-	ToolsByCategory     map[string]int `json:"tools_by_category"`     // Tool counts by category
-	Error               string         `json:"error,omitempty"`
+// SprawlSummary contains sprawl analysis summary with separate tool and technology metrics
+type SprawlSummary struct {
+	CombinedScore      int               `json:"combined_score"`       // Overall sprawl score (0-100, higher is simpler)
+	ToolSprawl         ToolSprawlMetrics `json:"tool_sprawl"`          // Dev tool metrics
+	TechnologySprawl   TechSprawlMetrics `json:"technology_sprawl"`    // Technology metrics
+	ConfigComplexity   string            `json:"config_complexity"`    // low, medium, high
+	TotalConfigLines   int               `json:"total_config_lines"`   // Total lines across all configs
+	LearningCurve      string            `json:"learning_curve"`       // low, moderate, high, steep
+	LearningCurveScore int               `json:"learning_curve_score"` // 0-100 (lower is steeper)
+	DORAContext        *DORAContext      `json:"dora_context,omitempty"` // Optional DORA metrics context
+	Error              string            `json:"error,omitempty"`
 }
 
-// ToolingFindings contains detailed tooling analysis
-type ToolingFindings struct {
-	DetectedTools    []DetectedTool  `json:"detected_tools"`
-	ConfigAnalysis   []ConfigAnalysis `json:"config_analysis,omitempty"`
-	SprawlIssues     []SprawlIssue   `json:"sprawl_issues,omitempty"`
-	Languages        []Language      `json:"languages"`
+// DORAContext provides DORA metrics context for sprawl analysis
+type DORAContext struct {
+	OverallPerformance string `json:"overall_performance"` // elite, high, medium, low
+	Insight            string `json:"insight,omitempty"`   // e.g., "High sprawl but elite DORA performance"
 }
+
+// ToolSprawlMetrics tracks developer tools (config burden)
+type ToolSprawlMetrics struct {
+	Index      int            `json:"index"`       // Number of dev tools
+	Level      string         `json:"level"`       // low, moderate, high, excessive
+	ByCategory map[string]int `json:"by_category"` // linter, formatter, bundler, test, ci-cd, build
+}
+
+// TechSprawlMetrics tracks technologies (learning curve)
+type TechSprawlMetrics struct {
+	Index      int            `json:"index"`       // Number of technologies
+	Level      string         `json:"level"`       // low, moderate, high, excessive
+	ByCategory map[string]int `json:"by_category"` // language, framework, database, cloud, container, infrastructure
+}
+
+// ToolingSummary is kept for backward compatibility, aliased to SprawlSummary
+// Deprecated: use SprawlSummary instead
+type ToolingSummary = SprawlSummary
+
+// SprawlFindings contains detailed sprawl analysis
+type SprawlFindings struct {
+	Tools          []DetectedTool   `json:"tools"`                    // Developer tools detected
+	Technologies   []DetectedTech   `json:"technologies"`             // Technologies detected
+	ConfigAnalysis []ConfigAnalysis `json:"config_analysis,omitempty"`
+	SprawlIssues   []SprawlIssue    `json:"sprawl_issues,omitempty"`
+}
+
+// ToolingFindings is kept for backward compatibility
+// Deprecated: use SprawlFindings instead
+type ToolingFindings = SprawlFindings
 
 // DetectedTool represents a detected development tool
 type DetectedTool struct {
-	Name        string `json:"name"`         // e.g., "ESLint", "Prettier", "Webpack"
-	Category    string `json:"category"`     // "linter", "formatter", "bundler", "test", "ci"
-	ConfigFile  string `json:"config_file"`  // Configuration file that indicates this tool
-	Version     string `json:"version,omitempty"` // Version if detectable
+	Name       string `json:"name"`                // e.g., "ESLint", "Prettier", "Webpack"
+	Category   string `json:"category"`            // "linter", "formatter", "bundler", "test", "ci-cd", "build"
+	ConfigFile string `json:"config_file"`         // Configuration file that indicates this tool
+	Version    string `json:"version,omitempty"`   // Version if detectable
+}
+
+// DetectedTech represents a detected technology
+type DetectedTech struct {
+	Name       string `json:"name"`              // e.g., "TypeScript", "React", "PostgreSQL"
+	Category   string `json:"category"`          // "language", "framework", "database", "cloud", "container", "infrastructure"
+	Confidence int    `json:"confidence"`        // Detection confidence 0-100
+	Source     string `json:"source,omitempty"`  // How detected (import, config, sbom)
 }
 
 // ConfigAnalysis represents analysis of a config file
@@ -152,9 +185,10 @@ type SprawlIssue struct {
 }
 
 // Language represents a detected programming language
+// Deprecated: use DetectedTech with category="language" instead
 type Language struct {
-	Name       string `json:"name"`
-	FileCount  int    `json:"file_count"`
+	Name       string  `json:"name"`
+	FileCount  int     `json:"file_count"`
 	Percentage float64 `json:"percentage"` // Percentage of codebase
 }
 
