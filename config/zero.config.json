@@ -4,7 +4,7 @@
   "_docs": "===================================================================================",
   "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v3.3)",
   "_docs3": "===================================================================================",
-  "_docs4": "Zero uses 9 consolidated 'super scanners' with configurable features:",
+  "_docs4": "Zero uses 10 consolidated 'super scanners' with configurable features:",
   "_docs5": "  - sbom: SBOM generation and integrity verification (source of truth)",
   "_docs6": "  - packages: vulnerabilities, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations, confusion, reachability",
   "_docs7": "  - crypto: ciphers, keys, random, tls, certificates",
@@ -14,7 +14,8 @@
   "_docs11": "  - technology: detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure (ML-BOM)",
   "_docs12": "  - ownership: contributors, bus_factor, codeowners, orphans, churn, patterns",
   "_docs13": "  - health: score, summary, recommendations, trends (aggregator)",
-  "_docs14": "===================================================================================",
+  "_docs14": "  - devex: onboarding, tooling, workflow (developer experience)",
+  "_docs15": "===================================================================================",
   "settings": {
     "default_profile": "standard",
     "storage_path": ".zero",
@@ -25,6 +26,12 @@
     "environment": {
       "github_token_env": "GITHUB_TOKEN",
       "anthropic_key_env": "ANTHROPIC_API_KEY"
+    },
+    "history": {
+      "enabled": true,
+      "retention_days": 90,
+      "max_scans": 50,
+      "compress_old": true
     }
   },
   "scanners": {
@@ -374,6 +381,34 @@
           "history_days": 30
         }
       }
+    },
+    "devex": {
+      "name": "Developer Experience",
+      "description": "Developer experience analysis: onboarding friction, tooling complexity, workflow efficiency",
+      "estimated_time": "15-30s",
+      "output_file": "devex.json",
+      "dependencies": ["tech-id"],
+      "features": {
+        "onboarding": {
+          "enabled": true,
+          "check_readme_quality": true,
+          "check_contributing": true,
+          "check_env_setup": true,
+          "check_prerequisites": true
+        },
+        "tooling": {
+          "enabled": true,
+          "check_tool_sprawl": true,
+          "check_config_complexity": true,
+          "max_recommended_tools": 10
+        },
+        "workflow": {
+          "enabled": true,
+          "check_pr_templates": true,
+          "check_local_dev": true,
+          "check_feedback_loop": true
+        }
+      }
     }
   },
   "profiles": {
@@ -423,7 +458,7 @@
       "name": "Full",
       "description": "Complete analysis with all features enabled",
       "estimated_time": "~12 minutes",
-      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership"]
+      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "devex"]
     },
     "ai-security": {
       "name": "AI/ML Security",
@@ -484,6 +519,12 @@
       "description": "Code ownership and contributor analysis",
       "estimated_time": "~1 minute",
       "scanners": ["code-ownership"]
+    },
+    "devex-only": {
+      "name": "Developer Experience Only",
+      "description": "Developer experience analysis: onboarding, tooling, workflow",
+      "estimated_time": "~1 minute",
+      "scanners": ["tech-id", "devex"]
     },
     "compliance": {
       "name": "Compliance",

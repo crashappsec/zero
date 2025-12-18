@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/crashappsec/zero/pkg/config"
+	"github.com/crashappsec/zero/pkg/diff"
 	"github.com/crashappsec/zero/pkg/github"
 	"github.com/crashappsec/zero/pkg/languages"
 	"github.com/crashappsec/zero/pkg/scanner"
@@ -221,6 +222,9 @@ func (h *Hydrate) Run(ctx context.Context) ([]string, error) {
 	// Aggregate findings from all repos (only for scanners that were run, excluding skipped)
 	runningScanners := filterOutSkipped(scanners, skipScanners)
 	findings := h.aggregateFindings(repoStatuses, runningScanners)
+
+	// Preserve scan history for diff/delta tracking
+	h.preserveHistory(repoStatuses, runningScanners, scanID, start)
 
 	// Print summary
 	duration := int(time.Since(start).Seconds())
@@ -1456,4 +1460,149 @@ func (h *Hydrate) aggregateTechID(dir string, findings *terminal.ScanFindings) {
 	if result.Summary.Security != nil {
 		findings.TechSecurityCount += result.Summary.Security.TotalFindings
 	}
+}
+
+// preserveHistory saves the scan results to history for diff/delta tracking
+func (h *Hydrate) preserveHistory(statuses []*RepoStatus, scannersRun []string, scanID string, startTime time.Time) {
+	historyConfig := diff.DefaultHistoryConfig()
+	historyMgr := diff.NewHistoryManager(h.zeroHome, historyConfig)
+
+	for _, status := range statuses {
+		if !status.ScanOK {
+			continue
+		}
+
+		projectID := github.ProjectID(status.Repo.NameWithOwner)
+
+		// Get commit info
+		commitHash := h.getFullCommitHash(status.RepoPath)
+		commitShort := h.getCommitHash(status.RepoPath)
+		branch := h.getCurrentBranch(status.RepoPath)
+
+		// Build findings summary from aggregated data
+		findingsSummary := h.buildFindingsSummary(projectID)
+
+		// Create scan record
+		record := diff.ScanRecord{
+			ScanID:          scanID,
+			CommitHash:      commitHash,
+			CommitShort:     commitShort,
+			Branch:          branch,
+			StartedAt:       startTime.Format(time.RFC3339),
+			CompletedAt:     time.Now().Format(time.RFC3339),
+			DurationSeconds: int(time.Since(startTime).Seconds()),
+			Profile:         h.opts.Profile,
+			ScannersRun:     scannersRun,
+			Status:          "complete",
+			FindingsSummary: findingsSummary,
+		}
+
+		// Preserve scan to history
+		if err := historyMgr.PreserveScan(projectID, record); err != nil {
+			// Log error but don't fail the scan
+			fmt.Fprintf(os.Stderr, "Warning: failed to preserve history for %s: %v\n", projectID, err)
+		}
+	}
+}
+
+// getFullCommitHash returns the full commit hash of the repo
+func (h *Hydrate) getFullCommitHash(path string) string {
+	cmd := exec.Command("git", "-C", path, "rev-parse", "HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return "unknown"
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// getCurrentBranch returns the current branch name
+func (h *Hydrate) getCurrentBranch(path string) string {
+	cmd := exec.Command("git", "-C", path, "rev-parse", "--abbrev-ref", "HEAD")
+	out, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(out))
+}
+
+// buildFindingsSummary reads scan results and builds a findings summary
+func (h *Hydrate) buildFindingsSummary(projectID string) diff.FindingsSummary {
+	summary := diff.FindingsSummary{}
+	analysisDir := filepath.Join(h.zeroHome, "repos", projectID, "analysis")
+
+	// Read code-security results
+	codeSecPath := filepath.Join(analysisDir, "code-security.json")
+	if data, err := os.ReadFile(codeSecPath); err == nil {
+		var result struct {
+			Summary struct {
+				Vulns   *struct{ Critical, High, Medium, Low int } `json:"vulns"`
+				Secrets *struct{ Critical, High, Medium, Low int } `json:"secrets"`
+				API     *struct{ Critical, High, Medium, Low int } `json:"api"`
+			} `json:"summary"`
+		}
+		if json.Unmarshal(data, &result) == nil {
+			if result.Summary.Vulns != nil {
+				summary.Critical += result.Summary.Vulns.Critical
+				summary.High += result.Summary.Vulns.High
+				summary.Medium += result.Summary.Vulns.Medium
+				summary.Low += result.Summary.Vulns.Low
+			}
+			if result.Summary.Secrets != nil {
+				summary.Critical += result.Summary.Secrets.Critical
+				summary.High += result.Summary.Secrets.High
+				summary.Medium += result.Summary.Secrets.Medium
+				summary.Low += result.Summary.Secrets.Low
+			}
+			if result.Summary.API != nil {
+				summary.Critical += result.Summary.API.Critical
+				summary.High += result.Summary.API.High
+				summary.Medium += result.Summary.API.Medium
+				summary.Low += result.Summary.API.Low
+			}
+		}
+	}
+
+	// Read package-analysis results
+	pkgPath := filepath.Join(analysisDir, "package-analysis.json")
+	if data, err := os.ReadFile(pkgPath); err == nil {
+		var result struct {
+			Summary struct {
+				Vulns *struct{ Critical, High, Medium, Low int } `json:"vulns"`
+			} `json:"summary"`
+		}
+		if json.Unmarshal(data, &result) == nil && result.Summary.Vulns != nil {
+			summary.Critical += result.Summary.Vulns.Critical
+			summary.High += result.Summary.Vulns.High
+			summary.Medium += result.Summary.Vulns.Medium
+			summary.Low += result.Summary.Vulns.Low
+		}
+	}
+
+	// Read crypto results
+	cryptoPath := filepath.Join(analysisDir, "crypto.json")
+	if data, err := os.ReadFile(cryptoPath); err == nil {
+		var result struct {
+			Summary struct {
+				Ciphers *struct{ BySeverity map[string]int } `json:"ciphers"`
+				Keys    *struct{ BySeverity map[string]int } `json:"keys"`
+			} `json:"summary"`
+		}
+		if json.Unmarshal(data, &result) == nil {
+			if result.Summary.Ciphers != nil {
+				summary.Critical += result.Summary.Ciphers.BySeverity["critical"]
+				summary.High += result.Summary.Ciphers.BySeverity["high"]
+				summary.Medium += result.Summary.Ciphers.BySeverity["medium"]
+				summary.Low += result.Summary.Ciphers.BySeverity["low"]
+			}
+			if result.Summary.Keys != nil {
+				summary.Critical += result.Summary.Keys.BySeverity["critical"]
+				summary.High += result.Summary.Keys.BySeverity["high"]
+				summary.Medium += result.Summary.Keys.BySeverity["medium"]
+				summary.Low += result.Summary.Keys.BySeverity["low"]
+			}
+		}
+	}
+
+	summary.Total = summary.Critical + summary.High + summary.Medium + summary.Low
+	return summary
 }

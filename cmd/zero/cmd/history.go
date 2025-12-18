@@ -1,13 +1,15 @@
+// Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
+// SPDX-License-Identifier: GPL-3.0
+
 package cmd
 
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/crashappsec/zero/pkg/config"
+	"github.com/crashappsec/zero/pkg/diff"
 	"github.com/crashappsec/zero/pkg/terminal"
 	"github.com/spf13/cobra"
 )
@@ -35,30 +37,6 @@ func init() {
 	historyCmd.Flags().BoolVar(&historyJSON, "json", false, "Output as JSON")
 }
 
-// ScanRecord represents a single scan in history
-type ScanRecord struct {
-	ScanID          string   `json:"scan_id"`
-	CommitHash      string   `json:"commit_hash"`
-	CommitShort     string   `json:"commit_short"`
-	Branch          string   `json:"branch,omitempty"`
-	StartedAt       string   `json:"started_at"`
-	CompletedAt     string   `json:"completed_at"`
-	DurationSeconds int      `json:"duration_seconds"`
-	Profile         string   `json:"profile"`
-	ScannersRun     []string `json:"scanners_run"`
-	Status          string   `json:"status"`
-}
-
-// History represents the history.json structure
-type History struct {
-	ProjectID   string              `json:"project_id"`
-	TotalScans  int                 `json:"total_scans"`
-	FirstScanAt string              `json:"first_scan_at"`
-	LastScanAt  string              `json:"last_scan_at"`
-	Scans       []ScanRecord        `json:"scans"`
-	ByCommit    map[string][]string `json:"by_commit"`
-}
-
 func runHistory(cmd *cobra.Command, args []string) error {
 	repo := args[0]
 
@@ -73,24 +51,21 @@ func runHistory(cmd *cobra.Command, args []string) error {
 	}
 
 	term := terminal.New()
-	historyFile := filepath.Join(zeroHome, "repos", repo, "analysis", "history.json")
 
-	// Check if history file exists
-	if _, err := os.Stat(historyFile); os.IsNotExist(err) {
+	// Use the diff package's history manager
+	historyConfig := diff.DefaultHistoryConfig()
+	historyMgr := diff.NewHistoryManager(zeroHome, historyConfig)
+
+	// Load history
+	history, err := historyMgr.LoadHistory(repo)
+	if err != nil {
+		return fmt.Errorf("failed to load history: %w", err)
+	}
+
+	if len(history.Scans) == 0 {
 		term.Info("No scan history for %s", repo)
 		term.Info("Run: zero hydrate %s", repo)
 		return nil
-	}
-
-	// Read history file
-	data, err := os.ReadFile(historyFile)
-	if err != nil {
-		return fmt.Errorf("failed to read history: %w", err)
-	}
-
-	var history History
-	if err := json.Unmarshal(data, &history); err != nil {
-		return fmt.Errorf("failed to parse history: %w", err)
 	}
 
 	// JSON output
@@ -116,11 +91,6 @@ func runHistory(cmd *cobra.Command, args []string) error {
 	)
 	term.Info("Total scans: %d", history.TotalScans)
 	term.Divider()
-
-	if len(history.Scans) == 0 {
-		term.Info("No scans recorded")
-		return nil
-	}
 
 	// Show scans (up to limit)
 	count := len(history.Scans)
@@ -156,6 +126,16 @@ func runHistory(cmd *cobra.Command, args []string) error {
 			branchStr = fmt.Sprintf(" (%s)", scan.Branch)
 		}
 
+		// Findings summary
+		findingsStr := ""
+		if scan.FindingsSummary.Total > 0 {
+			findingsStr = fmt.Sprintf("  Findings: %d (%d crit, %d high)",
+				scan.FindingsSummary.Total,
+				scan.FindingsSummary.Critical,
+				scan.FindingsSummary.High,
+			)
+		}
+
 		term.Info("")
 		term.Info("%s %s %s%s",
 			statusIcon,
@@ -163,16 +143,23 @@ func runHistory(cmd *cobra.Command, args []string) error {
 			timeStr,
 			branchStr,
 		)
-		term.Info("  Profile: %s  Duration: %ds  Scanners: %d",
+		term.Info("  Profile: %s  Duration: %ds  Scanners: %d%s",
 			scan.Profile,
 			scan.DurationSeconds,
 			len(scan.ScannersRun),
+			findingsStr,
 		)
 	}
 
 	if len(history.Scans) > count {
 		term.Info("")
 		term.Info("... and %d more (use --limit to show more)", len(history.Scans)-count)
+	}
+
+	// Tip about diff command
+	if len(history.Scans) >= 2 {
+		term.Info("")
+		term.Info("Tip: Use 'zero diff %s' to compare scans", repo)
 	}
 
 	return nil
