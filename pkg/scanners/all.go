@@ -13,15 +13,15 @@ package scanners
 // - devops: DevOps and CI/CD security (includes GitHub Actions, DORA metrics)
 // - tech-id: Technology identification and AI/ML security (ML-BOM generation)
 // - code-ownership: Code ownership and CODEOWNERS analysis
-// - devex: Developer experience analysis (onboarding, tooling, workflow)
+// - devx: Developer experience analysis (onboarding, tooling, workflow)
 import (
 	// Super scanners (v3.6)
 	_ "github.com/crashappsec/zero/pkg/scanners/code-ownership"   // Code ownership analysis
 	_ "github.com/crashappsec/zero/pkg/scanners/code-quality"     // Code quality analysis
 	_ "github.com/crashappsec/zero/pkg/scanners/code-security"    // Security-focused code analysis
 	_ "github.com/crashappsec/zero/pkg/scanners/crypto"           // Cryptographic security
-	_ "github.com/crashappsec/zero/pkg/scanners/devex"            // Developer experience analysis
 	_ "github.com/crashappsec/zero/pkg/scanners/devops"           // DevOps and CI/CD security
+	_ "github.com/crashappsec/zero/pkg/scanners/devx"             // Developer experience analysis
 	_ "github.com/crashappsec/zero/pkg/scanners/package-analysis" // Package analysis (depends on sbom)
 	_ "github.com/crashappsec/zero/pkg/scanners/sbom"             // SBOM generation (source of truth)
 	_ "github.com/crashappsec/zero/pkg/scanners/tech-id"          // Technology and AI/ML security

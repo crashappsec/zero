@@ -382,25 +382,28 @@
         }
       }
     },
-    "devex": {
+    "devx": {
       "name": "Developer Experience",
-      "description": "Developer experience analysis: onboarding friction, tooling complexity, workflow efficiency",
+      "description": "Developer experience analysis: onboarding friction, sprawl analysis (tools + technologies), workflow efficiency",
       "estimated_time": "15-30s",
-      "output_file": "devex.json",
+      "output_file": "devx.json",
       "dependencies": ["tech-id"],
       "features": {
         "onboarding": {
           "enabled": true,
           "check_readme_quality": true,
           "check_contributing": true,
-          "check_env_setup": true,
-          "check_prerequisites": true
+          "check_env_setup": true
         },
-        "tooling": {
+        "sprawl": {
           "enabled": true,
           "check_tool_sprawl": true,
+          "check_technology_sprawl": true,
           "check_config_complexity": true,
-          "max_recommended_tools": 10
+          "max_recommended_tools": 10,
+          "max_recommended_technologies": 15,
+          "tool_categories": ["linter", "formatter", "bundler", "test", "ci-cd", "build"],
+          "technology_categories": ["language", "framework", "database", "cloud", "container", "infrastructure"]
         },
         "workflow": {
           "enabled": true,
@@ -458,7 +461,7 @@
       "name": "Full",
       "description": "Complete analysis with all features enabled",
       "estimated_time": "~12 minutes",
-      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "devex"]
+      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "devx"]
     },
     "ai-security": {
       "name": "AI/ML Security",
@@ -520,11 +523,26 @@
       "estimated_time": "~1 minute",
       "scanners": ["code-ownership"]
     },
-    "devex-only": {
+    "devx-only": {
       "name": "Developer Experience Only",
       "description": "Developer experience analysis: onboarding, tooling, workflow",
       "estimated_time": "~1 minute",
-      "scanners": ["tech-id", "devex"]
+      "scanners": ["tech-id", "devx"]
+    },
+    "devx": {
+      "name": "Developer Experience",
+      "description": "Full developer experience analysis including DORA metrics, code ownership, and workflow efficiency",
+      "estimated_time": "~3 minutes",
+      "scanners": ["tech-id", "devops", "code-ownership", "devx"],
+      "feature_overrides": {
+        "devops": {
+          "iac": {"enabled": false},
+          "containers": {"enabled": false}
+        },
+        "code-ownership": {
+          "orphans": {"enabled": false}
+        }
+      }
     },
     "compliance": {
       "name": "Compliance",

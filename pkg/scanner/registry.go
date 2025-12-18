@@ -8,7 +8,7 @@ import (
 
 var (
 	registryMu sync.RWMutex
-	registry   = make(map[string]Scanner)2
+	registry   = make(map[string]Scanner)
 )
 
 // Register adds a scanner to the registry
