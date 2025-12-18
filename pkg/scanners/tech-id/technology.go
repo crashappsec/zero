@@ -891,20 +891,20 @@ func (s *TechnologyScanner) enrichWithHuggingFaceMetadata(ctx context.Context, m
 		}
 
 		var hfModel struct {
-			ID           string   `json:"id"`
-			Author       string   `json:"author"`
-			License      string   `json:"license"`
-			Tags         []string `json:"tags"`
-			PipelineTag  string   `json:"pipeline_tag"`
-			ModelIndex   []struct {
+			ID          string   `json:"id"`
+			Author      string   `json:"author"`
+			License     string   `json:"license"`
+			Tags        []string `json:"tags"`
+			PipelineTag string   `json:"pipeline_tag"`
+			ModelIndex  []struct {
 				Name string `json:"name"`
 			} `json:"model-index"`
 			CardData struct {
-				License      string   `json:"license"`
-				Datasets     []string `json:"datasets"`
-				BaseModel    string   `json:"base_model"`
-				Language     []string `json:"language"`
-				Tags         []string `json:"tags"`
+				License   string   `json:"license"`
+				Datasets  []string `json:"datasets"`
+				BaseModel string   `json:"base_model"`
+				Language  []string `json:"language"`
+				Tags      []string `json:"tags"`
 			} `json:"cardData"`
 		}
 
@@ -937,8 +937,8 @@ func (s *TechnologyScanner) enrichWithHuggingFaceMetadata(ctx context.Context, m
 
 		// Create model card summary
 		models[i].ModelCard = &ModelCard{
-			Author:  hfModel.Author,
-			License: models[i].License,
+			Author:   hfModel.Author,
+			License:  models[i].License,
 			Datasets: models[i].Datasets,
 		}
 

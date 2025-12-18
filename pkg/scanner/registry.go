@@ -8,12 +8,12 @@ import (
 
 var (
 	registryMu sync.RWMutex
-	registry   = make(map[string]Scanner)
+	registry   = make(map[string]Scanner)2
 )
 
 // Register adds a scanner to the registry
 // This is typically called from scanner init() functions
-func Register(s Scanner) {
+func Register(s Scanner) { 
 	registryMu.Lock()
 	defer registryMu.Unlock()
 	registry[s.Name()] = s
