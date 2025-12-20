@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/crashappsec/zero/pkg/config"
+	"github.com/crashappsec/zero/pkg/freshness"
 	"github.com/crashappsec/zero/pkg/terminal"
 )
 
@@ -26,6 +27,14 @@ type Project struct {
 	FileCount    int
 	DiskSize     int64
 	Scanners     []ScannerResult
+	Freshness    *FreshnessInfo
+}
+
+// FreshnessInfo holds freshness status for a project
+type FreshnessInfo struct {
+	Level        freshness.Level `json:"level"`
+	AgeString    string          `json:"age_string"`
+	NeedsRefresh bool            `json:"needs_refresh"`
 }
 
 // ScannerResult represents a scanner's results for a project
@@ -45,10 +54,11 @@ type Options struct {
 
 // Status handles the status command
 type Status struct {
-	cfg      *config.Config
-	term     *terminal.Terminal
-	opts     *Options
-	zeroHome string
+	cfg         *config.Config
+	term        *terminal.Terminal
+	opts        *Options
+	zeroHome    string
+	freshnessMgr *freshness.Manager
 }
 
 // New creates a new Status instance
@@ -58,11 +68,13 @@ func New(opts *Options) (*Status, error) {
 		return nil, fmt.Errorf("loading config: %w", err)
 	}
 
+	zeroHome := cfg.ZeroHome()
 	return &Status{
-		cfg:      cfg,
-		term:     terminal.New(),
-		opts:     opts,
-		zeroHome: cfg.ZeroHome(),
+		cfg:          cfg,
+		term:         terminal.New(),
+		opts:         opts,
+		zeroHome:     zeroHome,
+		freshnessMgr: freshness.NewManager(zeroHome),
 	}, nil
 }
 
@@ -208,7 +220,24 @@ func (s *Status) loadProject(owner, name string) *Project {
 		}
 	}
 
+	// Load freshness info
+	project.Freshness = s.loadFreshness(fmt.Sprintf("%s/%s", owner, name))
+
 	return project
+}
+
+// loadFreshness loads freshness metadata for a project
+func (s *Status) loadFreshness(projectID string) *FreshnessInfo {
+	result, err := s.freshnessMgr.Check(projectID)
+	if err != nil {
+		return nil
+	}
+
+	return &FreshnessInfo{
+		Level:        result.Level,
+		AgeString:    result.AgeString,
+		NeedsRefresh: result.NeedsRefresh,
+	}
 }
 
 // getScannerSummary extracts a summary from scanner output
@@ -308,9 +337,23 @@ func (s *Status) outputTable(projects []*Project) error {
 	s.term.Divider()
 	totalSize := int64(0)
 	totalFiles := 0
+	freshCount := 0
+	staleCount := 0
+	needsRefreshCount := 0
+
 	for _, p := range projects {
 		totalSize += p.DiskSize
 		totalFiles += p.FileCount
+		if p.Freshness != nil {
+			if p.Freshness.Level == freshness.LevelFresh {
+				freshCount++
+			} else {
+				staleCount++
+			}
+			if p.Freshness.NeedsRefresh {
+				needsRefreshCount++
+			}
+		}
 	}
 
 	s.term.Info("Total: %d projects, %s, %s files",
@@ -318,6 +361,18 @@ func (s *Status) outputTable(projects []*Project) error {
 		formatBytes(totalSize),
 		formatNumber(totalFiles),
 	)
+
+	// Show freshness summary
+	if freshCount > 0 || staleCount > 0 {
+		freshStr := s.term.Color(terminal.Green, fmt.Sprintf("%d fresh", freshCount))
+		staleStr := s.term.Color(terminal.Yellow, fmt.Sprintf("%d stale", staleCount))
+		s.term.Info("Freshness: %s, %s", freshStr, staleStr)
+
+		if needsRefreshCount > 0 {
+			s.term.Info("Run '%s' to update stale repositories",
+				s.term.Color(terminal.Cyan, "zero refresh"))
+		}
+	}
 
 	return nil
 }
@@ -330,10 +385,14 @@ func (s *Status) printProjectLine(p *Project) {
 	// Get key findings
 	findings := s.getKeyFindings(p)
 
+	// Get freshness indicator
+	freshnessIndicator := s.getFreshnessIndicator(p)
+
 	if s.opts.Verbose {
-		s.term.Info("    %s %s",
-			s.term.Color(terminal.Green, "✓"),
+		s.term.Info("    %s %s %s",
+			freshnessIndicator,
 			p.Name,
+			s.getFreshnessBadge(p),
 		)
 		s.term.Info("      %s", s.term.Color(terminal.Dim, fmt.Sprintf("Last scan: %s ago | %s | %s files",
 			ageStr, formatBytes(p.DiskSize), formatNumber(p.FileCount))))
@@ -342,11 +401,51 @@ func (s *Status) printProjectLine(p *Project) {
 		}
 	} else {
 		s.term.Info("    %s %-25s %s %s",
-			s.term.Color(terminal.Green, "✓"),
+			freshnessIndicator,
 			p.Name,
 			s.term.Color(terminal.Dim, fmt.Sprintf("(%s ago)", ageStr)),
 			findings,
 		)
+	}
+}
+
+// getFreshnessIndicator returns a colored indicator based on freshness level
+func (s *Status) getFreshnessIndicator(p *Project) string {
+	if p.Freshness == nil {
+		return s.term.Color(terminal.Dim, "○")
+	}
+
+	switch p.Freshness.Level {
+	case freshness.LevelFresh:
+		return s.term.Color(terminal.Green, "●")
+	case freshness.LevelStale:
+		return s.term.Color(terminal.Yellow, "●")
+	case freshness.LevelVeryStale:
+		return s.term.Color(terminal.Red, "●")
+	case freshness.LevelExpired:
+		return s.term.Color(terminal.Red, "○")
+	default:
+		return s.term.Color(terminal.Dim, "○")
+	}
+}
+
+// getFreshnessBadge returns a badge showing freshness status
+func (s *Status) getFreshnessBadge(p *Project) string {
+	if p.Freshness == nil {
+		return ""
+	}
+
+	switch p.Freshness.Level {
+	case freshness.LevelFresh:
+		return s.term.Color(terminal.Green, "[fresh]")
+	case freshness.LevelStale:
+		return s.term.Color(terminal.Yellow, "[stale]")
+	case freshness.LevelVeryStale:
+		return s.term.Color(terminal.Red, "[very stale]")
+	case freshness.LevelExpired:
+		return s.term.Color(terminal.Red, "[expired]")
+	default:
+		return s.term.Color(terminal.Dim, "[unknown]")
 	}
 }
 

@@ -132,6 +132,12 @@ func (s *CodeSecurityScanner) Run(ctx context.Context, opts *scanner.ScanOptions
 		if err := scanResult.WriteJSON(resultFile); err != nil {
 			return nil, fmt.Errorf("writing result: %w", err)
 		}
+
+		// Generate markdown reports
+		if err := WriteReports(opts.OutputDir); err != nil {
+			// Non-fatal: log but don't fail the scan
+			fmt.Fprintf(os.Stderr, "Warning: failed to generate reports: %v\n", err)
+		}
 	}
 
 	return scanResult, nil
@@ -279,11 +285,14 @@ func parseVulnsOutput(data []byte, repoPath string, cfg VulnsConfig) ([]VulnFind
 }
 
 // ============================================================================
-// SECRETS FEATURE
+// SECRETS FEATURE (Enhanced with entropy, git history, rotation)
 // ============================================================================
 
 func (s *CodeSecurityScanner) runSecrets(ctx context.Context, opts *scanner.ScanOptions, cfg SecretsConfig) (*SecretsSummary, []SecretFinding) {
-	var findings []SecretFinding
+	var allFindings []SecretFinding
+	var semgrepFindings []SecretFinding
+	var entropyFindings []SecretFinding
+	var historyFindings []SecretFinding
 
 	timeout := opts.Timeout
 	if timeout == 0 {
@@ -292,33 +301,190 @@ func (s *CodeSecurityScanner) runSecrets(ctx context.Context, opts *scanner.Scan
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
-	result, err := common.RunCommand(ctx, "semgrep",
-		"--config", "p/secrets",
-		"--json",
-		"--metrics=off",
-		"--timeout", "60",
-		"--max-memory", "4096",
-		"--exclude", "node_modules",
-		"--exclude", "vendor",
-		"--exclude", ".git",
-		"--exclude", "dist",
-		"--exclude", "build",
-		"--exclude", "*.min.js",
-		"--exclude", "package-lock.json",
-		"--exclude", "yarn.lock",
-		"--exclude", "pnpm-lock.yaml",
-		"--exclude", "*.env.example",
-		"--exclude", "*.env.sample",
-		"--exclude", "*.env.template",
-		opts.RepoPath,
-	)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var semgrepSummary *SecretsSummary
 
-	if err != nil || result == nil {
-		return &SecretsSummary{Error: "semgrep execution failed"}, findings
+	// Run semgrep secrets detection
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		result, err := common.RunCommand(ctx, "semgrep",
+			"--config", "p/secrets",
+			"--json",
+			"--metrics=off",
+			"--timeout", "60",
+			"--max-memory", "4096",
+			"--exclude", "node_modules",
+			"--exclude", "vendor",
+			"--exclude", ".git",
+			"--exclude", "dist",
+			"--exclude", "build",
+			"--exclude", "*.min.js",
+			"--exclude", "package-lock.json",
+			"--exclude", "yarn.lock",
+			"--exclude", "pnpm-lock.yaml",
+			"--exclude", "*.env.example",
+			"--exclude", "*.env.sample",
+			"--exclude", "*.env.template",
+			opts.RepoPath,
+		)
+
+		if err == nil && result != nil {
+			mu.Lock()
+			semgrepFindings, semgrepSummary = parseSecretsOutput(result.Stdout, opts.RepoPath, cfg)
+			// Mark detection source
+			for i := range semgrepFindings {
+				semgrepFindings[i].DetectionSource = "semgrep"
+			}
+			mu.Unlock()
+		}
+	}()
+
+	// Run entropy analysis if enabled
+	if cfg.EntropyAnalysis.Enabled {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			analyzer := NewEntropyAnalyzer(cfg.EntropyAnalysis)
+			result, err := analyzer.ScanDirectory(opts.RepoPath)
+			if err == nil && result != nil {
+				mu.Lock()
+				entropyFindings = result.Findings
+				mu.Unlock()
+			}
+		}()
 	}
 
-	findings, summary := parseSecretsOutput(result.Stdout, opts.RepoPath, cfg)
-	return summary, findings
+	// Run git history scanning if enabled
+	if cfg.GitHistoryScan.Enabled {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			scanner := NewGitHistoryScanner(cfg.GitHistoryScan)
+			result, err := scanner.ScanRepository(opts.RepoPath)
+			if err == nil && result != nil {
+				mu.Lock()
+				historyFindings = result.Findings
+				mu.Unlock()
+			}
+		}()
+	}
+
+	wg.Wait()
+
+	// Initialize summary if semgrep didn't run or failed
+	if semgrepSummary == nil {
+		semgrepSummary = &SecretsSummary{
+			ByType:    make(map[string]int),
+			BySource:  make(map[string]int),
+			RiskScore: 100,
+			RiskLevel: "excellent",
+		}
+	}
+	if semgrepSummary.BySource == nil {
+		semgrepSummary.BySource = make(map[string]int)
+	}
+
+	// Merge all findings and deduplicate
+	allFindings = append(allFindings, semgrepFindings...)
+	semgrepSummary.BySource["semgrep"] = len(semgrepFindings)
+
+	// Add entropy findings (dedupe by file:line)
+	seen := make(map[string]bool)
+	for _, f := range allFindings {
+		key := fmt.Sprintf("%s:%d", f.File, f.Line)
+		seen[key] = true
+	}
+
+	for _, f := range entropyFindings {
+		key := fmt.Sprintf("%s:%d", f.File, f.Line)
+		if !seen[key] {
+			allFindings = append(allFindings, f)
+			seen[key] = true
+			semgrepSummary.EntropyFindings++
+		}
+	}
+	semgrepSummary.BySource["entropy"] = semgrepSummary.EntropyFindings
+
+	// Add git history findings (dedupe)
+	for _, f := range historyFindings {
+		key := fmt.Sprintf("%s:%d", f.File, f.Line)
+		if !seen[key] {
+			allFindings = append(allFindings, f)
+			seen[key] = true
+			semgrepSummary.HistoryFindings++
+			if f.CommitInfo != nil && f.CommitInfo.IsRemoved {
+				semgrepSummary.RemovedSecrets++
+			}
+		}
+	}
+	semgrepSummary.BySource["git_history"] = semgrepSummary.HistoryFindings
+
+	// Add rotation guidance if enabled
+	if cfg.RotationGuidance {
+		rotationDB := NewRotationDatabase()
+		allFindings = EnrichWithRotation(allFindings, rotationDB)
+	}
+
+	// Run AI analysis for false positive detection if enabled
+	if cfg.AIAnalysis.Enabled {
+		aiAnalyzer := NewAIAnalyzer(cfg.AIAnalysis, opts.RepoPath)
+		if aiAnalyzer.IsAvailable() {
+			allFindings, _ = aiAnalyzer.AnalyzeFindings(ctx, allFindings)
+			// Update summary with AI analysis results
+			fp, confirmed := CountFalsePositives(allFindings)
+			semgrepSummary.FalsePositives = fp
+			semgrepSummary.ConfirmedSecrets = confirmed
+		}
+	}
+
+	// Recalculate summary stats
+	semgrepSummary.TotalFindings = len(allFindings)
+	semgrepSummary.Critical = 0
+	semgrepSummary.High = 0
+	semgrepSummary.Medium = 0
+	semgrepSummary.Low = 0
+	filesSet := make(map[string]bool)
+	semgrepSummary.ByType = make(map[string]int)
+
+	for _, f := range allFindings {
+		filesSet[f.File] = true
+		semgrepSummary.ByType[f.Type]++
+		switch f.Severity {
+		case "critical":
+			semgrepSummary.Critical++
+		case "high":
+			semgrepSummary.High++
+		case "medium":
+			semgrepSummary.Medium++
+		case "low":
+			semgrepSummary.Low++
+		}
+	}
+	semgrepSummary.FilesAffected = len(filesSet)
+
+	// Recalculate risk score
+	penalty := semgrepSummary.Critical*25 + semgrepSummary.High*15 + semgrepSummary.Medium*5 + semgrepSummary.Low*2
+	semgrepSummary.RiskScore = 100 - penalty
+	if semgrepSummary.RiskScore < 0 {
+		semgrepSummary.RiskScore = 0
+	}
+
+	switch {
+	case semgrepSummary.RiskScore < 40:
+		semgrepSummary.RiskLevel = "critical"
+	case semgrepSummary.RiskScore < 60:
+		semgrepSummary.RiskLevel = "high"
+	case semgrepSummary.RiskScore < 80:
+		semgrepSummary.RiskLevel = "medium"
+	case semgrepSummary.RiskScore < 95:
+		semgrepSummary.RiskLevel = "low"
+	default:
+		semgrepSummary.RiskLevel = "excellent"
+	}
+
+	return semgrepSummary, allFindings
 }
 
 func parseSecretsOutput(data []byte, repoPath string, cfg SecretsConfig) ([]SecretFinding, *SecretsSummary) {
@@ -658,24 +824,29 @@ func mapSecretSeverity(ruleID, semgrepSeverity string) string {
 func getSecretType(ruleID string) string {
 	ruleIDLower := strings.ToLower(ruleID)
 
-	types := map[string][]string{
-		"aws_credential":      {"aws"},
-		"github_token":        {"github"},
-		"gitlab_token":        {"gitlab"},
-		"slack_token":         {"slack"},
-		"stripe_key":          {"stripe"},
-		"private_key":         {"private_key", "rsa", "dsa", "ec_private"},
-		"database_credential": {"postgres", "mysql", "mongodb", "redis", "database"},
-		"jwt_secret":          {"jwt"},
-		"api_key":             {"api_key", "apikey"},
-		"password":            {"password"},
-		"generic_secret":      {"secret"},
+	// Order matters - check more specific patterns first
+	// Using ordered slice instead of map to ensure consistent matching
+	types := []struct {
+		secretType string
+		patterns   []string
+	}{
+		{"aws_credential", []string{"aws"}},
+		{"github_token", []string{"github"}},
+		{"gitlab_token", []string{"gitlab"}},
+		{"slack_token", []string{"slack"}},
+		{"stripe_key", []string{"stripe"}},
+		{"private_key", []string{"private_key", "rsa", "dsa", "ec_private"}},
+		{"database_credential", []string{"postgres", "mysql", "mongodb", "redis", "database"}},
+		{"jwt_secret", []string{"jwt"}},          // Check jwt before generic secret
+		{"api_key", []string{"api_key", "apikey"}},
+		{"password", []string{"password"}},
+		{"generic_secret", []string{"secret"}},   // Check this last as it's generic
 	}
 
-	for secretType, patterns := range types {
-		for _, pattern := range patterns {
+	for _, t := range types {
+		for _, pattern := range t.patterns {
 			if strings.Contains(ruleIDLower, pattern) {
-				return secretType
+				return t.secretType
 			}
 		}
 	}

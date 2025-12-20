@@ -292,6 +292,12 @@ func (s *PackagesScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*
 		if err := scanResult.WriteJSON(resultFile); err != nil {
 			return nil, fmt.Errorf("writing result: %w", err)
 		}
+
+		// Generate markdown reports
+		if err := WriteReports(opts.OutputDir); err != nil {
+			// Non-fatal: log but don't fail the scan
+			fmt.Fprintf(os.Stderr, "Warning: failed to generate reports: %v\n", err)
+		}
 	}
 
 	return scanResult, nil

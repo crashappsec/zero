@@ -338,3 +338,32 @@ func (c *Config) GetCodeSecOptions() *CodeSecOptions {
 		Severity: "WARNING",
 	}
 }
+
+// SheetsConfig holds configuration for Google Sheets export
+type SheetsConfig struct {
+	ClientID     string `json:"oauth_client_id"`
+	ClientSecret string `json:"oauth_client_secret"`
+	TokenPath    string `json:"token_cache_path"`
+	Enabled      bool   `json:"enabled"`
+}
+
+// GetSheetsConfig returns Google Sheets export configuration
+func (c *Config) GetSheetsConfig() *SheetsConfig {
+	// Check environment variables first (override)
+	clientID := os.Getenv("ZERO_SHEETS_CLIENT_ID")
+	clientSecret := os.Getenv("ZERO_SHEETS_CLIENT_SECRET")
+	tokenPath := os.Getenv("ZERO_SHEETS_TOKEN_PATH")
+
+	// Default token path
+	if tokenPath == "" {
+		home, _ := os.UserHomeDir()
+		tokenPath = filepath.Join(home, ".zero", "google-token.json")
+	}
+
+	return &SheetsConfig{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		TokenPath:    tokenPath,
+		Enabled:      clientID != "" && clientSecret != "",
+	}
+}

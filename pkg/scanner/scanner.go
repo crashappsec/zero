@@ -5,8 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
-	"os/exec"
 	"path/filepath"
 	"sync"
 	"time"
@@ -112,33 +110,6 @@ func (p *Progress) GetProgress() (completed, total int, current string) {
 	return p.CompletedCount, p.TotalCount, p.Current
 }
 
-// Runner executes scanners
-type Runner struct {
-	BootstrapPath string
-	ZeroHome      string
-	Timeout       time.Duration
-	Parallel      int
-}
-
-// NewRunner creates a new scanner runner
-func NewRunner(zeroHome string) *Runner {
-	// Find bootstrap.sh
-	bootstrapPath := "utils/zero/scripts/bootstrap.sh"
-	if _, err := os.Stat(bootstrapPath); err != nil {
-		// Try relative to executable
-		if exe, err := os.Executable(); err == nil {
-			bootstrapPath = filepath.Join(filepath.Dir(exe), "..", "utils/zero/scripts/bootstrap.sh")
-		}
-	}
-
-	return &Runner{
-		BootstrapPath: bootstrapPath,
-		ZeroHome:      zeroHome,
-		Timeout:       10 * time.Minute,
-		Parallel:      4,
-	}
-}
-
 // RunResult holds the result of running all scanners on a repo
 type RunResult struct {
 	Success  bool
@@ -146,110 +117,58 @@ type RunResult struct {
 	Duration time.Duration
 }
 
-// Run executes all scanners for a repository
+// Runner executes scanners (wraps NativeRunner for backward compatibility)
+type Runner struct {
+	native *NativeRunner
+}
+
+// NewRunner creates a new scanner runner
+func NewRunner(zeroHome string) *Runner {
+	return &Runner{
+		native: NewNativeRunner(zeroHome),
+	}
+}
+
+// Run executes all scanners for a repository using native Go scanners
 func (r *Runner) Run(ctx context.Context, repo, profile string, progress *Progress, skipScanners []string) (*RunResult, error) {
-	start := time.Now()
-
-	// Build skip scanners string
-	skipStr := ""
-	for _, s := range skipScanners {
-		if skipStr != "" {
-			skipStr += " "
+	// Get scanners for the profile from registry
+	var scannersToRun []Scanner
+	for name := range progress.Results {
+		s, ok := Get(name)
+		if !ok {
+			progress.SetFailed(name, fmt.Errorf("scanner not found: %s", name), 0)
+			continue
 		}
-		skipStr += s
+		scannersToRun = append(scannersToRun, s)
 	}
 
-	// Run bootstrap.sh with --scan-only
-	args := []string{
-		"--scan-only",
-		"--" + profile,
-		repo,
-	}
+	// Set up paths
+	repoPath := filepath.Join(r.native.ZeroHome, "repos", repo, "repo")
+	outputDir := filepath.Join(r.native.ZeroHome, "repos", repo, "analysis")
 
-	cmd := exec.CommandContext(ctx, r.BootstrapPath, args...)
-	cmd.Env = append(os.Environ(),
-		"SKIP_SCANNERS="+skipStr,
-		"NO_PROGRESS_BAR=1", // Disable bootstrap.sh progress bar
-	)
-
-	// Stream output to /dev/null but let errors show
-	// The real results come from parsing JSON files
-	cmd.Stdout = nil // Suppress stdout (progress bars)
-	cmd.Stderr = os.Stderr // Show errors
-
-	err := cmd.Run()
-	duration := time.Since(start)
-
-	if err != nil {
-		return &RunResult{
-			Success:  false,
-			Duration: duration,
-		}, fmt.Errorf("running scanners: %w", err)
-	}
-
-	// Parse results from analysis directory
-	results := r.parseResults(repo, progress)
-
-	return &RunResult{
-		Success:  true,
-		Results:  results,
-		Duration: duration,
-	}, nil
-}
-
-// parseResults reads scanner results from the analysis directory
-func (r *Runner) parseResults(repo string, progress *Progress) map[string]*Result {
-	projectID := filepath.Join(r.ZeroHome, "repos", repo, "analysis")
-
-	progress.mu.RLock()
-	results := make(map[string]*Result)
-	for name, res := range progress.Results {
-		results[name] = res
-
-		// Try to read the JSON output
-		jsonPath := filepath.Join(projectID, name+".json")
-		if data, err := os.ReadFile(jsonPath); err == nil {
-			res.Output = data
-			res.Summary = parseSummary(name, data)
-		}
-	}
-	progress.mu.RUnlock()
-
-	return results
-}
-
-// parseSummary extracts a summary string from scanner JSON output
-func parseSummary(scanner string, data []byte) string {
-	var result map[string]interface{}
-	if err := json.Unmarshal(data, &result); err != nil {
-		return "complete"
-	}
-
-	// Try to get summary from common fields
-	if summary, ok := result["summary"].(map[string]interface{}); ok {
-		switch scanner {
-		case "package-vulns":
-			c := getInt(summary, "critical")
-			h := getInt(summary, "high")
-			m := getInt(summary, "medium")
-			l := getInt(summary, "low")
-			if c+h+m+l == 0 {
-				return "no findings"
-			}
-			return fmt.Sprintf("%d critical, %d high, %d medium, %d low", c, h, m, l)
-
-		case "package-sbom":
-			if total, ok := summary["total_packages"].(float64); ok {
-				return fmt.Sprintf("%.0f packages", total)
-			}
-			if components, ok := result["components"].([]interface{}); ok {
-				return fmt.Sprintf("%d packages", len(components))
-			}
+	// Set up progress callback
+	r.native.OnProgress = func(scanner string, status Status, summary string) {
+		switch status {
+		case StatusRunning:
+			progress.SetRunning(scanner)
+		case StatusComplete:
+			progress.SetComplete(scanner, summary, 0)
+		case StatusFailed:
+			progress.SetFailed(scanner, fmt.Errorf("%s", summary), 0)
+		case StatusSkipped:
+			progress.SetSkipped(scanner)
 		}
 	}
 
-	return "complete"
+	// Run using native runner
+	return r.native.RunScanners(ctx, RunOptions{
+		RepoPath:     repoPath,
+		OutputDir:    outputDir,
+		Scanners:     scannersToRun,
+		SkipScanners: skipScanners,
+	})
 }
+
 
 func getInt(m map[string]interface{}, key string) int {
 	if v, ok := m[key].(float64); ok {

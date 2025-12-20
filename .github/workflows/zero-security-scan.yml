@@ -1,0 +1,403 @@
+name: Zero Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Scan profile (quick, standard, security, full)'
+        required: false
+        default: 'standard'
+      force:
+        description: 'Force scan even if data is fresh'
+        required: false
+        default: 'false'
+
+env:
+  GO_VERSION: '1.21'
+  ZERO_HOME: '.zero'
+
+jobs:
+  # Build Zero CLI
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-key: ${{ steps.cache.outputs.cache-hit }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+
+      - name: Build Zero
+        run: |
+          go build -o zero ./cmd/zero
+          chmod +x zero
+
+      - name: Upload Zero binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: zero-binary
+          path: zero
+          retention-days: 1
+
+  # SBOM Generation (runs first, others depend on it)
+  sbom:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Zero binary
+        uses: actions/download-artifact@v4
+        with:
+          name: zero-binary
+
+      - name: Make Zero executable
+        run: chmod +x zero
+
+      - name: Install Syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Generate SBOM
+        run: |
+          ./zero scan --scanner sbom --output ${{ env.ZERO_HOME }}/analysis
+
+      - name: Upload SBOM artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-results
+          path: |
+            ${{ env.ZERO_HOME }}/analysis/sbom.json
+            ${{ env.ZERO_HOME }}/analysis/sbom.cdx.json
+            ${{ env.ZERO_HOME }}/analysis/sbom-*.md
+          retention-days: 30
+
+  # Package Analysis (depends on SBOM)
+  package-analysis:
+    runs-on: ubuntu-latest
+    needs: [build, sbom]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Zero binary
+        uses: actions/download-artifact@v4
+        with:
+          name: zero-binary
+
+      - name: Download SBOM
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom-results
+          path: ${{ env.ZERO_HOME }}/analysis
+
+      - name: Make Zero executable
+        run: chmod +x zero
+
+      - name: Install OSV Scanner
+        run: |
+          go install github.com/google/osv-scanner/cmd/osv-scanner@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Run Package Analysis
+        run: |
+          ./zero scan --scanner package-analysis --output ${{ env.ZERO_HOME }}/analysis
+
+      - name: Upload Package Analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-analysis-results
+          path: |
+            ${{ env.ZERO_HOME }}/analysis/package-analysis.json
+            ${{ env.ZERO_HOME }}/analysis/package-analysis-*.md
+          retention-days: 30
+
+  # Code Security (SAST, Secrets)
+  code-security:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Zero binary
+        uses: actions/download-artifact@v4
+        with:
+          name: zero-binary
+
+      - name: Make Zero executable
+        run: chmod +x zero
+
+      - name: Install Semgrep
+        run: |
+          python3 -m pip install semgrep
+
+      - name: Run Code Security Scan
+        run: |
+          ./zero scan --scanner code-security --output ${{ env.ZERO_HOME }}/analysis
+        env:
+          # Prevent secrets from being exposed in logs
+          SEMGREP_SEND_METRICS: 'off'
+
+      - name: Upload Code Security Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-security-results
+          path: |
+            ${{ env.ZERO_HOME }}/analysis/code-security.json
+            ${{ env.ZERO_HOME }}/analysis/code-security-*.md
+          retention-days: 30
+
+      - name: Check for Critical Findings
+        run: |
+          if [ -f "${{ env.ZERO_HOME }}/analysis/code-security.json" ]; then
+            CRITICAL=$(jq '.summary.vulnerabilities.critical // 0' ${{ env.ZERO_HOME }}/analysis/code-security.json)
+            SECRETS=$(jq '.summary.secrets.critical // 0' ${{ env.ZERO_HOME }}/analysis/code-security.json)
+
+            if [ "$CRITICAL" -gt 0 ] || [ "$SECRETS" -gt 0 ]; then
+              echo "::error::Found $CRITICAL critical vulnerabilities and $SECRETS critical secrets"
+              exit 1
+            fi
+          fi
+
+  # Crypto Security
+  crypto:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event.inputs.profile == 'security' || github.event.inputs.profile == 'full' || github.event_name == 'schedule'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Zero binary
+        uses: actions/download-artifact@v4
+        with:
+          name: zero-binary
+
+      - name: Make Zero executable
+        run: chmod +x zero
+
+      - name: Run Crypto Scan
+        run: |
+          ./zero scan --scanner crypto --output ${{ env.ZERO_HOME }}/analysis
+
+      - name: Upload Crypto Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: crypto-results
+          path: |
+            ${{ env.ZERO_HOME }}/analysis/crypto.json
+            ${{ env.ZERO_HOME }}/analysis/crypto-*.md
+          retention-days: 30
+
+  # DevOps Security (IaC, Containers, CI/CD)
+  devops:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Zero binary
+        uses: actions/download-artifact@v4
+        with:
+          name: zero-binary
+
+      - name: Make Zero executable
+        run: chmod +x zero
+
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget apt-transport-https gnupg lsb-release
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+          echo "deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" | sudo tee /etc/apt/sources.list.d/trivy.list
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
+      - name: Run DevOps Scan
+        run: |
+          ./zero scan --scanner devops --output ${{ env.ZERO_HOME }}/analysis
+
+      - name: Upload DevOps Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: devops-results
+          path: |
+            ${{ env.ZERO_HOME }}/analysis/devops.json
+            ${{ env.ZERO_HOME }}/analysis/devops-*.md
+          retention-days: 30
+
+  # Technology Identification & ML-BOM
+  tech-id:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event.inputs.profile == 'full' || github.event.inputs.profile == 'ai-security' || github.event_name == 'schedule'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Zero binary
+        uses: actions/download-artifact@v4
+        with:
+          name: zero-binary
+
+      - name: Make Zero executable
+        run: chmod +x zero
+
+      - name: Run Tech ID Scan
+        run: |
+          ./zero scan --scanner tech-id --output ${{ env.ZERO_HOME }}/analysis
+
+      - name: Upload Tech ID Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: tech-id-results
+          path: |
+            ${{ env.ZERO_HOME }}/analysis/technology.json
+            ${{ env.ZERO_HOME }}/analysis/technology-*.md
+          retention-days: 30
+
+  # Aggregate Results and Generate Summary
+  summary:
+    runs-on: ubuntu-latest
+    needs: [sbom, package-analysis, code-security, devops]
+    if: always()
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ${{ env.ZERO_HOME }}/analysis
+          merge-multiple: true
+
+      - name: Generate Summary Report
+        run: |
+          echo "# Zero Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan Date:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # SBOM Summary
+          if [ -f "${{ env.ZERO_HOME }}/analysis/sbom.json" ]; then
+            echo "## SBOM" >> $GITHUB_STEP_SUMMARY
+            COMPONENTS=$(jq '.summary.generation.total_components // 0' ${{ env.ZERO_HOME }}/analysis/sbom.json)
+            echo "- **Components:** $COMPONENTS" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Vulnerability Summary
+          if [ -f "${{ env.ZERO_HOME }}/analysis/package-analysis.json" ]; then
+            echo "## Vulnerabilities" >> $GITHUB_STEP_SUMMARY
+            CRITICAL=$(jq '.summary.vulnerabilities.critical // 0' ${{ env.ZERO_HOME }}/analysis/package-analysis.json)
+            HIGH=$(jq '.summary.vulnerabilities.high // 0' ${{ env.ZERO_HOME }}/analysis/package-analysis.json)
+            MEDIUM=$(jq '.summary.vulnerabilities.medium // 0' ${{ env.ZERO_HOME }}/analysis/package-analysis.json)
+            echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+            echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+            echo "| Critical | $CRITICAL |" >> $GITHUB_STEP_SUMMARY
+            echo "| High | $HIGH |" >> $GITHUB_STEP_SUMMARY
+            echo "| Medium | $MEDIUM |" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          # Code Security Summary
+          if [ -f "${{ env.ZERO_HOME }}/analysis/code-security.json" ]; then
+            echo "## Code Security" >> $GITHUB_STEP_SUMMARY
+            VULNS=$(jq '.summary.vulnerabilities.total // 0' ${{ env.ZERO_HOME }}/analysis/code-security.json)
+            SECRETS=$(jq '.summary.secrets.total // 0' ${{ env.ZERO_HOME }}/analysis/code-security.json)
+            echo "- **Vulnerabilities:** $VULNS" >> $GITHUB_STEP_SUMMARY
+            echo "- **Secrets Detected:** $SECRETS" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload Combined Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: zero-scan-results
+          path: ${{ env.ZERO_HOME }}/analysis
+          retention-days: 90
+
+  # PR Comment with Results
+  pr-comment:
+    runs-on: ubuntu-latest
+    needs: summary
+    if: github.event_name == 'pull_request'
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Download results
+        uses: actions/download-artifact@v4
+        with:
+          name: zero-scan-results
+          path: ${{ env.ZERO_HOME }}/analysis
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let comment = '## Zero Security Scan Results\n\n';
+
+            // Read and summarize results
+            try {
+              const sbom = JSON.parse(fs.readFileSync('${{ env.ZERO_HOME }}/analysis/sbom.json', 'utf8'));
+              comment += `### SBOM\n- Components: ${sbom.summary?.generation?.total_components || 0}\n\n`;
+            } catch (e) {}
+
+            try {
+              const pkgAnalysis = JSON.parse(fs.readFileSync('${{ env.ZERO_HOME }}/analysis/package-analysis.json', 'utf8'));
+              const vulns = pkgAnalysis.summary?.vulnerabilities || {};
+              comment += `### Vulnerabilities\n`;
+              comment += `| Severity | Count |\n|----------|-------|\n`;
+              comment += `| Critical | ${vulns.critical || 0} |\n`;
+              comment += `| High | ${vulns.high || 0} |\n`;
+              comment += `| Medium | ${vulns.medium || 0} |\n\n`;
+            } catch (e) {}
+
+            try {
+              const codeSec = JSON.parse(fs.readFileSync('${{ env.ZERO_HOME }}/analysis/code-security.json', 'utf8'));
+              comment += `### Code Security\n`;
+              comment += `- Vulnerabilities: ${codeSec.summary?.vulnerabilities?.total || 0}\n`;
+              comment += `- Secrets: ${codeSec.summary?.secrets?.total || 0}\n\n`;
+            } catch (e) {}
+
+            comment += `\n---\n_Generated by [Zero Security Scanner](https://github.com/crashappsec/zero)_`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
