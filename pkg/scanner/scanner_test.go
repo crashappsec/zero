@@ -164,69 +164,76 @@ func TestTotalEstimate(t *testing.T) {
 func TestNewRunner(t *testing.T) {
 	runner := NewRunner(".zero")
 
-	if runner.ZeroHome != ".zero" {
-		t.Errorf("expected ZeroHome '.zero', got %s", runner.ZeroHome)
+	// Runner now wraps NativeRunner, verify it was created
+	if runner.native == nil {
+		t.Error("expected native runner to be initialized")
 	}
 
-	if runner.Timeout != 10*time.Minute {
-		t.Errorf("expected Timeout 10m, got %v", runner.Timeout)
+	if runner.native.ZeroHome != ".zero" {
+		t.Errorf("expected ZeroHome '.zero', got %s", runner.native.ZeroHome)
 	}
 
-	if runner.Parallel != 4 {
-		t.Errorf("expected Parallel 4, got %d", runner.Parallel)
+	if runner.native.Timeout != 5*time.Minute {
+		t.Errorf("expected Timeout 5m, got %v", runner.native.Timeout)
+	}
+
+	if runner.native.Parallel != 4 {
+		t.Errorf("expected Parallel 4, got %d", runner.native.Parallel)
 	}
 }
 
-func TestParseSummary(t *testing.T) {
+func TestExtractSummaryString(t *testing.T) {
 	tests := []struct {
 		name     string
 		scanner  string
-		json     string
+		result   *ScanResult
 		expected string
 	}{
 		{
-			name:     "package-vulns with findings",
-			scanner:  "package-vulns",
-			json:     `{"summary": {"critical": 1, "high": 2, "medium": 3, "low": 4}}`,
+			name:    "package-vulns with findings",
+			scanner: "package-vulns",
+			result: &ScanResult{
+				Summary: []byte(`{"critical": 1, "high": 2, "medium": 3, "low": 4}`),
+			},
 			expected: "1 critical, 2 high, 3 medium, 4 low",
 		},
 		{
-			name:     "package-vulns no findings",
-			scanner:  "package-vulns",
-			json:     `{"summary": {"critical": 0, "high": 0, "medium": 0, "low": 0}}`,
+			name:    "package-vulns no findings",
+			scanner: "package-vulns",
+			result: &ScanResult{
+				Summary: []byte(`{"critical": 0, "high": 0, "medium": 0, "low": 0}`),
+			},
 			expected: "no findings",
 		},
 		{
-			name:     "package-sbom with packages",
-			scanner:  "package-sbom",
-			json:     `{"summary": {"total_packages": 150}}`,
+			name:    "package-sbom with packages",
+			scanner: "package-sbom",
+			result: &ScanResult{
+				Summary: []byte(`{"total_packages": 150}`),
+			},
 			expected: "150 packages",
 		},
 		{
-			name:     "package-sbom with components (fallback)",
-			scanner:  "package-sbom",
-			json:     `{"summary": {}, "components": [{}, {}, {}]}`,
-			expected: "3 packages",
-		},
-		{
-			name:     "invalid json",
+			name:     "nil result",
 			scanner:  "package-vulns",
-			json:     `not json`,
+			result:   nil,
 			expected: "complete",
 		},
 		{
-			name:     "unknown scanner",
-			scanner:  "unknown",
-			json:     `{"summary": {}}`,
+			name:    "unknown scanner",
+			scanner: "unknown",
+			result: &ScanResult{
+				Summary: []byte(`{}`),
+			},
 			expected: "complete",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := parseSummary(tt.scanner, []byte(tt.json))
+			result := extractSummaryString(tt.scanner, tt.result)
 			if result != tt.expected {
-				t.Errorf("parseSummary(%s, ...) = %q, want %q", tt.scanner, result, tt.expected)
+				t.Errorf("extractSummaryString(%s, ...) = %q, want %q", tt.scanner, result, tt.expected)
 			}
 		})
 	}

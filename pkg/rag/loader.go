@@ -306,3 +306,148 @@ func GetAPIProviders() (*APIProvidersConfig, error) {
 func GetModelFileFormats() (*ModelFileFormatsConfig, error) {
 	return DefaultLoader.LoadModelFileFormats()
 }
+
+// LoadCategory loads all patterns from a RAG category directory
+func (l *RAGLoader) LoadCategory(category string) (*LoadResult, error) {
+	categoryDir := filepath.Join(l.ragPath, category)
+
+	if _, err := os.Stat(categoryDir); os.IsNotExist(err) {
+		return nil, fmt.Errorf("category not found: %s", category)
+	}
+
+	result := &LoadResult{
+		Category: category,
+	}
+
+	err := filepath.Walk(categoryDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		// Skip directories and non-JSON files for pattern loading
+		if info.IsDir() {
+			return nil
+		}
+
+		// Load JSON pattern files
+		if filepath.Ext(path) == ".json" {
+			ps, err := l.loadPatternFile(path, category)
+			if err != nil {
+				result.Errors = append(result.Errors, fmt.Sprintf("parsing %s: %v", path, err))
+				return nil // Continue with other files
+			}
+			if len(ps.Patterns) > 0 {
+				result.PatternSets = append(result.PatternSets, ps)
+				result.TotalPatterns += len(ps.Patterns)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("walking category dir: %w", err)
+	}
+
+	return result, nil
+}
+
+func (l *RAGLoader) loadPatternFile(path, category string) (PatternSet, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return PatternSet{}, err
+	}
+
+	// Extract technology name from path
+	dir := filepath.Dir(path)
+	tech := filepath.Base(dir)
+	if tech == category {
+		tech = filepath.Base(path)
+		tech = tech[:len(tech)-len(filepath.Ext(tech))] // Remove extension
+	}
+
+	ps := PatternSet{
+		Category:   category,
+		Technology: tech,
+		Source:     path,
+	}
+
+	// Try to parse as a pattern config
+	var rawConfig map[string]interface{}
+	if err := json.Unmarshal(data, &rawConfig); err != nil {
+		return ps, nil // Not a valid JSON, skip
+	}
+
+	// Extract patterns from the config
+	if patterns, ok := rawConfig["patterns"].([]interface{}); ok {
+		for i, p := range patterns {
+			if patternMap, ok := p.(map[string]interface{}); ok {
+				pattern := Pattern{
+					ID:         fmt.Sprintf("%s-%s-%d", tech, category, i),
+					Type:       getString(patternMap, "type", "regex"),
+					Pattern:    getString(patternMap, "pattern", ""),
+					Message:    getString(patternMap, "message", ""),
+					Severity:   getString(patternMap, "severity", "info"),
+					Confidence: getInt(patternMap, "confidence", 80),
+				}
+				if pattern.Pattern != "" {
+					ps.Patterns = append(ps.Patterns, pattern)
+				}
+			}
+		}
+	}
+
+	return ps, nil
+}
+
+func getString(m map[string]interface{}, key, defaultVal string) string {
+	if v, ok := m[key].(string); ok {
+		return v
+	}
+	return defaultVal
+}
+
+func getInt(m map[string]interface{}, key string, defaultVal int) int {
+	if v, ok := m[key].(float64); ok {
+		return int(v)
+	}
+	return defaultVal
+}
+
+// ListCategories returns all available RAG categories
+func (l *RAGLoader) ListCategories() ([]string, error) {
+	entries, err := os.ReadDir(l.ragPath)
+	if err != nil {
+		return nil, fmt.Errorf("reading rag dir: %w", err)
+	}
+
+	var categories []string
+	for _, entry := range entries {
+		if entry.IsDir() && entry.Name()[0] != '.' {
+			categories = append(categories, entry.Name())
+		}
+	}
+
+	return categories, nil
+}
+
+// HasCategory checks if a category exists
+func (l *RAGLoader) HasCategory(category string) bool {
+	categoryDir := filepath.Join(l.ragPath, category)
+	info, err := os.Stat(categoryDir)
+	return err == nil && info.IsDir()
+}
+
+// GetPatternCount returns the total number of patterns in a category
+func (l *RAGLoader) GetPatternCount(category string) (int, error) {
+	result, err := l.LoadCategory(category)
+	if err != nil {
+		return 0, err
+	}
+	return result.TotalPatterns, nil
+}
+
+// RAGPath returns the configured RAG path
+func (l *RAGLoader) RAGPath() string {
+	return l.ragPath
+}

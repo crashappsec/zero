@@ -37,14 +37,16 @@ type SemgrepRules struct {
 
 // RAGPattern holds parsed pattern data from markdown
 type RAGPattern struct {
-	Name        string
-	Category    string
-	Description string
-	Packages    map[string][]string // ecosystem -> package names
-	Imports     map[string][]ImportPattern // language -> patterns
-	EnvVars     []string
-	Secrets     []SecretPattern
-	Confidence  map[string]int
+	Name         string
+	Category     string
+	Description  string
+	Homepage     string
+	Packages     map[string][]string         // ecosystem -> package names
+	Imports      map[string][]ImportPattern  // language -> patterns
+	ConfigFiles  []string                    // configuration file names
+	EnvVars      []string
+	Secrets      []SecretPattern
+	Confidence   map[string]int
 }
 
 // ImportPattern represents an import detection pattern
@@ -68,6 +70,7 @@ func ConvertRAGToSemgrep(ragDir, outputDir string) (*ConversionResult, error) {
 		TechDiscovery: SemgrepRules{Rules: []SemgrepRule{}},
 		Secrets:       SemgrepRules{Rules: []SemgrepRule{}},
 		AIML:          SemgrepRules{Rules: []SemgrepRule{}},
+		ConfigFiles:   SemgrepRules{Rules: []SemgrepRule{}},
 	}
 
 	// Find all patterns.md files in technology-identification
@@ -87,6 +90,8 @@ func ConvertRAGToSemgrep(ragDir, outputDir string) (*ConversionResult, error) {
 		for _, rule := range rules {
 			if strings.Contains(rule.ID, ".secret.") {
 				result.Secrets.Rules = append(result.Secrets.Rules, rule)
+			} else if strings.HasSuffix(rule.ID, ".config") {
+				result.ConfigFiles.Rules = append(result.ConfigFiles.Rules, rule)
 			} else if strings.Contains(pattern.Category, "ai-ml") {
 				result.AIML.Rules = append(result.AIML.Rules, rule)
 			} else {
@@ -118,7 +123,13 @@ func ConvertRAGToSemgrep(ragDir, outputDir string) (*ConversionResult, error) {
 		}
 	}
 
-	result.TotalRules = len(result.TechDiscovery.Rules) + len(result.Secrets.Rules) + len(result.AIML.Rules)
+	if len(result.ConfigFiles.Rules) > 0 {
+		if err := writeYAML(filepath.Join(outputDir, "config-files.yaml"), result.ConfigFiles); err != nil {
+			return nil, err
+		}
+	}
+
+	result.TotalRules = len(result.TechDiscovery.Rules) + len(result.Secrets.Rules) + len(result.AIML.Rules) + len(result.ConfigFiles.Rules)
 	return result, nil
 }
 
@@ -127,6 +138,7 @@ type ConversionResult struct {
 	TechDiscovery SemgrepRules
 	Secrets       SemgrepRules
 	AIML          SemgrepRules
+	ConfigFiles   SemgrepRules
 	TotalRules    int
 }
 
@@ -154,9 +166,10 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 	defer file.Close()
 
 	pattern := &RAGPattern{
-		Packages:   make(map[string][]string),
-		Imports:    make(map[string][]ImportPattern),
-		Confidence: make(map[string]int),
+		Packages:    make(map[string][]string),
+		Imports:     make(map[string][]ImportPattern),
+		ConfigFiles: []string{},
+		Confidence:  make(map[string]int),
 	}
 
 	scanner := bufio.NewScanner(file)
@@ -167,12 +180,16 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 	nameRe := regexp.MustCompile(`^#\s+(.+)$`)
 	categoryRe := regexp.MustCompile(`\*\*Category\*\*:\s*(.+)`)
 	descRe := regexp.MustCompile(`\*\*Description\*\*:\s*(.+)`)
+	homepageRe := regexp.MustCompile(`\*\*Homepage\*\*:\s*(.+)`)
 	packageRe := regexp.MustCompile(`^-\s*` + "`" + `([^` + "`" + `]+)` + "`")
+	// Config file list item: - `filename` or - `filename` (comment)
+	configFileRe := regexp.MustCompile(`^-\s*` + "`" + `([^` + "`" + `]+)` + "`")
 	patternRe := regexp.MustCompile(`\*\*Pattern\*\*:\s*` + "`" + `([^` + "`" + `]+)` + "`")
 	secretPatternRe := regexp.MustCompile(`\*\*Pattern\*\*:\s*` + "`" + `([^` + "`" + `]+)` + "`")
 	severityRe := regexp.MustCompile(`\*\*Severity\*\*:\s*(\w+)`)
 
 	var inSecretsSection bool
+	var inConfigFilesSection bool
 	var currentSecret *SecretPattern
 
 	for scanner.Scan() {
@@ -199,11 +216,18 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 			continue
 		}
 
+		// Parse homepage
+		if m := homepageRe.FindStringSubmatch(trimmed); m != nil {
+			pattern.Homepage = strings.TrimSpace(m[1])
+			continue
+		}
+
 		// Track sections
 		if strings.HasPrefix(trimmed, "## ") {
 			currentSection = strings.TrimPrefix(trimmed, "## ")
 			currentSubsection = ""
 			inSecretsSection = strings.Contains(currentSection, "Secrets")
+			inConfigFilesSection = strings.Contains(currentSection, "Configuration Files")
 			continue
 		}
 
@@ -218,6 +242,16 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 			currentSecret = &SecretPattern{Name: secretName}
 			pattern.Secrets = append(pattern.Secrets, *currentSecret)
 			continue
+		}
+
+		// Parse configuration files
+		if inConfigFilesSection {
+			if m := configFileRe.FindStringSubmatch(trimmed); m != nil {
+				configFile := strings.TrimSpace(m[1])
+				if configFile != "" {
+					pattern.ConfigFiles = append(pattern.ConfigFiles, configFile)
+				}
+			}
 		}
 
 		// Parse packages
@@ -339,7 +373,101 @@ func convertPatternToRules(pattern *RAGPattern, filePath, ragDir string) []Semgr
 		rules = append(rules, rule)
 	}
 
+	// Create config file detection rules
+	if len(pattern.ConfigFiles) > 0 {
+		ruleID := fmt.Sprintf("zero.%s.config", baseID)
+
+		// Determine tool type from category
+		toolType := categoryToToolType(pattern.Category)
+
+		rule := SemgrepRule{
+			ID:        ruleID,
+			Message:   fmt.Sprintf("%s configuration file detected", pattern.Name),
+			Severity:  "INFO",
+			Languages: []string{"generic"},
+			Metadata: map[string]interface{}{
+				"technology":     pattern.Name,
+				"category":       pattern.Category,
+				"tool_type":      toolType,
+				"detection_type": "config_file",
+				"confidence":     getConfidence(pattern, "config"),
+				"config_files":   pattern.ConfigFiles,
+			},
+		}
+
+		// Add homepage if available
+		if pattern.Homepage != "" {
+			rule.Metadata["homepage"] = pattern.Homepage
+		}
+
+		// Build pattern regex to match any of the config filenames
+		// This creates a pattern that matches lines containing these filenames
+		var filePatterns []string
+		for _, cf := range pattern.ConfigFiles {
+			// Escape special regex chars in filename
+			escaped := regexp.QuoteMeta(cf)
+			filePatterns = append(filePatterns, escaped)
+		}
+
+		if len(filePatterns) == 1 {
+			rule.PatternRegex = filePatterns[0]
+		} else {
+			rule.PatternRegex = "(" + strings.Join(filePatterns, "|") + ")"
+		}
+
+		rules = append(rules, rule)
+	}
+
 	return rules
+}
+
+// categoryToToolType maps RAG categories to tool/technology types for devex
+func categoryToToolType(category string) string {
+	// Tool categories (dev tools - configuration burden)
+	toolCategories := map[string]string{
+		"developer-tools/linting":        "linter",
+		"developer-tools/formatting":     "formatter",
+		"developer-tools/bundlers":       "bundler",
+		"developer-tools/testing":        "test",
+		"developer-tools/cicd":           "ci-cd",
+		"developer-tools/build":          "build",
+		"developer-tools/containers":     "container",
+		"developer-tools/infrastructure": "iac",
+		"developer-tools/monitoring":     "monitoring",
+	}
+
+	// Technology categories (learning curve)
+	techCategories := map[string]string{
+		"languages":           "language",
+		"web-frameworks":      "framework",
+		"databases":           "database",
+		"cloud":               "cloud",
+		"authentication":      "auth",
+		"ai-ml":               "ai-ml",
+		"cryptographic-libraries": "crypto",
+	}
+
+	// Check for tool category match
+	for prefix, toolType := range toolCategories {
+		if strings.HasPrefix(category, prefix) {
+			return toolType
+		}
+	}
+
+	// Check for technology category match
+	for prefix, techType := range techCategories {
+		if strings.HasPrefix(category, prefix) {
+			return techType
+		}
+	}
+
+	// Default: try to extract from category path
+	parts := strings.Split(category, "/")
+	if len(parts) > 0 {
+		return parts[len(parts)-1]
+	}
+
+	return "unknown"
 }
 
 // pathToID converts a file path to a rule ID component

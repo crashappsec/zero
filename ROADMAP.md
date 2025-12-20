@@ -144,6 +144,7 @@ Connect to cloud providers to build infrastructure SBOMs:
 
 ### GitHub/GitLab Organization Analysis
 
+
 - [ ] Repository security configuration audit
 - [ ] Branch protection and access review
 - [ ] GitHub Actions/GitLab CI security analysis

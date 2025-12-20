@@ -205,6 +205,12 @@ func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) 
 		if err := scanResult.WriteJSON(resultFile); err != nil {
 			return nil, fmt.Errorf("writing result: %w", err)
 		}
+
+		// Generate markdown reports
+		if err := WriteReports(opts.OutputDir); err != nil {
+			// Non-fatal: log but don't fail the scan
+			fmt.Fprintf(os.Stderr, "Warning: failed to generate reports: %v\n", err)
+		}
 	}
 
 	return scanResult, nil
@@ -891,20 +897,20 @@ func (s *TechnologyScanner) enrichWithHuggingFaceMetadata(ctx context.Context, m
 		}
 
 		var hfModel struct {
-			ID           string   `json:"id"`
-			Author       string   `json:"author"`
-			License      string   `json:"license"`
-			Tags         []string `json:"tags"`
-			PipelineTag  string   `json:"pipeline_tag"`
-			ModelIndex   []struct {
+			ID          string   `json:"id"`
+			Author      string   `json:"author"`
+			License     string   `json:"license"`
+			Tags        []string `json:"tags"`
+			PipelineTag string   `json:"pipeline_tag"`
+			ModelIndex  []struct {
 				Name string `json:"name"`
 			} `json:"model-index"`
 			CardData struct {
-				License      string   `json:"license"`
-				Datasets     []string `json:"datasets"`
-				BaseModel    string   `json:"base_model"`
-				Language     []string `json:"language"`
-				Tags         []string `json:"tags"`
+				License   string   `json:"license"`
+				Datasets  []string `json:"datasets"`
+				BaseModel string   `json:"base_model"`
+				Language  []string `json:"language"`
+				Tags      []string `json:"tags"`
 			} `json:"cardData"`
 		}
 
@@ -937,8 +943,8 @@ func (s *TechnologyScanner) enrichWithHuggingFaceMetadata(ctx context.Context, m
 
 		// Create model card summary
 		models[i].ModelCard = &ModelCard{
-			Author:  hfModel.Author,
-			License: models[i].License,
+			Author:   hfModel.Author,
+			License:  models[i].License,
 			Datasets: models[i].Datasets,
 		}
 
