@@ -190,8 +190,62 @@ Master orchestrator for repository analysis. See `.claude/commands/zero.md` for 
 
 Key commands:
 - `./zero.sh hydrate <repo>` - Clone and analyze a repository
-- `./zero.sh status` - Show hydrated projects
+- `./zero.sh status` - Show hydrated projects with freshness indicators
 - `./zero.sh report <repo>` - Generate analysis reports
+
+### Automation Commands
+
+Zero includes automation features to keep scan data fresh:
+
+#### zero watch
+
+Watch a directory for file changes and automatically trigger scans:
+
+```bash
+zero watch                        # Watch current directory
+zero watch /path/to/repo          # Watch specific path
+zero watch --debounce 5           # Wait 5 seconds after last change
+zero watch --scanners sbom,code-security   # Only run specific scanners
+zero watch --profile quick        # Use quick profile
+```
+
+#### zero refresh
+
+Refresh repositories with stale scan data:
+
+```bash
+zero refresh                      # Refresh all stale repos
+zero refresh owner/repo           # Refresh specific repo
+zero refresh --force              # Force refresh even if fresh
+zero refresh --all                # Refresh all repos (not just stale)
+zero refresh --profile security   # Use specific scan profile
+```
+
+#### zero feeds
+
+Manage external security data feeds:
+
+```bash
+zero feeds sync              # Sync all enabled feeds (Semgrep rules)
+zero feeds sync --force      # Force sync even if fresh
+zero feeds status            # Show feed sync status
+zero feeds rules             # Generate rules from RAG patterns
+```
+
+**Note:** Vulnerability data is queried LIVE via OSV.dev during scans, not cached.
+
+### Freshness Tracking
+
+Zero tracks scan freshness with four levels:
+
+| Level | Threshold | Status Indicator |
+|-------|-----------|------------------|
+| Fresh | < 24 hours | Green ● |
+| Stale | 1-7 days | Yellow ● |
+| Very Stale | 7-30 days | Red ● |
+| Expired | > 30 days | Red ○ |
+
+Run `zero status` to see freshness indicators for all hydrated projects.
 
 ## Project Structure
 
@@ -203,17 +257,25 @@ zero/
 │   │   ├── knowledge/         # Domain knowledge
 │   │   └── prompts/           # Output templates
 │   └── shared/                # Shared knowledge (severity, confidence)
-├── pkg/scanners/              # Go scanner implementations (8 super scanners)
-│   ├── sbom/                  # SBOM super scanner (source of truth)
-│   ├── package-analysis/      # Package analysis (depends on sbom)
-│   ├── crypto/                # Crypto super scanner
-│   ├── code-security/         # Security-focused code analysis
-│   ├── code-quality/          # Code quality metrics
-│   ├── devops/                # DevOps super scanner
-│   ├── tech-id/  # Technology detection and ML-BOM
-│   └── code-ownership/        # Code ownership analysis
+├── pkg/
+│   ├── automation/            # Watch mode and scheduled scanning
+│   ├── feeds/                 # External feed sync (Semgrep rules)
+│   ├── findings/              # Standardized finding types
+│   ├── freshness/             # Staleness detection and tracking
+│   ├── report/                # Shared report generation utilities
+│   ├── rules/                 # Semgrep rule generation from RAG
+│   └── scanners/              # Go scanner implementations (9 super scanners)
+│       ├── sbom/              # SBOM super scanner (source of truth)
+│       ├── package-analysis/  # Package analysis (depends on sbom)
+│       ├── crypto/            # Crypto super scanner
+│       ├── code-security/     # Security-focused code analysis
+│       ├── code-quality/      # Code quality metrics
+│       ├── devops/            # DevOps super scanner
+│       ├── tech-id/           # Technology detection and ML-BOM
+│       ├── code-ownership/    # Code ownership analysis
+│       └── devx/              # Developer experience analysis
 ├── rag/                       # Retrieval-Augmented Generation knowledge
-│   └── tech-id/  # Technology detection patterns
+│   └── tech-id/               # Technology detection patterns
 ├── config/
 │   └── zero.config.json       # Scanner configuration
 └── .claude/
@@ -229,16 +291,19 @@ zero/
          │
          ├─► Clone repository to .zero/repos/<project>/repo/
          │
-         └─► Run super scanners, store JSON in .zero/repos/<project>/analysis/
-                  │
-                  ├─► sbom.json               (2 features) + sbom.cdx.json
-                  ├─► package-analysis.json   (12 features, depends on sbom)
-                  ├─► crypto.json             (5 features)
-                  ├─► code-security.json      (3 features)
-                  ├─► code-quality.json       (4 features)
-                  ├─► devops.json             (5 features)
-                  ├─► technology.json         (7 features) - ML-BOM
-                  └─► code-ownership.json     (6 features)
+         ├─► Run super scanners, store JSON in .zero/repos/<project>/analysis/
+         │        │
+         │        ├─► sbom.json               (2 features) + sbom.cdx.json
+         │        ├─► package-analysis.json   (12 features, depends on sbom)
+         │        ├─► crypto.json             (5 features)
+         │        ├─► code-security.json      (3 features)
+         │        ├─► code-quality.json       (4 features)
+         │        ├─► devops.json             (5 features)
+         │        ├─► technology.json         (7 features) - ML-BOM
+         │        ├─► code-ownership.json     (6 features)
+         │        └─► devx.json               (3 features)
+         │
+         └─► Record freshness metadata in .zero/repos/<project>/freshness.json
 
 /agent
          │
