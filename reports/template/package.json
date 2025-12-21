@@ -1,0 +1,14 @@
+{
+  "name": "zero-report",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "evidence dev",
+    "build": "evidence build",
+    "preview": "evidence preview"
+  },
+  "devDependencies": {
+    "@evidence-dev/evidence": "^34.0.0",
+    "@evidence-dev/core-components": "^4.0.0"
+  }
+}
