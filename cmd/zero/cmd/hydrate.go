@@ -10,8 +10,8 @@ import (
 	"syscall"
 
 	"github.com/crashappsec/zero/pkg/config"
+	"github.com/crashappsec/zero/pkg/evidence"
 	"github.com/crashappsec/zero/pkg/hydrate"
-	"github.com/crashappsec/zero/pkg/report"
 	"github.com/spf13/cobra"
 )
 
@@ -121,10 +121,27 @@ func runHydrate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	// Generate detailed report if requested
-	if showReport && len(projectIDs) > 0 {
-		reporter := report.NewReporter(cfg.ZeroHome())
-		reporter.GenerateReport(projectIDs)
+	// Generate Evidence report for each project
+	if len(projectIDs) > 0 {
+		gen := evidence.NewGenerator(cfg.ZeroHome())
+
+		for _, projectID := range projectIDs {
+			term.Info("Generating report for %s...", projectID)
+
+			reportPath, err := gen.Generate(evidence.Options{
+				Repository:  projectID,
+				OpenBrowser: false,
+			})
+
+			if err != nil {
+				term.Warn("Report generation failed: %v", err)
+			} else {
+				term.Success("Report ready")
+				term.Divider()
+				term.Info("  View Report: file://%s", reportPath)
+				term.Divider()
+			}
+		}
 	}
 
 	return nil

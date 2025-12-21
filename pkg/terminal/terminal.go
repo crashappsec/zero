@@ -90,6 +90,11 @@ func (t *Terminal) Warning(format string, args ...interface{}) {
 	fmt.Printf("%s  %s\n", t.Color(Yellow, IconWarning), t.Color(Bold, msg))
 }
 
+// Warn is an alias for Warning
+func (t *Terminal) Warn(format string, args ...interface{}) {
+	t.Warning(format, args...)
+}
+
 // Info prints an info message
 func (t *Terminal) Info(format string, args ...interface{}) {
 	t.mu.Lock()
@@ -116,6 +121,20 @@ func (t *Terminal) Divider() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	fmt.Println(strings.Repeat("━", min(t.width, 78)))
+}
+
+// Box prints text in a decorative box
+func (t *Terminal) Box(text string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	width := len(text) + 4
+	if width > t.width {
+		width = t.width
+	}
+	border := strings.Repeat("─", width-2)
+	fmt.Printf("  ╭%s╮\n", border)
+	fmt.Printf("  │ %s │\n", text)
+	fmt.Printf("  ╰%s╯\n", border)
 }
 
 // RepoCloned prints a cloned repo result
