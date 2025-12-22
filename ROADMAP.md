@@ -93,7 +93,7 @@ Determine if vulnerable dependencies are actually used:
 - [ ] **Vulnerable Code Path Detection** - Trace calls to vulnerable functions
 - [ ] **Call Graph Analysis** - Map how vulnerabilities could be exploited
 - [ ] **Risk Prioritization** - Focus on reachable vulnerabilities first
-- [ ] **VEX Generation** - Auto-generate Vulnerability Exploitability eXchange documents
+- [x] **VEX Generation** - Auto-generate Vulnerability Exploitability eXchange documents (`zero vex` command)
 
 #### Advanced Architecture Analysis
 - [ ] **Dependency Graph Visualization** - Interactive dependency explorer
