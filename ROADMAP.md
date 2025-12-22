@@ -31,35 +31,24 @@ Plus **12 AI specialist agents** for deep analysis (Zero, Cereal, Razor, Blade, 
 
 ---
 
-## Planned Features
+## Recently Completed
 
-### 🔥 Top Priority: Docker Distribution
+### ✅ Docker Distribution (v3.6)
 
-Package Zero as a Docker container for easy distribution and consistent execution.
+Zero is available as a Docker container. See `docs/DOCKER.md` for full documentation.
 
-#### Docker Image
-- [x] **Dockerfile** - Multi-stage build with Go binary and Node.js runtime
-- [x] **Pre-installed Dependencies** - Evidence npm packages bundled (saves ~1min per report)
-- [x] **Multi-architecture** - linux/amd64 and linux/arm64 support (via GitHub Actions buildx)
-- [x] **GitHub Container Registry** - CI workflow publishes to ghcr.io/crashappsec/zero
-- [x] **Version Tags** - :latest, :v3.6.0, :sha-abc123, :edge
-
-#### Usage Pattern
 ```bash
-# Analyze a repository
-docker run -v ~/.zero:/root/.zero ghcr.io/crashappsec/zero hydrate expressjs/express
-
-# Generate report
-docker run -v ~/.zero:/root/.zero -p 3000:3000 ghcr.io/crashappsec/zero report expressjs/express --serve
+docker pull ghcr.io/crashappsec/zero:latest
+docker run -v ~/.zero:/home/zero/.zero ghcr.io/crashappsec/zero hydrate owner/repo
 ```
 
-#### Benefits
-- No Node.js installation required on host
-- Consistent environment across all users
-- CI/CD friendly (GitHub Actions, GitLab CI)
-- Faster report generation (dependencies pre-cached)
+### ✅ Evidence Reports (v3.6)
+
+Interactive HTML reports using Evidence.dev. See `zero report --help`.
 
 ---
+
+## Planned Features
 
 ### Source Code Scanners
 

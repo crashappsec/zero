@@ -67,9 +67,10 @@ sbom-output/
 *.cdx.json
 *.spdx.json
 
-# Analysis reports (but keep template)
-reports/
+# Analysis reports (but keep template source files, not node_modules)
+reports/*
 !reports/template/
+reports/template/node_modules/
 *.sequence
 .DS_Store
 
