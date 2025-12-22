@@ -97,7 +97,7 @@ order by
   rowShading=true
 >
   <Column id=package title="Package"/>
-  <Column id=severity title="Severity" contentType=colorscale colorScale=red/>
+  <Column id=severity title="Severity" contentType=colorscale colorScale=negative/>
   <Column id=cve title="CVE"/>
   <Column id=title title="Description" wrap=true/>
   <Column id=fix_version title="Fix Available"/>
@@ -105,7 +105,7 @@ order by
 
 {:else}
 
-<Alert status="success">No vulnerable packages detected.</Alert>
+<Alert status="positive">No vulnerable packages detected.</Alert>
 
 {/if}
 

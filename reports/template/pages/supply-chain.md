@@ -100,7 +100,7 @@ group by category order by count desc limit 10
   rows=25
   rowShading=true
 >
-  <Column id=severity title="Severity" contentType=colorscale colorScale=red/>
+  <Column id=severity title="Severity" contentType=colorscale colorScale=negative/>
   <Column id=package title="Package"/>
   <Column id=category title="Category"/>
   <Column id=rule title="Rule"/>
@@ -109,7 +109,7 @@ group by category order by count desc limit 10
 
 {:else}
 
-<Alert status="success">No malicious package behaviors detected.</Alert>
+<Alert status="positive">No malicious package behaviors detected.</Alert>
 
 {/if}
 

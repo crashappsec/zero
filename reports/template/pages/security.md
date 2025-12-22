@@ -79,7 +79,7 @@ order by case severity when 'critical' then 1 when 'high' then 2 when 'medium' t
   rows=25
   rowShading=true
 >
-  <Column id=severity title="Severity" contentType=colorscale colorScale=red/>
+  <Column id=severity title="Severity" contentType=colorscale colorScale=negative/>
   <Column id=source title="Source"/>
   <Column id=package title="Package/File"/>
   <Column id=cve title="CVE/Rule"/>
@@ -89,7 +89,7 @@ order by case severity when 'critical' then 1 when 'high' then 2 when 'medium' t
 
 {:else}
 
-<Alert status="success">No code vulnerabilities detected.</Alert>
+<Alert status="positive">No code vulnerabilities detected.</Alert>
 
 {/if}
 
@@ -129,7 +129,7 @@ select type, count(*) as count from zero.secrets group by type order by count de
 
 {:else}
 
-<Alert status="success">No secrets detected.</Alert>
+<Alert status="positive">No secrets detected.</Alert>
 
 {/if}
 
@@ -167,7 +167,7 @@ select type, count(*) as count from zero.crypto_findings group by type order by 
 
 {:else}
 
-<Alert status="success">No cryptographic issues detected.</Alert>
+<Alert status="positive">No cryptographic issues detected.</Alert>
 
 {/if}
 
