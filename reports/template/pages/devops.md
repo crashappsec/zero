@@ -135,7 +135,7 @@ select type, count(*) as count from zero.iac_findings group by type order by cou
   rows=25
   rowShading=true
 >
-  <Column id=severity title="Severity" contentType=colorscale colorScale=red/>
+  <Column id=severity title="Severity" contentType=colorscale colorScale=negative/>
   <Column id=type title="Type"/>
   <Column id=rule_id title="Rule"/>
   <Column id=title title="Title" wrap=true/>
@@ -145,7 +145,7 @@ select type, count(*) as count from zero.iac_findings group by type order by cou
 
 {:else}
 
-<Alert status="success">No Infrastructure as Code issues detected.</Alert>
+<Alert status="positive">No Infrastructure as Code issues detected.</Alert>
 
 {/if}
 
@@ -173,7 +173,7 @@ select category, count(*) as count from zero.github_actions_findings group by ca
   rows=25
   rowShading=true
 >
-  <Column id=severity title="Severity" contentType=colorscale colorScale=red/>
+  <Column id=severity title="Severity" contentType=colorscale colorScale=negative/>
   <Column id=category title="Category"/>
   <Column id=workflow title="Workflow"/>
   <Column id=job title="Job"/>
@@ -182,7 +182,7 @@ select category, count(*) as count from zero.github_actions_findings group by ca
 
 {:else}
 
-<Alert status="success">No GitHub Actions issues detected.</Alert>
+<Alert status="positive">No GitHub Actions issues detected.</Alert>
 
 {/if}
 
@@ -198,7 +198,7 @@ select category, count(*) as count from zero.github_actions_findings group by ca
   rows=25
   rowShading=true
 >
-  <Column id=severity title="Severity" contentType=colorscale colorScale=red/>
+  <Column id=severity title="Severity" contentType=colorscale colorScale=negative/>
   <Column id=image title="Image"/>
   <Column id=rule_id title="Rule"/>
   <Column id=title title="Title" wrap=true/>
@@ -207,7 +207,7 @@ select category, count(*) as count from zero.github_actions_findings group by ca
 
 {:else}
 
-<Alert status="success">No container security issues detected.</Alert>
+<Alert status="positive">No container security issues detected.</Alert>
 
 {/if}
 

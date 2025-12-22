@@ -87,7 +87,7 @@ select 'Low' as severity, low_vulns as count from zero.org_summary where low_vul
   title="Vulnerabilities by Severity"
 />
 {:else}
-<Alert status="success">No vulnerabilities detected across the organization.</Alert>
+<Alert status="positive">No vulnerabilities detected across the organization.</Alert>
 {/if}
 
 ## Repository Summary
@@ -161,7 +161,7 @@ select * from zero.findings_by_scanner
   title="Findings Distribution"
 />
 {:else}
-<Alert status="success">No findings detected.</Alert>
+<Alert status="positive">No findings detected.</Alert>
 {/if}
 
 ## Scanner Results
