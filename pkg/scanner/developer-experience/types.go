@@ -1,4 +1,4 @@
-package devx
+package developerexperience
 
 // Result holds all feature results
 type Result struct {

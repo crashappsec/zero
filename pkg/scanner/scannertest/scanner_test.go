@@ -9,9 +9,9 @@ import (
 	_ "github.com/crashappsec/zero/pkg/scanner/code-quality"
 	_ "github.com/crashappsec/zero/pkg/scanner/code-security"
 	_ "github.com/crashappsec/zero/pkg/scanner/crypto"
+	_ "github.com/crashappsec/zero/pkg/scanner/developer-experience"
 	_ "github.com/crashappsec/zero/pkg/scanner/devops"
-	_ "github.com/crashappsec/zero/pkg/scanner/devx"
-	_ "github.com/crashappsec/zero/pkg/scanner/package-analysis"
+	_ "github.com/crashappsec/zero/pkg/scanner/packages"
 	_ "github.com/crashappsec/zero/pkg/scanner/sbom"
 	_ "github.com/crashappsec/zero/pkg/scanner/tech-id"
 )
@@ -23,12 +23,12 @@ func TestRegisteredScanners(t *testing.T) {
 	// v3.6 super scanners
 	expected := []string{
 		"sbom",
-		"package-analysis",
+		"packages",
 		"crypto",
 		"code-security",
 		"code-quality",
 		"devops",
-		"devx",
+		"developer-experience",
 		"tech-id",
 		"code-ownership",
 	}
@@ -63,21 +63,21 @@ func TestTopologicalSort(t *testing.T) {
 		t.Logf("  %d. %s (deps: %v)", i+1, s.Name(), s.Dependencies())
 	}
 
-	// Verify SBOM comes before package-analysis (since package-analysis depends on sbom)
+	// Verify SBOM comes before packages (since packages depends on sbom)
 	sbomIdx := -1
-	pkgAnalysisIdx := -1
+	pkgIdx := -1
 
 	for i, s := range sorted {
 		switch s.Name() {
 		case "sbom":
 			sbomIdx = i
-		case "package-analysis":
-			pkgAnalysisIdx = i
+		case "packages":
+			pkgIdx = i
 		}
 	}
 
-	if sbomIdx >= 0 && pkgAnalysisIdx >= 0 && sbomIdx > pkgAnalysisIdx {
-		t.Error("sbom should come before package-analysis")
+	if sbomIdx >= 0 && pkgIdx >= 0 && sbomIdx > pkgIdx {
+		t.Error("sbom should come before packages")
 	}
 }
 

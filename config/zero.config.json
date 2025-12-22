@@ -14,7 +14,7 @@
   "_docs11": "  - technology: detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure (ML-BOM)",
   "_docs12": "  - ownership: contributors, bus_factor, codeowners, orphans, churn, patterns",
   "_docs13": "  - health: score, summary, recommendations, trends (aggregator)",
-  "_docs14": "  - devex: onboarding, tooling, workflow (developer experience)",
+  "_docs14": "  - developer-experience: onboarding, tooling, workflow (developer experience)",
   "_docs15": "===================================================================================",
   "settings": {
     "default_profile": "all-quick",
@@ -382,11 +382,11 @@
         }
       }
     },
-    "devx": {
+    "developer-experience": {
       "name": "Developer Experience",
       "description": "Developer experience analysis: onboarding friction, sprawl analysis (tools + technologies), workflow efficiency",
       "estimated_time": "15-30s",
-      "output_file": "devx.json",
+      "output_file": "developer-experience.json",
       "dependencies": ["tech-id"],
       "features": {
         "onboarding": {
@@ -419,12 +419,12 @@
       "name": "All Quick",
       "description": "All scanners with limited features for fast feedback",
       "estimated_time": "~2 minutes",
-      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "devx"],
+      "scanners": ["sbom", "packages", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"],
       "feature_overrides": {
         "sbom": {
           "integrity": {"enabled": false}
         },
-        "package-analysis": {
+        "packages": {
           "malcontent": {"enabled": false},
           "provenance": {"enabled": false},
           "bundle": {"enabled": false},
@@ -444,7 +444,7 @@
       "name": "All Complete",
       "description": "All scanners with all features enabled",
       "estimated_time": "~12 minutes",
-      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "devx"]
+      "scanners": ["sbom", "packages", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"]
     },
     "sbom": {
       "name": "SBOM",
@@ -452,11 +452,11 @@
       "estimated_time": "~1 minute",
       "scanners": ["sbom"]
     },
-    "package-analysis": {
-      "name": "Package Analysis",
+    "packages": {
+      "name": "Packages",
       "description": "Package/dependency analysis (vulnerabilities, licenses, health)",
       "estimated_time": "~3 minutes",
-      "scanners": ["sbom", "package-analysis"]
+      "scanners": ["sbom", "packages"]
     },
     "crypto": {
       "name": "Cryptography",
@@ -494,11 +494,11 @@
       "estimated_time": "~1 minute",
       "scanners": ["code-ownership"]
     },
-    "devx": {
+    "developer-experience": {
       "name": "Developer Experience",
       "description": "Onboarding, tooling sprawl, workflow analysis",
       "estimated_time": "~1 minute",
-      "scanners": ["tech-id", "devx"]
+      "scanners": ["tech-id", "developer-experience"]
     }
   }
 }

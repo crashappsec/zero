@@ -1,4 +1,4 @@
-package packageanalysis
+package packages
 
 import (
 	"testing"
