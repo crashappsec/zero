@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/crashappsec/zero/pkg/core/config"
-	"github.com/crashappsec/zero/pkg/external/github"
+	"github.com/crashappsec/zero/pkg/core/github"
 	"github.com/crashappsec/zero/pkg/scanner"
 	"github.com/crashappsec/zero/pkg/core/terminal"
 	"github.com/spf13/cobra"

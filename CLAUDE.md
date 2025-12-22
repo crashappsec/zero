@@ -362,7 +362,10 @@ zero/
 │   │   ├── languages/         # Language detection
 │   │   ├── rag/               # RAG patterns
 │   │   ├── rules/             # Semgrep rules
-│   │   └── scoring/           # Health scoring
+│   │   ├── scoring/           # Health scoring
+│   │   ├── github/            # GitHub API client
+│   │   ├── liveapi/           # Live API queries (OSV)
+│   │   └── feeds/             # Semgrep feed sync
 │   ├── scanner/               # Scanner framework + implementations
 │   │   ├── interface.go       # Scanner interface
 │   │   ├── runner.go          # Scanner runner
@@ -375,10 +378,6 @@ zero/
 │   │   ├── tech-id/           # Technology detection
 │   │   ├── code-ownership/    # Code ownership scanner
 │   │   └── devx/              # Developer experience
-│   ├── external/              # External integrations
-│   │   ├── github/            # GitHub API client
-│   │   ├── liveapi/           # Live API queries (OSV)
-│   │   └── feeds/             # Semgrep feed sync
 │   ├── workflow/              # Workflow management
 │   │   ├── hydrate/           # Clone and scan
 │   │   ├── automation/        # Watch mode

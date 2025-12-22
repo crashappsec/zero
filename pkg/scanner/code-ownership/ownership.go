@@ -16,7 +16,7 @@ import (
 	"github.com/go-git/go-git/v5"
 	gitobj "github.com/go-git/go-git/v5/plumbing/object"
 
-	"github.com/crashappsec/zero/pkg/external/github"
+	"github.com/crashappsec/zero/pkg/core/github"
 	"github.com/crashappsec/zero/pkg/core/languages"
 	"github.com/crashappsec/zero/pkg/scanner"
 )

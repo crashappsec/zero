@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/crashappsec/zero/pkg/external/feeds"
+	"github.com/crashappsec/zero/pkg/core/feeds"
 	"github.com/crashappsec/zero/pkg/core/rules"
 )
 
