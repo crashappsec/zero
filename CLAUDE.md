@@ -359,7 +359,6 @@ zero/
 │   │   ├── status/            # Status display
 │   │   ├── findings/          # Finding types
 │   │   ├── sarif/             # SARIF export
-│   │   ├── export/            # Google Sheets export
 │   │   ├── languages/         # Language detection
 │   │   ├── rag/               # RAG patterns
 │   │   ├── rules/             # Semgrep rules
@@ -385,7 +384,9 @@ zero/
 │   │   ├── automation/        # Watch mode
 │   │   ├── freshness/         # Staleness tracking
 │   │   └── diff/              # Scan comparison
-│   ├── reports/               # Evidence.dev reports
+│   ├── reports/               # Report generation
+│   │   ├── generator.go       # Evidence.dev reports
+│   │   └── sheets/            # Google Sheets export
 │   └── mcp/                   # MCP server
 ├── reports/
 │   └── template/              # Evidence report template
