@@ -52,7 +52,7 @@ type AIAnalysisConfig struct {
 	ConfidenceThreshold float64 `json:"confidence_threshold"` // Threshold to mark as FP (default: 0.8)
 }
 
-// APIConfig configures API security scanning
+// APIConfig configures API scanning (security and quality)
 type APIConfig struct {
 	Enabled        bool `json:"enabled"`
 	CheckAuth      bool `json:"check_auth"`      // Check authentication issues
@@ -62,6 +62,12 @@ type APIConfig struct {
 	CheckOpenAPI   bool `json:"check_openapi"`   // Validate OpenAPI specs
 	CheckGraphQL   bool `json:"check_graphql"`   // Check GraphQL security
 	CheckOWASPAPI  bool `json:"check_owasp_api"` // Map to OWASP API Top 10
+
+	// Non-security API quality checks
+	CheckDesign       bool `json:"check_design"`       // REST design patterns, naming conventions
+	CheckPerformance  bool `json:"check_performance"`  // N+1 queries, pagination, caching
+	CheckObservability bool `json:"check_observability"` // Logging, error handling, metrics
+	CheckDocumentation bool `json:"check_documentation"` // API documentation completeness
 }
 
 // DefaultConfig returns default feature configuration
@@ -104,6 +110,11 @@ func DefaultConfig() FeatureConfig {
 			CheckOpenAPI:   true,
 			CheckGraphQL:   true,
 			CheckOWASPAPI:  true,
+			// Non-security quality checks
+			CheckDesign:        true,
+			CheckPerformance:   true,
+			CheckObservability: true,
+			CheckDocumentation: true,
 		},
 	}
 }

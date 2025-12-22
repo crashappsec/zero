@@ -63,13 +63,16 @@ type SecretsSummary struct {
 
 // APISummary contains API security summary
 type APISummary struct {
-	TotalFindings int            `json:"total_findings"`
-	Critical      int            `json:"critical"`
-	High          int            `json:"high"`
-	Medium        int            `json:"medium"`
-	Low           int            `json:"low"`
-	ByCategory    map[string]int `json:"by_category"`
-	Error         string         `json:"error,omitempty"`
+	TotalFindings  int            `json:"total_findings"`
+	Critical       int            `json:"critical"`
+	High           int            `json:"high"`
+	Medium         int            `json:"medium"`
+	Low            int            `json:"low"`
+	ByCategory     map[string]int `json:"by_category"`
+	ByOWASPApi     map[string]int `json:"by_owasp_api,omitempty"`
+	ByFramework    map[string]int `json:"by_framework,omitempty"`
+	EndpointsFound int            `json:"endpoints_found,omitempty"`
+	Error          string         `json:"error,omitempty"`
 }
 
 // Finding types
@@ -141,12 +144,20 @@ type RotationGuide struct {
 
 // APIFinding represents an API security finding
 type APIFinding struct {
-	RuleID      string `json:"rule_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Severity    string `json:"severity"`
-	File        string `json:"file"`
-	Line        int    `json:"line"`
-	Category    string `json:"category"`
-	OWASPApi    string `json:"owasp_api,omitempty"`
+	RuleID      string   `json:"rule_id"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Severity    string   `json:"severity"`
+	Confidence  string   `json:"confidence,omitempty"` // high, medium, low
+	File        string   `json:"file"`
+	Line        int      `json:"line"`
+	Column      int      `json:"column,omitempty"`
+	Snippet     string   `json:"snippet,omitempty"`
+	Category    string   `json:"category"`
+	OWASPApi    string   `json:"owasp_api,omitempty"`
+	CWE         []string `json:"cwe,omitempty"`
+	HTTPMethod  string   `json:"http_method,omitempty"` // GET, POST, PUT, DELETE, etc.
+	Endpoint    string   `json:"endpoint,omitempty"`    // /api/users, /graphql, etc.
+	Framework   string   `json:"framework,omitempty"`   // express, fastapi, django, etc.
+	Remediation string   `json:"remediation,omitempty"`
 }
