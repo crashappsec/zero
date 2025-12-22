@@ -3,7 +3,7 @@ package techid
 import (
 	"regexp"
 
-	"github.com/crashappsec/zero/pkg/analysis/rag"
+	"github.com/crashappsec/zero/pkg/core/rag"
 )
 
 // RAGPatterns holds compiled patterns loaded from RAG files

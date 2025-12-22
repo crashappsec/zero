@@ -16,7 +16,7 @@ import (
 	"github.com/crashappsec/zero/pkg/core/config"
 	"github.com/crashappsec/zero/pkg/workflow/diff"
 	"github.com/crashappsec/zero/pkg/external/github"
-	"github.com/crashappsec/zero/pkg/analysis/languages"
+	"github.com/crashappsec/zero/pkg/core/languages"
 	"github.com/crashappsec/zero/pkg/scanner"
 	"github.com/crashappsec/zero/pkg/core/terminal"
 )

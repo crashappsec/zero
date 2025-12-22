@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/crashappsec/zero/pkg/core/config"
-	"github.com/crashappsec/zero/pkg/output/export/sheets"
+	"github.com/crashappsec/zero/pkg/core/export/sheets"
 	"github.com/crashappsec/zero/pkg/core/terminal"
 	"github.com/spf13/cobra"
 )

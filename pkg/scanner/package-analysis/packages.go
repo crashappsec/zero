@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/crashappsec/zero/pkg/scanner"
-	"github.com/crashappsec/zero/pkg/scanners/common"
-	"github.com/crashappsec/zero/pkg/scanners/sbom"
+	"github.com/crashappsec/zero/pkg/scanner/common"
+	"github.com/crashappsec/zero/pkg/scanner/sbom"
 )
 
 const (

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/analysis/rag"
+	"github.com/crashappsec/zero/pkg/core/rag"
 )
 
 // RuleManager handles semgrep rule lifecycle
