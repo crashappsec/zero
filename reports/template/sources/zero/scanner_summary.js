@@ -5,11 +5,12 @@ const { sbom, packageAnalysis, codeSecurity, crypto, devops, codeQuality, techno
 const rows = [];
 
 if (sbom) {
+  const pkgCount = sbom.summary?.generation?.total_components || 0;
   rows.push({
     scanner: 'SBOM',
     status: sbom.summary?.generation?.error ? 'Error' : 'OK',
-    findings: sbom.summary?.generation?.total_components || 0,
-    summary: `${sbom.summary?.generation?.total_components || 0} packages`
+    findings: pkgCount,
+    summary: pkgCount + ' packages'
   });
 }
 
@@ -20,7 +21,7 @@ if (packageAnalysis) {
     scanner: 'Package Analysis',
     status: total > 0 ? 'Findings' : 'OK',
     findings: total,
-    summary: `${v.critical || 0} critical, ${v.high || 0} high`
+    summary: (v.critical || 0) + ' critical, ' + (v.high || 0) + ' high'
   });
 }
 
@@ -31,7 +32,7 @@ if (codeSecurity) {
     scanner: 'Code Security',
     status: secrets > 0 || vulns > 0 ? 'Findings' : 'OK',
     findings: secrets + vulns,
-    summary: `${secrets} secrets, ${vulns} vulns`
+    summary: secrets + ' secrets, ' + vulns + ' vulns'
   });
 }
 
@@ -42,7 +43,7 @@ if (crypto) {
     scanner: 'Cryptography',
     status: weak > 0 || hardcoded > 0 ? 'Findings' : 'OK',
     findings: weak + hardcoded,
-    summary: `${weak} weak ciphers, ${hardcoded} hardcoded keys`
+    summary: weak + ' weak ciphers, ' + hardcoded + ' hardcoded keys'
   });
 }
 
@@ -53,7 +54,7 @@ if (devops) {
     scanner: 'DevOps',
     status: iac > 0 || actions > 0 ? 'Findings' : 'OK',
     findings: iac + actions,
-    summary: `${iac} IaC, ${actions} actions issues`
+    summary: iac + ' IaC, ' + actions + ' actions issues'
   });
 }
 
@@ -63,7 +64,7 @@ if (codeQuality) {
     scanner: 'Code Quality',
     status: score < 50 ? 'Warning' : 'OK',
     findings: 100 - score,
-    summary: `Score: ${score}/100`
+    summary: 'Score: ' + score + '/100'
   });
 }
 
@@ -73,7 +74,7 @@ if (technology) {
     scanner: 'Tech Detection',
     status: 'OK',
     findings: techs,
-    summary: `${techs} technologies detected`
+    summary: techs + ' technologies detected'
   });
 }
 
@@ -83,7 +84,7 @@ if (codeOwnership) {
     scanner: 'Code Ownership',
     status: busFactor < 2 ? 'Warning' : 'OK',
     findings: busFactor,
-    summary: `Bus factor: ${busFactor}`
+    summary: 'Bus factor: ' + busFactor
   });
 }
 
@@ -93,7 +94,7 @@ if (devx) {
     scanner: 'Developer Experience',
     status: score < 50 ? 'Warning' : 'OK',
     findings: score,
-    summary: `Onboarding: ${score}%`
+    summary: 'Onboarding: ' + score + '%'
   });
 }
 

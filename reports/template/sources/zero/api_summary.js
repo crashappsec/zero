@@ -11,17 +11,5 @@ export const data = [{
   high: apiSummary.high || 0,
   medium: apiSummary.medium || 0,
   low: apiSummary.low || 0,
-  endpoints_found: apiSummary.endpoints_found || 0,
-  // Flatten category counts
-  ...Object.fromEntries(
-    Object.entries(apiSummary.by_category || {}).map(([k, v]) => [`cat_${k.replace(/-/g, '_')}`, v])
-  ),
-  // Flatten OWASP API counts
-  ...Object.fromEntries(
-    Object.entries(apiSummary.by_owasp_api || {}).map(([k, v]) => [`owasp_${k.replace(/[:\s]/g, '_')}`, v])
-  ),
-  // Flatten framework counts
-  ...Object.fromEntries(
-    Object.entries(apiSummary.by_framework || {}).map(([k, v]) => [`framework_${k}`, v])
-  )
+  endpoints_found: apiSummary.endpoints_found || 0
 }];
