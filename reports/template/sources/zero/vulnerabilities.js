@@ -25,7 +25,7 @@ if (codeSecurity?.findings?.vulns) {
     vulns.push({
       source: 'Code',
       package: v.file || '',
-      version: `Line ${v.line || '?'}`,
+      version: 'Line ' + (v.line || '?'),
       severity: v.severity || 'unknown',
       cve: v.rule_id || '',
       title: v.title || v.message || '',
