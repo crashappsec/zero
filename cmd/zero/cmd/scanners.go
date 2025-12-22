@@ -1,5 +1,5 @@
 // Package scanners imports all scanner implementations to register them
-package scanners
+package cmd
 
 // Import all scanner packages to trigger their init() functions
 // which register the scanners with the scanner.Registry
@@ -16,13 +16,13 @@ package scanners
 // - devx: Developer experience analysis (onboarding, tooling, workflow)
 import (
 	// Super scanners (v3.6)
-	_ "github.com/crashappsec/zero/pkg/scanners/code-ownership"   // Code ownership analysis
-	_ "github.com/crashappsec/zero/pkg/scanners/code-quality"     // Code quality analysis
-	_ "github.com/crashappsec/zero/pkg/scanners/code-security"    // Security-focused code analysis
-	_ "github.com/crashappsec/zero/pkg/scanners/crypto"           // Cryptographic security
-	_ "github.com/crashappsec/zero/pkg/scanners/devops"           // DevOps and CI/CD security
-	_ "github.com/crashappsec/zero/pkg/scanners/devx"             // Developer experience analysis
-	_ "github.com/crashappsec/zero/pkg/scanners/package-analysis" // Package analysis (depends on sbom)
-	_ "github.com/crashappsec/zero/pkg/scanners/sbom"             // SBOM generation (source of truth)
-	_ "github.com/crashappsec/zero/pkg/scanners/tech-id"          // Technology and AI/ML security
+	_ "github.com/crashappsec/zero/pkg/scanner/code-ownership"   // Code ownership analysis
+	_ "github.com/crashappsec/zero/pkg/scanner/code-quality"     // Code quality analysis
+	_ "github.com/crashappsec/zero/pkg/scanner/code-security"    // Security-focused code analysis
+	_ "github.com/crashappsec/zero/pkg/scanner/crypto"           // Cryptographic security
+	_ "github.com/crashappsec/zero/pkg/scanner/devops"           // DevOps and CI/CD security
+	_ "github.com/crashappsec/zero/pkg/scanner/devx"             // Developer experience analysis
+	_ "github.com/crashappsec/zero/pkg/scanner/package-analysis" // Package analysis (depends on sbom)
+	_ "github.com/crashappsec/zero/pkg/scanner/sbom"             // SBOM generation (source of truth)
+	_ "github.com/crashappsec/zero/pkg/scanner/tech-id"          // Technology and AI/ML security
 )

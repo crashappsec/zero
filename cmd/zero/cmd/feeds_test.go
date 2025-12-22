@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/crashappsec/zero/pkg/external/feeds"
-	"github.com/crashappsec/zero/pkg/analysis/rules"
+	"github.com/crashappsec/zero/pkg/core/rules"
 )
 
 func TestFeedsCommandFlagDefaults(t *testing.T) {

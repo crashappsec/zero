@@ -21,7 +21,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/object"
 
 	"github.com/crashappsec/zero/pkg/scanner"
-	"github.com/crashappsec/zero/pkg/scanners/common"
+	"github.com/crashappsec/zero/pkg/scanner/common"
 )
 
 const (

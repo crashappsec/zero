@@ -5,14 +5,14 @@ import (
 
 	"github.com/crashappsec/zero/pkg/scanner"
 	// Import scanners to register them (v3.5 super scanners)
-	_ "github.com/crashappsec/zero/pkg/scanners/code-ownership"
-	_ "github.com/crashappsec/zero/pkg/scanners/code-quality"
-	_ "github.com/crashappsec/zero/pkg/scanners/code-security"
-	_ "github.com/crashappsec/zero/pkg/scanners/crypto"
-	_ "github.com/crashappsec/zero/pkg/scanners/devops"
-	_ "github.com/crashappsec/zero/pkg/scanners/package-analysis"
-	_ "github.com/crashappsec/zero/pkg/scanners/sbom"
-	_ "github.com/crashappsec/zero/pkg/scanners/tech-id"
+	_ "github.com/crashappsec/zero/pkg/scanner/code-ownership"
+	_ "github.com/crashappsec/zero/pkg/scanner/code-quality"
+	_ "github.com/crashappsec/zero/pkg/scanner/code-security"
+	_ "github.com/crashappsec/zero/pkg/scanner/crypto"
+	_ "github.com/crashappsec/zero/pkg/scanner/devops"
+	_ "github.com/crashappsec/zero/pkg/scanner/package-analysis"
+	_ "github.com/crashappsec/zero/pkg/scanner/sbom"
+	_ "github.com/crashappsec/zero/pkg/scanner/tech-id"
 )
 
 func TestRegisteredScanners(t *testing.T) {

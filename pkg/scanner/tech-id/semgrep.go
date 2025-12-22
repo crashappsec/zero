@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/scanners/common"
+	"github.com/crashappsec/zero/pkg/scanner/common"
 )
 
 // SemgrepRunner executes semgrep with generated rules

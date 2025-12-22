@@ -355,38 +355,37 @@ zero/
 ├── pkg/
 │   ├── core/                  # Foundation packages
 │   │   ├── config/            # Configuration loading
-│   │   ├── terminal/          # Terminal output and formatting
-│   │   └── status/            # Status display
-│   ├── output/                # Output formats
-│   │   ├── findings/          # Standardized finding types
-│   │   ├── sarif/             # SARIF format export
-│   │   └── export/sheets/     # Google Sheets export
+│   │   ├── terminal/          # Terminal output
+│   │   ├── status/            # Status display
+│   │   ├── findings/          # Finding types
+│   │   ├── sarif/             # SARIF export
+│   │   ├── export/            # Google Sheets export
+│   │   ├── languages/         # Language detection
+│   │   ├── rag/               # RAG patterns
+│   │   ├── rules/             # Semgrep rules
+│   │   └── scoring/           # Health scoring
+│   ├── scanner/               # Scanner framework + implementations
+│   │   ├── interface.go       # Scanner interface
+│   │   ├── runner.go          # Scanner runner
+│   │   ├── sbom/              # SBOM scanner
+│   │   ├── package-analysis/  # Package analysis
+│   │   ├── crypto/            # Cryptography scanner
+│   │   ├── code-security/     # Code security scanner
+│   │   ├── code-quality/      # Code quality scanner
+│   │   ├── devops/            # DevOps scanner
+│   │   ├── tech-id/           # Technology detection
+│   │   ├── code-ownership/    # Code ownership scanner
+│   │   └── devx/              # Developer experience
 │   ├── external/              # External integrations
 │   │   ├── github/            # GitHub API client
-│   │   ├── liveapi/           # Live API queries (OSV, etc.)
-│   │   └── feeds/             # External feed sync (Semgrep rules)
-│   ├── analysis/              # Analysis utilities
-│   │   ├── rag/               # RAG pattern loading
-│   │   ├── rules/             # Semgrep rule generation
-│   │   ├── languages/         # Language detection
-│   │   └── scoring/           # Health scoring
+│   │   ├── liveapi/           # Live API queries (OSV)
+│   │   └── feeds/             # Semgrep feed sync
 │   ├── workflow/              # Workflow management
-│   │   ├── hydrate/           # Clone and scan repositories
-│   │   ├── automation/        # Watch mode and scheduled scanning
-│   │   ├── freshness/         # Staleness detection and tracking
-│   │   └── diff/              # Scan result comparison
-│   ├── reports/               # Evidence.dev report generator
-│   ├── scanner/               # Scanner framework
-│   ├── scanners/              # Scanner implementations (9 super scanners)
-│   │   ├── sbom/              # SBOM super scanner (source of truth)
-│   │   ├── package-analysis/  # Package analysis (depends on sbom)
-│   │   ├── crypto/            # Crypto super scanner
-│   │   ├── code-security/     # Security-focused code analysis
-│   │   ├── code-quality/      # Code quality metrics
-│   │   ├── devops/            # DevOps super scanner
-│   │   ├── tech-id/           # Technology detection and ML-BOM
-│   │   ├── code-ownership/    # Code ownership analysis
-│   │   └── devx/              # Developer experience analysis
+│   │   ├── hydrate/           # Clone and scan
+│   │   ├── automation/        # Watch mode
+│   │   ├── freshness/         # Staleness tracking
+│   │   └── diff/              # Scan comparison
+│   ├── reports/               # Evidence.dev reports
 │   └── mcp/                   # MCP server
 ├── reports/
 │   └── template/              # Evidence report template

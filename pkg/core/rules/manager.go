@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/crashappsec/zero/pkg/external/feeds"
-	"github.com/crashappsec/zero/pkg/analysis/rag"
+	"github.com/crashappsec/zero/pkg/core/rag"
 )
 
 // Manager handles rule generation and updates
