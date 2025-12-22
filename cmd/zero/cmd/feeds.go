@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/crashappsec/zero/pkg/core/config"
-	"github.com/crashappsec/zero/pkg/external/feeds"
+	"github.com/crashappsec/zero/pkg/core/feeds"
 	"github.com/crashappsec/zero/pkg/core/rules"
 	"github.com/crashappsec/zero/pkg/core/terminal"
 	"github.com/spf13/cobra"

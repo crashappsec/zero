@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/crashappsec/zero/pkg/external/github"
+	"github.com/crashappsec/zero/pkg/core/github"
 )
 
 func TestFormatNumber(t *testing.T) {
