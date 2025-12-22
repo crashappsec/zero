@@ -135,7 +135,7 @@ Connect to cloud providers to build infrastructure SBOMs:
 - [x] **API Analysis Page** - REST, GraphQL, OpenAPI security and quality findings
 - [ ] **PDF Export** - Executive summaries for stakeholders
 - [ ] **Trend Analysis** - Track security posture over time
-- [ ] **Delta Detection** - New/fixed findings between scans
+- [x] **Delta Detection** - New/fixed findings between scans (`zero diff` command)
 - [ ] **Compliance Dashboards** - SOC 2, ISO 27001, NIST mapping
 
 #### Developer Experience Metrics
