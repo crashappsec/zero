@@ -1,5 +1,7 @@
 package sbom
 
+import "encoding/json"
+
 // Result holds all SBOM feature results
 type Result struct {
 	FeaturesRun []string `json:"features_run"`
@@ -150,6 +152,42 @@ type VersionChange struct {
 	NewVersion  string `json:"new_version"`
 }
 
+// CycloneDXTool represents a tool in CycloneDX format
+type CycloneDXTool struct {
+	Type    string `json:"type,omitempty"`
+	Author  string `json:"author,omitempty"`
+	Name    string `json:"name,omitempty"`
+	Version string `json:"version,omitempty"`
+}
+
+// CycloneDXTools handles both CycloneDX 1.4 (array) and 1.5 (object with components) formats
+type CycloneDXTools struct {
+	Tools []CycloneDXTool // Parsed tools regardless of format
+}
+
+// UnmarshalJSON handles both array (1.4) and object (1.5) formats for tools
+func (t *CycloneDXTools) UnmarshalJSON(data []byte) error {
+	// Try CycloneDX 1.5 format first: {"components": [...]}
+	var v15 struct {
+		Components []CycloneDXTool `json:"components"`
+	}
+	if err := json.Unmarshal(data, &v15); err == nil && len(v15.Components) > 0 {
+		t.Tools = v15.Components
+		return nil
+	}
+
+	// Try CycloneDX 1.4 format: [...]
+	var v14 []CycloneDXTool
+	if err := json.Unmarshal(data, &v14); err == nil {
+		t.Tools = v14
+		return nil
+	}
+
+	// If neither works, just leave tools empty (don't fail)
+	t.Tools = nil
+	return nil
+}
+
 // CycloneDXBOM represents the CycloneDX SBOM structure for parsing
 type CycloneDXBOM struct {
 	BomFormat    string `json:"bomFormat"`
@@ -157,11 +195,13 @@ type CycloneDXBOM struct {
 	Version      int    `json:"version"`
 	SerialNumber string `json:"serialNumber,omitempty"`
 	Metadata     struct {
-		Timestamp string `json:"timestamp,omitempty"`
-		Tools     []struct {
-			Name    string `json:"name,omitempty"`
-			Version string `json:"version,omitempty"`
-		} `json:"tools,omitempty"`
+		Timestamp string          `json:"timestamp,omitempty"`
+		Tools     *CycloneDXTools `json:"tools,omitempty"`
+		Component struct {
+			BomRef string `json:"bom-ref,omitempty"`
+			Type   string `json:"type,omitempty"`
+			Name   string `json:"name,omitempty"`
+		} `json:"component,omitempty"`
 	} `json:"metadata,omitempty"`
 	Components []struct {
 		Type       string `json:"type"`

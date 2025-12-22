@@ -31,6 +31,8 @@ type Options struct {
 	OpenBrowser bool
 	DevServer   bool
 	Force       bool
+	OrgMode     bool   // Generate org-wide report aggregating all repos
+	OrgName     string // Organization name (extracted from repo path)
 }
 
 // NewGenerator creates a new Evidence generator
@@ -67,26 +69,44 @@ func (g *Generator) AnalysisPath(repo string) string {
 	return filepath.Join(g.zeroHome, "repos", repo, "analysis")
 }
 
-// Generate creates an Evidence report for a repository
+// Generate creates an Evidence report for a repository or organization
 func (g *Generator) Generate(opts Options) (string, error) {
-	analysisPath := g.AnalysisPath(opts.Repository)
+	var analysisPath string
+	var workDir string
+	var outputDir string
 
-	// Check analysis data exists
-	if _, err := os.Stat(analysisPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("no analysis data found for %s", opts.Repository)
+	if opts.OrgMode {
+		// Org mode: aggregate all repos in the organization
+		orgPath := filepath.Join(g.zeroHome, "repos", opts.OrgName)
+		if _, err := os.Stat(orgPath); os.IsNotExist(err) {
+			return "", fmt.Errorf("no organization data found for %s", opts.OrgName)
+		}
+
+		// Use org-level paths
+		outputDir = opts.OutputDir
+		if outputDir == "" {
+			outputDir = filepath.Join(g.zeroHome, "repos", opts.OrgName, ".org-report")
+		}
+		workDir = filepath.Join(g.zeroHome, "repos", opts.OrgName, ".evidence-build")
+		analysisPath = "" // Not used in org mode
+	} else {
+		// Single repo mode
+		analysisPath = g.AnalysisPath(opts.Repository)
+
+		// Check analysis data exists
+		if _, err := os.Stat(analysisPath); os.IsNotExist(err) {
+			return "", fmt.Errorf("no analysis data found for %s", opts.Repository)
+		}
+
+		outputDir = opts.OutputDir
+		if outputDir == "" {
+			outputDir = filepath.Join(g.zeroHome, "repos", opts.Repository, "report")
+		}
+		workDir = filepath.Join(g.zeroHome, "repos", opts.Repository, ".evidence-build")
 	}
-
-	// Determine output directory
-	outputDir := opts.OutputDir
-	if outputDir == "" {
-		outputDir = filepath.Join(g.zeroHome, "repos", opts.Repository, "report")
-	}
-
-	// Create working directory for Evidence build
-	workDir := filepath.Join(g.zeroHome, "repos", opts.Repository, ".evidence-build")
 
 	// Copy template to working directory
-	if err := g.setupWorkDir(workDir, analysisPath); err != nil {
+	if err := g.setupWorkDirWithMode(workDir, analysisPath, opts.OrgMode, opts.OrgName); err != nil {
 		return "", fmt.Errorf("setting up Evidence workspace: %w", err)
 	}
 
@@ -121,6 +141,11 @@ func (g *Generator) Generate(opts Options) (string, error) {
 
 // setupWorkDir prepares the Evidence working directory
 func (g *Generator) setupWorkDir(workDir, analysisPath string) error {
+	return g.setupWorkDirWithMode(workDir, analysisPath, false, "")
+}
+
+// setupWorkDirWithMode prepares the Evidence working directory with org mode support
+func (g *Generator) setupWorkDirWithMode(workDir, analysisPath string, orgMode bool, orgName string) error {
 	// Remove old work dir
 	os.RemoveAll(workDir)
 
@@ -134,19 +159,55 @@ func (g *Generator) setupWorkDir(workDir, analysisPath string) error {
 		return fmt.Errorf("copying template: %w", err)
 	}
 
-	// Create symlink to analysis data
 	dataLink := filepath.Join(workDir, "sources", "zero", "data")
 	os.Remove(dataLink) // Remove if exists
 
-	// Use relative path for symlink
-	relPath, err := filepath.Rel(filepath.Join(workDir, "sources", "zero"), analysisPath)
-	if err != nil {
-		relPath = analysisPath // Fall back to absolute
-	}
+	if orgMode {
+		// Org mode: link the entire org directory containing all repos
+		orgPath := filepath.Join(g.zeroHome, "repos", orgName)
 
-	if err := os.Symlink(relPath, dataLink); err != nil {
-		// Fall back to copy if symlink fails (Windows)
-		return copyDir(analysisPath, dataLink)
+		// Create data directory to hold repo subdirectories
+		if err := os.MkdirAll(dataLink, 0755); err != nil {
+			return err
+		}
+
+		// Symlink each repo's analysis directory
+		entries, err := os.ReadDir(orgPath)
+		if err != nil {
+			return fmt.Errorf("reading org directory: %w", err)
+		}
+
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			repoAnalysis := filepath.Join(orgPath, entry.Name(), "analysis")
+			if _, err := os.Stat(repoAnalysis); os.IsNotExist(err) {
+				continue // Skip repos without analysis
+			}
+
+			repoLink := filepath.Join(dataLink, entry.Name())
+			relPath, err := filepath.Rel(filepath.Dir(repoLink), repoAnalysis)
+			if err != nil {
+				relPath = repoAnalysis
+			}
+
+			if err := os.Symlink(relPath, repoLink); err != nil {
+				// Fall back to copy
+				copyDir(repoAnalysis, repoLink)
+			}
+		}
+	} else {
+		// Single repo mode: symlink analysis data directly
+		relPath, err := filepath.Rel(filepath.Join(workDir, "sources", "zero"), analysisPath)
+		if err != nil {
+			relPath = analysisPath // Fall back to absolute
+		}
+
+		if err := os.Symlink(relPath, dataLink); err != nil {
+			// Fall back to copy if symlink fails (Windows)
+			return copyDir(analysisPath, dataLink)
+		}
 	}
 
 	return nil

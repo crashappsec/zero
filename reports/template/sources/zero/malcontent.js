@@ -1,30 +1,23 @@
-// Malcontent findings from package-analysis scanner
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+// Malcontent findings from packages scanner
+import { scannerData } from './load-data.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const { packageAnalysis } = scannerData;
 
 function loadData() {
-  try {
-    const filePath = path.join(__dirname, 'data', 'package-analysis.json');
-    if (fs.existsSync(filePath)) {
-      const content = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      const findings = content?.findings?.malcontent || [];
-      if (findings.length > 0) {
-        return findings.map(f => ({
-          package: f.package || '',
-          file: f.file || '',
-          severity: f.severity || 'unknown',
-          category: f.category || '',
-          rule: f.rule || '',
-          description: f.description || '',
-          risk_score: f.risk_score || 0
-        }));
-      }
-    }
-  } catch (e) {
-    // Ignore errors
+  const findings = packageAnalysis?.findings?.malcontent;
+  if (Array.isArray(findings) && findings.length > 0) {
+    return findings.map(f => {
+      if (!f) return null;
+      return {
+        package: f.package || '',
+        file: f.file || '',
+        severity: f.severity || 'unknown',
+        category: f.category || '',
+        rule: f.rule || '',
+        description: f.description || '',
+        risk_score: f.risk_score || 0
+      };
+    }).filter(Boolean);
   }
   // Return placeholder row (filtered in SQL)
   return [{ package: '', file: '', severity: 'none', category: '', rule: '', description: '', risk_score: 0 }];

@@ -41,9 +41,9 @@ func TestDevXScanner_Run(t *testing.T) {
 	}
 
 	// Verify output file was created
-	outputFile := filepath.Join(outputDir, "devx.json")
+	outputFile := filepath.Join(outputDir, "developer-experience.json")
 	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
-		t.Error("Expected devx.json output file")
+		t.Error("Expected developer-experience.json output file")
 	}
 
 	// Check summary by unmarshaling from JSON

@@ -1,18 +1,69 @@
 ---
-title: Dependencies & SBOM
+title: Dependencies
+sidebar_position: 2
 ---
 
-# Dependencies & SBOM
+# Dependencies
 
-<Alert status="info">
-Software Bill of Materials and dependency analysis results.
-</Alert>
+```sql sbom_packages
+select * from zero.sbom_packages where name != ''
+```
 
-## Vulnerability Summary
+```sql ecosystem_summary
+select * from zero.ecosystem_summary where ecosystem != 'none'
+```
+
+```sql licenses
+select * from zero.licenses
+```
 
 ```sql vulnerabilities
 select * from zero.vulnerabilities where source = 'Package'
 ```
+
+## Package Overview
+
+<Grid cols=3>
+<BigValue
+  data={sbom_packages}
+  value={sbom_packages.length}
+  title="Total Packages"
+/>
+<BigValue
+  data={ecosystem_summary}
+  value={ecosystem_summary.length}
+  title="Ecosystems"
+/>
+<BigValue
+  data={vulnerabilities}
+  value={vulnerabilities.length}
+  title="Vulnerable Packages"
+/>
+</Grid>
+
+---
+
+## Ecosystem Distribution
+
+{#if ecosystem_summary.length > 0}
+
+<BarChart
+  data={ecosystem_summary}
+  x=ecosystem
+  y=count
+  swapXY=true
+  title="Packages by Ecosystem"
+/>
+
+{:else}
+<Alert status="info">No ecosystem data available.</Alert>
+{/if}
+
+---
+
+## Vulnerable Packages
+
+{#if vulnerabilities.length > 0}
 
 ```sql vuln_by_severity
 select
@@ -31,79 +82,87 @@ order by
   end
 ```
 
-{#if vuln_by_severity.length > 0}
-
 <BarChart
   data={vuln_by_severity}
   x=severity
   y=count
   colorPalette={['#dc2626','#ea580c','#ca8a04','#22c55e']}
-  title="Vulnerabilities by Severity"
+  title="Vulnerable Packages by Severity"
 />
-
-{/if}
-
-## Vulnerable Packages
-
-{#if vulnerabilities.length > 0}
 
 <DataTable
   data={vulnerabilities}
   search=true
   rows=25
+  rowShading=true
 >
   <Column id=package title="Package"/>
-  <Column id=version title="Version"/>
-  <Column id=severity title="Severity"/>
+  <Column id=severity title="Severity" contentType=colorscale colorScale=red/>
   <Column id=cve title="CVE"/>
-  <Column id=title title="Description"/>
+  <Column id=title title="Description" wrap=true/>
   <Column id=fix_version title="Fix Available"/>
 </DataTable>
 
 {:else}
 
-<Alert status="positive">
-No vulnerable packages detected.
-</Alert>
-
-{/if}
-
-## License Distribution
-
-```sql licenses
-select * from zero.licenses
-```
-
-{#if licenses.length > 0}
-
-<BarChart
-  data={licenses}
-  x=license
-  y=count
-  swapXY=true
-  title="Top 10 Licenses"
-/>
-
-<DataTable
-  data={licenses}
-  rows=15
->
-  <Column id=license title="License"/>
-  <Column id=count title="Packages" fmt="num0"/>
-</DataTable>
-
-{:else}
-
-<Alert status="info">
-No license data available.
-</Alert>
+<Alert status="success">No vulnerable packages detected.</Alert>
 
 {/if}
 
 ---
 
-<ButtonGroup>
-  <BigLink url="/">Back to Overview</BigLink>
-  <BigLink url="/security">Security</BigLink>
-  <BigLink url="/devops">DevOps</BigLink>
-</ButtonGroup>
+## License Distribution
+
+{#if licenses.length > 0}
+
+<Grid cols=2>
+<BarChart
+  data={licenses}
+  x=license
+  y=count
+  swapXY=true
+  title="License Distribution"
+/>
+
+<DataTable
+  data={licenses}
+  rows=15
+  rowShading=true
+>
+  <Column id=license title="License"/>
+  <Column id=count title="Packages" fmt=num0/>
+</DataTable>
+</Grid>
+
+{:else}
+<Alert status="info">No license data available.</Alert>
+{/if}
+
+---
+
+## All Packages
+
+{#if sbom_packages.length > 0}
+
+<DataTable
+  data={sbom_packages}
+  search=true
+  rows=50
+  rowShading=true
+>
+  <Column id=name title="Package"/>
+  <Column id=version title="Version"/>
+  <Column id=ecosystem title="Ecosystem"/>
+  <Column id=license title="License"/>
+</DataTable>
+
+{:else}
+<Alert status="info">No package data available.</Alert>
+{/if}
+
+---
+
+<Grid cols=2>
+  <BigLink url="/">Back to Dashboard</BigLink>
+  <BigLink url="/supply-chain">Supply Chain Security</BigLink>
+</Grid>

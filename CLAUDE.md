@@ -1,6 +1,7 @@
 # Zero - Claude Code Configuration
 
-Zero provides security analysis tools and specialist AI agents for repository assessment.
+Zero provides engineering intelligence tools and specialist AI agents for repository assessment.
+Analyzes code quality, dependencies, security, DevOps, and developer experience.
 Named after characters from the movie Hackers (1995) - "Hack the planet!"
 
 ## Super Scanner Architecture (v3.6)
@@ -273,13 +274,13 @@ zero report expressjs/express --serve
 
 | Page | Description | Data Sources |
 |------|-------------|--------------|
-| **Executive Summary** | Security posture overview with severity breakdown | All scanners |
-| **Security Findings** | Vulnerabilities, secrets, crypto issues | code-security, crypto |
-| **Dependencies & SBOM** | Package inventory, license distribution | sbom, package-analysis |
+| **Overview** | Engineering insights with key metrics | All scanners |
+| **Security** | Vulnerabilities, secrets, crypto issues | code-security, crypto |
+| **Dependencies** | Package inventory, license distribution | sbom, package-analysis |
 | **Supply Chain** | Malcontent detection, package health | package-analysis |
 | **DevOps** | DORA metrics, IaC, GitHub Actions, containers | devops |
-| **Code Quality** | Quality metrics, devx, technologies, ownership | code-quality, tech-id, code-ownership, devx |
-| **AI/ML Security** | ML models, frameworks, AI security findings | tech-id |
+| **Quality & Ownership** | Quality metrics, devx, technologies, ownership | code-quality, tech-id, code-ownership, devx |
+| **AI/ML** | ML models, frameworks, datasets | tech-id |
 
 ### Report Data Sources
 

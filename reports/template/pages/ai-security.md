@@ -1,11 +1,12 @@
 ---
-title: AI/ML Security
+title: AI/ML
+sidebar_position: 6
 ---
 
-# AI/ML Security
+# AI/ML
 
 <Alert status="info">
-Machine learning model security, AI framework analysis, and ML-BOM (Machine Learning Bill of Materials).
+Machine learning models, AI frameworks, and ML-BOM (Machine Learning Bill of Materials).
 </Alert>
 
 ## AI Security Findings
@@ -128,8 +129,8 @@ select * from zero.technologies
 
 ---
 
-<ButtonGroup>
-  <BigLink url="/">Back to Overview</BigLink>
+<Grid cols=3>
+  <BigLink url="/">Back to Dashboard</BigLink>
   <BigLink url="/security">Security</BigLink>
   <BigLink url="/quality">Code Quality</BigLink>
-</ButtonGroup>
+</Grid>
