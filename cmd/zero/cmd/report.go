@@ -3,9 +3,10 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/crashappsec/zero/pkg/core/config"
-	"github.com/crashappsec/zero/pkg/reports"
+	evidence "github.com/crashappsec/zero/pkg/reports"
 	"github.com/spf13/cobra"
 )
 
@@ -17,26 +18,29 @@ var (
 )
 
 var reportCmd = &cobra.Command{
-	Use:   "report <owner/repo>",
+	Use:   "report <target>",
 	Short: "Generate or view interactive HTML report",
-	Long: `Generate a beautiful interactive report using Evidence.
+	Long: `Generate an interactive report using Evidence.
 
-The report includes:
-  - Executive summary with severity breakdown
+Target can be:
+  - owner/repo    Single repository (e.g., expressjs/express)
+  - org-name      GitHub organization (e.g., phantom-tests)
+
+The report includes engineering insights:
   - Security findings (vulnerabilities, secrets, crypto)
   - Dependencies and SBOM analysis
-  - DevOps and infrastructure issues
-  - Code quality and ownership metrics
+  - DevOps metrics and infrastructure
+  - Code quality and ownership
 
 By default, this command starts a local HTTP server and opens your browser.
 Press Ctrl+C to stop the server when done viewing.
 
 Examples:
-  zero report expressjs/express              Generate and open report (Ctrl+C to stop)
-  zero report expressjs/express --open=false Generate without opening browser
-  zero report expressjs/express --serve      Start live dev server (hot reload)
-  zero report expressjs/express --regen      Force regenerate report
-  zero report expressjs/express -o ./out     Custom output directory`,
+  zero report expressjs/express              Single repo report
+  zero report phantom-tests                  Org-wide report (all repos)
+  zero report expressjs/express --serve      Live dev server (hot reload)
+  zero report expressjs/express --regenerate Force regenerate
+  zero report expressjs/express --open=false Generate without opening browser`,
 	Args: cobra.ExactArgs(1),
 	RunE: runReport,
 }
@@ -51,7 +55,7 @@ func init() {
 }
 
 func runReport(cmd *cobra.Command, args []string) error {
-	repo := args[0]
+	target := args[0]
 
 	cfg, err := config.Load()
 	if err != nil {
@@ -60,6 +64,17 @@ func runReport(cmd *cobra.Command, args []string) error {
 
 	gen := evidence.NewGenerator(cfg.ZeroHome())
 
+	// Detect org vs repo by checking for slash
+	isOrg := !strings.Contains(target, "/")
+
+	if isOrg {
+		return runOrgReport(gen, target)
+	}
+
+	return runRepoReport(gen, target)
+}
+
+func runRepoReport(gen *evidence.Generator, repo string) error {
 	// Check if report already exists and we don't need to regenerate
 	reportPath := gen.ReportPath(repo)
 	needsBuild := reportRegen || reportServe || !fileExists(reportPath)
@@ -67,7 +82,6 @@ func runReport(cmd *cobra.Command, args []string) error {
 	if !needsBuild {
 		if reportOpen {
 			term.Info("Serving existing report...")
-			// OpenBrowser now starts HTTP server and blocks
 			gen.OpenBrowser(reportPath)
 			return nil
 		}
@@ -82,11 +96,10 @@ func runReport(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no analysis data found for %s\nRun: zero hydrate %s", repo, repo)
 	}
 
-	// Generate without opening - we'll open after
 	opts := evidence.Options{
 		Repository:  repo,
 		OutputDir:   reportOutput,
-		OpenBrowser: false, // Don't open yet
+		OpenBrowser: false,
 		DevServer:   reportServe,
 		Force:       reportRegen,
 	}
@@ -96,14 +109,45 @@ func runReport(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("generating report: %w", err)
 	}
 
-	// For dev server, Generate already handles serving
 	if reportServe {
 		return nil
 	}
 
 	term.Success("Report generated")
 
-	// Now open with HTTP server if requested
+	if reportOpen {
+		gen.OpenBrowser(path)
+	} else {
+		term.Info("Report: %s", path)
+		term.Info("Use --open to view in browser")
+	}
+
+	return nil
+}
+
+func runOrgReport(gen *evidence.Generator, orgName string) error {
+	term.Info("Generating org-wide report for %s...", orgName)
+
+	opts := evidence.Options{
+		OrgMode:     true,
+		OrgName:     orgName,
+		OutputDir:   reportOutput,
+		OpenBrowser: false,
+		DevServer:   reportServe,
+		Force:       reportRegen,
+	}
+
+	path, err := gen.Generate(opts)
+	if err != nil {
+		return fmt.Errorf("generating org report: %w", err)
+	}
+
+	if reportServe {
+		return nil
+	}
+
+	term.Success("Org report generated")
+
 	if reportOpen {
 		gen.OpenBrowser(path)
 	} else {

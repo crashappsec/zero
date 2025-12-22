@@ -7,12 +7,12 @@ import (
 )
 
 func TestDevXRegistered(t *testing.T) {
-	s, ok := scanner.Get("devx")
+	s, ok := scanner.Get("developer-experience")
 	if !ok {
-		t.Fatal("devx scanner not registered in registry")
+		t.Fatal("developer-experience scanner not registered in registry")
 	}
-	if s.Name() != "devx" {
-		t.Errorf("expected name 'devx', got %q", s.Name())
+	if s.Name() != "developer-experience" {
+		t.Errorf("expected name 'developer-experience', got %q", s.Name())
 	}
-	t.Logf("DevX scanner registered: %s", s.Description())
+	t.Logf("Developer Experience scanner registered: %s", s.Description())
 }

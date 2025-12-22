@@ -1,8 +1,9 @@
 ---
-title: Code Quality & Ownership
+title: Quality & Ownership
+sidebar_position: 5
 ---
 
-# Code Quality & Ownership
+# Quality & Ownership
 
 <Alert status="info">
 Code quality metrics, developer experience, technology stack, and ownership analysis.
@@ -146,8 +147,8 @@ No contributor data available.
 
 ---
 
-<ButtonGroup>
-  <BigLink url="/">Back to Overview</BigLink>
+<Grid cols=3>
+  <BigLink url="/">Back to Dashboard</BigLink>
   <BigLink url="/devops">DevOps</BigLink>
   <BigLink url="/security">Security</BigLink>
-</ButtonGroup>
+</Grid>

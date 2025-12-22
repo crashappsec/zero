@@ -1,35 +1,13 @@
 ---
-title: Supply Chain Security
+title: Supply Chain
+sidebar_position: 3
 ---
 
-# Supply Chain Security
-
-<Alert status="warning">
-Supply chain analysis including malicious package detection, dependency health, and SBOM integrity.
-</Alert>
-
-## Package Overview
+# Supply Chain
 
 ```sql sbom_packages
-select * from zero.sbom_packages limit 100
+select * from zero.sbom_packages where name != ''
 ```
-
-```sql ecosystem_summary
-select * from zero.ecosystem_summary
-```
-
-{#if ecosystem_summary.length > 0}
-
-<BarChart
-  data={ecosystem_summary}
-  x=ecosystem
-  y=count
-  title="Packages by Ecosystem"
-/>
-
-{/if}
-
-## Malicious Package Detection
 
 ```sql malcontent
 select * from zero.malcontent
@@ -44,89 +22,130 @@ order by
   end
 ```
 
+```sql package_health
+select * from zero.package_health
+where package != '' and health_score >= 0
+order by health_score asc
+```
+
+## Supply Chain Risk Overview
+
+<Grid cols=4>
+<BigValue
+  data={sbom_packages}
+  value={sbom_packages.length}
+  title="Total Packages"
+/>
+<BigValue
+  data={malcontent}
+  value={malcontent.length}
+  title="Suspicious Behaviors"
+/>
+<BigValue
+  data={package_health}
+  value={package_health.filter(p => p.deprecated === true).length}
+  title="Deprecated"
+/>
+<BigValue
+  data={package_health}
+  value={package_health.filter(p => p.unmaintained === true).length}
+  title="Unmaintained"
+/>
+</Grid>
+
+---
+
+## Malicious Package Detection
+
 {#if malcontent.length > 0}
 
-<Alert status="error">
-{malcontent.length} suspicious behaviors detected in dependencies. Review these carefully.
+<Alert status="warning">
+<b>{malcontent.length}</b> suspicious behaviors detected in dependencies. Review these carefully for potential supply chain attacks.
 </Alert>
+
+```sql malcontent_by_severity
+select severity, count(*) as count from zero.malcontent
+where severity != 'none' and package != ''
+group by severity
+order by case severity when 'critical' then 1 when 'high' then 2 when 'medium' then 3 else 4 end
+```
+
+<Grid cols=2>
+<BarChart
+  data={malcontent_by_severity}
+  x=severity
+  y=count
+  colorPalette={['#dc2626','#ea580c','#ca8a04','#22c55e']}
+  title="Suspicious Behaviors by Severity"
+/>
+
+```sql malcontent_by_category
+select category, count(*) as count from zero.malcontent
+where package != ''
+group by category order by count desc limit 10
+```
+
+<BarChart
+  data={malcontent_by_category}
+  x=category
+  y=count
+  swapXY=true
+  title="Behaviors by Category"
+/>
+</Grid>
 
 <DataTable
   data={malcontent}
   search=true
-  rows=20
+  rows=25
+  rowShading=true
 >
-  <Column id=severity title="Severity"/>
+  <Column id=severity title="Severity" contentType=colorscale colorScale=red/>
   <Column id=package title="Package"/>
   <Column id=category title="Category"/>
   <Column id=rule title="Rule"/>
-  <Column id=description title="Description"/>
+  <Column id=description title="Description" wrap=true/>
 </DataTable>
 
 {:else}
 
-<Alert status="positive">
-No malicious package behaviors detected.
-</Alert>
+<Alert status="success">No malicious package behaviors detected.</Alert>
 
 {/if}
 
+---
+
 ## Package Health
 
-```sql package_health
-select * from zero.package_health
-where ecosystem != 'none' and health_score >= 0
-order by health_score asc limit 20
-```
-
-{#if package_health.length > 0}
+{#if package_health.length > 0 && package_health[0].package != ''}
 
 <Alert status="info">
-Showing packages with lowest health scores. Consider updating or replacing unmaintained packages.
+Packages sorted by health score (lowest first). Consider updating or replacing unmaintained packages.
 </Alert>
 
 <DataTable
   data={package_health}
   search=true
-  rows=20
+  rows=25
+  rowShading=true
 >
   <Column id=package title="Package"/>
   <Column id=version title="Version"/>
   <Column id=ecosystem title="Ecosystem"/>
-  <Column id=health_score title="Health Score"/>
+  <Column id=health_score title="Health Score" fmt=num0 contentType=colorscale colorScale=green/>
   <Column id=deprecated title="Deprecated"/>
   <Column id=unmaintained title="Unmaintained"/>
 </DataTable>
 
 {:else}
 
-<Alert status="info">
-No package health data available.
-</Alert>
-
-{/if}
-
-## License Compliance
-
-```sql licenses
-select * from zero.licenses
-```
-
-{#if licenses.length > 0}
-
-<BarChart
-  data={licenses}
-  x=license
-  y=count
-  swapXY=true
-  title="License Distribution"
-/>
+<Alert status="info">No package health data available. Enable the health feature in the packages scanner.</Alert>
 
 {/if}
 
 ---
 
-<ButtonGroup>
-  <BigLink url="/">Back to Overview</BigLink>
-  <BigLink url="/dependencies">Dependencies</BigLink>
-  <BigLink url="/security">Security</BigLink>
-</ButtonGroup>
+<Grid cols=2>
+  <BigLink url="/">Back to Dashboard</BigLink>
+  <BigLink url="/dependencies">Dependencies & SBOM</BigLink>
+</Grid>

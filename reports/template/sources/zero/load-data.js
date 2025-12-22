@@ -22,14 +22,14 @@ export function loadJSON(filename) {
 // Load all scanner outputs once (use empty objects as defaults, never null)
 export const scannerData = {
   sbom: loadJSON('sbom.json') || {},
-  packageAnalysis: loadJSON('package-analysis.json') || {},
+  packageAnalysis: loadJSON('packages.json') || {},
   codeSecurity: loadJSON('code-security.json') || {},
   crypto: loadJSON('crypto.json') || {},
   devops: loadJSON('devops.json') || {},
   codeQuality: loadJSON('code-quality.json') || {},
   technology: loadJSON('tech-id.json') || {},
   codeOwnership: loadJSON('code-ownership.json') || {},
-  devx: loadJSON('devx.json') || {}
+  devx: loadJSON('developer-experience.json') || {}
 };
 
 // Also export a data object for Evidence (required for JavaScript sources)

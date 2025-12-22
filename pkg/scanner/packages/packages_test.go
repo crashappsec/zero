@@ -7,8 +7,8 @@ import (
 
 func TestPackagesScanner_Name(t *testing.T) {
 	s := &PackagesScanner{}
-	if s.Name() != "package-analysis" {
-		t.Errorf("Name() = %q, want %q", s.Name(), "package-analysis")
+	if s.Name() != "packages" {
+		t.Errorf("Name() = %q, want %q", s.Name(), "packages")
 	}
 }
 
