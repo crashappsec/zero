@@ -62,7 +62,7 @@ order by
 
 {:else}
 
-<Alert status="success">
+<Alert status="positive">
 No vulnerable packages detected.
 </Alert>
 
@@ -103,7 +103,7 @@ No license data available.
 ---
 
 <ButtonGroup>
-  <BigLink href="/">Back to Overview</BigLink>
-  <BigLink href="/security">Security</BigLink>
-  <BigLink href="/devops">DevOps</BigLink>
+  <BigLink url="/">Back to Overview</BigLink>
+  <BigLink url="/security">Security</BigLink>
+  <BigLink url="/devops">DevOps</BigLink>
 </ButtonGroup>

@@ -33,6 +33,34 @@ Plus **12 AI specialist agents** for deep analysis (Zero, Cereal, Razor, Blade, 
 
 ## Planned Features
 
+### 🔥 Top Priority: Docker Distribution
+
+Package Zero as a Docker container for easy distribution and consistent execution.
+
+#### Docker Image
+- [x] **Dockerfile** - Multi-stage build with Go binary and Node.js runtime
+- [x] **Pre-installed Dependencies** - Evidence npm packages bundled (saves ~1min per report)
+- [x] **Multi-architecture** - linux/amd64 and linux/arm64 support (via GitHub Actions buildx)
+- [x] **GitHub Container Registry** - CI workflow publishes to ghcr.io/crashappsec/zero
+- [x] **Version Tags** - :latest, :v3.6.0, :sha-abc123, :edge
+
+#### Usage Pattern
+```bash
+# Analyze a repository
+docker run -v ~/.zero:/root/.zero ghcr.io/crashappsec/zero hydrate expressjs/express
+
+# Generate report
+docker run -v ~/.zero:/root/.zero -p 3000:3000 ghcr.io/crashappsec/zero report expressjs/express --serve
+```
+
+#### Benefits
+- No Node.js installation required on host
+- Consistent environment across all users
+- CI/CD friendly (GitHub Actions, GitLab CI)
+- Faster report generation (dependencies pre-cached)
+
+---
+
 ### Source Code Scanners
 
 These scanners analyze repositories and work with Zero's existing hydrate workflow.
@@ -106,8 +134,13 @@ Connect to cloud providers to build infrastructure SBOMs:
 
 ### Reports & Analytics
 
-#### Report System
-- [ ] **HTML Report Generation** - Interactive visualizations with drill-down
+#### Report System ✅ IMPLEMENTED
+- [x] **HTML Report Generation** - Interactive Evidence.dev reports with drill-down
+- [x] **Executive Summary Dashboard** - Security posture overview with severity breakdown
+- [x] **Security Findings Page** - Vulnerabilities, secrets, crypto issues
+- [x] **Dependencies Page** - SBOM visualization and license distribution
+- [x] **DevOps Page** - DORA metrics, IaC findings, GitHub Actions, containers
+- [x] **Code Quality Page** - Technologies, ownership, contributors
 - [ ] **PDF Export** - Executive summaries for stakeholders
 - [ ] **Trend Analysis** - Track security posture over time
 - [ ] **Delta Detection** - New/fixed findings between scans
@@ -171,7 +204,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-*Last Updated: 2025-12-14*
-*Version: 3.5.0*
+*Last Updated: 2025-12-21*
+*Version: 3.6.0*
 
 *"Hack the planet!"*

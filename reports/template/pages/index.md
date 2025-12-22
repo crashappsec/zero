@@ -87,17 +87,23 @@ select * from zero.scanner_summary
 
 ---
 
-<Grid cols=2>
-  <BigLink href="/security">
+<Grid cols=3>
+  <BigLink url="/security">
     Security Findings
   </BigLink>
-  <BigLink href="/dependencies">
+  <BigLink url="/dependencies">
     Dependencies & SBOM
   </BigLink>
-  <BigLink href="/devops">
+  <BigLink url="/supply-chain">
+    Supply Chain
+  </BigLink>
+  <BigLink url="/devops">
     DevOps & Infrastructure
   </BigLink>
-  <BigLink href="/quality">
+  <BigLink url="/quality">
     Code Quality
+  </BigLink>
+  <BigLink url="/ai-security">
+    AI/ML Security
   </BigLink>
 </Grid>

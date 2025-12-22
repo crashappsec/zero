@@ -247,6 +247,101 @@ Zero tracks scan freshness with four levels:
 
 Run `zero status` to see freshness indicators for all hydrated projects.
 
+## Reports
+
+Zero generates interactive HTML reports using [Evidence](https://evidence.dev).
+
+### Generating Reports
+
+```bash
+# Generate and open report (starts HTTP server, press Ctrl+C to stop)
+zero report expressjs/express
+
+# Force regenerate
+zero report expressjs/express --regenerate
+
+# Generate without opening browser
+zero report expressjs/express --open=false
+
+# Start live dev server (hot reload for editing)
+zero report expressjs/express --serve
+```
+
+**Note:** Reports require HTTP to render properly (JavaScript loads data via fetch). The `zero report` command automatically starts a local HTTP server and opens your browser. Press Ctrl+C to stop the server when done viewing.
+
+### Report Pages
+
+| Page | Description | Data Sources |
+|------|-------------|--------------|
+| **Executive Summary** | Security posture overview with severity breakdown | All scanners |
+| **Security Findings** | Vulnerabilities, secrets, crypto issues | code-security, crypto |
+| **Dependencies & SBOM** | Package inventory, license distribution | sbom, package-analysis |
+| **Supply Chain** | Malcontent detection, package health | package-analysis |
+| **DevOps** | DORA metrics, IaC, GitHub Actions, containers | devops |
+| **Code Quality** | Quality metrics, devx, technologies, ownership | code-quality, tech-id, code-ownership, devx |
+| **AI/ML Security** | ML models, frameworks, AI security findings | tech-id |
+
+### Report Data Sources
+
+Reports use JavaScript data sources in `reports/template/sources/zero/`:
+
+| Source | Scanner | Description |
+|--------|---------|-------------|
+| `severity_counts.js` | All | Aggregate severity counts |
+| `scanner_summary.js` | All | Per-scanner summary |
+| `vulnerabilities.js` | package-analysis, code-security | Combined vulnerabilities |
+| `secrets.js` | code-security | Detected secrets |
+| `crypto_findings.js` | crypto | Cryptographic issues |
+| `licenses.js` | package-analysis | License distribution |
+| `malcontent.js` | package-analysis | Supply chain threats |
+| `dora_metrics.js` | devops | DORA performance metrics |
+| `iac_findings.js` | devops | Infrastructure as Code issues |
+| `github_actions_findings.js` | devops | CI/CD security |
+| `container_findings.js` | devops | Container security |
+| `technologies.js` | tech-id | Detected technologies |
+| `contributors.js` | code-ownership | Top contributors |
+| `ownership_summary.js` | code-ownership | Bus factor, ownership |
+| `code_quality.js` | code-quality | Quality metrics |
+| `devx_metrics.js` | devx | Developer experience |
+| `ai_security.js` | tech-id | AI/ML security findings |
+| `ml_models.js` | tech-id | Detected ML models |
+
+## Docker
+
+Zero is available as a Docker image for consistent, dependency-free execution.
+
+### Quick Start
+
+```bash
+# Pull the image
+docker pull ghcr.io/crashappsec/zero:latest
+
+# Create alias
+alias zero='docker run -v ~/.zero:/home/zero/.zero -e GITHUB_TOKEN ghcr.io/crashappsec/zero'
+
+# Use normally
+zero hydrate expressjs/express
+zero report expressjs/express
+```
+
+### Commands
+
+```bash
+# Hydrate (clone + scan)
+docker run -v ~/.zero:/home/zero/.zero -e GITHUB_TOKEN ghcr.io/crashappsec/zero hydrate owner/repo
+
+# Generate report
+docker run -v ~/.zero:/home/zero/.zero ghcr.io/crashappsec/zero report owner/repo
+
+# Start report server
+docker run -v ~/.zero:/home/zero/.zero -p 3000:3000 ghcr.io/crashappsec/zero report owner/repo --serve
+
+# Agent mode (interactive)
+docker run -it -v ~/.zero:/home/zero/.zero -e ANTHROPIC_API_KEY ghcr.io/crashappsec/zero agent
+```
+
+See `docs/DOCKER.md` for full documentation.
+
 ## Project Structure
 
 ```
@@ -259,10 +354,10 @@ zero/
 │   └── shared/                # Shared knowledge (severity, confidence)
 ├── pkg/
 │   ├── automation/            # Watch mode and scheduled scanning
+│   ├── evidence/              # Evidence.dev report generator
 │   ├── feeds/                 # External feed sync (Semgrep rules)
 │   ├── findings/              # Standardized finding types
 │   ├── freshness/             # Staleness detection and tracking
-│   ├── report/                # Shared report generation utilities
 │   ├── rules/                 # Semgrep rule generation from RAG
 │   └── scanners/              # Go scanner implementations (9 super scanners)
 │       ├── sbom/              # SBOM super scanner (source of truth)
@@ -274,10 +369,20 @@ zero/
 │       ├── tech-id/           # Technology detection and ML-BOM
 │       ├── code-ownership/    # Code ownership analysis
 │       └── devx/              # Developer experience analysis
+├── reports/
+│   └── template/              # Evidence report template
+│       ├── pages/             # Report pages (index, security, etc.)
+│       ├── sources/zero/      # JavaScript data sources
+│       ├── package.json       # Evidence dependencies
+│       └── evidence.config.yaml
 ├── rag/                       # Retrieval-Augmented Generation knowledge
 │   └── tech-id/               # Technology detection patterns
 ├── config/
 │   └── zero.config.json       # Scanner configuration
+├── docs/
+│   ├── DOCKER.md              # Docker usage documentation
+│   └── EVIDENCE-INTEGRATION-PLAN.md  # Report system design
+├── Dockerfile                 # Docker build configuration
 └── .claude/
     ├── agents/                # Claude Code agent definitions
     ├── commands/              # Slash commands
@@ -304,6 +409,24 @@ zero/
          │        └─► devx.json               (3 features)
          │
          └─► Record freshness metadata in .zero/repos/<project>/freshness.json
+
+./zero report <repo>
+         │
+         ├─► Copy Evidence template to .zero/repos/<project>/.evidence-build/
+         │
+         ├─► Symlink analysis JSON to sources/zero/data/
+         │
+         ├─► Run Evidence build (npm run sources && npm run build)
+         │
+         └─► Output HTML report to .zero/repos/<project>/report/
+                  │
+                  ├─► index.html           (Executive summary)
+                  ├─► security/            (Vulnerabilities, secrets, crypto)
+                  ├─► dependencies/        (SBOM, licenses)
+                  ├─► supply-chain/        (Malcontent, package health)
+                  ├─► devops/              (DORA, IaC, containers)
+                  ├─► quality/             (Code quality, ownership)
+                  └─► ai-security/         (ML models, AI findings)
 
 /agent
          │

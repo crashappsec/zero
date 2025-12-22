@@ -28,11 +28,15 @@ The report includes:
   - DevOps and infrastructure issues
   - Code quality and ownership metrics
 
+By default, this command starts a local HTTP server and opens your browser.
+Press Ctrl+C to stop the server when done viewing.
+
 Examples:
-  zero report expressjs/express           Generate and open report
-  zero report expressjs/express --serve   Start live dev server
-  zero report expressjs/express --regen   Force regenerate report
-  zero report expressjs/express -o ./out  Custom output directory`,
+  zero report expressjs/express              Generate and open report (Ctrl+C to stop)
+  zero report expressjs/express --open=false Generate without opening browser
+  zero report expressjs/express --serve      Start live dev server (hot reload)
+  zero report expressjs/express --regen      Force regenerate report
+  zero report expressjs/express -o ./out     Custom output directory`,
 	Args: cobra.ExactArgs(1),
 	RunE: runReport,
 }
@@ -58,15 +62,17 @@ func runReport(cmd *cobra.Command, args []string) error {
 
 	// Check if report already exists and we don't need to regenerate
 	reportPath := gen.ReportPath(repo)
-	if !reportRegen && !reportServe && fileExists(reportPath) {
+	needsBuild := reportRegen || reportServe || !fileExists(reportPath)
+
+	if !needsBuild {
 		if reportOpen {
-			term.Info("Opening existing report...")
+			term.Info("Serving existing report...")
+			// OpenBrowser now starts HTTP server and blocks
 			gen.OpenBrowser(reportPath)
-			term.Box(fmt.Sprintf("View Report: file://%s", reportPath))
 			return nil
 		}
-		term.Info("Report: file://%s", reportPath)
-		term.Info("Use --regenerate to rebuild the report")
+		term.Info("Report exists at: %s", reportPath)
+		term.Info("Use --open to view, --regenerate to rebuild")
 		return nil
 	}
 
@@ -76,10 +82,11 @@ func runReport(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("no analysis data found for %s\nRun: zero hydrate %s", repo, repo)
 	}
 
+	// Generate without opening - we'll open after
 	opts := evidence.Options{
 		Repository:  repo,
 		OutputDir:   reportOutput,
-		OpenBrowser: reportOpen,
+		OpenBrowser: false, // Don't open yet
 		DevServer:   reportServe,
 		Force:       reportRegen,
 	}
@@ -89,9 +96,19 @@ func runReport(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("generating report: %w", err)
 	}
 
-	if !reportServe {
-		term.Success("Report generated")
-		term.Box(fmt.Sprintf("View Report: file://%s", path))
+	// For dev server, Generate already handles serving
+	if reportServe {
+		return nil
+	}
+
+	term.Success("Report generated")
+
+	// Now open with HTTP server if requested
+	if reportOpen {
+		gen.OpenBrowser(path)
+	} else {
+		term.Info("Report: %s", path)
+		term.Info("Use --open to view in browser")
 	}
 
 	return nil
