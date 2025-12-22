@@ -517,14 +517,14 @@ Profiles define which scanners and features to run:
 | `all-quick` | All 9 scanners (limited features) | Fast scan of everything |
 | `all-complete` | All 9 scanners (all features) | Complete analysis |
 | `sbom` | sbom | SBOM generation only |
-| `package-analysis` | sbom, package-analysis | Dependency analysis |
+| `packages` | sbom, packages | Dependency analysis |
 | `crypto` | crypto | Cryptographic security |
 | `code-security` | code-security | SAST and secrets |
 | `code-quality` | code-quality | Quality metrics |
 | `devops` | devops | IaC, containers, CI/CD |
 | `tech-id` | tech-id | Technology detection, ML-BOM |
 | `code-ownership` | code-ownership | Contributor analysis |
-| `devx` | tech-id, devx | Developer experience |
+| `developer-experience` | tech-id, developer-experience | Developer experience |
 
 ## Environment Variables
 

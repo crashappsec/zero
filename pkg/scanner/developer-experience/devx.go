@@ -1,6 +1,6 @@
-// Package devex provides the consolidated developer experience super scanner
+// Package developerexperience provides the consolidated developer experience super scanner
 // Features: onboarding, tooling, workflow
-package devx
+package developerexperience
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	Name    = "devx"
+	Name    = "developer-experience"
 	Version = "1.0.0"
 )
 

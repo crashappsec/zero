@@ -1,6 +1,6 @@
-// Package packageanalysis provides the consolidated package analysis super scanner
+// Package packages provides the consolidated package analysis super scanner
 // NOTE: This scanner DEPENDS ON the sbom scanner output. It does NOT generate SBOMs.
-package packageanalysis
+package packages
 
 // Result holds all feature results
 type Result struct {

@@ -1,4 +1,4 @@
-package devx
+package developerexperience
 
 import (
 	"context"

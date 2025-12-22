@@ -1,6 +1,6 @@
-// Package devex provides the consolidated developer experience super scanner
+// Package developerexperience provides the consolidated developer experience super scanner
 // Features: onboarding, tooling, workflow
-package devx
+package developerexperience
 
 // FeatureConfig holds configuration for all developer experience features
 type FeatureConfig struct {
