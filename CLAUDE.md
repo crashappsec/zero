@@ -353,22 +353,40 @@ zero/
 │   │   └── prompts/           # Output templates
 │   └── shared/                # Shared knowledge (severity, confidence)
 ├── pkg/
-│   ├── automation/            # Watch mode and scheduled scanning
-│   ├── evidence/              # Evidence.dev report generator
-│   ├── feeds/                 # External feed sync (Semgrep rules)
-│   ├── findings/              # Standardized finding types
-│   ├── freshness/             # Staleness detection and tracking
-│   ├── rules/                 # Semgrep rule generation from RAG
-│   └── scanners/              # Go scanner implementations (9 super scanners)
-│       ├── sbom/              # SBOM super scanner (source of truth)
-│       ├── package-analysis/  # Package analysis (depends on sbom)
-│       ├── crypto/            # Crypto super scanner
-│       ├── code-security/     # Security-focused code analysis
-│       ├── code-quality/      # Code quality metrics
-│       ├── devops/            # DevOps super scanner
-│       ├── tech-id/           # Technology detection and ML-BOM
-│       ├── code-ownership/    # Code ownership analysis
-│       └── devx/              # Developer experience analysis
+│   ├── core/                  # Foundation packages
+│   │   ├── config/            # Configuration loading
+│   │   ├── terminal/          # Terminal output
+│   │   ├── status/            # Status display
+│   │   ├── findings/          # Finding types
+│   │   ├── sarif/             # SARIF export
+│   │   ├── languages/         # Language detection
+│   │   ├── rag/               # RAG patterns
+│   │   ├── rules/             # Semgrep rules
+│   │   ├── scoring/           # Health scoring
+│   │   ├── github/            # GitHub API client
+│   │   ├── liveapi/           # Live API queries (OSV)
+│   │   └── feeds/             # Semgrep feed sync
+│   ├── scanner/               # Scanner framework + implementations
+│   │   ├── interface.go       # Scanner interface
+│   │   ├── runner.go          # Scanner runner
+│   │   ├── sbom/              # SBOM scanner
+│   │   ├── package-analysis/  # Package analysis
+│   │   ├── crypto/            # Cryptography scanner
+│   │   ├── code-security/     # Code security scanner
+│   │   ├── code-quality/      # Code quality scanner
+│   │   ├── devops/            # DevOps scanner
+│   │   ├── tech-id/           # Technology detection
+│   │   ├── code-ownership/    # Code ownership scanner
+│   │   └── devx/              # Developer experience
+│   ├── workflow/              # Workflow management
+│   │   ├── hydrate/           # Clone and scan
+│   │   ├── automation/        # Watch mode
+│   │   ├── freshness/         # Staleness tracking
+│   │   └── diff/              # Scan comparison
+│   ├── reports/               # Report generation
+│   │   ├── generator.go       # Evidence.dev reports
+│   │   └── sheets/            # Google Sheets export
+│   └── mcp/                   # MCP server
 ├── reports/
 │   └── template/              # Evidence report template
 │       ├── pages/             # Report pages (index, security, etc.)
