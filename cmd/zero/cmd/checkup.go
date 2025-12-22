@@ -143,6 +143,24 @@ var toolInstallers = map[string]ToolInstaller{
 			"curl -sS https://webi.sh/gh | sh",
 		},
 	},
+	"docker": {
+		Name:        "docker",
+		Description: "Container runtime (for Docker-based Zero)",
+		CheckCmd:    "docker --version",
+		InstallCmds: []string{
+			"brew install --cask docker",
+			"curl -fsSL https://get.docker.com | sh",
+		},
+	},
+	"node": {
+		Name:        "node",
+		Description: "Node.js runtime (for Evidence reports)",
+		CheckCmd:    "node --version",
+		InstallCmds: []string{
+			"brew install node",
+			"curl -fsSL https://fnm.vercel.app/install | bash && fnm install --lts",
+		},
+	},
 }
 
 func runCheckup(cmd *cobra.Command, args []string) error {

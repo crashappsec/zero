@@ -5,8 +5,59 @@ title: Code Quality & Ownership
 # Code Quality & Ownership
 
 <Alert status="info">
-Code quality metrics, technology stack, and ownership analysis.
+Code quality metrics, developer experience, technology stack, and ownership analysis.
 </Alert>
+
+## Quality Metrics
+
+```sql code_quality
+select * from zero.code_quality
+```
+
+{#if code_quality.length > 0 && code_quality[0].metric !== 'No data'}
+
+<DataTable
+  data={code_quality}
+  rows=10
+>
+  <Column id=metric title="Metric"/>
+  <Column id=value title="Value"/>
+  <Column id=rating title="Rating"/>
+</DataTable>
+
+{:else}
+
+<Alert status="info">
+No code quality metrics available.
+</Alert>
+
+{/if}
+
+## Developer Experience
+
+```sql devx_metrics
+select * from zero.devx_metrics
+```
+
+{#if devx_metrics.length > 0 && devx_metrics[0].metric !== 'No data'}
+
+<DataTable
+  data={devx_metrics}
+  rows=10
+>
+  <Column id=category title="Category"/>
+  <Column id=metric title="Metric"/>
+  <Column id=value title="Value"/>
+  <Column id=status title="Status"/>
+</DataTable>
+
+{:else}
+
+<Alert status="info">
+No developer experience metrics available.
+</Alert>
+
+{/if}
 
 ## Technology Stack
 
@@ -96,7 +147,7 @@ No contributor data available.
 ---
 
 <ButtonGroup>
-  <BigLink href="/">Back to Overview</BigLink>
-  <BigLink href="/devops">DevOps</BigLink>
-  <BigLink href="/security">Security</BigLink>
+  <BigLink url="/">Back to Overview</BigLink>
+  <BigLink url="/devops">DevOps</BigLink>
+  <BigLink url="/security">Security</BigLink>
 </ButtonGroup>

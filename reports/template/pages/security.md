@@ -38,7 +38,7 @@ select * from zero.vulnerabilities order by
 
 {:else}
 
-<Alert status="success">
+<Alert status="positive">
 No vulnerabilities detected.
 </Alert>
 
@@ -69,7 +69,7 @@ select * from zero.secrets
 
 {:else}
 
-<Alert status="success">
+<Alert status="positive">
 No secrets detected.
 </Alert>
 
@@ -98,7 +98,7 @@ select * from zero.crypto_findings
 
 {:else}
 
-<Alert status="success">
+<Alert status="positive">
 No cryptographic issues detected.
 </Alert>
 
@@ -107,6 +107,6 @@ No cryptographic issues detected.
 ---
 
 <ButtonGroup>
-  <BigLink href="/">Back to Overview</BigLink>
-  <BigLink href="/dependencies">Dependencies</BigLink>
+  <BigLink url="/">Back to Overview</BigLink>
+  <BigLink url="/dependencies">Dependencies</BigLink>
 </ButtonGroup>

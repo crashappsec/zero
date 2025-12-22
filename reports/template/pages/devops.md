@@ -101,7 +101,7 @@ order by
 
 {:else}
 
-<Alert status="success">
+<Alert status="positive">
 No IaC issues detected.
 </Alert>
 
@@ -129,7 +129,7 @@ select * from zero.github_actions_findings
 
 {:else}
 
-<Alert status="success">
+<Alert status="positive">
 No GitHub Actions issues detected.
 </Alert>
 
@@ -157,7 +157,7 @@ select * from zero.container_findings
 
 {:else}
 
-<Alert status="success">
+<Alert status="positive">
 No container issues detected.
 </Alert>
 
@@ -166,7 +166,7 @@ No container issues detected.
 ---
 
 <ButtonGroup>
-  <BigLink href="/">Back to Overview</BigLink>
-  <BigLink href="/dependencies">Dependencies</BigLink>
-  <BigLink href="/quality">Code Quality</BigLink>
+  <BigLink url="/">Back to Overview</BigLink>
+  <BigLink url="/dependencies">Dependencies</BigLink>
+  <BigLink url="/quality">Code Quality</BigLink>
 </ButtonGroup>

@@ -2,11 +2,17 @@
 package evidence
 
 import (
+	"context"
 	"fmt"
+	"net"
+	"net/http"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"runtime"
+	"syscall"
+	"time"
 
 	"github.com/crashappsec/zero/pkg/terminal"
 )
@@ -29,14 +35,19 @@ type Options struct {
 
 // NewGenerator creates a new Evidence generator
 func NewGenerator(zeroHome string) *Generator {
-	// Template is bundled with Zero
-	templatePath := filepath.Join(zeroHome, "..", "reports", "template")
+	// Check for environment variable first (Docker deployment)
+	templatePath := os.Getenv("ZERO_TEMPLATE_PATH")
 
-	// Check if running from source or installed
-	if _, err := os.Stat(templatePath); os.IsNotExist(err) {
-		// Try relative to executable
-		exe, _ := os.Executable()
-		templatePath = filepath.Join(filepath.Dir(exe), "reports", "template")
+	if templatePath == "" {
+		// Template is bundled with Zero (development)
+		templatePath = filepath.Join(zeroHome, "..", "reports", "template")
+
+		// Check if running from source or installed
+		if _, err := os.Stat(templatePath); os.IsNotExist(err) {
+			// Try relative to executable
+			exe, _ := os.Executable()
+			templatePath = filepath.Join(filepath.Dir(exe), "reports", "template")
+		}
 	}
 
 	return &Generator{
@@ -173,6 +184,19 @@ func (g *Generator) ensureDependencies(workDir string) error {
 
 // build runs Evidence build
 func (g *Generator) build(workDir, outputDir string) error {
+	// First run sources to process JavaScript data files
+	g.term.Info("Processing data sources...")
+
+	sourcesCmd := exec.Command("npm", "run", "sources")
+	sourcesCmd.Dir = workDir
+	sourcesCmd.Stdout = nil
+	sourcesCmd.Stderr = os.Stderr
+
+	if err := sourcesCmd.Run(); err != nil {
+		// Sources might fail if no data, continue anyway
+		g.term.Warn("Sources processing had warnings (continuing)")
+	}
+
 	g.term.Info("Building report...")
 
 	cmd := exec.Command("npx", "evidence", "build")
@@ -204,11 +228,65 @@ func (g *Generator) serve(workDir string) error {
 	return cmd.Run()
 }
 
-// OpenBrowser opens the report in the default browser
-func (g *Generator) OpenBrowser(path string) {
-	var cmd *exec.Cmd
+// ServeAndOpen starts an HTTP server and opens the browser
+func (g *Generator) ServeAndOpen(reportDir string) error {
+	// Find an available port
+	port, err := findAvailablePort()
+	if err != nil {
+		return fmt.Errorf("finding available port: %w", err)
+	}
 
-	url := "file://" + path
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	url := fmt.Sprintf("http://%s", addr)
+
+	// Create file server
+	fs := http.FileServer(http.Dir(reportDir))
+	server := &http.Server{
+		Addr:    addr,
+		Handler: fs,
+	}
+
+	// Start server in background
+	go func() {
+		if err := server.ListenAndServe(); err != http.ErrServerClosed {
+			g.term.Error("Server error: %v", err)
+		}
+	}()
+
+	// Give server time to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Open browser
+	g.openURL(url)
+
+	g.term.Info("Report server running at %s", url)
+	g.term.Info("Press Ctrl+C to stop")
+
+	// Wait for interrupt signal
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
+
+	// Graceful shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	server.Shutdown(ctx)
+
+	g.term.Info("Server stopped")
+	return nil
+}
+
+// OpenBrowser starts HTTP server and opens the report (blocking)
+func (g *Generator) OpenBrowser(reportPath string) {
+	reportDir := filepath.Dir(reportPath)
+	if err := g.ServeAndOpen(reportDir); err != nil {
+		g.term.Error("Failed to serve report: %v", err)
+	}
+}
+
+// openURL opens a URL in the default browser
+func (g *Generator) openURL(url string) {
+	var cmd *exec.Cmd
 
 	switch runtime.GOOS {
 	case "darwin":
@@ -224,19 +302,44 @@ func (g *Generator) OpenBrowser(path string) {
 	cmd.Start()
 }
 
-// copyDir recursively copies a directory
+// findAvailablePort finds an available TCP port
+func findAvailablePort() (int, error) {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return 0, err
+	}
+	defer listener.Close()
+	return listener.Addr().(*net.TCPAddr).Port, nil
+}
+
+// copyDir recursively copies a directory, skipping node_modules
 func copyDir(src, dst string) error {
 	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Calculate destination path
+		// Calculate relative path
 		relPath, err := filepath.Rel(src, path)
 		if err != nil {
 			return err
 		}
+
+		// Skip node_modules - will be installed separately via npm
+		if info.IsDir() && info.Name() == "node_modules" {
+			return filepath.SkipDir
+		}
+
 		dstPath := filepath.Join(dst, relPath)
+
+		// Handle symlinks
+		if info.Mode()&os.ModeSymlink != 0 {
+			target, err := os.Readlink(path)
+			if err != nil {
+				return err
+			}
+			return os.Symlink(target, dstPath)
+		}
 
 		if info.IsDir() {
 			return os.MkdirAll(dstPath, info.Mode())
