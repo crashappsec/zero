@@ -1,6 +1,6 @@
 package scoring
 
-import "github.com/crashappsec/zero/pkg/findings"
+import "github.com/crashappsec/zero/pkg/output/findings"
 
 // Calculate computes weighted score from components
 func Calculate(components []ComponentScore) Score {

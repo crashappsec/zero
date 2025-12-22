@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/crashappsec/zero/pkg/config"
-	"github.com/crashappsec/zero/pkg/evidence"
+	"github.com/crashappsec/zero/pkg/core/config"
+	"github.com/crashappsec/zero/pkg/reports"
 	"github.com/spf13/cobra"
 )
 

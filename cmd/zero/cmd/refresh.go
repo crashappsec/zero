@@ -9,11 +9,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/automation"
-	"github.com/crashappsec/zero/pkg/config"
-	"github.com/crashappsec/zero/pkg/freshness"
+	"github.com/crashappsec/zero/pkg/workflow/automation"
+	"github.com/crashappsec/zero/pkg/core/config"
+	"github.com/crashappsec/zero/pkg/workflow/freshness"
 	"github.com/crashappsec/zero/pkg/scanner"
-	"github.com/crashappsec/zero/pkg/terminal"
+	"github.com/crashappsec/zero/pkg/core/terminal"
 	"github.com/spf13/cobra"
 )
 

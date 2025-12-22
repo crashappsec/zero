@@ -10,8 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/feeds"
-	"github.com/crashappsec/zero/pkg/rag"
+	"github.com/crashappsec/zero/pkg/external/feeds"
+	"github.com/crashappsec/zero/pkg/analysis/rag"
 )
 
 // Manager handles rule generation and updates

@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/crashappsec/zero/pkg/feeds"
+	"github.com/crashappsec/zero/pkg/external/feeds"
 )
 
 func TestNewManager(t *testing.T) {

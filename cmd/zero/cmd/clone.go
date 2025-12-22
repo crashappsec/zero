@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/crashappsec/zero/pkg/hydrate"
+	"github.com/crashappsec/zero/pkg/workflow/hydrate"
 	"github.com/spf13/cobra"
 )
 
