@@ -512,18 +512,19 @@ Mode is automatically selected based on query keywords:
 
 Profiles define which scanners and features to run:
 
-| Profile | Scanners | Use Case |
-|---------|----------|----------|
-| `quick` | sbom, package-analysis (limited) | Fast feedback |
-| `standard` | sbom, package-analysis, code-security, code-quality | Balanced analysis |
-| `security` | sbom, package-analysis, crypto, code-security, devops | Security-focused |
-| `full` | All 8 scanners | Complete analysis |
-| `sbom-only` | sbom | SBOM generation only |
-| `package-analysis-only` | sbom, package-analysis | Dependency analysis only |
-| `crypto-only` | crypto | Crypto security only |
-| `ai-security` | sbom, package-analysis, code-security, tech-id | AI/ML security with ML-BOM |
-| `supply-chain` | sbom, package-analysis, tech-id | Supply chain analysis |
-| `compliance` | sbom, package-analysis, tech-id | License/compliance |
+| Profile | Scanners | Description |
+|---------|----------|-------------|
+| `all-quick` | All 9 scanners (limited features) | Fast scan of everything |
+| `all-complete` | All 9 scanners (all features) | Complete analysis |
+| `sbom` | sbom | SBOM generation only |
+| `package-analysis` | sbom, package-analysis | Dependency analysis |
+| `crypto` | crypto | Cryptographic security |
+| `code-security` | code-security | SAST and secrets |
+| `code-quality` | code-quality | Quality metrics |
+| `devops` | devops | IaC, containers, CI/CD |
+| `tech-id` | tech-id | Technology detection, ML-BOM |
+| `code-ownership` | code-ownership | Contributor analysis |
+| `devx` | tech-id, devx | Developer experience |
 
 ## Environment Variables
 
