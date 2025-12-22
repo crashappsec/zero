@@ -17,7 +17,7 @@
   "_docs14": "  - devex: onboarding, tooling, workflow (developer experience)",
   "_docs15": "===================================================================================",
   "settings": {
-    "default_profile": "standard",
+    "default_profile": "all-quick",
     "storage_path": ".zero",
     "parallel_repos": 8,
     "parallel_scanners": 4,
@@ -415,11 +415,11 @@
     }
   },
   "profiles": {
-    "quick": {
-      "name": "Quick",
-      "description": "Fast essential analysis for rapid feedback",
-      "estimated_time": "~30 seconds",
-      "scanners": ["sbom", "package-analysis"],
+    "all-quick": {
+      "name": "All Quick",
+      "description": "All scanners with limited features for fast feedback",
+      "estimated_time": "~2 minutes",
+      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "devx"],
       "feature_overrides": {
         "sbom": {
           "integrity": {"enabled": false}
@@ -430,169 +430,75 @@
           "bundle": {"enabled": false},
           "confusion": {"enabled": false},
           "reachability": {"enabled": false}
-        }
-      }
-    },
-    "standard": {
-      "name": "Standard",
-      "description": "Balanced analysis covering security and code quality",
-      "estimated_time": "~2 minutes",
-      "scanners": ["sbom", "package-analysis", "code-security", "code-quality"],
-      "feature_overrides": {
-        "package-analysis": {
-          "bundle": {"enabled": false},
-          "reachability": {"enabled": false}
-        }
-      }
-    },
-    "security": {
-      "name": "Security",
-      "description": "Security-focused analysis for vulnerability assessment",
-      "estimated_time": "~4 minutes",
-      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "devops"],
-      "feature_overrides": {
-        "devops": {
-          "dora": {"enabled": false},
-          "git": {"enabled": false}
-        }
-      }
-    },
-    "full": {
-      "name": "Full",
-      "description": "Complete analysis with all features enabled",
-      "estimated_time": "~12 minutes",
-      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "devx"]
-    },
-    "ai-security": {
-      "name": "AI/ML Security",
-      "description": "AI/ML focused security analysis with ML-BOM generation",
-      "estimated_time": "~3 minutes",
-      "scanners": ["sbom", "package-analysis", "code-security", "tech-id"],
-      "feature_overrides": {
-        "package-analysis": {
-          "bundle": {"enabled": false},
-          "recommendations": {"enabled": false}
-        }
-      }
-    },
-    "sbom-only": {
-      "name": "SBOM Only",
-      "description": "SBOM generation and integrity verification only",
-      "estimated_time": "~1 minute",
-      "scanners": ["sbom"]
-    },
-    "package-analysis-only": {
-      "name": "Package Analysis Only",
-      "description": "Complete package/dependency analysis",
-      "estimated_time": "~3 minutes",
-      "scanners": ["sbom", "package-analysis"]
-    },
-    "crypto-only": {
-      "name": "Cryptography Only",
-      "description": "Comprehensive cryptographic security analysis",
-      "estimated_time": "~2 minutes",
-      "scanners": ["crypto"]
-    },
-    "code-security-only": {
-      "name": "Code Security Only",
-      "description": "Security-focused code analysis only",
-      "estimated_time": "~3 minutes",
-      "scanners": ["code-security"]
-    },
-    "code-quality-only": {
-      "name": "Code Quality Only",
-      "description": "Code quality analysis: tech debt, complexity, coverage",
-      "estimated_time": "~2 minutes",
-      "scanners": ["code-quality"]
-    },
-    "devops-only": {
-      "name": "DevOps Only",
-      "description": "DevOps and infrastructure analysis",
-      "estimated_time": "~3 minutes",
-      "scanners": ["devops"]
-    },
-    "tech-id-only": {
-      "name": "Technology Identification Only",
-      "description": "Technology detection and AI/ML analysis with ML-BOM",
-      "estimated_time": "~2 minutes",
-      "scanners": ["tech-id"]
-    },
-    "code-ownership-only": {
-      "name": "Code Ownership Only",
-      "description": "Code ownership and contributor analysis",
-      "estimated_time": "~1 minute",
-      "scanners": ["code-ownership"]
-    },
-    "devx-only": {
-      "name": "Developer Experience Only",
-      "description": "Developer experience analysis: onboarding, tooling, workflow",
-      "estimated_time": "~1 minute",
-      "scanners": ["tech-id", "devx"]
-    },
-    "devx": {
-      "name": "Developer Experience",
-      "description": "Full developer experience analysis including DORA metrics, code ownership, and workflow efficiency",
-      "estimated_time": "~3 minutes",
-      "scanners": ["tech-id", "devops", "code-ownership", "devx"],
-      "feature_overrides": {
-        "devops": {
-          "iac": {"enabled": false},
-          "containers": {"enabled": false}
         },
-        "code-ownership": {
-          "orphans": {"enabled": false}
-        }
-      }
-    },
-    "compliance": {
-      "name": "Compliance",
-      "description": "License and policy compliance checks",
-      "estimated_time": "~2 minutes",
-      "scanners": ["sbom", "package-analysis", "tech-id"],
-      "feature_overrides": {
-        "package-analysis": {
-          "vulns": {"enabled": false},
-          "malcontent": {"enabled": false},
-          "provenance": {"enabled": false},
-          "bundle": {"enabled": false},
-          "duplicates": {"enabled": false},
-          "recommendations": {"enabled": false},
-          "typosquats": {"enabled": false},
-          "confusion": {"enabled": false},
-          "reachability": {"enabled": false}
-        },
-        "tech-id": {
-          "ai_security": {"enabled": false},
-          "infrastructure": {"enabled": false}
-        }
-      }
-    },
-    "ci-cd": {
-      "name": "CI/CD",
-      "description": "CI/CD pipeline and operational metrics",
-      "estimated_time": "~3 minutes",
-      "scanners": ["devops", "code-ownership"],
-      "feature_overrides": {
         "devops": {
-          "iac": {"enabled": false},
-          "containers": {"enabled": false}
+          "dora": {"enabled": false}
         },
         "code-ownership": {
           "orphans": {"enabled": false},
-          "codeowners": {"enabled": false}
+          "churn": {"enabled": false}
         }
       }
     },
-    "supply-chain": {
-      "name": "Supply Chain",
-      "description": "Complete supply chain security analysis",
-      "estimated_time": "~5 minutes",
-      "scanners": ["sbom", "package-analysis", "tech-id"],
-      "feature_overrides": {
-        "tech-id": {
-          "infrastructure": {"enabled": false}
-        }
-      }
+    "all-complete": {
+      "name": "All Complete",
+      "description": "All scanners with all features enabled",
+      "estimated_time": "~12 minutes",
+      "scanners": ["sbom", "package-analysis", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "devx"]
+    },
+    "sbom": {
+      "name": "SBOM",
+      "description": "SBOM generation and integrity verification",
+      "estimated_time": "~1 minute",
+      "scanners": ["sbom"]
+    },
+    "package-analysis": {
+      "name": "Package Analysis",
+      "description": "Package/dependency analysis (vulnerabilities, licenses, health)",
+      "estimated_time": "~3 minutes",
+      "scanners": ["sbom", "package-analysis"]
+    },
+    "crypto": {
+      "name": "Cryptography",
+      "description": "Cryptographic security analysis",
+      "estimated_time": "~2 minutes",
+      "scanners": ["crypto"]
+    },
+    "code-security": {
+      "name": "Code Security",
+      "description": "SAST, secrets detection, API security",
+      "estimated_time": "~3 minutes",
+      "scanners": ["code-security"]
+    },
+    "code-quality": {
+      "name": "Code Quality",
+      "description": "Tech debt, complexity, test coverage",
+      "estimated_time": "~2 minutes",
+      "scanners": ["code-quality"]
+    },
+    "devops": {
+      "name": "DevOps",
+      "description": "IaC, containers, GitHub Actions, DORA metrics",
+      "estimated_time": "~3 minutes",
+      "scanners": ["devops"]
+    },
+    "tech-id": {
+      "name": "Technology Identification",
+      "description": "Technology detection and ML-BOM generation",
+      "estimated_time": "~2 minutes",
+      "scanners": ["tech-id"]
+    },
+    "code-ownership": {
+      "name": "Code Ownership",
+      "description": "Contributors, bus factor, CODEOWNERS analysis",
+      "estimated_time": "~1 minute",
+      "scanners": ["code-ownership"]
+    },
+    "devx": {
+      "name": "Developer Experience",
+      "description": "Onboarding, tooling sprawl, workflow analysis",
+      "estimated_time": "~1 minute",
+      "scanners": ["tech-id", "devx"]
     }
   }
 }

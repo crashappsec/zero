@@ -68,23 +68,24 @@ go build -o main ./cmd/zero
 
 ```bash
 # Hydrate (clone and scan) a repository
-./main hydrate expressjs/express
+./main hydrate <owner/repo>
 
 # With analysis profiles (profile is a positional argument)
-./main hydrate expressjs/express quick        # Fast scan (~30s)
-./main hydrate expressjs/express security     # Security-focused (~3min)
-./main hydrate expressjs/express packages     # Package analysis (~5min)
+./main hydrate <owner/repo> all-quick       # All scanners, limited features (~2min)
+./main hydrate <owner/repo> all-complete    # All scanners, all features (~12min)
+./main hydrate <owner/repo> sbom            # SBOM generation only
+./main hydrate <owner/repo> code-security   # Security scanning only
 
 # Scan an entire GitHub organization (no "/" means org)
-./main hydrate phantom-tests                  # All repos in org
-./main hydrate phantom-tests quick            # With profile
-./main hydrate phantom-tests --limit 10       # Limit repos
+./main hydrate <org>                        # All repos in org
+./main hydrate <org> all-quick              # With profile
+./main hydrate <org> --limit 10             # Limit repos
 
 # Check status of analyzed projects
 ./main status
 
 # Generate reports
-./main report expressjs/express
+./main report <owner/repo>
 
 # See what scanners work with your token
 ./main checkup
@@ -202,16 +203,19 @@ Zero uses `config/zero.config.json` for scanner configuration. Each scanner has 
 
 ### Scan Profiles
 
-| Profile | Scanners | Use Case |
-|---------|----------|----------|
-| `quick` | sbom, package-analysis (limited) | Fast feedback (~30s) |
-| `standard` | sbom, package-analysis, code-security, code-quality | Balanced analysis (~2min) |
-| `security` | sbom, package-analysis, crypto, code-security, devops | Security-focused (~4min) |
-| `full` | All 8 scanners | Complete analysis (~12min) |
-| `sbom-only` | sbom | SBOM generation only (~1min) |
-| `ai-security` | sbom, package-analysis, code-security, tech-id | AI/ML security with ML-BOM (~3min) |
-| `supply-chain` | sbom, package-analysis, tech-id | Supply chain analysis (~5min) |
-| `compliance` | sbom, package-analysis, tech-id | License/policy compliance (~2min) |
+| Profile | Scanners | Description |
+|---------|----------|-------------|
+| `all-quick` | All 9 scanners (limited features) | Fast scan of everything (~2min) |
+| `all-complete` | All 9 scanners (all features) | Complete analysis (~12min) |
+| `sbom` | sbom | SBOM generation only |
+| `package-analysis` | sbom, package-analysis | Dependency analysis |
+| `crypto` | crypto | Cryptographic security |
+| `code-security` | code-security | SAST and secrets detection |
+| `code-quality` | code-quality | Quality metrics |
+| `devops` | devops | IaC, containers, CI/CD |
+| `tech-id` | tech-id | Technology detection, ML-BOM |
+| `code-ownership` | code-ownership | Contributor analysis |
+| `devx` | tech-id, devx | Developer experience |
 
 ## Checkup Command
 
