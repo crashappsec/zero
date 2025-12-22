@@ -14,7 +14,7 @@ Zero is the free, open-source component of the Crash Override platform. It provi
 
 ## Current Capabilities
 
-Zero uses **8 consolidated super scanners** (v3.5 architecture) with 40+ configurable features:
+Zero uses **9 consolidated super scanners** (v3.6 architecture) with 45+ configurable features:
 
 | Scanner | Features | Description |
 |---------|----------|-------------|
@@ -26,8 +26,9 @@ Zero uses **8 consolidated super scanners** (v3.5 architecture) with 40+ configu
 | **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security |
 | **tech-id** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | Technology detection and ML-BOM generation |
 | **code-ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | Code ownership analysis |
+| **developer-experience** | onboarding, sprawl, workflow | Developer experience analysis |
 
-Plus **12 AI specialist agents** for deep analysis (Zero, Cereal, Razor, Blade, Phreak, Acid, Dade, Nikon, Joey, Plague, Gibson, Gill, Turing).
+Plus **13 AI specialist agents** for deep analysis (Zero, Cereal, Razor, Blade, Phreak, Acid, Dade, Nikon, Joey, Plague, Gibson, Gill, Turing).
 
 ---
 
@@ -54,12 +55,13 @@ Interactive HTML reports using Evidence.dev. See `zero report --help`.
 
 These scanners analyze repositories and work with Zero's existing hydrate workflow.
 
-#### API Security Analysis
+#### API Security Analysis ✅ IMPLEMENTED
 Scan OpenAPI specs, GraphQL schemas, and route definitions in source code:
-- [ ] **OpenAPI/Swagger Scanning** - Parse API specs for security issues (auth, rate limiting, input validation)
-- [ ] **GraphQL Security** - Introspection exposure, query complexity, authorization gaps
-- [ ] **Authentication Analysis** - OAuth/OIDC configuration review in code
-- [ ] **API Versioning Audit** - Detect deprecated or sunset API endpoints
+- [x] **OpenAPI/Swagger Scanning** - Parse API specs for security issues (auth, rate limiting, input validation)
+- [x] **GraphQL Security** - Introspection exposure, query complexity, authorization gaps
+- [x] **Authentication Analysis** - OAuth/OIDC configuration review in code
+- [x] **API Quality Checks** - Design patterns, performance, observability, documentation
+- [ ] **API Versioning Audit** - Detect deprecated or sunset API endpoints (future)
 
 #### AI/ML Model Security ✅ IMPLEMENTED
 Scan ML models, datasets, and AI pipelines in repositories:
@@ -80,11 +82,11 @@ Scan source code for weak cryptographic patterns:
 - [x] **Certificate Validation** - Disabled cert verification, expiry checks
 - [x] **Insecure Random** - Detect weak random number generation
 
-#### Enhanced Secret Detection
-- [ ] **Claude-enhanced False Positive Reduction** - AI-powered context analysis
-- [ ] **Git History Deep Scanning** - Find secrets in commit history
-- [ ] **Secret Rotation Recommendations** - Suggest remediation steps
-- [ ] **Entropy Analysis** - Detect high-entropy strings that may be secrets
+#### Enhanced Secret Detection ✅ IMPLEMENTED
+- [x] **Claude-enhanced False Positive Reduction** - AI-powered context analysis (code-security scanner)
+- [x] **Git History Deep Scanning** - Find secrets in commit history
+- [x] **Secret Rotation Recommendations** - Provider-specific remediation steps
+- [x] **Entropy Analysis** - Detect high-entropy strings that may be secrets
 
 #### Reachability Analysis
 Determine if vulnerable dependencies are actually used:
@@ -130,6 +132,7 @@ Connect to cloud providers to build infrastructure SBOMs:
 - [x] **Dependencies Page** - SBOM visualization and license distribution
 - [x] **DevOps Page** - DORA metrics, IaC findings, GitHub Actions, containers
 - [x] **Code Quality Page** - Technologies, ownership, contributors
+- [x] **API Analysis Page** - REST, GraphQL, OpenAPI security and quality findings
 - [ ] **PDF Export** - Executive summaries for stakeholders
 - [ ] **Trend Analysis** - Track security posture over time
 - [ ] **Delta Detection** - New/fixed findings between scans
@@ -193,7 +196,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-*Last Updated: 2025-12-21*
-*Version: 3.6.0*
+*Last Updated: 2025-12-22*
+*Version: 3.7.0*
 
 *"Hack the planet!"*
