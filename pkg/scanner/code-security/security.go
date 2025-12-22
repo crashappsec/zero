@@ -584,7 +584,7 @@ func parseSecretsOutput(data []byte, repoPath string, cfg SecretsConfig) ([]Secr
 // ============================================================================
 
 func (s *CodeSecurityScanner) runAPI(ctx context.Context, opts *scanner.ScanOptions, cfg APIConfig) (*APISummary, []APIFinding) {
-	var findings []APIFinding
+	var allFindings []APIFinding
 
 	timeout := opts.Timeout
 	if timeout == 0 {
@@ -592,6 +592,43 @@ func (s *CodeSecurityScanner) runAPI(ctx context.Context, opts *scanner.ScanOpti
 	}
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
+
+	// 1. Run Semgrep-based security checks
+	if cfg.CheckAuth || cfg.CheckInjection || cfg.CheckSSRF || cfg.CheckCORS {
+		semgrepFindings := s.runSemgrepAPIChecks(ctx, opts, cfg)
+		allFindings = append(allFindings, semgrepFindings...)
+	}
+
+	// 2. Run RAG pattern-based checks
+	ragFindings := s.runRAGAPIPatterns(ctx, opts, cfg)
+	allFindings = append(allFindings, ragFindings...)
+
+	// 3. Run OpenAPI validation
+	if cfg.CheckOpenAPI {
+		openAPIFindings := s.runOpenAPIValidation(ctx, opts)
+		allFindings = append(allFindings, openAPIFindings...)
+	}
+
+	// 4. Run GraphQL checks
+	if cfg.CheckGraphQL {
+		graphQLFindings := s.runGraphQLChecks(ctx, opts)
+		allFindings = append(allFindings, graphQLFindings...)
+	}
+
+	// 5. Run API quality checks (non-security)
+	if cfg.CheckDesign || cfg.CheckPerformance || cfg.CheckObservability || cfg.CheckDocumentation {
+		qualityFindings := s.runAPIQualityChecks(ctx, opts, cfg)
+		allFindings = append(allFindings, qualityFindings...)
+	}
+
+	// Build summary from all findings
+	summary := buildAPISummary(allFindings)
+	return summary, allFindings
+}
+
+// runSemgrepAPIChecks runs Semgrep-based API security scanning
+func (s *CodeSecurityScanner) runSemgrepAPIChecks(ctx context.Context, opts *scanner.ScanOptions, cfg APIConfig) []APIFinding {
+	var findings []APIFinding
 
 	result, err := common.RunCommand(ctx, "semgrep",
 		"--config", "p/owasp-top-ten",
@@ -612,11 +649,51 @@ func (s *CodeSecurityScanner) runAPI(ctx context.Context, opts *scanner.ScanOpti
 	)
 
 	if err != nil || result == nil {
-		return &APISummary{Error: "semgrep execution failed"}, findings
+		return findings
 	}
 
-	findings, summary := parseAPIOutput(result.Stdout, opts.RepoPath, cfg)
-	return summary, findings
+	findings, _ = parseAPIOutput(result.Stdout, opts.RepoPath, cfg)
+	return findings
+}
+
+// buildAPISummary creates a summary from all API findings
+func buildAPISummary(findings []APIFinding) *APISummary {
+	summary := &APISummary{
+		ByCategory:  make(map[string]int),
+		ByOWASPApi:  make(map[string]int),
+		ByFramework: make(map[string]int),
+	}
+
+	endpoints := make(map[string]bool)
+
+	for _, f := range findings {
+		summary.TotalFindings++
+		summary.ByCategory[f.Category]++
+
+		if f.OWASPApi != "" {
+			summary.ByOWASPApi[f.OWASPApi]++
+		}
+		if f.Framework != "" {
+			summary.ByFramework[f.Framework]++
+		}
+		if f.Endpoint != "" {
+			endpoints[f.Endpoint] = true
+		}
+
+		switch f.Severity {
+		case "critical":
+			summary.Critical++
+		case "high":
+			summary.High++
+		case "medium":
+			summary.Medium++
+		case "low":
+			summary.Low++
+		}
+	}
+
+	summary.EndpointsFound = len(endpoints)
+	return summary
 }
 
 func parseAPIOutput(data []byte, repoPath string, cfg APIConfig) ([]APIFinding, *APISummary) {
