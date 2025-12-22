@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/crashappsec/zero/pkg/terminal"
+	"github.com/crashappsec/zero/pkg/core/terminal"
 	"github.com/spf13/cobra"
 
 	// Import scanners to register them
-	_ "github.com/crashappsec/zero/pkg/scanners"
+	_ "github.com/crashappsec/zero/pkg/scanner"
 )
 
 var (

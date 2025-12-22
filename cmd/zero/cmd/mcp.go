@@ -6,7 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/crashappsec/zero/pkg/config"
+	"github.com/crashappsec/zero/pkg/core/config"
 	"github.com/crashappsec/zero/pkg/mcp"
 	"github.com/spf13/cobra"
 )

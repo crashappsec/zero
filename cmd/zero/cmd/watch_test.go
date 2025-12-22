@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/automation"
+	"github.com/crashappsec/zero/pkg/workflow/automation"
 )
 
 func TestWatchCommandFlagDefaults(t *testing.T) {
