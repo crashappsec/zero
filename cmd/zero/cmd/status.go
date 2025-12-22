@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/crashappsec/zero/pkg/status"
+	"github.com/crashappsec/zero/pkg/core/status"
 	"github.com/spf13/cobra"
 )
 

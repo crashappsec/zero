@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/freshness"
+	"github.com/crashappsec/zero/pkg/workflow/freshness"
 )
 
 // RefreshConfig configures the refresh behavior

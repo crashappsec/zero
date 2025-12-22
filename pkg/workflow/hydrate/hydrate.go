@@ -13,12 +13,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/config"
-	"github.com/crashappsec/zero/pkg/diff"
-	"github.com/crashappsec/zero/pkg/github"
-	"github.com/crashappsec/zero/pkg/languages"
+	"github.com/crashappsec/zero/pkg/core/config"
+	"github.com/crashappsec/zero/pkg/workflow/diff"
+	"github.com/crashappsec/zero/pkg/external/github"
+	"github.com/crashappsec/zero/pkg/analysis/languages"
 	"github.com/crashappsec/zero/pkg/scanner"
-	"github.com/crashappsec/zero/pkg/terminal"
+	"github.com/crashappsec/zero/pkg/core/terminal"
 )
 
 // Options configures the hydrate command

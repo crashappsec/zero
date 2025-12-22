@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/freshness"
+	"github.com/crashappsec/zero/pkg/workflow/freshness"
 )
 
 func TestRefreshCommandFlagDefaults(t *testing.T) {

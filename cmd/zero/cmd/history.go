@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/config"
-	"github.com/crashappsec/zero/pkg/diff"
-	"github.com/crashappsec/zero/pkg/terminal"
+	"github.com/crashappsec/zero/pkg/core/config"
+	"github.com/crashappsec/zero/pkg/workflow/diff"
+	"github.com/crashappsec/zero/pkg/core/terminal"
 	"github.com/spf13/cobra"
 )
 

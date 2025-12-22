@@ -9,9 +9,9 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/crashappsec/zero/pkg/config"
-	"github.com/crashappsec/zero/pkg/evidence"
-	"github.com/crashappsec/zero/pkg/hydrate"
+	"github.com/crashappsec/zero/pkg/core/config"
+	"github.com/crashappsec/zero/pkg/reports"
+	"github.com/crashappsec/zero/pkg/workflow/hydrate"
 	"github.com/spf13/cobra"
 )
 

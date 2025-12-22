@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/terminal"
+	"github.com/crashappsec/zero/pkg/core/terminal"
 )
 
 // Generator handles Evidence report generation

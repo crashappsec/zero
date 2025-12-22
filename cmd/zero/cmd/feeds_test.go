@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/crashappsec/zero/pkg/feeds"
-	"github.com/crashappsec/zero/pkg/rules"
+	"github.com/crashappsec/zero/pkg/external/feeds"
+	"github.com/crashappsec/zero/pkg/analysis/rules"
 )
 
 func TestFeedsCommandFlagDefaults(t *testing.T) {

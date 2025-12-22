@@ -8,10 +8,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/config"
-	"github.com/crashappsec/zero/pkg/feeds"
-	"github.com/crashappsec/zero/pkg/rules"
-	"github.com/crashappsec/zero/pkg/terminal"
+	"github.com/crashappsec/zero/pkg/core/config"
+	"github.com/crashappsec/zero/pkg/external/feeds"
+	"github.com/crashappsec/zero/pkg/analysis/rules"
+	"github.com/crashappsec/zero/pkg/core/terminal"
 	"github.com/spf13/cobra"
 )
 

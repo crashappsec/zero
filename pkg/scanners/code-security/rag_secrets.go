@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/crashappsec/zero/pkg/rag"
+	"github.com/crashappsec/zero/pkg/analysis/rag"
 )
 
 // RAGSecretPattern represents a secret pattern loaded from RAG files
