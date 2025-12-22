@@ -52,6 +52,45 @@ type ToolInstaller struct {
 	InstallCmds []string // Install commands by preference (brew, go, npm, pip)
 }
 
+// Prerequisites are foundational tools needed to run Zero or install other tools
+var prerequisites = []ToolInstaller{
+	{
+		Name:        "go",
+		Description: "Go runtime (required for some tool installations)",
+		CheckCmd:    "go version",
+		InstallCmds: []string{
+			"brew install go",
+			"curl -fsSL https://go.dev/dl/go1.23.4.linux-amd64.tar.gz | sudo tar -C /usr/local -xzf -",
+		},
+	},
+	{
+		Name:        "node",
+		Description: "Node.js runtime (required for Evidence reports)",
+		CheckCmd:    "node --version",
+		InstallCmds: []string{
+			"brew install node",
+			"curl -fsSL https://fnm.vercel.app/install | bash && fnm install --lts",
+		},
+	},
+	{
+		Name:        "npm",
+		Description: "Node package manager (required for cdxgen)",
+		CheckCmd:    "npm --version",
+		InstallCmds: []string{
+			"brew install node", // npm comes with node
+		},
+	},
+	{
+		Name:        "python3",
+		Description: "Python runtime (required for semgrep, checkov)",
+		CheckCmd:    "python3 --version",
+		InstallCmds: []string{
+			"brew install python3",
+			"sudo apt install python3",
+		},
+	},
+}
+
 var toolInstallers = map[string]ToolInstaller{
 	"cdxgen": {
 		Name:        "cdxgen",
@@ -152,15 +191,6 @@ var toolInstallers = map[string]ToolInstaller{
 			"curl -fsSL https://get.docker.com | sh",
 		},
 	},
-	"node": {
-		Name:        "node",
-		Description: "Node.js runtime (for Evidence reports)",
-		CheckCmd:    "node --version",
-		InstallCmds: []string{
-			"brew install node",
-			"curl -fsSL https://fnm.vercel.app/install | bash && fnm install --lts",
-		},
-	},
 }
 
 func runCheckup(cmd *cobra.Command, args []string) error {
@@ -195,8 +225,10 @@ func runCheckup(cmd *cobra.Command, args []string) error {
 	printBanner()
 	fmt.Println()
 
+	missingPrereqs := printPrerequisites(term)
 	printTokenStatus(result, term)
 	missingTools := printToolsStatus(result, term)
+	missingTools = append(missingPrereqs, missingTools...)
 	printScannerCompatibility(result, checkupProfile, term)
 	printSummary(result, term)
 
@@ -211,6 +243,36 @@ func runCheckup(cmd *cobra.Command, args []string) error {
 
 	fmt.Println()
 	return nil
+}
+
+func printPrerequisites(term *terminal.Terminal) []string {
+	var missing []string
+
+	fmt.Println("\033[1mPrerequisites\033[0m")
+	fmt.Println(strings.Repeat("─", 60))
+
+	for _, prereq := range prerequisites {
+		// Check if installed
+		parts := strings.Fields(prereq.CheckCmd)
+		_, err := exec.LookPath(parts[0])
+		if err == nil {
+			// Get version
+			cmd := exec.Command(parts[0], parts[1:]...)
+			output, _ := cmd.Output()
+			version := strings.TrimSpace(string(output))
+			// Extract just the version number if possible
+			if idx := strings.Index(version, "\n"); idx > 0 {
+				version = version[:idx]
+			}
+			fmt.Printf("  \033[0;32m✓\033[0m %s \033[2m%s\033[0m\n", prereq.Name, version)
+		} else {
+			fmt.Printf("  \033[0;31m✗\033[0m %s \033[2m(not installed - %s)\033[0m\n", prereq.Name, prereq.Description)
+			missing = append(missing, prereq.Name)
+		}
+	}
+	fmt.Println()
+
+	return missing
 }
 
 func printTokenStatus(result *github.RoadmapResult, term *terminal.Terminal) {
@@ -361,7 +423,18 @@ func offerToolInstallation(missingTools []string, term *terminal.Terminal) {
 	reader := bufio.NewReader(os.Stdin)
 
 	for _, tool := range missingTools {
+		// Look up in toolInstallers first, then prerequisites
 		installer, ok := toolInstallers[tool]
+		if !ok {
+			// Check prerequisites
+			for _, prereq := range prerequisites {
+				if prereq.Name == tool {
+					installer = prereq
+					ok = true
+					break
+				}
+			}
+		}
 		if !ok {
 			continue
 		}
