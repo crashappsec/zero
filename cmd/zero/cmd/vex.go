@@ -4,7 +4,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -16,13 +15,14 @@ import (
 )
 
 var (
-	vexOutput       string
-	vexIncludeAll   bool
-	vexAutoAnalyze  bool
-	vexProductName  string
-	vexProductVer   string
-	vexSupplier     string
-	vexFormat       string
+	vexOutput          string
+	vexIncludeAll      bool
+	vexAutoAnalyze     bool
+	vexUseReachability bool
+	vexProductName     string
+	vexProductVer      string
+	vexSupplier        string
+	vexFormat          string
 )
 
 var vexCmd = &cobra.Command{
@@ -55,7 +55,8 @@ func init() {
 
 	vexCmd.Flags().StringVarP(&vexOutput, "output", "o", "", "Output file path (default: stdout or analysis/vex.json)")
 	vexCmd.Flags().BoolVar(&vexIncludeAll, "include-all", false, "Include all vulnerabilities (even not_affected)")
-	vexCmd.Flags().BoolVar(&vexAutoAnalyze, "auto-analyze", true, "Auto-analyze vulnerabilities using reachability data")
+	vexCmd.Flags().BoolVar(&vexAutoAnalyze, "auto-analyze", true, "Auto-analyze vulnerabilities to determine exploitability")
+	vexCmd.Flags().BoolVar(&vexUseReachability, "use-reachability", true, "Use reachability data to determine if vulnerable code is reachable")
 	vexCmd.Flags().StringVar(&vexProductName, "product-name", "", "Product name for VEX metadata")
 	vexCmd.Flags().StringVar(&vexProductVer, "product-version", "", "Product version for VEX metadata")
 	vexCmd.Flags().StringVar(&vexSupplier, "supplier", "", "Supplier/organization name")
@@ -96,7 +97,7 @@ func runVex(cmd *cobra.Command, args []string) error {
 	// Configure generator
 	genConfig := vex.DefaultConfig()
 	genConfig.AutoAnalyze = vexAutoAnalyze
-	genConfig.UseReachability = vexAutoAnalyze
+	genConfig.UseReachability = vexUseReachability
 	genConfig.IncludeAll = vexIncludeAll
 
 	if vexProductName != "" {
@@ -177,22 +178,20 @@ func printVexSummary(term *terminal.Terminal, doc *vex.Document) error {
 	}
 
 	// Print by state
-	states := []struct {
-		state string
-		label string
-		color func(string, ...interface{})
-	}{
-		{"exploitable", "Exploitable", term.Error},
-		{"in_triage", "In Triage", term.Warning},
-		{"not_affected", "Not Affected", term.Success},
-		{"resolved", "Resolved", term.Success},
-		{"false_positive", "False Positive", term.Info},
+	if summary["exploitable"] > 0 {
+		term.Error("  Exploitable: %d", summary["exploitable"])
 	}
-
-	for _, s := range states {
-		if count := summary[s.state]; count > 0 {
-			s.color("  %s: %d", s.label, count)
-		}
+	if summary["in_triage"] > 0 {
+		term.Warning("  In Triage: %d", summary["in_triage"])
+	}
+	if summary["not_affected"] > 0 {
+		term.Success("  Not Affected: %d", summary["not_affected"])
+	}
+	if summary["resolved"] > 0 {
+		term.Success("  Resolved: %d", summary["resolved"])
+	}
+	if summary["false_positive"] > 0 {
+		term.Info("  False Positive: %d", summary["false_positive"])
 	}
 
 	// Print detailed breakdown
@@ -232,11 +231,11 @@ func printVexSummary(term *terminal.Terminal, doc *vex.Document) error {
 
 		switch state {
 		case "exploitable":
-			term.Error(line)
+			term.Error("%s", line)
 		case "not_affected", "resolved":
-			term.Success(line)
+			term.Success("%s", line)
 		default:
-			term.Info(line)
+			term.Info("%s", line)
 		}
 
 		// Print affected packages
@@ -245,15 +244,5 @@ func printVexSummary(term *terminal.Terminal, doc *vex.Document) error {
 		}
 	}
 
-	return nil
-}
-
-// Also output as JSON to stdout if requested
-func printVexJSON(doc *vex.Document) error {
-	data, err := json.MarshalIndent(doc, "", "  ")
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(data))
 	return nil
 }
