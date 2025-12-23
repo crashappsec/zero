@@ -112,9 +112,10 @@ func DefaultConfig() Config {
 			},
 		},
 		// Pre-approved URLs for security data
-		// Note: OSV.dev is queried LIVE during scans, not cached here
+		// Note: OSV.dev and deps.dev are queried LIVE during scans
 		PreApprovedURLs: []string{
 			"https://api.osv.dev",
+			"https://api.deps.dev",
 			"https://semgrep.dev",
 		},
 	}

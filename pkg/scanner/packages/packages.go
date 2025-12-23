@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -17,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/crashappsec/zero/pkg/core/liveapi"
 	"github.com/crashappsec/zero/pkg/scanner"
 	"github.com/crashappsec/zero/pkg/scanner/common"
 	"github.com/crashappsec/zero/pkg/scanner/sbom"
@@ -281,8 +281,8 @@ func (s *PackagesScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*
 	scanResult.SetSummary(result.Summary)
 	scanResult.SetFindings(result.Findings)
 	scanResult.SetMetadata(map[string]interface{}{
-		"features_run":   result.FeaturesRun,
-		"sbom_source":    "sbom scanner",
+		"features_run":    result.FeaturesRun,
+		"sbom_source":     "sbom scanner",
 		"component_count": len(components),
 	})
 
@@ -343,9 +343,9 @@ func (s *PackagesScanner) runVulnsFeature(ctx context.Context, opts *scanner.Sca
 					Ecosystem string `json:"ecosystem"`
 				} `json:"package"`
 				Vulnerabilities []struct {
-					ID       string `json:"id"`
+					ID       string   `json:"id"`
 					Aliases  []string `json:"aliases"`
-					Summary  string `json:"summary"`
+					Summary  string   `json:"summary"`
 					Severity []struct {
 						Type  string `json:"type"`
 						Score string `json:"score"`
@@ -471,7 +471,9 @@ func (s *PackagesScanner) runHealthFeature(ctx context.Context, components []Com
 		Findings: []HealthFinding{},
 	}
 
-	client := &http.Client{Timeout: 5 * time.Second}
+	// Use deps.dev client for package health enrichment
+	depsClient := liveapi.NewDepsDevClient()
+
 	maxPackages := s.config.Health.MaxPackages
 	if maxPackages == 0 {
 		maxPackages = 50
@@ -496,53 +498,49 @@ func (s *PackagesScanner) runHealthFeature(ctx context.Context, components []Com
 			Purl:      pkg.Purl,
 		}
 
-		apiURL := fmt.Sprintf("https://api.deps.dev/v3alpha/purl/%s", url.PathEscape(pkg.Purl))
-		req, _ := http.NewRequestWithContext(ctx, "GET", apiURL, nil)
-		resp, err := client.Do(req)
+		// Query deps.dev for package health data
+		details, err := depsClient.GetVersionDetailsByPURL(ctx, pkg.Purl)
 		if err != nil {
 			finding.Status = "unknown"
 			result.Findings = append(result.Findings, finding)
 			continue
 		}
 
-		if resp.StatusCode == http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			var data struct {
-				Version struct {
-					IsDeprecated bool   `json:"isDeprecated"`
-					PublishedAt  string `json:"publishedAt"`
-				} `json:"version"`
-				DefaultVersion string `json:"defaultVersion"`
-				Project        struct {
-					Scorecard struct {
-						OverallScore float64 `json:"overallScore"`
-					} `json:"scorecard"`
-				} `json:"project"`
-			}
-			if json.Unmarshal(body, &data) == nil {
-				finding.IsDeprecated = data.Version.IsDeprecated
-				finding.LatestVersion = data.DefaultVersion
-				finding.HealthScore = data.Project.Scorecard.OverallScore
-				finding.IsOutdated = data.DefaultVersion != "" && data.DefaultVersion != pkg.Version
+		// Extract health data from deps.dev response
+		finding.IsDeprecated = details.IsDeprecated
 
-				if finding.IsDeprecated {
-					finding.Status = "critical"
-					result.Summary.CriticalCount++
-					result.Summary.DeprecatedCount++
-				} else if finding.HealthScore < 5 && finding.HealthScore > 0 {
-					finding.Status = "warning"
-					result.Summary.WarningCount++
-				} else {
-					finding.Status = "healthy"
-					result.Summary.HealthyCount++
-				}
-				if finding.IsOutdated {
-					result.Summary.OutdatedCount++
-				}
-				result.Summary.AnalyzedCount++
+		// Get latest version
+		latestVersion, err := depsClient.GetLatestVersion(ctx, pkg.Ecosystem, pkg.Name)
+		if err == nil {
+			finding.LatestVersion = latestVersion
+			finding.IsOutdated = latestVersion != "" && latestVersion != pkg.Version
+		}
+
+		// Get health score from scorecard
+		for _, proj := range details.Projects {
+			if proj.Scorecard != nil {
+				finding.HealthScore = proj.Scorecard.OverallScore
+				break
 			}
 		}
-		resp.Body.Close()
+
+		// Determine status based on health metrics
+		if finding.IsDeprecated {
+			finding.Status = "critical"
+			result.Summary.CriticalCount++
+			result.Summary.DeprecatedCount++
+		} else if finding.HealthScore < 5 && finding.HealthScore > 0 {
+			finding.Status = "warning"
+			result.Summary.WarningCount++
+		} else {
+			finding.Status = "healthy"
+			result.Summary.HealthyCount++
+		}
+		if finding.IsOutdated {
+			result.Summary.OutdatedCount++
+		}
+		result.Summary.AnalyzedCount++
+
 		result.Findings = append(result.Findings, finding)
 	}
 
@@ -1300,8 +1298,10 @@ func checkPyPIDeprecation(ctx context.Context, client *http.Client, name string)
 func checkGoDeprecation(ctx context.Context, client *http.Client, modulePath, version string) (bool, string) {
 	// Query the Go module proxy for version info
 	// The proxy returns retracted status in the .info endpoint
+	// Module paths must be escaped: uppercase letters become !lowercase
+	escapedPath := escapeModulePath(modulePath)
 	proxyURL := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.info",
-		strings.ReplaceAll(modulePath, "/", "/"),
+		escapedPath,
 		version)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", proxyURL, nil)
@@ -1335,7 +1335,10 @@ func checkGoDeprecation(ctx context.Context, client *http.Client, modulePath, ve
 	// Also check for deprecated modules via pkg.go.dev API
 	// Some modules are marked deprecated at the module level
 	pkgURL := fmt.Sprintf("https://pkg.go.dev/%s?tab=versions", modulePath)
-	req, _ = http.NewRequestWithContext(ctx, "GET", pkgURL, nil)
+	req, err = http.NewRequestWithContext(ctx, "GET", pkgURL, nil)
+	if err != nil {
+		return false, ""
+	}
 	req.Header.Set("Accept", "text/html")
 
 	resp, err = client.Do(req)
@@ -1355,6 +1358,21 @@ func checkGoDeprecation(ctx context.Context, client *http.Client, modulePath, ve
 	}
 
 	return false, ""
+}
+
+// escapeModulePath escapes a module path for use in Go proxy URLs.
+// Uppercase letters are encoded as !lowercase per the Go module proxy protocol.
+func escapeModulePath(path string) string {
+	var escaped strings.Builder
+	for _, r := range path {
+		if r >= 'A' && r <= 'Z' {
+			escaped.WriteByte('!')
+			escaped.WriteRune(r + ('a' - 'A'))
+		} else {
+			escaped.WriteRune(r)
+		}
+	}
+	return escaped.String()
 }
 
 // ==================== Duplicates Feature ====================

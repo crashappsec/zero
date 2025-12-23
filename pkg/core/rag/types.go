@@ -59,12 +59,14 @@ type SemgrepConfig struct {
 type RAGCategory string
 
 const (
-	CategoryTechID       RAGCategory = "technology-identification"
-	CategorySecrets      RAGCategory = "secrets"
-	CategoryVulns        RAGCategory = "vulnerabilities"
-	CategoryCrypto       RAGCategory = "crypto"
-	CategoryAISecurity   RAGCategory = "ai-security"
-	CategoryCompliance   RAGCategory = "compliance"
+	CategoryTechID         RAGCategory = "technology-identification"
+	CategorySecrets        RAGCategory = "secrets"
+	CategoryVulns          RAGCategory = "vulnerabilities"
+	CategoryCrypto         RAGCategory = "crypto"
+	CategoryAISecurity     RAGCategory = "ai-security"
+	CategoryCompliance     RAGCategory = "compliance"
+	CategoryDevOpsSecurity RAGCategory = "devops-security"
+	CategoryCodeSecurity   RAGCategory = "code-security"
 )
 
 // String returns the category as a string
