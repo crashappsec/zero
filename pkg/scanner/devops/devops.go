@@ -345,12 +345,12 @@ func parseTrivyIaCOutput(data []byte, repoPath string) ([]IaCFinding, *IaCSummar
 			Target            string `json:"Target"`
 			Type              string `json:"Type"`
 			Misconfigurations []struct {
-				ID          string `json:"ID"`
-				Title       string `json:"Title"`
-				Description string `json:"Description"`
-				Resolution  string `json:"Resolution"`
-				Severity    string `json:"Severity"`
-				Status      string `json:"Status"`
+				ID            string `json:"ID"`
+				Title         string `json:"Title"`
+				Description   string `json:"Description"`
+				Resolution    string `json:"Resolution"`
+				Severity      string `json:"Severity"`
+				Status        string `json:"Status"`
 				CauseMetadata struct {
 					Resource  string `json:"Resource"`
 					StartLine int    `json:"StartLine"`
@@ -736,9 +736,9 @@ func lintDockerfiles(dockerfiles []string, repoPath string) []ContainerFinding {
 			continue
 		}
 
-		relPath := df
-		if strings.HasPrefix(df, repoPath) {
-			relPath = strings.TrimPrefix(df, repoPath+"/")
+		relPath, err := filepath.Rel(repoPath, df)
+		if err != nil {
+			relPath = df // Fall back to absolute path if Rel fails
 		}
 
 		scanner := bufio.NewScanner(file)
@@ -816,13 +816,13 @@ func parseTrivyImageOutput(data []byte, imgRef imageRef) []ContainerFinding {
 		Results []struct {
 			Target          string `json:"Target"`
 			Vulnerabilities []struct {
-				VulnerabilityID  string `json:"VulnerabilityID"`
-				PkgName          string `json:"PkgName"`
-				InstalledVersion string `json:"InstalledVersion"`
-				FixedVersion     string `json:"FixedVersion"`
-				Title            string `json:"Title"`
-				Description      string `json:"Description"`
-				Severity         string `json:"Severity"`
+				VulnerabilityID  string   `json:"VulnerabilityID"`
+				PkgName          string   `json:"PkgName"`
+				InstalledVersion string   `json:"InstalledVersion"`
+				FixedVersion     string   `json:"FixedVersion"`
+				Title            string   `json:"Title"`
+				Description      string   `json:"Description"`
+				Severity         string   `json:"Severity"`
 				References       []string `json:"References"`
 				CVSS             map[string]struct {
 					V3Score float64 `json:"V3Score"`

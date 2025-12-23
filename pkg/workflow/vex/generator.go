@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	BOMFormat      = "CycloneDX"
-	SpecVersion    = "1.5"
+	BOMFormat        = "CycloneDX"
+	SpecVersion      = "1.5"
 	GeneratorVersion = "1.0.0"
 )
 
@@ -32,10 +32,10 @@ func NewGenerator(config GeneratorConfig) *Generator {
 // Generate creates a VEX document from vulnerability inputs
 func (g *Generator) Generate(vulns []VulnInput, productName, productVersion string) (*Document, error) {
 	doc := &Document{
-		BOMFormat:   BOMFormat,
-		SpecVersion: SpecVersion,
+		BOMFormat:    BOMFormat,
+		SpecVersion:  SpecVersion,
 		SerialNumber: fmt.Sprintf("urn:uuid:%s", uuid.New().String()),
-		Version:     1,
+		Version:      1,
 		Metadata: Metadata{
 			Timestamp: Timestamp(),
 			Tools: []Tool{
@@ -185,7 +185,12 @@ func (g *Generator) analyzeVulnerability(v VulnInput) *Analysis {
 	// Check if fix is available
 	if v.Fixed != "" {
 		analysis.Response = []Response{ResponseUpdate}
-		analysis.Detail = fmt.Sprintf("Update to version %s to fix this vulnerability", v.Fixed)
+		fixDetail := fmt.Sprintf("Update to version %s to fix this vulnerability", v.Fixed)
+		if analysis.Detail != "" {
+			analysis.Detail = analysis.Detail + ". " + fixDetail
+		} else {
+			analysis.Detail = fixDetail
+		}
 	}
 
 	return analysis
@@ -316,10 +321,10 @@ func (g *Generator) enrichWithReachability(analysisDir string, vulns []VulnInput
 	var reachData struct {
 		Findings struct {
 			Reachability []struct {
-				Package      string   `json:"package"`
-				Version      string   `json:"version"`
-				IsReachable  bool     `json:"is_reachable"`
-				CallPaths    []string `json:"call_paths"`
+				Package       string   `json:"package"`
+				Version       string   `json:"version"`
+				IsReachable   bool     `json:"is_reachable"`
+				CallPaths     []string `json:"call_paths"`
 				UsedFunctions []string `json:"used_functions"`
 			} `json:"reachability"`
 		} `json:"findings"`
@@ -393,16 +398,16 @@ func (g *Generator) getProductInfo(analysisDir string) (string, string) {
 // buildPURL constructs a Package URL from ecosystem, name, and version
 func buildPURL(ecosystem, name, version string) string {
 	ecosystemMap := map[string]string{
-		"npm":      "npm",
-		"pypi":     "pypi",
-		"pip":      "pypi",
-		"go":       "golang",
-		"golang":   "golang",
-		"maven":    "maven",
-		"cargo":    "cargo",
-		"rubygems": "gem",
-		"gem":      "gem",
-		"nuget":    "nuget",
+		"npm":       "npm",
+		"pypi":      "pypi",
+		"pip":       "pypi",
+		"go":        "golang",
+		"golang":    "golang",
+		"maven":     "maven",
+		"cargo":     "cargo",
+		"rubygems":  "gem",
+		"gem":       "gem",
+		"nuget":     "nuget",
 		"packagist": "composer",
 	}
 
@@ -431,11 +436,11 @@ func (d *Document) WriteJSON(path string) error {
 // Summary returns a summary of the VEX document
 func (d *Document) Summary() map[string]int {
 	summary := map[string]int{
-		"total":        len(d.Vulnerabilities),
-		"in_triage":    0,
-		"exploitable":  0,
-		"resolved":     0,
-		"not_affected": 0,
+		"total":          len(d.Vulnerabilities),
+		"in_triage":      0,
+		"exploitable":    0,
+		"resolved":       0,
+		"not_affected":   0,
 		"false_positive": 0,
 	}
 
