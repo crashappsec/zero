@@ -112,7 +112,7 @@ type IaCFinding struct {
 	CheckType   string `json:"check_type,omitempty"`
 }
 
-// ContainerFinding represents a container vulnerability finding
+// ContainerFinding represents a container vulnerability or lint finding
 type ContainerFinding struct {
 	VulnID       string   `json:"vuln_id"`
 	Title        string   `json:"title"`
@@ -125,6 +125,9 @@ type ContainerFinding struct {
 	FixedVersion string   `json:"fixed_version,omitempty"`
 	CVSS         float64  `json:"cvss,omitempty"`
 	References   []string `json:"references,omitempty"`
+	Type         string   `json:"type,omitempty"`        // vulnerability, lint
+	Line         int      `json:"line,omitempty"`        // line number for lint findings
+	Remediation  string   `json:"remediation,omitempty"` // fix recommendation
 }
 
 // GitHubActionsFinding represents a GitHub Actions security finding
