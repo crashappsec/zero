@@ -39,13 +39,12 @@ Scanner findings
 
 ### RAG Categories
 
-| Category | Description | Scanner |
-|----------|-------------|---------|
-| `technology-identification` | Detect frameworks, languages, tools | tech-id |
-| `secrets` | API keys, credentials, tokens | code-security |
-| `devops-security` | Dockerfile, IaC, CI/CD patterns | devops |
-| `code-security` | SAST patterns, API quality | code-security |
-| `crypto` | Weak ciphers, hardcoded keys | crypto |
+| Category | Subcategories | Description | Scanner |
+|----------|---------------|-------------|---------|
+| `technology-identification` | Various | Detect frameworks, languages, tools | tech-id |
+| `devops` | docker, secrets, iac, cicd | DevOps best practices (eng + security) | devops |
+| `code-quality` | api | Code quality patterns (design, performance) | code-security |
+| `crypto` | ciphers, keys, tls | Weak ciphers, hardcoded keys | crypto |
 
 ### Pattern File Format
 
