@@ -147,6 +147,72 @@ var apiQualityPatterns = []struct {
 		Remediation: "Add request ID middleware for distributed tracing",
 	},
 
+	// API Rate Limiting Patterns
+	{
+		Name:        "Public Endpoint Without Rate Limiting",
+		Pattern:     regexp.MustCompile(`\.(get|post|put|delete)\s*\(\s*['"]/(?:api|v[0-9]+)/(?:auth|login|register|signup|password|reset|verify|token)[^'"]*['"]`),
+		Category:    "api-rate-limiting",
+		Severity:    "high",
+		Description: "Authentication endpoint detected without apparent rate limiting",
+		Remediation: "Add rate limiting middleware: app.use('/api/auth', rateLimit({ windowMs: 15*60*1000, max: 5 }))",
+	},
+	{
+		Name:        "File Upload Without Rate Limiting",
+		Pattern:     regexp.MustCompile(`(?:multer|upload|formidable|busboy)\s*\(`),
+		Category:    "api-rate-limiting",
+		Severity:    "medium",
+		Description: "File upload detected - verify rate limiting and file size limits are configured",
+		Remediation: "Add rate limiting and maxFileSize limits to prevent resource exhaustion",
+	},
+	{
+		Name:        "Search Endpoint",
+		Pattern:     regexp.MustCompile(`\.(get|post)\s*\(\s*['"]/(?:api/)?(?:search|query|find|lookup)[^'"]*['"]`),
+		Category:    "api-rate-limiting",
+		Severity:    "medium",
+		Description: "Search endpoint detected - verify rate limiting to prevent abuse",
+		Remediation: "Add rate limiting for search endpoints to prevent scraping and DoS",
+	},
+	{
+		Name:        "Webhook Endpoint",
+		Pattern:     regexp.MustCompile(`\.(post)\s*\(\s*['"]/(?:api/)?(?:webhook|hook|callback|notify)[^'"]*['"]`),
+		Category:    "api-rate-limiting",
+		Severity:    "medium",
+		Description: "Webhook endpoint detected - verify rate limiting and signature validation",
+		Remediation: "Rate limit webhooks and verify request signatures",
+	},
+	{
+		Name:        "Email Sending Endpoint",
+		Pattern:     regexp.MustCompile(`(?:sendMail|sendEmail|nodemailer|sendgrid|mailgun|ses\.send)`),
+		Category:    "api-rate-limiting",
+		Severity:    "high",
+		Description: "Email sending detected - verify rate limiting to prevent spam abuse",
+		Remediation: "Add strict rate limiting for email sending endpoints",
+	},
+	{
+		Name:        "Express Rate Limit Middleware",
+		Pattern:     regexp.MustCompile(`(?:rateLimit|RateLimiter|express-rate-limit|rate-limiter-flexible)\s*\(`),
+		Category:    "api-rate-limiting",
+		Severity:    "info",
+		Description: "Rate limiting middleware detected - good security practice",
+		Remediation: "Verify rate limits are appropriate for your use case",
+	},
+	{
+		Name:        "Go Rate Limiter",
+		Pattern:     regexp.MustCompile(`(?:rate\.NewLimiter|limiter\.New|tollbooth|throttle)\s*\(`),
+		Category:    "api-rate-limiting",
+		Severity:    "info",
+		Description: "Rate limiting detected in Go code - good security practice",
+		Remediation: "Verify rate limits are appropriate for your use case",
+	},
+	{
+		Name:        "Python Rate Limiter",
+		Pattern:     regexp.MustCompile(`(?:flask_limiter|Limiter|ratelimit|slowapi|RateLimitMiddleware)`),
+		Category:    "api-rate-limiting",
+		Severity:    "info",
+		Description: "Rate limiting detected in Python code - good security practice",
+		Remediation: "Verify rate limits are appropriate for your use case",
+	},
+
 	// API Documentation Patterns
 	{
 		Name:        "Route Definition",

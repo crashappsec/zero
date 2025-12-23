@@ -493,6 +493,24 @@ func (s *DevOpsScanner) runContainers(ctx context.Context, opts *scanner.ScanOpt
 	images := extractBaseImages(dockerfiles)
 	summary.ImagesScanned = len(images)
 
+	// Lint Dockerfiles for best practices
+	lintFindings := lintDockerfiles(dockerfiles, opts.RepoPath)
+	findings = append(findings, lintFindings...)
+	for _, f := range lintFindings {
+		summary.TotalFindings++
+		summary.BySeverity[f.Severity]++
+		switch f.Severity {
+		case "critical":
+			summary.Critical++
+		case "high":
+			summary.High++
+		case "medium":
+			summary.Medium++
+		case "low":
+			summary.Low++
+		}
+	}
+
 	scannedImages := make(map[string]bool)
 	for _, img := range images {
 		if scannedImages[img.Image] {
@@ -612,6 +630,183 @@ func extractBaseImages(dockerfiles []string) []imageRef {
 	}
 
 	return images
+}
+
+// Dockerfile best practice patterns
+var dockerfileLintPatterns = []struct {
+	Pattern     *regexp.Regexp
+	Name        string
+	Severity    string
+	Description string
+	Remediation string
+}{
+	{
+		Pattern:     regexp.MustCompile(`(?i)^FROM\s+[^:]+:latest\s*$`),
+		Name:        "Using :latest tag",
+		Severity:    "medium",
+		Description: "Using :latest tag makes builds non-reproducible",
+		Remediation: "Pin to a specific version: FROM node:18.17.0-alpine",
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^FROM\s+[^:]+\s*$`),
+		Name:        "Missing image tag",
+		Severity:    "medium",
+		Description: "No tag specified, defaults to :latest which is non-reproducible",
+		Remediation: "Specify a version tag: FROM node:18.17.0",
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^USER\s+root\s*$`),
+		Name:        "Running as root",
+		Severity:    "high",
+		Description: "Container runs as root user which is a security risk",
+		Remediation: "Create and use a non-root user: RUN useradd -r appuser && USER appuser",
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^ADD\s+https?://`),
+		Name:        "ADD with remote URL",
+		Severity:    "high",
+		Description: "ADD with URL downloads content without verification",
+		Remediation: "Use curl/wget with checksum verification instead",
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^ADD\s+[^h]`),
+		Name:        "Using ADD instead of COPY",
+		Severity:    "low",
+		Description: "ADD has extra features that may be unexpected; COPY is more explicit",
+		Remediation: "Use COPY unless you need ADD's tar extraction feature",
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)(?:PASSWORD|SECRET|API_KEY|TOKEN|PRIVATE_KEY)\s*=\s*['"]\S+['"]`),
+		Name:        "Hardcoded secret in Dockerfile",
+		Severity:    "critical",
+		Description: "Secret value hardcoded in Dockerfile will be visible in image layers",
+		Remediation: "Use build args with --secret or mount secrets at runtime",
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^ENV\s+(?:PASSWORD|SECRET|API_KEY|TOKEN|PRIVATE_KEY)\s+\S`),
+		Name:        "Secret in ENV instruction",
+		Severity:    "critical",
+		Description: "Secrets set via ENV are stored in image metadata",
+		Remediation: "Pass secrets at runtime via -e or use Docker secrets",
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)apt-get\s+install(?!.*--no-install-recommends)`),
+		Name:        "apt-get without --no-install-recommends",
+		Severity:    "low",
+		Description: "Installing recommended packages increases image size",
+		Remediation: "Use: apt-get install --no-install-recommends",
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)apt-get\s+(?:update|install)(?!.*&&.*rm\s+-rf\s+/var/lib/apt/lists)`),
+		Name:        "apt cache not cleaned",
+		Severity:    "low",
+		Description: "Package cache left in image increases size",
+		Remediation: "Add: && rm -rf /var/lib/apt/lists/*",
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^RUN\s+chmod\s+777`),
+		Name:        "chmod 777 used",
+		Severity:    "high",
+		Description: "World-writable permissions are a security risk",
+		Remediation: "Use more restrictive permissions like 755 or 644",
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^RUN\s+curl.*\|\s*(?:bash|sh)`),
+		Name:        "Piping curl to shell",
+		Severity:    "high",
+		Description: "Executing remote scripts is risky without verification",
+		Remediation: "Download, verify checksum, then execute",
+	},
+	{
+		Pattern:     regexp.MustCompile(`(?i)^EXPOSE\s+22\s*$`),
+		Name:        "SSH port exposed",
+		Severity:    "medium",
+		Description: "SSH in containers is generally discouraged",
+		Remediation: "Use docker exec for debugging instead of SSH",
+	},
+}
+
+// lintDockerfiles checks Dockerfiles for best practices
+func lintDockerfiles(dockerfiles []string, repoPath string) []ContainerFinding {
+	var findings []ContainerFinding
+
+	for _, df := range dockerfiles {
+		file, err := os.Open(df)
+		if err != nil {
+			continue
+		}
+
+		relPath := df
+		if strings.HasPrefix(df, repoPath) {
+			relPath = strings.TrimPrefix(df, repoPath+"/")
+		}
+
+		scanner := bufio.NewScanner(file)
+		lineNum := 0
+		hasHealthcheck := false
+		hasUser := false
+
+		for scanner.Scan() {
+			lineNum++
+			line := strings.TrimSpace(scanner.Text())
+
+			// Skip comments and empty lines
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+
+			// Track if HEALTHCHECK and USER are present
+			if strings.HasPrefix(strings.ToUpper(line), "HEALTHCHECK") {
+				hasHealthcheck = true
+			}
+			if strings.HasPrefix(strings.ToUpper(line), "USER") && !strings.Contains(strings.ToUpper(line), "ROOT") {
+				hasUser = true
+			}
+
+			// Check each pattern
+			for _, pattern := range dockerfileLintPatterns {
+				if pattern.Pattern.MatchString(line) {
+					findings = append(findings, ContainerFinding{
+						Type:        "dockerfile-lint",
+						Image:       "",
+						Dockerfile:  relPath,
+						Line:        lineNum,
+						Severity:    pattern.Severity,
+						Title:       pattern.Name,
+						Description: pattern.Description,
+						Remediation: pattern.Remediation,
+					})
+				}
+			}
+		}
+		file.Close()
+
+		// Check for missing HEALTHCHECK
+		if !hasHealthcheck {
+			findings = append(findings, ContainerFinding{
+				Type:        "dockerfile-lint",
+				Dockerfile:  relPath,
+				Severity:    "low",
+				Title:       "Missing HEALTHCHECK",
+				Description: "No HEALTHCHECK instruction found; container health cannot be monitored",
+				Remediation: "Add HEALTHCHECK CMD curl -f http://localhost/ || exit 1",
+			})
+		}
+
+		// Check for no USER instruction (running as root)
+		if !hasUser {
+			findings = append(findings, ContainerFinding{
+				Type:        "dockerfile-lint",
+				Dockerfile:  relPath,
+				Severity:    "medium",
+				Title:       "No non-root USER specified",
+				Description: "Container will run as root by default",
+				Remediation: "Add USER instruction to run as non-root user",
+			})
+		}
+	}
+
+	return findings
 }
 
 func parseTrivyImageOutput(data []byte, imgRef imageRef) []ContainerFinding {

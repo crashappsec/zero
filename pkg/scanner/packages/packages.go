@@ -1219,7 +1219,7 @@ func (s *PackagesScanner) runDeprecationsFeature(ctx context.Context, components
 		case "golang":
 			if s.config.Deprecations.CheckGo {
 				// Go modules can have retract directives
-				// This is a placeholder - would need to check go.mod
+				deprecated, message = checkGoDeprecation(ctx, client, pkg.Name, pkg.Version)
 			}
 		}
 
@@ -1283,9 +1283,75 @@ func checkPyPIDeprecation(ctx context.Context, client *http.Client, name string)
 	}
 
 	for _, c := range pkg.Info.Classifiers {
-		if strings.Contains(c, "Inactive") || strings.Contains(c, "Deprecated") {
+		// Check for various deprecation indicators in classifiers
+		// Development Status :: 7 - Inactive
+		// Development Status :: 1 - Planning (sometimes indicates abandoned)
+		if strings.Contains(c, "Development Status :: 7") ||
+			strings.Contains(c, "Inactive") ||
+			strings.Contains(c, "Deprecated") {
 			return true, c
 		}
+	}
+
+	return false, ""
+}
+
+// checkGoDeprecation checks if a Go module version is deprecated/retracted
+func checkGoDeprecation(ctx context.Context, client *http.Client, modulePath, version string) (bool, string) {
+	// Query the Go module proxy for version info
+	// The proxy returns retracted status in the .info endpoint
+	proxyURL := fmt.Sprintf("https://proxy.golang.org/%s/@v/%s.info",
+		strings.ReplaceAll(modulePath, "/", "/"),
+		version)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", proxyURL, nil)
+	if err != nil {
+		return false, ""
+	}
+
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return false, ""
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	var info struct {
+		Version string `json:"Version"`
+		Time    string `json:"Time"`
+		Retract string `json:"Retract,omitempty"` // Retraction message if retracted
+	}
+	if json.Unmarshal(body, &info) != nil {
+		return false, ""
+	}
+
+	if info.Retract != "" {
+		return true, fmt.Sprintf("Version retracted: %s", info.Retract)
+	}
+
+	// Also check for deprecated modules via pkg.go.dev API
+	// Some modules are marked deprecated at the module level
+	pkgURL := fmt.Sprintf("https://pkg.go.dev/%s?tab=versions", modulePath)
+	req, _ = http.NewRequestWithContext(ctx, "GET", pkgURL, nil)
+	req.Header.Set("Accept", "text/html")
+
+	resp, err = client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return false, ""
+	}
+	defer resp.Body.Close()
+
+	// Quick check for deprecation notice in HTML
+	htmlBody, _ := io.ReadAll(resp.Body)
+	htmlStr := string(htmlBody)
+	if strings.Contains(htmlStr, "Deprecated") && strings.Contains(htmlStr, "deprecated") {
+		return true, "Module marked as deprecated on pkg.go.dev"
 	}
 
 	return false, ""
