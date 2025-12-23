@@ -176,6 +176,8 @@ func (m *Manager) computeRAGHash() (string, error) {
 	ragDirs := []string{
 		"technology-identification",
 		"secrets",
+		"devops-security",
+		"code-security",
 	}
 
 	for _, dir := range ragDirs {
@@ -223,7 +225,12 @@ func (m *Manager) generateFromRAG() ([]string, int, error) {
 	totalRules := 0
 
 	// Load patterns from RAG categories
-	categories := []string{"technology-identification", "secrets"}
+	categories := []string{
+		"technology-identification",
+		"secrets",
+		"devops-security",
+		"code-security",
+	}
 
 	for _, category := range categories {
 		if !m.ragLoader.HasCategory(category) {
