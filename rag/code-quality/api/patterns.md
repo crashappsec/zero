@@ -1,6 +1,6 @@
 # API Quality Patterns
 
-**Category**: code-security/api-quality
+**Category**: code-quality/api
 **Description**: API design, performance, observability, and rate limiting patterns
 **CWE**: CWE-400 (Uncontrolled Resource Consumption), CWE-770 (Allocation of Resources Without Limits)
 

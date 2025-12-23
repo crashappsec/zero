@@ -175,9 +175,8 @@ func (m *Manager) computeRAGHash() (string, error) {
 	// Walk relevant RAG directories and hash file contents
 	ragDirs := []string{
 		"technology-identification",
-		"secrets",
-		"devops-security",
-		"code-security",
+		"devops",
+		"code-quality",
 	}
 
 	for _, dir := range ragDirs {
@@ -227,9 +226,8 @@ func (m *Manager) generateFromRAG() ([]string, int, error) {
 	// Load patterns from RAG categories
 	categories := []string{
 		"technology-identification",
-		"secrets",
-		"devops-security",
-		"code-security",
+		"devops",
+		"code-quality",
 	}
 
 	for _, category := range categories {

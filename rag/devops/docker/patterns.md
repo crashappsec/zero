@@ -1,7 +1,7 @@
-# Dockerfile Security Patterns
+# Dockerfile Best Practices
 
-**Category**: devops-security/dockerfile
-**Description**: Security and best practice patterns for Dockerfiles
+**Category**: devops/docker
+**Description**: Dockerfile security and engineering best practices
 **CWE**: CWE-250 (Execution with Unnecessary Privileges), CWE-798 (Hard-coded Credentials)
 
 ---

@@ -88,6 +88,16 @@ Scan source code for weak cryptographic patterns:
 - [x] **Secret Rotation Recommendations** - Provider-specific remediation steps
 - [x] **Entropy Analysis** - Detect high-entropy strings that may be secrets
 
+#### Infrastructure as Code (IaC) ✅ IMPLEMENTED
+Uses Checkov (primary) with Trivy fallback for comprehensive IaC analysis:
+- [x] **Multi-Framework Support** - Terraform, Kubernetes, Docker, CloudFormation, Helm, Azure ARM
+- [x] **Semantic Analysis** - Understands variable interpolation, required attributes (via Checkov)
+- [x] **500+ Pre-built Checks** - Covers AWS, Azure, GCP, Kubernetes misconfigurations
+- [ ] **Semgrep Enhancement** - Add custom organizational policies via RAG patterns (future)
+- [ ] **Secrets-in-IaC Detection** - Semgrep rules specifically for hardcoded secrets in IaC files (future)
+
+Note: Checkov provides semantic understanding that pure pattern-matching cannot replicate. Semgrep complements rather than replaces Checkov.
+
 #### Reachability Analysis
 Determine if vulnerable dependencies are actually used:
 - [ ] **Vulnerable Code Path Detection** - Trace calls to vulnerable functions
