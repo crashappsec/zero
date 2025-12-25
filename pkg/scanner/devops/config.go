@@ -13,10 +13,11 @@ type FeatureConfig struct {
 
 // IaCConfig configures Infrastructure as Code scanning
 type IaCConfig struct {
-	Enabled      bool   `json:"enabled"`
-	Tool         string `json:"tool"`          // checkov, trivy, auto
-	FallbackTool bool   `json:"fallback_tool"` // Use trivy if checkov fails
-	ScanSecrets  bool   `json:"scan_secrets"`  // Scan for hardcoded secrets in IaC files
+	Enabled            bool   `json:"enabled"`
+	Tool               string `json:"tool"`                // checkov, trivy, auto
+	FallbackTool       bool   `json:"fallback_tool"`       // Use trivy if checkov fails
+	ScanSecrets        bool   `json:"scan_secrets"`        // Scan for hardcoded secrets in IaC files
+	CheckBestPractices bool   `json:"check_best_practices"` // Check for IaC best practices
 }
 
 // ContainersConfig configures container image scanning
@@ -53,10 +54,11 @@ type GitConfig struct {
 func DefaultConfig() FeatureConfig {
 	return FeatureConfig{
 		IaC: IaCConfig{
-			Enabled:      true,
-			Tool:         "auto",
-			FallbackTool: true,
-			ScanSecrets:  true,
+			Enabled:            true,
+			Tool:               "auto",
+			FallbackTool:       true,
+			ScanSecrets:        true,
+			CheckBestPractices: true,
 		},
 		Containers: ContainersConfig{
 			Enabled:        true,
@@ -104,10 +106,11 @@ func SecurityConfig() FeatureConfig {
 func FullConfig() FeatureConfig {
 	return FeatureConfig{
 		IaC: IaCConfig{
-			Enabled:      true,
-			Tool:         "auto",
-			FallbackTool: true,
-			ScanSecrets:  true,
+			Enabled:            true,
+			Tool:               "auto",
+			FallbackTool:       true,
+			ScanSecrets:        true,
+			CheckBestPractices: true,
 		},
 		Containers: ContainersConfig{
 			Enabled:        true,
