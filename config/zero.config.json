@@ -221,7 +221,9 @@
         "iac": {
           "enabled": true,
           "tool": "auto",
-          "fallback_tool": true
+          "fallback_tool": true,
+          "scan_secrets": true,
+          "check_best_practices": true
         },
         "containers": {
           "enabled": true,

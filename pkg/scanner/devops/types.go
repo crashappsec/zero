@@ -32,16 +32,18 @@ type Findings struct {
 
 // IaCSummary contains IaC security scan summary
 type IaCSummary struct {
-	TotalFindings  int                `json:"total_findings"`
-	Critical       int                `json:"critical"`
-	High           int                `json:"high"`
-	Medium         int                `json:"medium"`
-	Low            int                `json:"low"`
-	ByType         map[string]int     `json:"by_type"`
-	FilesScanned   int                `json:"files_scanned"`
-	Tool           string             `json:"tool"`
-	Error          string             `json:"error,omitempty"`
-	SecretsSummary *IaCSecretsSummary `json:"secrets_summary,omitempty"` // IaC secrets findings summary
+	TotalFindings    int                `json:"total_findings"`
+	Critical         int                `json:"critical"`
+	High             int                `json:"high"`
+	Medium           int                `json:"medium"`
+	Low              int                `json:"low"`
+	ByType           map[string]int     `json:"by_type"`
+	ByCategory       map[string]int     `json:"by_category,omitempty"`      // security vs best-practice
+	FilesScanned     int                `json:"files_scanned"`
+	Tool             string             `json:"tool"`
+	Error            string             `json:"error,omitempty"`
+	SecretsSummary   *IaCSecretsSummary `json:"secrets_summary,omitempty"`   // IaC secrets findings summary
+	BestPractices    int                `json:"best_practices,omitempty"`    // count of best practice findings
 }
 
 // ContainersSummary contains container security summary
@@ -99,7 +101,7 @@ type GitSummary struct {
 
 // Finding types
 
-// IaCFinding represents an IaC security finding
+// IaCFinding represents an IaC security or best-practice finding
 type IaCFinding struct {
 	RuleID      string `json:"rule_id"`
 	Title       string `json:"title"`
@@ -108,7 +110,8 @@ type IaCFinding struct {
 	File        string `json:"file"`
 	Line        int    `json:"line,omitempty"`
 	Resource    string `json:"resource,omitempty"`
-	Type        string `json:"type"` // terraform, kubernetes, dockerfile, cloudformation
+	Type        string `json:"type"`                  // terraform, kubernetes, dockerfile, cloudformation
+	Category    string `json:"category,omitempty"`    // security, best-practice
 	Resolution  string `json:"resolution,omitempty"`
 	CheckType   string `json:"check_type,omitempty"`
 	// Secret-related fields (for IaC secrets findings)
