@@ -34,7 +34,7 @@ Zero's scanners follow a layered architecture:
 │                         RAG-Generated Semgrep Rules                          │
 │                                                                              │
 │  utils/scanners/semgrep/rules/                                              │
-│  ├── secrets.yaml        (242+ rules from 106 technology patterns)          │
+│  ├── secrets.yaml        (242+ rules from Technology detection patterns)          │
 │  ├── tech-discovery.yaml (technology identification rules)                  │
 │  ├── tech-debt.yaml      (TODO, FIXME, complexity markers)                  │
 │  └── crypto-security.yaml (cryptography-specific rules)                     │
@@ -44,7 +44,7 @@ Zero's scanners follow a layered architecture:
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         RAG Pattern Definitions                              │
 │                                                                              │
-│  rag/technology-identification/  (106 technology patterns)                  │
+│  rag/technology-identification/  (Technology detection patterns)                  │
 │  ├── cloud-providers/aws/patterns.md                                        │
 │  ├── cloud-providers/azure/patterns.md                                      │
 │  ├── cloud-providers/gcp/patterns.md                                        │
@@ -107,10 +107,10 @@ These scanners use Semgrep with our RAG-generated rules:
 |---------|---------|---------------|
 | `code-vulns` | Security vulnerabilities | p/security-audit, p/owasp-top-ten |
 | `code-secrets` | API keys, credentials | secrets.yaml (242+ RAG rules) |
-| `crypto-ciphers` | Weak ciphers | crypto-security.yaml + p/security-audit |
-| `crypto-keys` | Hardcoded keys | secrets.yaml + p/secrets |
-| `crypto-random` | Insecure RNG | crypto-security.yaml |
-| `crypto-tls` | TLS misconfig | p/insecure-transport |
+| `code-crypto (ciphers)` | Weak ciphers | crypto-security.yaml + p/security-audit |
+| `code-crypto (keys)` | Hardcoded keys | secrets.yaml + p/secrets |
+| `code-crypto (random)` | Insecure RNG | crypto-security.yaml |
+| `code-crypto (tls)` | TLS misconfig | p/insecure-transport |
 | `tech-discovery` | Tech stack detection | tech-discovery.yaml |
 | `tech-debt` | TODOs, complexity | tech-debt.yaml |
 

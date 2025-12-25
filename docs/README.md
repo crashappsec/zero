@@ -5,7 +5,7 @@ SPDX-License-Identifier: GPL-3.0
 
 # Zero Documentation
 
-Comprehensive documentation for the Zero security analysis toolkit.
+Comprehensive documentation for Zero - an engineering intelligence platform for repository assessment.
 
 ## Quick Start
 
@@ -82,14 +82,11 @@ How to integrate Zero with other tools.
 | `tech-discovery` | Technology stack identification |
 | `tech-debt` | TODO, FIXME, complexity markers |
 
-### Cryptography Scanners
+### Cryptography Scanner
 
 | Scanner | Description |
 |---------|-------------|
-| `crypto-ciphers` | Weak/deprecated cipher detection (DES, RC4, MD5) |
-| `crypto-keys` | Hardcoded keys, weak key lengths |
-| `crypto-random` | Insecure random number generation |
-| `crypto-tls` | TLS/SSL misconfiguration |
+| `code-crypto` | Cryptographic security: ciphers, keys, random, TLS, certificates |
 
 ### Package Scanners
 
@@ -100,7 +97,7 @@ How to integrate Zero with other tools.
 | `package-health` | Abandonment, typosquatting risk |
 | `package-malcontent` | Supply chain malware detection |
 | `package-provenance` | SLSA provenance verification |
-| `licenses` | SPDX license compliance |
+| `package-licenses` | SPDX license compliance (feature of packages scanner) |
 
 ### Infrastructure Scanners
 
@@ -113,12 +110,11 @@ How to integrate Zero with other tools.
 
 | Profile | Scanners | Time |
 |---------|----------|------|
-| `quick` | tech-discovery, package-sbom, package-vulns, licenses | ~2 min |
-| `standard` | quick + package-health, code-secrets, code-vulns | ~5 min |
-| `security` | standard + package-malcontent, package-provenance, iac, container | ~10 min |
-| `deep` | All scanners | ~15 min |
-| `crypto` | crypto-ciphers, crypto-keys, crypto-random, crypto-tls, code-secrets | ~5 min |
-| `packages` | package-sbom, package-vulns, package-health, package-malcontent, licenses | ~8 min |
+| `all-quick` | All 9 scanners (limited features) | ~2 min |
+| `all-complete` | All 9 scanners (all features) | ~12 min |
+| `code-crypto` | Cryptographic security | ~2 min |
+| `code-security` | SAST, secrets detection, API security | ~3 min |
+| `packages` | sbom, package analysis | ~3 min |
 
 ## Data Storage
 
@@ -135,7 +131,7 @@ Zero stores data in `~/.zero/`:
                 ├── package-sbom.json
                 ├── package-vulns.json
                 ├── code-secrets.json
-                ├── crypto-ciphers.json
+                ├── code-crypto.json
                 └── ...
 ```
 
@@ -151,10 +147,12 @@ Zero stores data in `~/.zero/`:
 
 Zero uses a RAG (Retrieval-Augmented Generation) knowledge base:
 
-- **106 technology patterns** covering AWS, Azure, GCP, Stripe, OpenAI, and 100+ more
-- **242+ secret detection rules** generated from patterns
+- **Technology detection patterns** covering cloud providers, APIs, frameworks, and services
+- **Secret detection rules** generated from RAG patterns
 - **Markdown source files** converted to Semgrep YAML rules
 - **Human-readable patterns** that serve as both documentation and detection rules
+
+Run `zero rag stats` to see current pattern counts.
 
 See [RAG Pipeline](architecture/rag-pipeline.md) for details.
 

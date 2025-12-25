@@ -35,7 +35,7 @@ Zero's specialist agents are AI personas that analyze repositories from differen
 | `zero` | Zero Cool | Orchestration, delegation | All data |
 | `cereal` | Cereal Killer | Supply chain, CVEs, malware | package-sbom, package-vulns, package-health, package-malcontent, licenses |
 | `razor` | Razor | Code security, SAST, secrets | code-vulns, code-secrets, tech-discovery |
-| `gill` | Gill Bates | Cryptography, TLS, keys | crypto-ciphers, crypto-keys, crypto-random, crypto-tls |
+| `gill` | Gill Bates | Cryptography, TLS, keys | code-crypto (ciphers), code-crypto (keys), code-crypto (random), code-crypto (tls) |
 | `blade` | Blade | Compliance, SOC 2, ISO 27001 | code-vulns, licenses, iac-security |
 | `phreak` | Phantom Phreak | Legal, licenses, privacy | licenses, package-sbom |
 | `acid` | Acid Burn | Frontend, React, TypeScript | tech-discovery, code-vulns |
@@ -239,10 +239,10 @@ Task(
 **Role:** Analyzes cryptographic security, TLS configurations, key management.
 
 **Required Scanners:**
-- `crypto-ciphers` - Weak cipher detection
-- `crypto-keys` - Hardcoded keys
-- `crypto-random` - Insecure RNG
-- `crypto-tls` - TLS misconfiguration
+- `code-crypto (ciphers)` - Weak cipher detection
+- `code-crypto (keys)` - Hardcoded keys
+- `code-crypto (random)` - Insecure RNG
+- `code-crypto (tls)` - TLS misconfiguration
 - `code-secrets` - Additional context
 
 **Detected Issues:**

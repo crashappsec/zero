@@ -8,7 +8,7 @@ import (
 	_ "github.com/crashappsec/zero/pkg/scanner/code-ownership"
 	_ "github.com/crashappsec/zero/pkg/scanner/code-quality"
 	_ "github.com/crashappsec/zero/pkg/scanner/code-security"
-	_ "github.com/crashappsec/zero/pkg/scanner/crypto"
+	_ "github.com/crashappsec/zero/pkg/scanner/code-crypto"
 	_ "github.com/crashappsec/zero/pkg/scanner/developer-experience"
 	_ "github.com/crashappsec/zero/pkg/scanner/devops"
 	_ "github.com/crashappsec/zero/pkg/scanner/packages"
@@ -24,7 +24,7 @@ func TestRegisteredScanners(t *testing.T) {
 	expected := []string{
 		"sbom",
 		"packages",
-		"crypto",
+		"code-crypto",
 		"code-security",
 		"code-quality",
 		"devops",

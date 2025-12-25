@@ -7,7 +7,7 @@
   "_docs4": "Zero uses 10 consolidated 'super scanners' with configurable features:",
   "_docs5": "  - sbom: SBOM generation and integrity verification (source of truth)",
   "_docs6": "  - packages: vulnerabilities, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations, confusion, reachability",
-  "_docs7": "  - crypto: ciphers, keys, random, tls, certificates",
+  "_docs7": "  - code-crypto: ciphers, keys, random, tls, certificates",
   "_docs8": "  - code-security: vulns, secrets (RAG-based with API validation), api",
   "_docs9": "  - quality: tech_debt, complexity, test_coverage, documentation",
   "_docs10": "  - devops: iac, containers, github_actions, dora, git",
@@ -114,11 +114,11 @@
         }
       }
     },
-    "crypto": {
-      "name": "Cryptography",
+    "code-crypto": {
+      "name": "Code Cryptography",
       "description": "Cryptographic security analysis: ciphers, keys, random number generation, TLS, certificates",
       "estimated_time": "30-90s",
-      "output_file": "crypto.json",
+      "output_file": "code-crypto.json",
       "dependencies": [],
       "features": {
         "ciphers": {
@@ -419,7 +419,7 @@
       "name": "All Quick",
       "description": "All scanners with limited features for fast feedback",
       "estimated_time": "~2 minutes",
-      "scanners": ["sbom", "packages", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"],
+      "scanners": ["sbom", "packages", "code-crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"],
       "feature_overrides": {
         "sbom": {
           "integrity": {"enabled": false}
@@ -444,7 +444,7 @@
       "name": "All Complete",
       "description": "All scanners with all features enabled",
       "estimated_time": "~12 minutes",
-      "scanners": ["sbom", "packages", "crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"]
+      "scanners": ["sbom", "packages", "code-crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"]
     },
     "sbom": {
       "name": "SBOM",
@@ -458,11 +458,11 @@
       "estimated_time": "~3 minutes",
       "scanners": ["sbom", "packages"]
     },
-    "crypto": {
-      "name": "Cryptography",
+    "code-crypto": {
+      "name": "Code Cryptography",
       "description": "Cryptographic security analysis",
       "estimated_time": "~2 minutes",
-      "scanners": ["crypto"]
+      "scanners": ["code-crypto"]
     },
     "code-security": {
       "name": "Code Security",

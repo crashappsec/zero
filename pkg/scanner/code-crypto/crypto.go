@@ -1,6 +1,6 @@
-// Package crypto provides a consolidated cryptographic security super scanner
+// Package codecrypto provides a consolidated cryptographic security super scanner
 // Features: ciphers, keys, random, tls, certificates
-package crypto
+package codecrypto
 
 import (
 	"bufio"
@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	Name    = "crypto"
+	Name    = "code-crypto"
 	Version = "3.0.0"
 )
 
