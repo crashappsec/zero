@@ -106,7 +106,8 @@ type SecretFinding struct {
 	// Detection source tracking
 	Entropy         float64 `json:"entropy,omitempty"`          // Shannon entropy score (0-8)
 	EntropyLevel    string  `json:"entropy_level,omitempty"`    // "low", "medium", "high"
-	DetectionSource string  `json:"detection_source,omitempty"` // "semgrep", "entropy", "git_history"
+	DetectionSource string  `json:"detection_source,omitempty"` // "semgrep", "entropy", "git_history", "iac-scanner"
+	IaCType         string  `json:"iac_type,omitempty"`         // terraform, kubernetes, cloudformation, github-actions, helm
 
 	// Git history context
 	CommitInfo *CommitInfo `json:"commit_info,omitempty"` // For git history findings

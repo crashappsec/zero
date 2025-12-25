@@ -226,8 +226,12 @@ func (m *Manager) generateFromRAG() ([]string, int, error) {
 	// Load patterns from RAG categories
 	categories := []string{
 		"technology-identification",
+		"secrets",
 		"devops",
+		"devops-security",
+		"code-security",
 		"code-quality",
+		"architecture",
 	}
 
 	for _, category := range categories {

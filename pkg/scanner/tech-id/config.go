@@ -6,13 +6,14 @@ import "time"
 
 // FeatureConfig holds configuration for all technology identification features
 type FeatureConfig struct {
-	Technology  TechnologyDetectionConfig `json:"technology"`  // General technology detection
-	Models      ModelsConfig              `json:"models"`      // ML model detection
-	Frameworks  FrameworksConfig          `json:"frameworks"`  // AI/ML framework detection
-	Datasets    DatasetsConfig            `json:"datasets"`
-	Security    SecurityConfig            `json:"security"`
-	Governance  GovernanceConfig          `json:"governance"`
-	Semgrep     SemgrepScanConfig         `json:"semgrep"`     // Semgrep integration
+	Technology     TechnologyDetectionConfig `json:"technology"`     // General technology detection
+	Models         ModelsConfig              `json:"models"`         // ML model detection
+	Frameworks     FrameworksConfig          `json:"frameworks"`     // AI/ML framework detection
+	Datasets       DatasetsConfig            `json:"datasets"`
+	Security       SecurityConfig            `json:"security"`
+	Governance     GovernanceConfig          `json:"governance"`
+	Infrastructure InfrastructureConfig      `json:"infrastructure"` // Microservice mapping
+	Semgrep        SemgrepScanConfig         `json:"semgrep"`        // Semgrep integration
 }
 
 // SemgrepScanConfig configures semgrep integration for technology detection
@@ -83,6 +84,17 @@ type GovernanceConfig struct {
 	RequireDatasetInfo  bool     `json:"require_dataset_info"`  // Flag models without dataset provenance
 }
 
+// InfrastructureConfig configures microservice mapping
+type InfrastructureConfig struct {
+	Enabled           bool `json:"enabled"`
+	DetectAPIContracts bool `json:"detect_api_contracts"` // OpenAPI, GraphQL, Proto files
+	DetectHTTPClients bool `json:"detect_http_clients"`  // HTTP client usage patterns
+	DetectGRPC        bool `json:"detect_grpc"`          // gRPC client/server patterns
+	DetectMessageQueues bool `json:"detect_message_queues"` // Kafka, RabbitMQ, SQS, etc.
+	DetectServices    bool `json:"detect_services"`       // Docker Compose, K8s services
+	BuildDependencyGraph bool `json:"build_dependency_graph"` // Build service dependency graph
+}
+
 // DefaultConfig returns default feature configuration
 func DefaultConfig() FeatureConfig {
 	return FeatureConfig{
@@ -140,6 +152,15 @@ func DefaultConfig() FeatureConfig {
 			BlockedLicenses:     []string{},
 			RequireDatasetInfo:  false, // Off by default
 		},
+		Infrastructure: InfrastructureConfig{
+			Enabled:             true,
+			DetectAPIContracts:  true,
+			DetectHTTPClients:   true,
+			DetectGRPC:          true,
+			DetectMessageQueues: true,
+			DetectServices:      true,
+			BuildDependencyGraph: true,
+		},
 	}
 }
 
@@ -152,6 +173,7 @@ func QuickConfig() FeatureConfig {
 	cfg.Models.ExtractModelCards = false
 	cfg.Datasets.Enabled = false
 	cfg.Governance.Enabled = false
+	cfg.Infrastructure.Enabled = false   // Skip infrastructure for quick scans
 	return cfg
 }
 
@@ -223,6 +245,15 @@ func FullConfig() FeatureConfig {
 			RequireLicense:      true,
 			BlockedLicenses:     []string{"CC-BY-NC-4.0", "CC-BY-NC-SA-4.0"}, // Non-commercial
 			RequireDatasetInfo:  true,
+		},
+		Infrastructure: InfrastructureConfig{
+			Enabled:             true,
+			DetectAPIContracts:  true,
+			DetectHTTPClients:   true,
+			DetectGRPC:          true,
+			DetectMessageQueues: true,
+			DetectServices:      true,
+			BuildDependencyGraph: true,
 		},
 	}
 }

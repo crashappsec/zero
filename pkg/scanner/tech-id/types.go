@@ -9,25 +9,27 @@ type Result struct {
 
 // Summary holds summaries from all features
 type Summary struct {
-	Technology         *TechnologySummary `json:"technology,omitempty"` // General technology detection
-	Models             *ModelsSummary     `json:"models,omitempty"`
-	Frameworks         *FrameworksSummary `json:"frameworks,omitempty"`
-	Datasets           *DatasetsSummary   `json:"datasets,omitempty"`
-	Security           *SecuritySummary   `json:"security,omitempty"`
-	Governance         *GovernanceSummary `json:"governance,omitempty"`
-	SemgrepRulesLoaded int                `json:"semgrep_rules_loaded,omitempty"` // Number of semgrep rules loaded
-	SemgrepFindings    int                `json:"semgrep_findings,omitempty"`     // Findings from semgrep
-	Errors             []string           `json:"errors,omitempty"`
+	Technology         *TechnologySummary     `json:"technology,omitempty"` // General technology detection
+	Models             *ModelsSummary         `json:"models,omitempty"`
+	Frameworks         *FrameworksSummary     `json:"frameworks,omitempty"`
+	Datasets           *DatasetsSummary       `json:"datasets,omitempty"`
+	Security           *SecuritySummary       `json:"security,omitempty"`
+	Governance         *GovernanceSummary     `json:"governance,omitempty"`
+	Infrastructure     *InfrastructureSummary `json:"infrastructure,omitempty"` // Microservice mapping
+	SemgrepRulesLoaded int                    `json:"semgrep_rules_loaded,omitempty"` // Number of semgrep rules loaded
+	SemgrepFindings    int                    `json:"semgrep_findings,omitempty"`     // Findings from semgrep
+	Errors             []string               `json:"errors,omitempty"`
 }
 
 // Findings holds detailed findings from all features
 type Findings struct {
-	Technology []Technology        `json:"technology,omitempty"` // General technology detection
-	Models     []MLModel           `json:"models,omitempty"`
-	Frameworks []Framework         `json:"frameworks,omitempty"`
-	Datasets   []Dataset           `json:"datasets,omitempty"`
-	Security   []SecurityFinding   `json:"security,omitempty"`
-	Governance []GovernanceFinding `json:"governance,omitempty"`
+	Technology     []Technology        `json:"technology,omitempty"` // General technology detection
+	Models         []MLModel           `json:"models,omitempty"`
+	Frameworks     []Framework         `json:"frameworks,omitempty"`
+	Datasets       []Dataset           `json:"datasets,omitempty"`
+	Security       []SecurityFinding   `json:"security,omitempty"`
+	Governance     []GovernanceFinding `json:"governance,omitempty"`
+	Infrastructure *InfrastructureFindings `json:"infrastructure,omitempty"` // Microservice mapping
 }
 
 // Feature summaries
@@ -107,6 +109,79 @@ type GovernanceSummary struct {
 	BlockedLicenses     int `json:"blocked_licenses"`
 	MissingDatasetInfo  int `json:"missing_dataset_info"`
 	Error               string `json:"error,omitempty"`
+}
+
+// InfrastructureSummary contains microservice mapping summary
+type InfrastructureSummary struct {
+	TotalServices        int            `json:"total_services"`
+	TotalDependencies    int            `json:"total_dependencies"`
+	TotalAPIContracts    int            `json:"total_api_contracts"`
+	TotalMessageQueues   int            `json:"total_message_queues"`
+	ByType               map[string]int `json:"by_type"`                 // http, grpc, graphql, etc.
+	ByQueueType          map[string]int `json:"by_queue_type,omitempty"` // kafka, rabbitmq, sqs, etc.
+	ExternalDependencies int            `json:"external_dependencies"`   // Services outside the repo
+	Error                string         `json:"error,omitempty"`
+}
+
+// InfrastructureFindings contains microservice mapping findings
+type InfrastructureFindings struct {
+	Services      []ServiceDefinition   `json:"services"`
+	Dependencies  []ServiceDependency   `json:"dependencies"`
+	APIContracts  []APIContract         `json:"api_contracts"`
+	MessageQueues []MessageQueueUsage   `json:"message_queues"`
+}
+
+// ServiceDefinition represents a service defined in this codebase
+type ServiceDefinition struct {
+	Name        string            `json:"name"`
+	Type        string            `json:"type"`        // http, grpc, graphql
+	Endpoints   []Endpoint        `json:"endpoints"`
+	Port        string            `json:"port,omitempty"`
+	File        string            `json:"file,omitempty"`
+	Line        int               `json:"line,omitempty"`
+	Framework   string            `json:"framework,omitempty"` // express, fastapi, gin, spring
+	Metadata    map[string]string `json:"metadata,omitempty"`
+}
+
+// Endpoint represents an API endpoint
+type Endpoint struct {
+	Method      string `json:"method,omitempty"` // GET, POST, PUT, DELETE
+	Path        string `json:"path"`
+	Description string `json:"description,omitempty"`
+	File        string `json:"file,omitempty"`
+	Line        int    `json:"line,omitempty"`
+}
+
+// ServiceDependency represents a dependency on another service
+type ServiceDependency struct {
+	SourceService string         `json:"source_service,omitempty"` // Service making the call
+	TargetService string         `json:"target_service"`           // Service being called
+	TargetURL     string         `json:"target_url,omitempty"`
+	Type          string         `json:"type"`                     // http, grpc, message_queue
+	Method        string         `json:"method,omitempty"`         // HTTP method or gRPC method
+	Locations     []CodeLocation `json:"locations"`
+	Confidence    int            `json:"confidence"`               // 0-100
+}
+
+// APIContract represents an API contract definition
+type APIContract struct {
+	Name        string     `json:"name"`
+	Type        string     `json:"type"`        // openapi, graphql, protobuf
+	Version     string     `json:"version,omitempty"`
+	File        string     `json:"file"`
+	BaseURL     string     `json:"base_url,omitempty"`
+	Endpoints   []Endpoint `json:"endpoints,omitempty"`
+	Services    []string   `json:"services,omitempty"` // Services defined in this contract
+}
+
+// MessageQueueUsage represents message queue producer/consumer
+type MessageQueueUsage struct {
+	QueueType     string         `json:"queue_type"`   // kafka, rabbitmq, sqs, pubsub, nats
+	Role          string         `json:"role"`         // producer, consumer
+	TopicOrQueue  string         `json:"topic_or_queue"`
+	Brokers       []string       `json:"brokers,omitempty"`
+	ConsumerGroup string         `json:"consumer_group,omitempty"`
+	Locations     []CodeLocation `json:"locations"`
 }
 
 // Finding types
