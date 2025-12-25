@@ -12,7 +12,7 @@ Zero uses a **Retrieval-Augmented Generation (RAG)** knowledge base as the sourc
 │  ├── cloud-providers/aws/patterns.md                                        │
 │  ├── business-tools/stripe/patterns.md                                      │
 │  ├── ai-ml/apis/openai/patterns.md                                          │
-│  └── ... (106 technology patterns)                                          │
+│  └── ... (Technology detection patterns)                                          │
 └─────────────────────────────────────────────────────────────────────────────┘
                                       │
                                       ▼

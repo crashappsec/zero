@@ -12,7 +12,7 @@ Zero uses **9 consolidated super scanners** with configurable features:
 |---------|----------|-------------|
 | **sbom** | generation, integrity | SBOM generation (source of truth) |
 | **package-analysis** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | Package/dependency analysis (depends on sbom) |
-| **crypto** | ciphers, keys, random, tls, certificates | Cryptographic security |
+| **code-crypto** | ciphers, keys, random, tls, certificates | Cryptographic security |
 | **code-security** | vulns, secrets, api | Security-focused code analysis |
 | **code-quality** | tech_debt, complexity, test_coverage, documentation | Code quality metrics |
 | **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security |
@@ -48,7 +48,7 @@ The following agents are available for specialized analysis tasks. Use the Task 
 | `joey` | Joey | Joey | CI/CD, build optimization, caching | **devops** (github_actions) |
 | `plague` | Plague | The Plague | DevOps, infrastructure, Kubernetes, IaC | **devops** |
 | `gibson` | Gibson | The Gibson | DORA metrics, team health, engineering KPIs | **devops** (dora, git), **code-ownership** |
-| `gill` | Gill | Gill Bates | Cryptography, ciphers, keys, TLS, random | **crypto** |
+| `gill` | Gill | Gill Bates | Cryptography, ciphers, keys, TLS, random | **code-crypto** |
 | `turing` | Turing | Alan Turing | AI/ML security, ML-BOM, model safety, LLM security | **tech-id** |
 
 ### Agent Details
@@ -83,8 +83,8 @@ Specializes in static analysis, secret detection, code vulnerability assessment,
 Gill Bates represented the corporate establishment in Hackers - now reformed and using vast crypto knowledge to help secure implementations.
 Specializes in cryptographic security analysis, cipher review, key management, TLS configuration, and random number generation security.
 
-**Primary scanner:** `crypto`
-**Required data:** `crypto.json` (contains ciphers, keys, random, tls, certificates)
+**Primary scanner:** `code-crypto`
+**Required data:** `code-crypto.json` (contains ciphers, keys, random, tls, certificates)
 
 **Example invocation:**
 ```
@@ -275,7 +275,7 @@ zero report expressjs/express --serve
 | Page | Description | Data Sources |
 |------|-------------|--------------|
 | **Overview** | Engineering insights with key metrics | All scanners |
-| **Security** | Vulnerabilities, secrets, crypto issues | code-security, crypto |
+| **Security** | Vulnerabilities, secrets, crypto issues | code-security, code-crypto |
 | **Dependencies** | Package inventory, license distribution | sbom, package-analysis |
 | **Supply Chain** | Malcontent detection, package health | package-analysis |
 | **DevOps** | DORA metrics, IaC, GitHub Actions, containers | devops |
@@ -292,7 +292,7 @@ Reports use JavaScript data sources in `reports/template/sources/zero/`:
 | `scanner_summary.js` | All | Per-scanner summary |
 | `vulnerabilities.js` | package-analysis, code-security | Combined vulnerabilities |
 | `secrets.js` | code-security | Detected secrets |
-| `crypto_findings.js` | crypto | Cryptographic issues |
+| `crypto_findings.js` | code-crypto | Cryptographic issues |
 | `licenses.js` | package-analysis | License distribution |
 | `malcontent.js` | package-analysis | Supply chain threats |
 | `dora_metrics.js` | devops | DORA performance metrics |
@@ -372,7 +372,7 @@ zero/
 │   │   ├── runner.go          # Scanner runner
 │   │   ├── sbom/              # SBOM scanner
 │   │   ├── package-analysis/  # Package analysis
-│   │   ├── crypto/            # Cryptography scanner
+│   │   ├── code-crypto/       # Cryptography scanner
 │   │   ├── code-security/     # Code security scanner
 │   │   ├── code-quality/      # Code quality scanner
 │   │   ├── devops/            # DevOps scanner
@@ -419,7 +419,7 @@ zero/
          │        │
          │        ├─► sbom.json               (2 features) + sbom.cdx.json
          │        ├─► package-analysis.json   (12 features, depends on sbom)
-         │        ├─► crypto.json             (5 features)
+         │        ├─► code-crypto.json        (5 features)
          │        ├─► code-security.json      (3 features)
          │        ├─► code-quality.json       (4 features)
          │        ├─► devops.json             (5 features)
@@ -481,9 +481,9 @@ Specialists can delegate to other agents when cross-domain expertise is needed:
 
 | Agent | Can Delegate To |
 |-------|-----------------|
-| Cereal | Phreak (legal), Razor (security), Plague (devops), Nikon (architecture), Gill (crypto) |
-| Razor | Cereal (supply chain), Blade (compliance), Nikon (architecture), Dade (backend), Gill (crypto) |
-| Blade | Cereal (supply chain), Razor (security), Phreak (legal), Gill (crypto) |
+| Cereal | Phreak (legal), Razor (security), Plague (devops), Nikon (architecture), Gill (code-crypto) |
+| Razor | Cereal (supply chain), Blade (compliance), Nikon (architecture), Dade (backend), Gill (code-crypto) |
+| Blade | Cereal (supply chain), Razor (security), Phreak (legal), Gill (code-crypto) |
 | Acid | Dade (backend), Nikon (architecture), Razor (security) |
 | Dade | Acid (frontend), Nikon (architecture), Razor (security), Plague (devops) |
 | Nikon | All technical domains |
@@ -519,7 +519,7 @@ Profiles define which scanners and features to run:
 | `all-complete` | All 9 scanners (all features) | Complete analysis |
 | `sbom` | sbom | SBOM generation only |
 | `packages` | sbom, packages | Dependency analysis |
-| `crypto` | crypto | Cryptographic security |
+| `code-crypto` | code-crypto | Cryptographic security |
 | `code-security` | code-security | SAST and secrets |
 | `code-quality` | code-quality | Quality metrics |
 | `devops` | devops | IaC, containers, CI/CD |

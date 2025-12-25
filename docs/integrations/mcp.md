@@ -110,7 +110,7 @@ Get analysis findings for a repository:
 
 **Parameters:**
 - `repo` (required) - Repository identifier
-- `scanner` (optional) - Specific scanner: `package-vulns`, `code-secrets`, `crypto-ciphers`, etc.
+- `scanner` (optional) - Specific scanner: `package-vulns`, `code-secrets`, `code-crypto (ciphers)`, etc.
 - `severity` (optional) - Filter by severity: `critical`, `high`, `medium`, `low`
 
 #### `zero_get_summary`

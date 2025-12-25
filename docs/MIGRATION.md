@@ -31,10 +31,10 @@ Zero has been rewritten in Go. The Go implementation provides:
 | `utils/scanners/iac-security/iac-security.sh` | `pkg/scanners/iac/iac.go` | Complete |
 | `utils/scanners/container-security/container-security.sh` | `pkg/scanners/container/container.go` | Complete |
 | `utils/scanners/containers/containers.sh` | `pkg/scanners/containers/containers.go` | Complete |
-| `utils/scanners/crypto-ciphers/crypto-ciphers.sh` | `pkg/scanners/crypto-ciphers/crypto-ciphers.go` | Complete |
-| `utils/scanners/crypto-keys/crypto-keys.sh` | `pkg/scanners/crypto-keys/crypto-keys.go` | Complete |
-| `utils/scanners/crypto-random/crypto-random.sh` | `pkg/scanners/crypto-random/crypto-random.go` | Complete |
-| `utils/scanners/crypto-tls/crypto-tls.sh` | `pkg/scanners/crypto-tls/crypto-tls.go` | Complete |
+| `utils/scanners/code-crypto (ciphers)/code-crypto (ciphers).sh` | `pkg/scanners/code-crypto (ciphers)/code-crypto (ciphers).go` | Complete |
+| `utils/scanners/code-crypto (keys)/code-crypto (keys).sh` | `pkg/scanners/code-crypto (keys)/code-crypto (keys).go` | Complete |
+| `utils/scanners/code-crypto (random)/code-crypto (random).sh` | `pkg/scanners/code-crypto (random)/code-crypto (random).go` | Complete |
+| `utils/scanners/code-crypto (tls)/code-crypto (tls).sh` | `pkg/scanners/code-crypto (tls)/code-crypto (tls).go` | Complete |
 | `utils/scanners/digital-certificates/digital-certificates.sh` | `pkg/scanners/certs/certs.go` | Complete |
 | `utils/scanners/tech-discovery/tech-discovery.sh` | `pkg/scanners/tech/tech.go` | Complete |
 | `utils/scanners/code-ownership/code-ownership.sh` | `pkg/scanners/ownership/ownership.go` | Complete |
@@ -63,10 +63,10 @@ utils/scanners/api-security/api-security.sh
 utils/scanners/iac-security/iac-security.sh
 utils/scanners/container-security/container-security.sh
 utils/scanners/containers/containers.sh
-utils/scanners/crypto-ciphers/crypto-ciphers.sh
-utils/scanners/crypto-keys/crypto-keys.sh
-utils/scanners/crypto-random/crypto-random.sh
-utils/scanners/crypto-tls/crypto-tls.sh
+utils/scanners/code-crypto (ciphers)/code-crypto (ciphers).sh
+utils/scanners/code-crypto (keys)/code-crypto (keys).sh
+utils/scanners/code-crypto (random)/code-crypto (random).sh
+utils/scanners/code-crypto (tls)/code-crypto (tls).sh
 utils/scanners/digital-certificates/digital-certificates.sh
 utils/scanners/tech-discovery/tech-discovery.sh
 utils/scanners/code-ownership/code-ownership.sh

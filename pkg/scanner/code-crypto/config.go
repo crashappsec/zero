@@ -1,5 +1,5 @@
-// Package crypto provides the consolidated cryptographic security super scanner
-package crypto
+// Package codecrypto provides the consolidated cryptographic security super scanner
+package codecrypto
 
 // FeatureConfig holds configuration for all crypto analysis features
 type FeatureConfig struct {

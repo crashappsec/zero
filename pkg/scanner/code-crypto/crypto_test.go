@@ -1,4 +1,4 @@
-package crypto
+package codecrypto
 
 import (
 	"os"
@@ -8,8 +8,8 @@ import (
 
 func TestCryptoScanner_Name(t *testing.T) {
 	s := &CryptoScanner{}
-	if s.Name() != "crypto" {
-		t.Errorf("Name() = %q, want %q", s.Name(), "crypto")
+	if s.Name() != "code-crypto" {
+		t.Errorf("Name() = %q, want %q", s.Name(), "code-crypto")
 	}
 }
 
