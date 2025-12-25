@@ -78,15 +78,10 @@ How to integrate Zero with other tools.
 | Scanner | Description |
 |---------|-------------|
 | `code-vulns` | SAST vulnerabilities (Semgrep p/security-audit, p/owasp-top-ten) |
-| `code-secrets` | Secret detection (242+ RAG patterns + p/secrets) |
+| `code-secrets` | Secret detection (RAG patterns + p/secrets) |
+| `code-crypto` | Cryptographic security: ciphers, keys, random, TLS, certificates |
 | `tech-discovery` | Technology stack identification |
 | `tech-debt` | TODO, FIXME, complexity markers |
-
-### Cryptography Scanner
-
-| Scanner | Description |
-|---------|-------------|
-| `code-crypto` | Cryptographic security: ciphers, keys, random, TLS, certificates |
 
 ### Package Scanners
 
