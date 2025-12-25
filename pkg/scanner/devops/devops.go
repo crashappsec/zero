@@ -247,7 +247,75 @@ func (s *DevOpsScanner) runIaC(ctx context.Context, opts *scanner.ScanOptions, c
 		findings, summary = parseTrivyIaCOutput(result.Stdout, opts.RepoPath)
 	}
 
+	// Run IaC secrets scanning if enabled
+	if cfg.ScanSecrets {
+		secretsFindings, secretsSummary := s.runIaCSecrets(ctx, opts)
+		findings = append(findings, secretsFindings...)
+		summary.SecretsSummary = secretsSummary
+
+		// Update totals
+		for _, f := range secretsFindings {
+			summary.TotalFindings++
+			switch f.Severity {
+			case "critical":
+				summary.Critical++
+			case "high":
+				summary.High++
+			case "medium":
+				summary.Medium++
+			case "low":
+				summary.Low++
+			}
+		}
+	}
+
 	return summary, findings
+}
+
+// runIaCSecrets scans for hardcoded secrets in IaC files using RAG patterns
+func (s *DevOpsScanner) runIaCSecrets(ctx context.Context, opts *scanner.ScanOptions) ([]IaCFinding, *IaCSecretsSummary) {
+	var findings []IaCFinding
+	secretsSummary := &IaCSecretsSummary{
+		ByType:       make(map[string]int),
+		BySecretType: make(map[string]int),
+		BySeverity:   make(map[string]int),
+	}
+
+	scanner := common.NewIaCSecretsScanner(common.IaCSecretsConfig{
+		Timeout: opts.Timeout,
+	})
+
+	result := scanner.Scan(ctx, opts.RepoPath)
+	if result.Error != nil {
+		return findings, secretsSummary
+	}
+
+	// Convert IaC secrets findings to IaCFinding format
+	for _, f := range result.Findings {
+		finding := IaCFinding{
+			RuleID:      f.RuleID,
+			Title:       f.SecretType + " detected in " + f.Type,
+			Description: f.Message,
+			Severity:    f.Severity,
+			File:        f.File,
+			Line:        f.Line,
+			Type:        f.Type,
+			Resolution:  f.Remediation,
+			SecretType:  f.SecretType,
+			Snippet:     f.Snippet,
+			IsSecret:    true,
+		}
+		findings = append(findings, finding)
+	}
+
+	// Copy summary
+	secretsSummary.TotalFindings = result.Summary.TotalFindings
+	secretsSummary.FilesScanned = result.Summary.FilesScanned
+	secretsSummary.ByType = result.Summary.ByType
+	secretsSummary.BySecretType = result.Summary.BySecretType
+	secretsSummary.BySeverity = result.Summary.BySeverity
+
+	return findings, secretsSummary
 }
 
 func parseCheckovOutput(data []byte, repoPath string) ([]IaCFinding, *IaCSummary) {
@@ -493,8 +561,8 @@ func (s *DevOpsScanner) runContainers(ctx context.Context, opts *scanner.ScanOpt
 	images := extractBaseImages(dockerfiles)
 	summary.ImagesScanned = len(images)
 
-	// Lint Dockerfiles for best practices
-	lintFindings := lintDockerfiles(dockerfiles, opts.RepoPath)
+	// Lint Dockerfiles for best practices using Semgrep rules from RAG
+	lintFindings := lintDockerfilesWithSemgrep(ctx, dockerfiles, opts.RepoPath, func(string) {})
 	findings = append(findings, lintFindings...)
 	for _, f := range lintFindings {
 		summary.TotalFindings++
@@ -632,102 +700,110 @@ func extractBaseImages(dockerfiles []string) []imageRef {
 	return images
 }
 
-// Dockerfile best practice patterns
-var dockerfileLintPatterns = []struct {
-	Pattern     *regexp.Regexp
-	Name        string
-	Severity    string
-	Description string
-	Remediation string
-}{
-	{
-		Pattern:     regexp.MustCompile(`(?i)^FROM\s+[^:]+:latest\s*$`),
-		Name:        "Using :latest tag",
-		Severity:    "medium",
-		Description: "Using :latest tag makes builds non-reproducible",
-		Remediation: "Pin to a specific version: FROM node:18.17.0-alpine",
-	},
-	{
-		Pattern:     regexp.MustCompile(`(?i)^FROM\s+[^:]+\s*$`),
-		Name:        "Missing image tag",
-		Severity:    "medium",
-		Description: "No tag specified, defaults to :latest which is non-reproducible",
-		Remediation: "Specify a version tag: FROM node:18.17.0",
-	},
-	{
-		Pattern:     regexp.MustCompile(`(?i)^USER\s+root\s*$`),
-		Name:        "Running as root",
-		Severity:    "high",
-		Description: "Container runs as root user which is a security risk",
-		Remediation: "Create and use a non-root user: RUN useradd -r appuser && USER appuser",
-	},
-	{
-		Pattern:     regexp.MustCompile(`(?i)^ADD\s+https?://`),
-		Name:        "ADD with remote URL",
-		Severity:    "high",
-		Description: "ADD with URL downloads content without verification",
-		Remediation: "Use curl/wget with checksum verification instead",
-	},
-	{
-		Pattern:     regexp.MustCompile(`(?i)^ADD\s+[^h]`),
-		Name:        "Using ADD instead of COPY",
-		Severity:    "low",
-		Description: "ADD has extra features that may be unexpected; COPY is more explicit",
-		Remediation: "Use COPY unless you need ADD's tar extraction feature",
-	},
-	{
-		Pattern:     regexp.MustCompile(`(?i)(?:PASSWORD|SECRET|API_KEY|TOKEN|PRIVATE_KEY)\s*=\s*['"]\S+['"]`),
-		Name:        "Hardcoded secret in Dockerfile",
-		Severity:    "critical",
-		Description: "Secret value hardcoded in Dockerfile will be visible in image layers",
-		Remediation: "Use build args with --secret or mount secrets at runtime",
-	},
-	{
-		Pattern:     regexp.MustCompile(`(?i)^ENV\s+(?:PASSWORD|SECRET|API_KEY|TOKEN|PRIVATE_KEY)\s+\S`),
-		Name:        "Secret in ENV instruction",
-		Severity:    "critical",
-		Description: "Secrets set via ENV are stored in image metadata",
-		Remediation: "Pass secrets at runtime via -e or use Docker secrets",
-	},
-	{
-		Pattern:     regexp.MustCompile(`(?i)apt-get\s+install(?!.*--no-install-recommends)`),
-		Name:        "apt-get without --no-install-recommends",
-		Severity:    "low",
-		Description: "Installing recommended packages increases image size",
-		Remediation: "Use: apt-get install --no-install-recommends",
-	},
-	{
-		Pattern:     regexp.MustCompile(`(?i)apt-get\s+(?:update|install)(?!.*&&.*rm\s+-rf\s+/var/lib/apt/lists)`),
-		Name:        "apt cache not cleaned",
-		Severity:    "low",
-		Description: "Package cache left in image increases size",
-		Remediation: "Add: && rm -rf /var/lib/apt/lists/*",
-	},
-	{
-		Pattern:     regexp.MustCompile(`(?i)^RUN\s+chmod\s+777`),
-		Name:        "chmod 777 used",
-		Severity:    "high",
-		Description: "World-writable permissions are a security risk",
-		Remediation: "Use more restrictive permissions like 755 or 644",
-	},
-	{
-		Pattern:     regexp.MustCompile(`(?i)^RUN\s+curl.*\|\s*(?:bash|sh)`),
-		Name:        "Piping curl to shell",
-		Severity:    "high",
-		Description: "Executing remote scripts is risky without verification",
-		Remediation: "Download, verify checksum, then execute",
-	},
-	{
-		Pattern:     regexp.MustCompile(`(?i)^EXPOSE\s+22\s*$`),
-		Name:        "SSH port exposed",
-		Severity:    "medium",
-		Description: "SSH in containers is generally discouraged",
-		Remediation: "Use docker exec for debugging instead of SSH",
-	},
+// lintDockerfilesWithSemgrep runs Semgrep-based Dockerfile analysis
+// This uses RAG-generated rules - no fallback patterns
+func lintDockerfilesWithSemgrep(ctx context.Context, dockerfiles []string, repoPath string, onStatus func(string)) []ContainerFinding {
+	var findings []ContainerFinding
+
+	if len(dockerfiles) == 0 {
+		return findings
+	}
+
+	// Find RAG path for rule generation
+	ragPath := findRAGPath()
+	if ragPath == "" {
+		// No RAG available - return only structural checks
+		return checkDockerfileStructure(dockerfiles, repoPath)
+	}
+
+	// Generate rules from RAG patterns
+	cacheDir := getCacheDir()
+	rulesPath := filepath.Join(cacheDir, "rules", "devops-docker.yaml")
+
+	// Generate rules if needed
+	if err := common.GenerateRulesFromRAG(ragPath, "devops/docker", rulesPath); err != nil {
+		// Rule generation failed - return only structural checks
+		return checkDockerfileStructure(dockerfiles, repoPath)
+	}
+
+	// Check if rules were generated
+	if _, err := os.Stat(rulesPath); os.IsNotExist(err) {
+		return checkDockerfileStructure(dockerfiles, repoPath)
+	}
+
+	// Check if Semgrep is available
+	if !common.HasSemgrep() {
+		// Semgrep not installed - return only structural checks
+		return checkDockerfileStructure(dockerfiles, repoPath)
+	}
+
+	// Run Semgrep
+	runner := common.NewSemgrepRunner(common.SemgrepConfig{
+		RulePaths: []string{rulesPath},
+		OnStatus:  onStatus,
+	})
+
+	result := runner.RunOnFiles(ctx, dockerfiles, repoPath)
+	if result.Error != nil {
+		// Semgrep failed - return only structural checks
+		return checkDockerfileStructure(dockerfiles, repoPath)
+	}
+
+	// Convert Semgrep findings to ContainerFindings
+	for _, f := range result.Findings {
+		findings = append(findings, ContainerFinding{
+			Type:        "dockerfile-lint",
+			Dockerfile:  f.File,
+			Line:        f.Line,
+			Severity:    f.Severity,
+			Title:       f.RuleID,
+			Description: f.Message,
+			Remediation: f.Remediation,
+		})
+	}
+
+	// Add file-level checks (HEALTHCHECK, USER presence)
+	findings = append(findings, checkDockerfileStructure(dockerfiles, repoPath)...)
+
+	return findings
 }
 
-// lintDockerfiles checks Dockerfiles for best practices
-func lintDockerfiles(dockerfiles []string, repoPath string) []ContainerFinding {
+// findRAGPath locates the RAG directory
+func findRAGPath() string {
+	candidates := []string{
+		"rag",
+		"../rag",
+		"../../rag",
+	}
+
+	if zeroHome := os.Getenv("ZERO_HOME"); zeroHome != "" {
+		candidates = append([]string{filepath.Join(zeroHome, "rag")}, candidates...)
+	}
+
+	for _, candidate := range candidates {
+		absPath, err := filepath.Abs(candidate)
+		if err != nil {
+			continue
+		}
+		if info, err := os.Stat(absPath); err == nil && info.IsDir() {
+			return absPath
+		}
+	}
+
+	return ""
+}
+
+// getCacheDir returns the cache directory for generated rules
+func getCacheDir() string {
+	if zeroHome := os.Getenv("ZERO_HOME"); zeroHome != "" {
+		return filepath.Join(zeroHome, "cache")
+	}
+	homeDir, _ := os.UserHomeDir()
+	return filepath.Join(homeDir, ".zero", "cache")
+}
+
+// checkDockerfileStructure performs file-level Dockerfile checks
+func checkDockerfileStructure(dockerfiles []string, repoPath string) []ContainerFinding {
 	var findings []ContainerFinding
 
 	for _, df := range dockerfiles {
@@ -738,50 +814,28 @@ func lintDockerfiles(dockerfiles []string, repoPath string) []ContainerFinding {
 
 		relPath, err := filepath.Rel(repoPath, df)
 		if err != nil {
-			relPath = df // Fall back to absolute path if Rel fails
+			relPath = df
 		}
 
 		scanner := bufio.NewScanner(file)
-		lineNum := 0
 		hasHealthcheck := false
 		hasUser := false
 
 		for scanner.Scan() {
-			lineNum++
 			line := strings.TrimSpace(scanner.Text())
-
-			// Skip comments and empty lines
 			if line == "" || strings.HasPrefix(line, "#") {
 				continue
 			}
 
-			// Track if HEALTHCHECK and USER are present
 			if strings.HasPrefix(strings.ToUpper(line), "HEALTHCHECK") {
 				hasHealthcheck = true
 			}
 			if strings.HasPrefix(strings.ToUpper(line), "USER") && !strings.Contains(strings.ToUpper(line), "ROOT") {
 				hasUser = true
 			}
-
-			// Check each pattern
-			for _, pattern := range dockerfileLintPatterns {
-				if pattern.Pattern.MatchString(line) {
-					findings = append(findings, ContainerFinding{
-						Type:        "dockerfile-lint",
-						Image:       "",
-						Dockerfile:  relPath,
-						Line:        lineNum,
-						Severity:    pattern.Severity,
-						Title:       pattern.Name,
-						Description: pattern.Description,
-						Remediation: pattern.Remediation,
-					})
-				}
-			}
 		}
 		file.Close()
 
-		// Check for missing HEALTHCHECK
 		if !hasHealthcheck {
 			findings = append(findings, ContainerFinding{
 				Type:        "dockerfile-lint",
@@ -793,7 +847,6 @@ func lintDockerfiles(dockerfiles []string, repoPath string) []ContainerFinding {
 			})
 		}
 
-		// Check for no USER instruction (running as root)
 		if !hasUser {
 			findings = append(findings, ContainerFinding{
 				Type:        "dockerfile-lint",
@@ -808,6 +861,7 @@ func lintDockerfiles(dockerfiles []string, repoPath string) []ContainerFinding {
 
 	return findings
 }
+
 
 func parseTrivyImageOutput(data []byte, imgRef imageRef) []ContainerFinding {
 	var findings []ContainerFinding

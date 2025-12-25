@@ -32,15 +32,16 @@ type Findings struct {
 
 // IaCSummary contains IaC security scan summary
 type IaCSummary struct {
-	TotalFindings int            `json:"total_findings"`
-	Critical      int            `json:"critical"`
-	High          int            `json:"high"`
-	Medium        int            `json:"medium"`
-	Low           int            `json:"low"`
-	ByType        map[string]int `json:"by_type"`
-	FilesScanned  int            `json:"files_scanned"`
-	Tool          string         `json:"tool"`
-	Error         string         `json:"error,omitempty"`
+	TotalFindings  int                `json:"total_findings"`
+	Critical       int                `json:"critical"`
+	High           int                `json:"high"`
+	Medium         int                `json:"medium"`
+	Low            int                `json:"low"`
+	ByType         map[string]int     `json:"by_type"`
+	FilesScanned   int                `json:"files_scanned"`
+	Tool           string             `json:"tool"`
+	Error          string             `json:"error,omitempty"`
+	SecretsSummary *IaCSecretsSummary `json:"secrets_summary,omitempty"` // IaC secrets findings summary
 }
 
 // ContainersSummary contains container security summary
@@ -110,6 +111,19 @@ type IaCFinding struct {
 	Type        string `json:"type"` // terraform, kubernetes, dockerfile, cloudformation
 	Resolution  string `json:"resolution,omitempty"`
 	CheckType   string `json:"check_type,omitempty"`
+	// Secret-related fields (for IaC secrets findings)
+	SecretType  string `json:"secret_type,omitempty"`  // aws_key, password, token, etc.
+	Snippet     string `json:"snippet,omitempty"`      // redacted code snippet
+	IsSecret    bool   `json:"is_secret,omitempty"`    // true if this is a secrets finding
+}
+
+// IaCSecretsSummary contains IaC secrets scan summary
+type IaCSecretsSummary struct {
+	TotalFindings int            `json:"total_findings"`
+	ByType        map[string]int `json:"by_type"`        // by IaC type
+	BySecretType  map[string]int `json:"by_secret_type"` // by secret type
+	BySeverity    map[string]int `json:"by_severity"`
+	FilesScanned  int            `json:"files_scanned"`
 }
 
 // ContainerFinding represents a container vulnerability or lint finding

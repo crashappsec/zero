@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/crashappsec/zero/pkg/core/cyclonedx"
 	"github.com/crashappsec/zero/pkg/scanner"
 	"github.com/crashappsec/zero/pkg/scanner/common"
 )
@@ -152,9 +153,194 @@ func (s *CryptoScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*sc
 			return nil, fmt.Errorf("writing result: %w", err)
 		}
 
+		// Export CBOM (CycloneDX Cryptography Bill of Materials)
+		if err := s.exportCBOM(opts.OutputDir, result); err != nil {
+			// Log warning but don't fail the scan
+			if opts.Verbose {
+				fmt.Printf("[crypto] Warning: failed to export CBOM: %v\n", err)
+			}
+		}
 	}
 
 	return scanResult, nil
+}
+
+// exportCBOM exports findings as a CycloneDX CBOM
+func (s *CryptoScanner) exportCBOM(outputDir string, result *Result) error {
+	bom := cyclonedx.NewCBOM()
+
+	// Add cipher findings as algorithm components
+	for _, cipher := range result.Findings.Ciphers {
+		c := cyclonedx.CipherFindingToComponent(
+			cipher.Algorithm,
+			extractCipherMode(cipher.Match),
+			cipher.Severity,
+			cipher.File,
+			cipher.Line,
+			cipher.Description,
+		)
+		bom.WithComponent(c)
+
+		// Add vulnerability for weak/deprecated ciphers
+		if cipher.Severity == "high" || cipher.Severity == "critical" {
+			v := cyclonedx.Vulnerability{
+				ID: fmt.Sprintf("CRYPTO-WEAK-%s-%s-%d", strings.ToUpper(cipher.Algorithm), filepath.Base(cipher.File), cipher.Line),
+				Source: &cyclonedx.VulnSource{
+					Name: "Zero Crypto Scanner",
+				},
+				Description:    cipher.Description,
+				Recommendation: cipher.Suggestion,
+				Ratings: []cyclonedx.VulnRating{
+					{
+						Severity: cyclonedx.SeverityToCycloneDX(cipher.Severity),
+						Method:   "other",
+					},
+				},
+				Affects: []cyclonedx.VulnAffect{
+					{Ref: c.BOMRef},
+				},
+			}
+			if cweInt := cyclonedx.CWEToInt(cipher.CWE); cweInt > 0 {
+				v.CWEs = []int{cweInt}
+			}
+			bom.WithVulnerability(v)
+		}
+	}
+
+	// Add key findings as vulnerabilities (hardcoded keys are vulnerabilities, not assets)
+	for _, key := range result.Findings.Keys {
+		v := cyclonedx.Vulnerability{
+			ID: fmt.Sprintf("CRYPTO-HARDCODED-KEY-%s-%s-%d", strings.ToUpper(key.Type), filepath.Base(key.File), key.Line),
+			Source: &cyclonedx.VulnSource{
+				Name: "Zero Crypto Scanner",
+			},
+			Description:    key.Description,
+			Recommendation: "Remove hardcoded keys and use secure key management",
+			Detail:         fmt.Sprintf("Found in: %s:%d", key.File, key.Line),
+			Ratings: []cyclonedx.VulnRating{
+				{
+					Severity: cyclonedx.SeverityToCycloneDX(key.Severity),
+					Method:   "other",
+				},
+			},
+		}
+		if cweInt := cyclonedx.CWEToInt(key.CWE); cweInt > 0 {
+			v.CWEs = []int{cweInt}
+		}
+		bom.WithVulnerability(v)
+	}
+
+	// Add TLS findings as protocol components
+	for _, tls := range result.Findings.TLS {
+		c := cyclonedx.TLSFindingToComponent(
+			tls.Type,
+			extractTLSVersion(tls.Match, tls.Description),
+			tls.Severity,
+			tls.File,
+			tls.Line,
+			tls.Description,
+		)
+		bom.WithComponent(c)
+
+		// Add vulnerability for TLS issues
+		v := cyclonedx.Vulnerability{
+			ID: fmt.Sprintf("CRYPTO-TLS-%s-%s-%d", strings.ToUpper(tls.Type), filepath.Base(tls.File), tls.Line),
+			Source: &cyclonedx.VulnSource{
+				Name: "Zero Crypto Scanner",
+			},
+			Description:    tls.Description,
+			Recommendation: tls.Suggestion,
+			Detail:         fmt.Sprintf("Found in: %s:%d", tls.File, tls.Line),
+			Ratings: []cyclonedx.VulnRating{
+				{
+					Severity: cyclonedx.SeverityToCycloneDX(tls.Severity),
+					Method:   "other",
+				},
+			},
+			Affects: []cyclonedx.VulnAffect{
+				{Ref: c.BOMRef},
+			},
+		}
+		if cweInt := cyclonedx.CWEToInt(tls.CWE); cweInt > 0 {
+			v.CWEs = []int{cweInt}
+		}
+		bom.WithVulnerability(v)
+	}
+
+	// Add certificates as components
+	if result.Findings.Certificates != nil {
+		for _, cert := range result.Findings.Certificates.Certificates {
+			c := cyclonedx.CertInfoToComponent(
+				cert.Subject,
+				cert.Issuer,
+				cert.NotBefore.Format(time.RFC3339),
+				cert.NotAfter.Format(time.RFC3339),
+				cert.KeyType,
+				cert.KeySize,
+				cert.SignatureAlgo,
+				cert.File,
+				cert.IsSelfSigned,
+			)
+			bom.WithComponent(c)
+		}
+
+		// Add certificate findings as vulnerabilities
+		for _, finding := range result.Findings.Certificates.Findings {
+			v := cyclonedx.Vulnerability{
+				ID: fmt.Sprintf("CRYPTO-CERT-%s-%s", strings.ToUpper(finding.Type), filepath.Base(finding.File)),
+				Source: &cyclonedx.VulnSource{
+					Name: "Zero Crypto Scanner",
+				},
+				Description:    finding.Description,
+				Recommendation: finding.Suggestion,
+				Ratings: []cyclonedx.VulnRating{
+					{
+						Severity: cyclonedx.SeverityToCycloneDX(finding.Severity),
+						Method:   "other",
+					},
+				},
+			}
+			if finding.File != "" {
+				v.Detail = fmt.Sprintf("Certificate file: %s", finding.File)
+				v.Affects = []cyclonedx.VulnAffect{
+					{Ref: fmt.Sprintf("crypto/certificate/%s", finding.File)},
+				}
+			}
+			bom.WithVulnerability(v)
+		}
+	}
+
+	// Write CBOM
+	exporter := cyclonedx.NewExporter(outputDir)
+	return exporter.WriteCBOM(bom, "cbom.cdx.json")
+}
+
+// extractCipherMode extracts cipher mode from match string
+func extractCipherMode(match string) string {
+	modes := []string{"gcm", "cbc", "ctr", "ecb", "cfb", "ofb", "ccm"}
+	matchLower := strings.ToLower(match)
+	for _, mode := range modes {
+		if strings.Contains(matchLower, mode) {
+			return mode
+		}
+	}
+	return ""
+}
+
+// extractTLSVersion extracts TLS version from match/description
+func extractTLSVersion(match, description string) string {
+	text := strings.ToLower(match + " " + description)
+	versions := []string{"1.3", "1.2", "1.1", "1.0"}
+	for _, v := range versions {
+		if strings.Contains(text, "tls"+v) || strings.Contains(text, "tls "+v) ||
+			strings.Contains(text, "tlsv"+v) {
+			return v
+		}
+	}
+	if strings.Contains(text, "sslv3") || strings.Contains(text, "ssl3") {
+		return "SSLv3"
+	}
+	return "unknown"
 }
 
 func getConfig(opts *scanner.ScanOptions) FeatureConfig {

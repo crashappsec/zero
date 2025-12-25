@@ -27,6 +27,12 @@ type SecretsConfig struct {
 	GitHistoryScan   GitHistoryConfig  `json:"git_history_scan"`  // Git history scanning
 	AIAnalysis       AIAnalysisConfig  `json:"ai_analysis"`       // Claude-powered FP reduction
 	RotationGuidance bool              `json:"rotation_guidance"` // Add rotation recommendations
+	IaCSecrets       IaCSecretsConfig  `json:"iac_secrets"`       // IaC-specific secrets detection
+}
+
+// IaCSecretsConfig configures IaC-specific secrets detection
+type IaCSecretsConfig struct {
+	Enabled bool `json:"enabled"` // Scan IaC files for hardcoded secrets
 }
 
 // EntropyConfig configures entropy-based secret detection
@@ -100,6 +106,9 @@ func DefaultConfig() FeatureConfig {
 				ConfidenceThreshold: 0.8,
 			},
 			RotationGuidance: true, // Enabled by default - no dependencies, high value
+			IaCSecrets: IaCSecretsConfig{
+				Enabled: true, // Enabled by default - catches secrets in Terraform, K8s, etc.
+			},
 		},
 		API: APIConfig{
 			Enabled:        true,

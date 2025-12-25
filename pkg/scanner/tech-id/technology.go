@@ -16,7 +16,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/crashappsec/zero/pkg/core/cyclonedx"
 	"github.com/crashappsec/zero/pkg/scanner"
+	"github.com/crashappsec/zero/pkg/scanner/common"
 )
 
 // ruleLoadMessageOnce ensures we only print the rule loading message once
@@ -177,6 +179,11 @@ func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) 
 		s.runGovernanceFeature(ctx, repoPath, result)
 	}
 
+	if s.config.Infrastructure.Enabled {
+		result.FeaturesRun = append(result.FeaturesRun, "infrastructure")
+		s.runInfrastructureFeature(ctx, repoPath, onStatus, result)
+	}
+
 	// Create scan result using the proper interface
 	scanResult := scanner.NewScanResult(Name, "1.0.0", startTime)
 
@@ -206,9 +213,156 @@ func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) 
 			return nil, fmt.Errorf("writing result: %w", err)
 		}
 
+		// Export ML-BOM (CycloneDX format)
+		if err := s.exportMLBOM(opts.OutputDir, result); err != nil {
+			// Log warning but don't fail the scan
+			onStatus(fmt.Sprintf("Warning: failed to export ML-BOM: %v", err))
+		}
 	}
 
 	return scanResult, nil
+}
+
+// exportMLBOM exports findings as a CycloneDX ML-BOM
+func (s *TechnologyScanner) exportMLBOM(outputDir string, result *Result) error {
+	bom := cyclonedx.NewMLBOM()
+
+	// Add ML models as components
+	for _, model := range result.Findings.Models {
+		c := cyclonedx.MLModelToComponent(
+			model.Name,
+			model.Version,
+			model.Source,
+			model.SourceURL,
+			model.Format,
+			model.Architecture,
+			model.Task,
+			model.License,
+		)
+
+		// Enrich with model card if available
+		if model.ModelCard != nil {
+			mc := cyclonedx.NewModelCard()
+			if model.Task != "" {
+				mc.WithTask(model.Task)
+			}
+			if model.Architecture != "" {
+				mc.WithArchitecture(inferArchitectureFamily(model.Architecture), model.Architecture)
+			}
+			for _, ds := range model.Datasets {
+				mc.WithDataset(fmt.Sprintf("dataset/%s", ds), "training")
+			}
+			if model.ModelCard.Limitations != "" {
+				mc.WithLimitation(model.ModelCard.Limitations)
+			}
+			if model.ModelCard.IntendedUse != "" {
+				mc.WithUseCase(model.ModelCard.IntendedUse)
+			}
+			c.ModelCard = mc
+		}
+
+		// Add security risk as property
+		if model.SecurityRisk != "" {
+			c.AddProperty("zero:security_risk", model.SecurityRisk)
+		}
+
+		// Add file path evidence
+		if model.FilePath != "" {
+			c.Evidence = &cyclonedx.Evidence{
+				Occurrences: []cyclonedx.Occurrence{{Location: model.FilePath}},
+			}
+		}
+
+		bom.WithComponent(c)
+	}
+
+	// Add frameworks as components
+	for _, fw := range result.Findings.Frameworks {
+		c := cyclonedx.FrameworkToComponent(fw.Name, fw.Version, fw.Category, fw.Package)
+		bom.WithComponent(c)
+	}
+
+	// Add datasets as components
+	for _, ds := range result.Findings.Datasets {
+		c := cyclonedx.DatasetToComponent(ds.Name, ds.Source, ds.SourceURL, ds.License, ds.Description)
+		bom.WithComponent(c)
+	}
+
+	// Add security findings as vulnerabilities
+	for _, finding := range result.Findings.Security {
+		v := cyclonedx.Vulnerability{
+			ID: finding.ID,
+			Source: &cyclonedx.VulnSource{
+				Name: "Zero AI Security Scanner",
+			},
+			Description:    fmt.Sprintf("%s: %s", finding.Title, finding.Description),
+			Recommendation: finding.Remediation,
+			Ratings: []cyclonedx.VulnRating{
+				{
+					Severity: cyclonedx.SeverityToCycloneDX(finding.Severity),
+					Method:   "other",
+				},
+			},
+		}
+
+		if finding.ModelName != "" {
+			v.Affects = []cyclonedx.VulnAffect{
+				{Ref: fmt.Sprintf("model/%s", finding.ModelName)},
+			}
+		}
+
+		bom.WithVulnerability(v)
+	}
+
+	// Add governance findings as vulnerabilities
+	for _, finding := range result.Findings.Governance {
+		v := cyclonedx.Vulnerability{
+			ID: finding.ID,
+			Source: &cyclonedx.VulnSource{
+				Name: "Zero AI Governance Scanner",
+			},
+			Description:    fmt.Sprintf("%s: %s", finding.Title, finding.Description),
+			Recommendation: finding.Remediation,
+			Ratings: []cyclonedx.VulnRating{
+				{
+					Severity: cyclonedx.SeverityToCycloneDX(finding.Severity),
+					Method:   "other",
+				},
+			},
+		}
+
+		if finding.ModelName != "" {
+			v.Affects = []cyclonedx.VulnAffect{
+				{Ref: fmt.Sprintf("model/%s", finding.ModelName)},
+			}
+		}
+
+		bom.WithVulnerability(v)
+	}
+
+	// Write ML-BOM
+	exporter := cyclonedx.NewExporter(outputDir)
+	return exporter.WriteMLBOM(bom, "mlbom.cdx.json")
+}
+
+// inferArchitectureFamily infers the ML architecture family from model architecture
+func inferArchitectureFamily(architecture string) string {
+	archLower := strings.ToLower(architecture)
+	families := map[string][]string{
+		"transformer": {"bert", "gpt", "llama", "mistral", "t5", "roberta", "transformer"},
+		"cnn":         {"resnet", "vgg", "inception", "efficientnet", "cnn"},
+		"rnn":         {"lstm", "gru", "rnn"},
+		"gan":         {"gan", "stylegan", "dcgan"},
+		"diffusion":   {"stable-diffusion", "dalle", "diffusion"},
+	}
+	for family, patterns := range families {
+		for _, pattern := range patterns {
+			if strings.Contains(archLower, pattern) {
+				return family
+			}
+		}
+	}
+	return "other"
 }
 
 // mergeSemgrepFindings merges semgrep results into the main result
@@ -2043,4 +2197,145 @@ func (s *TechnologyScanner) buildTechnologySummary(techs []Technology) *Technolo
 	}
 
 	return summary
+}
+
+// =============================================================================
+// Infrastructure/Microservice Detection Feature
+// =============================================================================
+
+// runInfrastructureFeature detects microservice communication patterns
+func (s *TechnologyScanner) runInfrastructureFeature(ctx context.Context, repoPath string, onStatus func(string), result *Result) {
+	onStatus("Detecting microservice communication patterns...")
+
+	// Create microservice scanner
+	msScanner := common.NewMicroserviceScanner(common.MicroserviceConfig{
+		RAGPath:  filepath.Join(os.Getenv("ZERO_HOME"), "rag", "architecture", "microservices"),
+		CacheDir: filepath.Join(os.Getenv("ZERO_HOME"), ".cache", "microservices"),
+		Timeout:  120 * time.Second,
+		OnStatus: onStatus,
+	})
+
+	// Run the scan
+	msResult := msScanner.Scan(ctx, repoPath)
+
+	if msResult.Error != nil {
+		result.Summary.Infrastructure = &InfrastructureSummary{
+			Error: msResult.Error.Error(),
+		}
+		return
+	}
+
+	// Convert to tech-id types
+	infraFindings := &InfrastructureFindings{}
+
+	// Convert services
+	for _, svc := range msResult.Services {
+		endpoints := make([]Endpoint, len(svc.Endpoints))
+		for i, ep := range svc.Endpoints {
+			endpoints[i] = Endpoint{
+				Method:      ep.Method,
+				Path:        ep.Path,
+				Description: ep.Description,
+				File:        ep.File,
+				Line:        ep.Line,
+			}
+		}
+		infraFindings.Services = append(infraFindings.Services, ServiceDefinition{
+			Name:      svc.Name,
+			Type:      svc.Type,
+			Endpoints: endpoints,
+			Port:      svc.Port,
+			File:      svc.File,
+			Line:      svc.Line,
+			Framework: svc.Framework,
+			Metadata:  svc.Metadata,
+		})
+	}
+
+	// Convert dependencies
+	for _, dep := range msResult.Dependencies {
+		locations := make([]CodeLocation, len(dep.Locations))
+		for i, loc := range dep.Locations {
+			locations[i] = CodeLocation{
+				File:    loc.File,
+				Line:    loc.Line,
+				Column:  loc.Column,
+				Snippet: loc.Snippet,
+			}
+		}
+		infraFindings.Dependencies = append(infraFindings.Dependencies, ServiceDependency{
+			SourceService: dep.SourceService,
+			TargetService: dep.TargetService,
+			TargetURL:     dep.TargetURL,
+			Type:          dep.Type,
+			Method:        dep.Method,
+			Locations:     locations,
+			Confidence:    dep.Confidence,
+		})
+	}
+
+	// Convert API contracts
+	for _, contract := range msResult.APIContracts {
+		endpoints := make([]Endpoint, len(contract.Endpoints))
+		for i, ep := range contract.Endpoints {
+			endpoints[i] = Endpoint{
+				Method:      ep.Method,
+				Path:        ep.Path,
+				Description: ep.Description,
+				File:        ep.File,
+				Line:        ep.Line,
+			}
+		}
+		infraFindings.APIContracts = append(infraFindings.APIContracts, APIContract{
+			Name:      contract.Name,
+			Type:      contract.Type,
+			Version:   contract.Version,
+			File:      contract.File,
+			BaseURL:   contract.BaseURL,
+			Endpoints: endpoints,
+			Services:  contract.Services,
+		})
+	}
+
+	// Convert message queues
+	for _, mq := range msResult.MessageQueues {
+		locations := make([]CodeLocation, len(mq.Locations))
+		for i, loc := range mq.Locations {
+			locations[i] = CodeLocation{
+				File:    loc.File,
+				Line:    loc.Line,
+				Column:  loc.Column,
+				Snippet: loc.Snippet,
+			}
+		}
+		infraFindings.MessageQueues = append(infraFindings.MessageQueues, MessageQueueUsage{
+			QueueType:     mq.QueueType,
+			Role:          mq.Role,
+			TopicOrQueue:  mq.TopicOrQueue,
+			Brokers:       mq.Brokers,
+			ConsumerGroup: mq.ConsumerGroup,
+			Locations:     locations,
+		})
+	}
+
+	result.Findings.Infrastructure = infraFindings
+
+	// Build summary
+	summary := &InfrastructureSummary{
+		TotalServices:        msResult.Summary.TotalServices,
+		TotalDependencies:    msResult.Summary.TotalDependencies,
+		TotalAPIContracts:    msResult.Summary.TotalAPIContracts,
+		TotalMessageQueues:   msResult.Summary.TotalMessageQueues,
+		ByType:               msResult.Summary.CommunicationTypes,
+	}
+
+	result.Summary.Infrastructure = summary
+
+	// Report findings
+	if summary.TotalServices > 0 || summary.TotalDependencies > 0 || summary.TotalMessageQueues > 0 {
+		onStatus(fmt.Sprintf("Found %d services, %d dependencies, %d API contracts, %d message queues",
+			summary.TotalServices, summary.TotalDependencies, summary.TotalAPIContracts, summary.TotalMessageQueues))
+	} else {
+		onStatus("No microservice patterns detected")
+	}
 }

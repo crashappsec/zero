@@ -85,20 +85,24 @@
 ## Best Practice Patterns
 
 ### Missing HEALTHCHECK
-**Type**: regex
+**Type**: structural
 **Severity**: info
-**Pattern**: `^(?!.*HEALTHCHECK).*$`
+**Pattern**: `HEALTHCHECK`
+**Description**: Dockerfile should include HEALTHCHECK instruction
 - HEALTHCHECK enables container orchestration health monitoring
 - Missing HEALTHCHECK makes it harder to detect unhealthy containers
 - Remediation: Add `HEALTHCHECK CMD curl -f http://localhost/ || exit 1`
+- Note: Detected via structural analysis (file-level check for presence)
 
 ### Missing Non-Root USER
-**Type**: regex
+**Type**: structural
 **Severity**: high
-**Pattern**: `^(?!.*USER\s+(?!root)).*CMD`
+**Pattern**: `USER`
+**Description**: Dockerfile should specify non-root USER before CMD
 - Container runs as root if no USER directive before CMD
 - Running as root increases attack surface if container is compromised
 - Remediation: Add `USER nonroot` or `USER 1000:1000` before CMD
+- Note: Detected via structural analysis (file-level check for presence)
 
 ### Untagged Base Image
 **Type**: regex

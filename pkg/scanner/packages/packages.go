@@ -1008,8 +1008,69 @@ func (s *PackagesScanner) runProvenanceFeature(ctx context.Context, components [
 	}
 
 	result.Summary.TotalPackages = len(components)
-	// Placeholder - full implementation would check npm provenance, sigstore, etc.
-	result.Summary.UnverifiedCount = result.Summary.TotalPackages
+
+	// Use deps.dev client for SLSA provenance data
+	depsClient := liveapi.NewDepsDevClient()
+
+	for _, pkg := range components {
+		if pkg.Purl == "" {
+			result.Summary.UnverifiedCount++
+			continue
+		}
+
+		// Query deps.dev for SLSA provenance
+		provenances, err := depsClient.GetSLSAProvenance(ctx, pkg.Ecosystem, pkg.Name, pkg.Version)
+		if err != nil {
+			result.Summary.UnverifiedCount++
+			result.Findings = append(result.Findings, ProvenanceFinding{
+				Package:  pkg.Name,
+				Version:  pkg.Version,
+				Verified: false,
+			})
+			continue
+		}
+
+		if len(provenances) > 0 {
+			// Has provenance attestation
+			prov := provenances[0]
+			verified := prov.Verified
+
+			finding := ProvenanceFinding{
+				Package:  pkg.Name,
+				Version:  pkg.Version,
+				Verified: verified,
+			}
+
+			if prov.SourceRepository != "" {
+				finding.Source = prov.SourceRepository
+			}
+			if prov.URL != "" {
+				finding.Attestation = prov.URL
+			}
+
+			result.Findings = append(result.Findings, finding)
+
+			if verified {
+				result.Summary.VerifiedCount++
+			} else {
+				// Has provenance but not verified - suspicious
+				result.Summary.SuspiciousCount++
+			}
+		} else {
+			// No provenance data
+			result.Summary.UnverifiedCount++
+			result.Findings = append(result.Findings, ProvenanceFinding{
+				Package:  pkg.Name,
+				Version:  pkg.Version,
+				Verified: false,
+			})
+		}
+	}
+
+	// Calculate verification rate
+	if result.Summary.TotalPackages > 0 {
+		result.Summary.VerificationRate = float64(result.Summary.VerifiedCount) / float64(result.Summary.TotalPackages) * 100
+	}
 
 	return result
 }
@@ -1198,26 +1259,38 @@ func (s *PackagesScanner) runDeprecationsFeature(ctx context.Context, components
 
 	result.Summary.TotalPackages = len(components)
 
-	client := &http.Client{Timeout: 5 * time.Second}
+	// Use deps.dev client as primary source (cross-ecosystem)
+	depsClient := liveapi.NewDepsDevClient()
+	httpClient := &http.Client{Timeout: 5 * time.Second}
 
 	for _, pkg := range components {
 		var deprecated bool
 		var message, alternative string
 
-		switch pkg.Ecosystem {
-		case "npm":
-			if s.config.Deprecations.CheckNPM {
-				deprecated, message = checkNPMDeprecation(ctx, client, pkg.Name, pkg.Version)
+		// First, try deps.dev (works for all supported ecosystems)
+		if pkg.Purl != "" {
+			details, err := depsClient.GetVersionDetailsByPURL(ctx, pkg.Purl)
+			if err == nil && details.IsDeprecated {
+				deprecated = true
+				message = "Package version is deprecated"
 			}
-		case "pypi":
-			if s.config.Deprecations.CheckPyPI {
-				// PyPI doesn't have a formal deprecation field, but we check classifiers
-				deprecated, message = checkPyPIDeprecation(ctx, client, pkg.Name)
-			}
-		case "golang":
-			if s.config.Deprecations.CheckGo {
-				// Go modules can have retract directives
-				deprecated, message = checkGoDeprecation(ctx, client, pkg.Name, pkg.Version)
+		}
+
+		// Fallback to ecosystem-specific APIs for richer deprecation messages
+		if !deprecated {
+			switch pkg.Ecosystem {
+			case "npm":
+				if s.config.Deprecations.CheckNPM {
+					deprecated, message = checkNPMDeprecation(ctx, httpClient, pkg.Name, pkg.Version)
+				}
+			case "pypi":
+				if s.config.Deprecations.CheckPyPI {
+					deprecated, message = checkPyPIDeprecation(ctx, httpClient, pkg.Name)
+				}
+			case "golang", "go":
+				if s.config.Deprecations.CheckGo {
+					deprecated, message = checkGoDeprecation(ctx, httpClient, pkg.Name, pkg.Version)
+				}
 			}
 		}
 

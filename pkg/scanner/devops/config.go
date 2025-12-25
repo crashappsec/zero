@@ -16,6 +16,7 @@ type IaCConfig struct {
 	Enabled      bool   `json:"enabled"`
 	Tool         string `json:"tool"`          // checkov, trivy, auto
 	FallbackTool bool   `json:"fallback_tool"` // Use trivy if checkov fails
+	ScanSecrets  bool   `json:"scan_secrets"`  // Scan for hardcoded secrets in IaC files
 }
 
 // ContainersConfig configures container image scanning
@@ -55,6 +56,7 @@ func DefaultConfig() FeatureConfig {
 			Enabled:      true,
 			Tool:         "auto",
 			FallbackTool: true,
+			ScanSecrets:  true,
 		},
 		Containers: ContainersConfig{
 			Enabled:        true,
@@ -105,6 +107,7 @@ func FullConfig() FeatureConfig {
 			Enabled:      true,
 			Tool:         "auto",
 			FallbackTool: true,
+			ScanSecrets:  true,
 		},
 		Containers: ContainersConfig{
 			Enabled:        true,

@@ -288,6 +288,7 @@ func (s *CodeSecurityScanner) runSecrets(ctx context.Context, opts *scanner.Scan
 	var semgrepFindings []SecretFinding
 	var entropyFindings []SecretFinding
 	var historyFindings []SecretFinding
+	var iacSecretsFindings []SecretFinding
 
 	timeout := opts.Timeout
 	if timeout == 0 {
@@ -335,6 +336,38 @@ func (s *CodeSecurityScanner) runSecrets(ctx context.Context, opts *scanner.Scan
 			mu.Unlock()
 		}
 	}()
+
+	// Run IaC secrets scanning if enabled
+	if cfg.IaCSecrets.Enabled {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			iacScanner := common.NewIaCSecretsScanner(common.IaCSecretsConfig{
+				Timeout: timeout,
+			})
+			result := iacScanner.Scan(ctx, opts.RepoPath)
+			if result.Error == nil {
+				mu.Lock()
+				// Convert IaC secrets findings to SecretFinding format
+				for _, f := range result.Findings {
+					finding := SecretFinding{
+						RuleID:          f.RuleID,
+						Type:            f.SecretType,
+						Severity:        f.Severity,
+						Message:         f.Message,
+						File:            f.File,
+						Line:            f.Line,
+						Column:          f.Column,
+						Snippet:         f.Snippet,
+						DetectionSource: "iac-scanner",
+						IaCType:         f.Type,
+					}
+					iacSecretsFindings = append(iacSecretsFindings, finding)
+				}
+				mu.Unlock()
+			}
+		}()
+	}
 
 	// Run entropy analysis if enabled
 	if cfg.EntropyAnalysis.Enabled {
@@ -415,6 +448,18 @@ func (s *CodeSecurityScanner) runSecrets(ctx context.Context, opts *scanner.Scan
 		}
 	}
 	semgrepSummary.BySource["git_history"] = semgrepSummary.HistoryFindings
+
+	// Add IaC secrets findings (dedupe)
+	iacSecretsCount := 0
+	for _, f := range iacSecretsFindings {
+		key := fmt.Sprintf("%s:%d", f.File, f.Line)
+		if !seen[key] {
+			allFindings = append(allFindings, f)
+			seen[key] = true
+			iacSecretsCount++
+		}
+	}
+	semgrepSummary.BySource["iac_secrets"] = iacSecretsCount
 
 	// Add rotation guidance if enabled
 	if cfg.RotationGuidance {

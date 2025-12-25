@@ -8,20 +8,29 @@ Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 > **"Hack the planet!"** - A unified orchestrator for repository analysis, security scanning, and developer productivity insights powered by AI agents
 
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Status: Experimental](https://img.shields.io/badge/Status-Experimental-orange.svg)](https://github.com/crashappsec/zero)
+[![Status: Alpha](https://img.shields.io/badge/Status-Alpha-orange.svg)](https://github.com/crashappsec/zero)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![Go](https://img.shields.io/badge/Go-1.22+-00ADD8.svg)](https://go.dev)
 
 Named after **Zero Cool** from the movie Hackers (1995), Zero is a team of AI agents that analyze your code for security, compliance, and quality issues.
 
+### Maturity
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **Scanners** | Alpha | 9 super scanners, 45+ features, changing fast |
+| **AI Agents** | Alpha | 13 specialists for deep analysis |
+| **CLI** | Alpha | Core commands working, APIs may change |
+| **Reports** | Experimental | HTML reports, expect breaking changes |
+
 ## What is Zero?
 
-Zero is a Go-based CLI tool for software and security engineers. It provides 8 consolidated "super scanners" with 40+ configurable features, AI-powered analysis agents, and integrates with tools like cdxgen, syft, semgrep, and grype to provide comprehensive security assessments.
+Zero is a Go-based CLI tool for software and security engineers. It provides 9 consolidated "super scanners" with 45+ configurable features, AI-powered analysis agents, and integrates with tools like cdxgen, syft, semgrep, and grype to provide comprehensive security assessments.
 
 ### Key Capabilities
 
-- **8 Super Scanners** - Consolidated scanners with multiple features: SBOM, package analysis, code security, crypto, DevOps, quality, technology identification, and code ownership
-- **AI Agent System** - 12 specialist agents (named after Hackers characters) for deep security analysis
+- **9 Super Scanners** - Consolidated scanners with multiple features: SBOM, package analysis, code security, crypto, DevOps, quality, technology identification, code ownership, and developer experience
+- **AI Agent System** - 13 specialist agents (named after Hackers characters) for deep security analysis
 - **Configurable** - JSON configuration for scanner options, profiles, and feature toggles
 - **ML-BOM Generation** - Machine Learning Bill of Materials for AI/ML projects
 
@@ -113,7 +122,7 @@ Profiles are defined in `config/zero.config.json` and can be customized.
 
 ## Scanners
 
-Zero uses **8 consolidated super scanners** (v3.5 architecture), each with multiple configurable features:
+Zero uses **9 consolidated super scanners** (v3.7 architecture), each with multiple configurable features:
 
 | Scanner | Features | Description | External Tools |
 |---------|----------|-------------|----------------|
@@ -125,6 +134,7 @@ Zero uses **8 consolidated super scanners** (v3.5 architecture), each with multi
 | **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security | trivy, checkov |
 | **tech-id** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | Technology detection and ML-BOM generation | - |
 | **code-ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | Code ownership analysis | - |
+| **developer-experience** | onboarding, sprawl, workflow | Developer experience analysis | - |
 
 ### Feature Details
 
@@ -387,8 +397,8 @@ Zero is maintained by the open source community and sponsored by [Crash Override
 
 ---
 
-**Status**: Experimental Preview
-**Version**: 3.5.0 (Super Scanner Architecture)
-**Last Updated**: 2025-12-14
+**Status**: Alpha (Reports: Experimental)
+**Version**: 3.7.0 (Super Scanner Architecture)
+**Last Updated**: 2025-12-24
 
 *"Hack the planet!"*
