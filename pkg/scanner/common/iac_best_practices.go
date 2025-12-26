@@ -87,7 +87,7 @@ func (s *IaCBestPracticesScanner) Scan(ctx context.Context, repoPath string) *Ia
 		},
 	}
 
-	// Find IaC files (reuse logic from secrets scanner)
+	// Find IaC files
 	iacFiles := s.findIaCFiles(repoPath)
 	if len(iacFiles) == 0 {
 		return result
@@ -99,12 +99,12 @@ func (s *IaCBestPracticesScanner) Scan(ctx context.Context, repoPath string) *Ia
 	// Generate rules if needed
 	rulesPath := filepath.Join(s.cacheDir, "rules", "iac-best-practices.yaml")
 	if err := s.ensureRulesGenerated(rulesPath); err != nil {
-		// Fall back to structural checks
-		result.Findings = s.scanWithStructuralChecks(ctx, iacFiles, repoPath)
-	} else {
-		// Use Semgrep with generated rules
-		result.Findings = s.scanWithSemgrep(ctx, iacFiles, repoPath, rulesPath)
+		result.Error = err
+		return result
 	}
+
+	// Run Semgrep with generated rules
+	result.Findings = s.scanWithSemgrep(ctx, iacFiles, repoPath, rulesPath)
 
 	// Build summary
 	for _, f := range result.Findings {
@@ -223,10 +223,6 @@ func (s *IaCBestPracticesScanner) ensureRulesGenerated(rulesPath string) error {
 func (s *IaCBestPracticesScanner) scanWithSemgrep(ctx context.Context, files []string, repoPath, rulesPath string) []IaCBestPracticeFinding {
 	var findings []IaCBestPracticeFinding
 
-	if !HasSemgrep() {
-		return s.scanWithStructuralChecks(ctx, files, repoPath)
-	}
-
 	runner := NewSemgrepRunner(SemgrepConfig{
 		RulePaths: []string{rulesPath},
 		Timeout:   s.timeout,
@@ -235,7 +231,7 @@ func (s *IaCBestPracticesScanner) scanWithSemgrep(ctx context.Context, files []s
 
 	result := runner.RunOnFiles(ctx, files, repoPath)
 	if result.Error != nil {
-		return s.scanWithStructuralChecks(ctx, files, repoPath)
+		return findings
 	}
 
 	for _, f := range result.Findings {
@@ -252,153 +248,6 @@ func (s *IaCBestPracticesScanner) scanWithSemgrep(ctx context.Context, files []s
 			Remediation: f.Remediation,
 		}
 		findings = append(findings, finding)
-	}
-
-	return findings
-}
-
-// scanWithStructuralChecks performs basic structural checks as fallback
-func (s *IaCBestPracticesScanner) scanWithStructuralChecks(ctx context.Context, files []string, repoPath string) []IaCBestPracticeFinding {
-	var findings []IaCBestPracticeFinding
-
-	for _, file := range files {
-		select {
-		case <-ctx.Done():
-			return findings
-		default:
-		}
-
-		fileFindings := s.checkFileStructure(file)
-		findings = append(findings, fileFindings...)
-	}
-
-	return findings
-}
-
-// checkFileStructure performs structural checks on a single file
-func (s *IaCBestPracticesScanner) checkFileStructure(filePath string) []IaCBestPracticeFinding {
-	var findings []IaCBestPracticeFinding
-
-	data, err := os.ReadFile(filePath)
-	if err != nil {
-		return findings
-	}
-
-	content := string(data)
-	fileType := s.determineIaCType(filePath)
-
-	switch fileType {
-	case "dockerfile":
-		findings = append(findings, s.checkDockerfile(filePath, content)...)
-	case "kubernetes":
-		findings = append(findings, s.checkKubernetes(filePath, content)...)
-	case "terraform":
-		findings = append(findings, s.checkTerraform(filePath, content)...)
-	}
-
-	return findings
-}
-
-// checkDockerfile checks Dockerfile for best practices
-func (s *IaCBestPracticesScanner) checkDockerfile(filePath, content string) []IaCBestPracticeFinding {
-	var findings []IaCBestPracticeFinding
-
-	// Check for missing HEALTHCHECK
-	if !strings.Contains(content, "HEALTHCHECK") {
-		findings = append(findings, IaCBestPracticeFinding{
-			RuleID:      "dockerfile-missing-healthcheck",
-			Type:        "dockerfile",
-			Category:    "best-practice",
-			Severity:    "low",
-			Title:       "Missing HEALTHCHECK instruction",
-			Message:     "Dockerfile should include HEALTHCHECK for container health monitoring",
-			File:        filePath,
-			Remediation: "Add HEALTHCHECK instruction: HEALTHCHECK CMD curl -f http://localhost/ || exit 1",
-		})
-	}
-
-	// Check for using latest tag
-	if strings.Contains(content, ":latest") {
-		findings = append(findings, IaCBestPracticeFinding{
-			RuleID:      "dockerfile-latest-tag",
-			Type:        "dockerfile",
-			Category:    "best-practice",
-			Severity:    "medium",
-			Title:       "Using :latest tag",
-			Message:     "Avoid using :latest tag for reproducible builds",
-			File:        filePath,
-			Remediation: "Pin to specific version tag, e.g., FROM node:18.19.0-alpine",
-		})
-	}
-
-	return findings
-}
-
-// checkKubernetes checks Kubernetes manifests for best practices
-func (s *IaCBestPracticesScanner) checkKubernetes(filePath, content string) []IaCBestPracticeFinding {
-	var findings []IaCBestPracticeFinding
-
-	// Check for missing resource limits
-	if strings.Contains(content, "containers:") && !strings.Contains(content, "resources:") {
-		findings = append(findings, IaCBestPracticeFinding{
-			RuleID:      "k8s-missing-resources",
-			Type:        "kubernetes",
-			Category:    "best-practice",
-			Severity:    "medium",
-			Title:       "Missing resource requests/limits",
-			Message:     "Containers should define resource requests and limits",
-			File:        filePath,
-			Remediation: "Add resources: { requests: { cpu: '100m', memory: '128Mi' }, limits: { ... } }",
-		})
-	}
-
-	// Check for missing liveness probe
-	if strings.Contains(content, "containers:") && !strings.Contains(content, "livenessProbe:") {
-		findings = append(findings, IaCBestPracticeFinding{
-			RuleID:      "k8s-missing-liveness-probe",
-			Type:        "kubernetes",
-			Category:    "best-practice",
-			Severity:    "low",
-			Title:       "Missing liveness probe",
-			Message:     "Containers should define liveness probes for health checking",
-			File:        filePath,
-			Remediation: "Add livenessProbe: { httpGet: { path: /health, port: 8080 } }",
-		})
-	}
-
-	return findings
-}
-
-// checkTerraform checks Terraform files for best practices
-func (s *IaCBestPracticesScanner) checkTerraform(filePath, content string) []IaCBestPracticeFinding {
-	var findings []IaCBestPracticeFinding
-
-	// Check for missing tags on AWS resources
-	if strings.Contains(content, `resource "aws_`) && !strings.Contains(content, "tags") {
-		findings = append(findings, IaCBestPracticeFinding{
-			RuleID:      "terraform-missing-tags",
-			Type:        "terraform",
-			Category:    "best-practice",
-			Severity:    "medium",
-			Title:       "Missing resource tags",
-			Message:     "AWS resources should have tags for organization and cost tracking",
-			File:        filePath,
-			Remediation: "Add tags = { Environment = var.environment, Owner = var.owner }",
-		})
-	}
-
-	// Check for missing variable descriptions
-	if strings.Contains(content, "variable ") && !strings.Contains(content, "description") {
-		findings = append(findings, IaCBestPracticeFinding{
-			RuleID:      "terraform-variable-no-description",
-			Type:        "terraform",
-			Category:    "best-practice",
-			Severity:    "low",
-			Title:       "Variable without description",
-			Message:     "Variables should have descriptions for documentation",
-			File:        filePath,
-			Remediation: "Add description = \"Purpose of this variable\"",
-		})
 	}
 
 	return findings
