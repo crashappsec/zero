@@ -40,6 +40,14 @@ Determine if vulnerable dependencies are actually used:
 - Microservice Mapping - Service-to-service communication from code
 - Database Schema Analysis - Migration risks, schema drift from ORM models
 
+#### Semgrep Rule Management
+Better organization and discoverability of Semgrep rules:
+- Unified Taxonomy - Consistent naming across code-security, tech-id, secrets, IaC
+- Individual Rule Files - One file per rule for easy browsing and review
+- Rule Browser - CLI command to list, search, and inspect rules
+- Rule Metadata - Severity, category, references, test cases per rule
+- Design TBD - Goal is making rules easy to browse, review, and contribute
+
 #### Future Enhancements
 - API Versioning Audit - Detect deprecated or sunset API endpoints
 - Training Data Analysis - PII detection in ML datasets
