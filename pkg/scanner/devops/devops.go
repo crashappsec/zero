@@ -269,7 +269,67 @@ func (s *DevOpsScanner) runIaC(ctx context.Context, opts *scanner.ScanOptions, c
 		}
 	}
 
+	// Run IaC best practices scanning if enabled
+	if cfg.CheckBestPractices {
+		bpFindings := s.runIaCBestPractices(ctx, opts)
+		findings = append(findings, bpFindings...)
+
+		// Initialize ByCategory if needed
+		if summary.ByCategory == nil {
+			summary.ByCategory = make(map[string]int)
+		}
+
+		// Update totals
+		for _, f := range bpFindings {
+			summary.TotalFindings++
+			summary.BestPractices++
+			summary.ByCategory["best-practice"]++
+			switch f.Severity {
+			case "critical":
+				summary.Critical++
+			case "high":
+				summary.High++
+			case "medium":
+				summary.Medium++
+			case "low":
+				summary.Low++
+			}
+		}
+	}
+
 	return summary, findings
+}
+
+// runIaCBestPractices scans for best practices violations in IaC files using RAG patterns
+func (s *DevOpsScanner) runIaCBestPractices(ctx context.Context, opts *scanner.ScanOptions) []IaCFinding {
+	var findings []IaCFinding
+
+	scanner := common.NewIaCBestPracticesScanner(common.IaCBestPracticesConfig{
+		Timeout: opts.Timeout,
+	})
+
+	result := scanner.Scan(ctx, opts.RepoPath)
+	if result.Error != nil {
+		return findings
+	}
+
+	// Convert best practices findings to IaCFinding format
+	for _, f := range result.Findings {
+		finding := IaCFinding{
+			RuleID:      f.RuleID,
+			Title:       f.Title,
+			Description: f.Message,
+			Severity:    f.Severity,
+			File:        f.File,
+			Line:        f.Line,
+			Type:        f.Type,
+			Category:    "best-practice",
+			Resolution:  f.Remediation,
+		}
+		findings = append(findings, finding)
+	}
+
+	return findings
 }
 
 // runIaCSecrets scans for hardcoded secrets in IaC files using RAG patterns
