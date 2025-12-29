@@ -56,9 +56,11 @@ temp/
 # Build outputs
 dist/
 /build/
-.DS_Store
-.DS_Store
 .claude/skills
+
+# Go build artifacts
+/main
+/zero
 
 # SBOM generation
 sbom-output/
@@ -72,7 +74,6 @@ reports/*
 !reports/template/
 reports/template/node_modules/
 *.sequence
-.DS_Store
 
 # Zero data directory (cloned repos and analysis results)
 .zero/
@@ -85,4 +86,3 @@ rag/semgrep/community-rules/
 mcp-server/node_modules/
 mcp-server/dist/
 bin/
-.DS_Store
