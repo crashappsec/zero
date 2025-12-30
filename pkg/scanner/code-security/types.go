@@ -2,9 +2,10 @@ package codesecurity
 
 // Result holds all feature results
 type Result struct {
-	FeaturesRun []string `json:"features_run"`
-	Summary     Summary  `json:"summary"`
-	Findings    Findings `json:"findings"`
+	FeaturesRun        []string                  `json:"features_run"`
+	Summary            Summary                   `json:"summary"`
+	Findings           Findings                  `json:"findings"`
+	GitHistorySecurity *GitHistorySecurityResult `json:"git_history_security,omitempty"`
 }
 
 // Summary holds summaries from all features

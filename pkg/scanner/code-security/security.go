@@ -114,6 +114,22 @@ func (s *CodeSecurityScanner) Run(ctx context.Context, opts *scanner.ScanOptions
 		mu.Unlock()
 	}
 
+	// Run git history security scanning if enabled (no semgrep required)
+	if cfg.Secrets.GitHistorySecurity.Enabled {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			securityScanner := NewGitHistorySecurityScanner(cfg.Secrets.GitHistorySecurity)
+			securityResult, err := securityScanner.ScanRepository(opts.RepoPath)
+			if err == nil && securityResult != nil {
+				mu.Lock()
+				result.FeaturesRun = append(result.FeaturesRun, "git_history_security")
+				result.GitHistorySecurity = securityResult
+				mu.Unlock()
+			}
+		}()
+	}
+
 	wg.Wait()
 
 	scanResult := scanner.NewScanResult(Name, Version, start)
