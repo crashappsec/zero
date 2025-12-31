@@ -9,16 +9,65 @@ Comprehensive documentation for Zero - an engineering intelligence platform for 
 
 ## Quick Start
 
+### Prerequisites
+
+- Go 1.21+
+- GitHub token (for cloning repositories)
+
 ```bash
-# Clone and analyze a repository
-./zero.sh hydrate expressjs/express --security
-
-# Check status
-./zero.sh status
-
-# Enter agent mode
-/agent
+# Set your GitHub token
+export GITHUB_TOKEN=ghp_your_token_here
 ```
+
+### Build and Run
+
+```bash
+# Build the CLI
+go build -o zero ./cmd/zero
+
+# Verify it works
+./zero --help
+```
+
+### Scan a Repository
+
+```bash
+# Scan a single repository (uses default 'all-quick' profile)
+./zero hydrate phantom-tests/juice-shop
+
+# Scan with a specific profile
+./zero hydrate phantom-tests/juice-shop code-security
+
+# Check scan status
+./zero status
+
+# View the HTML report
+./zero report phantom-tests/juice-shop
+```
+
+### Available Profiles
+
+| Profile | Description | Time |
+|---------|-------------|------|
+| `all-quick` | All scanners, limited features (default) | ~2 min |
+| `all-complete` | All scanners, all features | ~12 min |
+| `code-security` | SAST, secrets, API security | ~3 min |
+| `packages` | SBOM + vulnerability analysis | ~3 min |
+| `devops` | IaC, containers, GitHub Actions | ~3 min |
+
+### Scan an Organization
+
+```bash
+# Scan all repos in an organization
+./zero hydrate phantom-tests
+
+# Limit to 5 repos with code-security profile
+./zero hydrate phantom-tests code-security --limit 5
+```
+
+### Enter Agent Mode (Claude Code)
+
+In Claude Code, use the `/agent` slash command to chat with Zero, the AI orchestrator who can delegate to specialist agents.
 
 ## Documentation Index
 

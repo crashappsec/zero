@@ -47,13 +47,13 @@ Projects are stored at `~/.zero/repos/{owner}/{repo}/`:
 
 ```bash
 # Hydrate a repository
-./zero.sh hydrate owner/repo
+./zero hydrate owner/repo
 
 # Check status
-./zero.sh status
+./zero status
 
 # Generate report
-./zero.sh report owner/repo
+./zero report owner/repo
 ```
 
 ---

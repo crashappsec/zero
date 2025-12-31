@@ -190,9 +190,9 @@ Enter agent mode to chat with Zero, the master orchestrator. Zero can delegate t
 Master orchestrator for repository analysis. See `.claude/commands/zero.md` for full documentation.
 
 Key commands:
-- `./zero.sh hydrate <repo>` - Clone and analyze a repository
-- `./zero.sh status` - Show hydrated projects with freshness indicators
-- `./zero.sh report <repo>` - Generate analysis reports
+- `./zero hydrate <repo> [profile]` - Clone and analyze a repository
+- `./zero status` - Show hydrated projects with freshness indicators
+- `./zero report <repo>` - Generate analysis reports
 
 ### Automation Commands
 

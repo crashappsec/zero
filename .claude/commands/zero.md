@@ -2,16 +2,18 @@
 
 Zero is the master orchestrator for Gibson analysis. Named after Zero Cool from the movie Hackers (1995).
 
-Use `./zero.sh` CLI or `/zero` slash command to check prerequisites, hydrate projects, and manage analysis data. Use `/agent` to chat with Zero directly and invoke specialist agents.
+Use the `./zero` CLI or `/zero` slash command to check prerequisites, hydrate projects, and manage analysis data. Use `/agent` to chat with Zero directly and invoke specialist agents.
+
+**Build first:** `go build -o zero ./cmd/zero`
 
 ## Quick Start
 
 ```bash
 # 1. Check prerequisites
-./zero.sh check
+./zero check
 
 # 2. Hydrate a project (clone + analyze)
-./zero.sh hydrate expressjs/express
+./zero hydrate expressjs/express
 
 # 3. Enter agent mode - chat with Zero
 /agent
@@ -22,7 +24,7 @@ Use `./zero.sh` CLI or `/zero` slash command to check prerequisites, hydrate pro
 ### Preflight Check
 
 ```bash
-./zero.sh check [--fix]
+./zero check [--fix]
 ```
 
 Verify all required tools and API keys are configured. Run this before hydrating.
@@ -40,27 +42,32 @@ Verify all required tools and API keys are configured. Run this before hydrating
 ### Hydrate a Project
 
 ```bash
-./zero.sh hydrate <target> [options]
+./zero hydrate <target> [options]
 ```
 
 Clone a repository locally and run all analyzers, storing results for agent queries.
 
 **Targets:**
-- GitHub URL: `https://github.com/owner/repo`
 - GitHub shorthand: `owner/repo`
-- Local path: `./project` or `/path/to/project`
+- GitHub organization: `org-name` (scans all repos)
+
+**Profiles (second argument):**
+- `all-quick` - All scanners, limited features (default)
+- `all-complete` - All scanners, all features
+- `code-security` - SAST, secrets, API security
+- `packages` - SBOM + vulnerability analysis
+- `devops` - IaC, containers, GitHub Actions
 
 **Options:**
-- `--quick` - Fast analyzers only
-- `--security` - Security-focused scan
 - `--branch <name>` - Clone specific branch
 - `--force` - Re-hydrate existing project
+- `--limit <n>` - Max repos for org scans
 
 **Examples:**
 ```bash
-./zero.sh hydrate expressjs/express
-./zero.sh hydrate https://github.com/lodash/lodash --quick
-./zero.sh hydrate ./my-local-project --security
+./zero hydrate phantom-tests/juice-shop
+./zero hydrate phantom-tests/juice-shop code-security
+./zero hydrate phantom-tests --limit 5
 ```
 
 **What it does:**
@@ -73,7 +80,7 @@ Clone a repository locally and run all analyzers, storing results for agent quer
 ### Check Status
 
 ```bash
-./zero.sh status
+./zero status
 ```
 
 Show hydrated projects and scan status.
@@ -81,7 +88,7 @@ Show hydrated projects and scan status.
 ### Generate Report
 
 ```bash
-./zero.sh report <org/repo>
+./zero report <org/repo>
 ```
 
 Generate a summary report for a hydrated project.
@@ -126,7 +133,7 @@ security findings, vulnerability status, and code security scan results.")
 ## Data Flow
 
 ```
-./zero.sh hydrate <repo>
+./zero hydrate <repo>
          │
          ├─► Clone repository to ~/.zero/repos/<org>/<repo>/repo/
          │

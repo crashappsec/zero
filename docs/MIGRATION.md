@@ -121,11 +121,11 @@ Only 4 Python scripts exist in the repo (excluding cloned repos):
 
 | Shell Command | Go Command | Status |
 |---------------|------------|--------|
-| `./zero.sh hydrate` | `./zero hydrate` | Complete |
-| `./zero.sh scan` | `./zero scan` | Complete |
-| `./zero.sh status` | `./zero status` | Complete |
-| `./zero.sh report` | `./zero report` | Complete |
-| `./zero.sh check` | `./zero check` | Complete |
+| `./zero hydrate` | `./zero hydrate` | Complete |
+| `./zero scan` | `./zero scan` | Complete |
+| `./zero status` | `./zero status` | Complete |
+| `./zero report` | `./zero report` | Complete |
+| `./zero check` | `./zero check` | Complete |
 | N/A | `./zero roadmap` | New - Token analysis |
 | N/A | `./zero list` | New - Scanner listing |
 | N/A | `./zero history` | New - Scan history |
