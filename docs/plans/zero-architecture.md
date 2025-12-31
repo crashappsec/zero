@@ -145,25 +145,30 @@ All data stored in `~/.zero/`:
 Clone and analyze a new project:
 
 ```bash
-./zero.sh hydrate <target> [options]
+./zero hydrate <target> [options]
 
 Examples:
-  ./zero.sh hydrate https://github.com/expressjs/express
-  ./zero.sh hydrate expressjs/express
-  ./zero.sh hydrate expressjs/express --branch v5.x
-  ./zero.sh hydrate expressjs/express --quick
+  ./zero hydrate https://github.com/expressjs/express
+  ./zero hydrate expressjs/express
+  ./zero hydrate expressjs/express --branch v5.x
+  ./zero hydrate expressjs/express --quick
 ```
+
+**Profiles (second argument):**
+| Profile | Description |
+|---------|-------------|
+| `all-quick` | All scanners, limited features (~2min) - default |
+| `all-complete` | All scanners, all features (~12min) |
+| `code-security` | SAST, secrets, API security (~3min) |
+| `packages` | SBOM + vulnerability analysis (~3min) |
+| `devops` | IaC, containers, GitHub Actions (~3min) |
 
 **Options:**
 | Flag | Description |
 |------|-------------|
 | `--branch <name>` | Clone specific branch (default: default branch) |
-| `--quick` | Fast analyzers only (~30s) |
-| `--standard` | Default analysis profile (~2min) |
-| `--security` | Security-focused scan (~3min) |
-| `--advanced` | All analyzers (~5min) |
-| `--deep` | Claude-assisted analysis (~10min) |
 | `--force` | Re-hydrate existing project |
+| `--limit <n>` | Max repos for org scans |
 
 **Flow:**
 ```
@@ -183,7 +188,7 @@ Examples:
 Show hydrated projects:
 
 ```bash
-./zero.sh status
+./zero status
 
 Output:
 ┌─────────────────────────────────────────────────────────────────┐
@@ -213,10 +218,10 @@ Output:
 Generate a summary report:
 
 ```bash
-./zero.sh report <org/repo>
+./zero report <org/repo>
 
 Example:
-  ./zero.sh report expressjs/express
+  ./zero report expressjs/express
 ```
 
 ### Agent Mode
@@ -275,7 +280,7 @@ Zero will delegate to specialist agents based on the query.
 ## Hydrate Output Example
 
 ```
-$ ./zero.sh hydrate expressjs/express
+$ ./zero hydrate expressjs/express
 
 ███████╗███████╗██████╗  ██████╗
 ╚══███╔╝██╔════╝██╔══██╗██╔═══██╗

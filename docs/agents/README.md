@@ -364,14 +364,17 @@ Task(
 Each agent requires specific scanner data. Ensure scanners have run before invoking:
 
 ```bash
-# Run all security scanners
-./zero.sh hydrate owner/repo --security
+# Run all scanners (quick mode)
+./zero hydrate owner/repo
+
+# Run security-focused scanners
+./zero hydrate owner/repo code-security
 
 # Run crypto-specific scanners
-./zero.sh hydrate owner/repo --crypto
+./zero hydrate owner/repo code-crypto
 
-# Run compliance scanners
-./zero.sh hydrate owner/repo --deep
+# Run all scanners with full features
+./zero hydrate owner/repo all-complete
 ```
 
 ## See Also

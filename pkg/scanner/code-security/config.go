@@ -23,11 +23,12 @@ type SecretsConfig struct {
 	RedactSecrets bool `json:"redact_secrets"` // Redact secret values in output
 
 	// Enhanced detection features
-	EntropyAnalysis  EntropyConfig     `json:"entropy_analysis"`  // Entropy-based detection
-	GitHistoryScan   GitHistoryConfig  `json:"git_history_scan"`  // Git history scanning
-	AIAnalysis       AIAnalysisConfig  `json:"ai_analysis"`       // Claude-powered FP reduction
-	RotationGuidance bool              `json:"rotation_guidance"` // Add rotation recommendations
-	IaCSecrets       IaCSecretsConfig  `json:"iac_secrets"`       // IaC-specific secrets detection
+	EntropyAnalysis     EntropyConfig            `json:"entropy_analysis"`      // Entropy-based detection
+	GitHistoryScan      GitHistoryConfig         `json:"git_history_scan"`      // Git history scanning
+	GitHistorySecurity  GitHistorySecurityConfig `json:"git_history_security"`  // Git history security (gitignore violations, sensitive files)
+	AIAnalysis          AIAnalysisConfig         `json:"ai_analysis"`           // Claude-powered FP reduction
+	RotationGuidance    bool                     `json:"rotation_guidance"`     // Add rotation recommendations
+	IaCSecrets          IaCSecretsConfig         `json:"iac_secrets"`           // IaC-specific secrets detection
 }
 
 // IaCSecretsConfig configures IaC-specific secrets detection
@@ -49,6 +50,16 @@ type GitHistoryConfig struct {
 	MaxCommits  int    `json:"max_commits"`  // Maximum commits to scan (default: 1000)
 	MaxAge      string `json:"max_age"`      // Maximum age to scan, e.g., "90d", "1y" (default: "1y")
 	ScanRemoved bool   `json:"scan_removed"` // Track if secrets were later removed
+}
+
+// GitHistorySecurityConfig configures git history security scanning
+type GitHistorySecurityConfig struct {
+	Enabled              bool   `json:"enabled"`
+	MaxCommits           int    `json:"max_commits"`             // Maximum commits to scan (default: 1000)
+	MaxAge               string `json:"max_age"`                 // Maximum age to scan, e.g., "90d", "1y" (default: "1y")
+	ScanGitignoreHistory bool   `json:"scan_gitignore_history"`  // Scan for gitignore violations in history
+	ScanSensitiveFiles   bool   `json:"scan_sensitive_files"`    // Scan for sensitive file patterns
+	GeneratePurgeReport  bool   `json:"generate_purge_report"`   // Generate purge recommendations
 }
 
 // AIAnalysisConfig configures Claude-powered false positive reduction
@@ -100,6 +111,14 @@ func DefaultConfig() FeatureConfig {
 				MaxAge:      "1y",
 				ScanRemoved: true,
 			},
+			GitHistorySecurity: GitHistorySecurityConfig{
+				Enabled:              false, // Disabled by default - can be slow on large repos
+				MaxCommits:           1000,
+				MaxAge:               "1y",
+				ScanGitignoreHistory: true,
+				ScanSensitiveFiles:   true,
+				GeneratePurgeReport:  true,
+			},
 			AIAnalysis: AIAnalysisConfig{
 				Enabled:             false, // Disabled by default - requires ANTHROPIC_API_KEY
 				MaxFindings:         50,
@@ -146,6 +165,9 @@ func SecurityConfig() FeatureConfig {
 	cfg.Secrets.GitHistoryScan.Enabled = true // Enable history scanning for security
 	cfg.Secrets.GitHistoryScan.MaxCommits = 2000
 	cfg.Secrets.GitHistoryScan.MaxAge = "2y"
+	cfg.Secrets.GitHistorySecurity.Enabled = true // Enable git history security scanning
+	cfg.Secrets.GitHistorySecurity.MaxCommits = 2000
+	cfg.Secrets.GitHistorySecurity.MaxAge = "2y"
 	cfg.Secrets.AIAnalysis.Enabled = true // Enable AI analysis if API key available
 	cfg.Secrets.RotationGuidance = true
 	return cfg
@@ -158,6 +180,9 @@ func FullConfig() FeatureConfig {
 	cfg.Secrets.GitHistoryScan.Enabled = true
 	cfg.Secrets.GitHistoryScan.MaxCommits = 5000
 	cfg.Secrets.GitHistoryScan.MaxAge = "5y"
+	cfg.Secrets.GitHistorySecurity.Enabled = true
+	cfg.Secrets.GitHistorySecurity.MaxCommits = 5000
+	cfg.Secrets.GitHistorySecurity.MaxAge = "5y"
 	cfg.Secrets.AIAnalysis.Enabled = true
 	cfg.Secrets.RotationGuidance = true
 	return cfg

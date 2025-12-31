@@ -69,10 +69,10 @@ git clone https://github.com/owner/repo ~/.zero/repos/owner/repo/repo
 gh repo list [org] --limit 100
 
 # Run security scans
-./zero.sh scan owner/repo
+./zero scan owner/repo
 
 # Check project status
-./zero.sh status owner/repo
+./zero status owner/repo
 ```
 
 ## Limitations

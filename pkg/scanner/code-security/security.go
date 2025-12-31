@@ -114,15 +114,42 @@ func (s *CodeSecurityScanner) Run(ctx context.Context, opts *scanner.ScanOptions
 		mu.Unlock()
 	}
 
+	// Run git history security scanning if enabled (no semgrep required)
+	if cfg.Secrets.GitHistorySecurity.Enabled {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			securityScanner := NewGitHistorySecurityScanner(cfg.Secrets.GitHistorySecurity)
+			securityResult, err := securityScanner.ScanRepository(opts.RepoPath)
+			// Include results even with errors (may have partial results)
+			mu.Lock()
+			result.FeaturesRun = append(result.FeaturesRun, "git_history_security")
+			if securityResult != nil {
+				result.GitHistorySecurity = securityResult
+			}
+			if err != nil {
+				// Add error to result summary
+				result.Summary.Errors = append(result.Summary.Errors, "git_history_security: "+err.Error())
+			}
+			mu.Unlock()
+		}()
+	}
+
 	wg.Wait()
 
 	scanResult := scanner.NewScanResult(Name, Version, start)
 	scanResult.Repository = opts.RepoPath
 	scanResult.SetSummary(result.Summary)
 	scanResult.SetFindings(result.Findings)
-	scanResult.SetMetadata(map[string]interface{}{
+
+	// Build metadata with features_run and git_history_security results
+	metadata := map[string]interface{}{
 		"features_run": result.FeaturesRun,
-	})
+	}
+	if result.GitHistorySecurity != nil {
+		metadata["git_history_security"] = result.GitHistorySecurity
+	}
+	scanResult.SetMetadata(metadata)
 
 	if opts.OutputDir != "" {
 		if err := os.MkdirAll(opts.OutputDir, 0755); err != nil {

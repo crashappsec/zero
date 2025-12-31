@@ -101,14 +101,17 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 The [phantom-tests](https://github.com/phantom-tests) organization provides sample repositories for testing your changes without affecting real projects.
 
 ```bash
-# Test hydration
-./zero.sh hydrate phantom-tests/express --quick
+# Build the CLI first
+go build -o zero ./cmd/zero
+
+# Test hydration with quick profile
+./zero hydrate phantom-tests/juice-shop all-quick
 
 # Test with the security profile
-./zero.sh hydrate phantom-tests/express --security
+./zero hydrate phantom-tests/juice-shop code-security
 
 # Generate a report
-./zero.sh report phantom-tests/express
+./zero report phantom-tests/juice-shop
 ```
 
 This ensures:

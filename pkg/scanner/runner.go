@@ -29,12 +29,13 @@ func NewNativeRunner(zeroHome string) *NativeRunner {
 
 // RunOptions configures a scanner run
 type RunOptions struct {
-	RepoPath     string
-	OutputDir    string
-	Scanners     []Scanner
-	SkipScanners []string
-	Timeout      time.Duration
-	Parallel     int
+	RepoPath       string
+	OutputDir      string
+	Scanners       []Scanner
+	SkipScanners   []string
+	Timeout        time.Duration
+	Parallel       int
+	FeatureConfigs map[string]map[string]interface{} // Scanner name -> feature config
 }
 
 // RunScanners executes all configured scanners for a repository
@@ -145,6 +146,12 @@ func (r *NativeRunner) RunScanners(ctx context.Context, opts RunOptions) (*RunRe
 							r.OnProgress(scanner.Name(), StatusRunning, msg)
 						}
 					},
+				}
+				// Pass feature config for this scanner if available
+				if opts.FeatureConfigs != nil {
+					if featureConfig, ok := opts.FeatureConfigs[scanner.Name()]; ok {
+						scanOpts.FeatureConfig = featureConfig
+					}
 				}
 				sbomMu.RUnlock()
 
