@@ -9,7 +9,7 @@ Zero uses 8 super scanners, each outputting a single consolidated JSON file. Thi
 | sbom | `sbom.json` + `sbom.cdx.json` | SBOM summary and CycloneDX SBOM |
 | package-analysis | `package-analysis.json` | Vulnerabilities, health, licenses, malcontent |
 | crypto | `crypto.json` | Ciphers, keys, TLS, random |
-| code-security | `code-security.json` | SAST, secrets, API security |
+| code-security | `code-security.json` | SAST, secrets, API, git history security |
 | code-quality | `code-quality.json` | Tech debt, complexity, coverage, docs |
 | devops | `devops.json` | IaC, containers, GitHub Actions, DORA |
 | tech-id | `technology.json` | Technology detection, ML-BOM |

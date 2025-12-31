@@ -13,7 +13,7 @@ Zero uses **9 consolidated super scanners** with configurable features:
 | **sbom** | generation, integrity | SBOM generation (source of truth) |
 | **package-analysis** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | Package/dependency analysis (depends on sbom) |
 | **code-crypto** | ciphers, keys, random, tls, certificates | Cryptographic security |
-| **code-security** | vulns, secrets, api | Security-focused code analysis |
+| **code-security** | vulns, secrets, api, git_history_security | Security-focused code analysis |
 | **code-quality** | tech_debt, complexity, test_coverage, documentation | Code quality metrics |
 | **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security |
 | **tech-id** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | Technology detection and ML-BOM generation |
@@ -75,7 +75,7 @@ Razor cuts through code to find vulnerabilities.
 Specializes in static analysis, secret detection, code vulnerability assessment, and security code review.
 
 **Primary scanner:** `code-security`
-**Required data:** `code-security.json` (contains vulns, secrets, api)
+**Required data:** `code-security.json` (contains vulns, secrets, api, git_history_security)
 
 #### Gill (Cryptography Specialist)
 **subagent_type:** `gill`

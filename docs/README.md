@@ -51,7 +51,7 @@ go build -o zero ./cmd/zero
 |---------|-------------|------|
 | `all-quick` | All scanners, limited features (default) | ~2 min |
 | `all-complete` | All scanners, all features | ~12 min |
-| `code-security` | SAST, secrets, API security | ~3 min |
+| `code-security` | SAST, secrets, API security, git history security | ~3 min |
 | `packages` | SBOM + vulnerability analysis | ~3 min |
 | `devops` | IaC, containers, GitHub Actions | ~3 min |
 
@@ -126,11 +126,10 @@ How to integrate Zero with other tools.
 
 | Scanner | Description |
 |---------|-------------|
-| `code-vulns` | SAST vulnerabilities (Semgrep p/security-audit, p/owasp-top-ten) |
-| `code-secrets` | Secret detection (RAG patterns + p/secrets) |
+| `code-security` | SAST vulnerabilities, secret detection, API security, git history security |
 | `code-crypto` | Cryptographic security: ciphers, keys, random, TLS, certificates |
-| `tech-discovery` | Technology stack identification |
-| `tech-debt` | TODO, FIXME, complexity markers |
+| `tech-id` | Technology stack identification, AI/ML detection |
+| `code-quality` | TODO, FIXME, complexity markers, test coverage |
 
 ### Package Scanners
 
@@ -157,7 +156,7 @@ How to integrate Zero with other tools.
 | `all-quick` | All 9 scanners (limited features) | ~2 min |
 | `all-complete` | All 9 scanners (all features) | ~12 min |
 | `code-crypto` | Cryptographic security | ~2 min |
-| `code-security` | SAST, secrets detection, API security | ~3 min |
+| `code-security` | SAST, secrets, API, git history security | ~3 min |
 | `packages` | sbom, package analysis | ~3 min |
 
 ## Data Storage
