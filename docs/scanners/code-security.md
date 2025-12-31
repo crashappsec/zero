@@ -225,7 +225,108 @@ Score = 100 - (critical × 25 + high × 15 + medium × 5 + low × 2)
 | 80-94 | low |
 | 95-100 | excellent |
 
-### 3. API Security (`api`)
+### 3. Git History Security (`git_history_security`)
+
+Scans git history for files that should have been purged - gitignore violations, sensitive files committed by mistake, and generates cleanup recommendations.
+
+**Configuration:**
+```json
+{
+  "secrets": {
+    "git_history_security": {
+      "enabled": true,
+      "max_commits": 1000,
+      "max_age": "1y",
+      "scan_gitignore_history": true,
+      "scan_sensitive_files": true,
+      "generate_purge_report": true
+    }
+  }
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enabled` | bool | `false` | Enable git history security scanning |
+| `max_commits` | int | `1000` | Maximum commits to scan |
+| `max_age` | string | `"1y"` | Maximum age (e.g., "90d", "6m", "2y") |
+| `scan_gitignore_history` | bool | `true` | Scan for files matching gitignore patterns |
+| `scan_sensitive_files` | bool | `true` | Scan for sensitive file patterns |
+| `generate_purge_report` | bool | `true` | Generate purge recommendations |
+
+**Gitignore Violations:**
+
+Detects files in git history that match current `.gitignore` rules but were committed before being ignored:
+
+| Pattern | Category | Severity |
+|---------|----------|----------|
+| `.env`, `.env.*` | credentials | critical |
+| `*.pem`, `*.key` | keys | critical |
+| `*.p12`, `*.pfx` | certificates | high |
+| `.aws/credentials` | credentials | critical |
+| `id_rsa`, `id_dsa` | keys | critical |
+| `*.sqlite`, `*.db` | database | medium |
+| `node_modules/` | dependencies | low |
+
+**Sensitive File Detection:**
+
+Uses RAG-based patterns to detect sensitive files regardless of gitignore:
+
+| Category | Examples | Severity |
+|----------|----------|----------|
+| Credentials | `.env`, `credentials.json`, `.htpasswd` | critical |
+| Keys | `*.pem`, `*.key`, `id_rsa`, `private_key` | critical |
+| Certificates | `*.p12`, `*.pfx`, `*.jks` | high |
+| Database | `*.sqlite`, `*.db`, database dumps | medium |
+| Backups | `*.bak`, `*.backup`, `*.old` | medium |
+| IDE/Config | `.vscode/settings.json` (with secrets) | low |
+
+**Purge Recommendations:**
+
+When files should be removed from git history, the scanner generates commands for popular tools:
+
+```json
+{
+  "purge_recommendations": [
+    {
+      "file": ".env",
+      "reason": "Environment configuration files",
+      "severity": "critical",
+      "priority": 1,
+      "command": "bfg --delete-files '.env'",
+      "alternative": "git filter-repo --path '.env' --invert-paths",
+      "affected_commits": 15
+    }
+  ]
+}
+```
+
+**Shallow Clone Detection:**
+
+The scanner detects shallow clones and returns a helpful message:
+```
+Repository is a shallow clone. Git history security scanning requires full history.
+Use 'git fetch --unshallow' or clone with full depth to enable history scanning.
+```
+
+**Risk Score Calculation:**
+
+| Finding | Impact |
+|---------|--------|
+| Critical file in history | -25 points |
+| High severity file | -15 points |
+| Medium severity file | -5 points |
+| Low severity file | -2 points |
+
+| Score | Risk Level |
+|-------|------------|
+| 0-39 | critical |
+| 40-59 | high |
+| 60-79 | medium |
+| 80-94 | low |
+| 95-100 | excellent |
+
+### 4. API Security (`api`)
 
 API-specific security analysis targeting OWASP API Top 10.
 
@@ -356,7 +457,22 @@ result, err := scanner.Run(ctx, opts)
   "scanner": "code-security",
   "version": "3.2.0",
   "metadata": {
-    "features_run": ["vulns", "secrets", "api"]
+    "features_run": ["vulns", "secrets", "api", "git_history_security"],
+    "git_history_security": {
+      "gitignore_violations": [],
+      "sensitive_files": [],
+      "purge_recommendations": [],
+      "timeline": [],
+      "summary": {
+        "total_violations": 1,
+        "gitignore_violations": 0,
+        "sensitive_files_found": 1,
+        "files_to_purge": 1,
+        "commits_scanned": 250,
+        "risk_score": 75,
+        "risk_level": "medium"
+      }
+    }
   },
   "summary": {
     "vulns": {

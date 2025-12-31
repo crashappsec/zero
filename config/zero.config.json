@@ -168,7 +168,15 @@
           "rag_patterns_path": "rag/tech-id",
           "validate_with_api": true,
           "redact_secrets": true,
-          "min_confidence": 0.8
+          "min_confidence": 0.8,
+          "git_history_security": {
+            "enabled": true,
+            "max_commits": 1000,
+            "max_age": "1y",
+            "scan_gitignore_history": true,
+            "scan_sensitive_files": true,
+            "generate_purge_report": true
+          }
         },
         "api": {
           "enabled": true,

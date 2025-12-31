@@ -2,6 +2,7 @@ package codesecurity
 
 import (
 	"bufio"
+	"fmt"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -112,6 +113,7 @@ type GitHistorySecuritySummary struct {
 	BySeverity             map[string]int `json:"by_severity"`
 	RiskScore              int            `json:"risk_score"`
 	RiskLevel              string         `json:"risk_level"`
+	Note                   string         `json:"note,omitempty"` // Additional notes (e.g., shallow clone warning)
 }
 
 // NewGitHistorySecurityScanner creates a new git history security scanner
@@ -374,6 +376,15 @@ func (s *GitHistorySecurityScanner) ScanRepository(repoPath string) (*GitHistory
 			RiskScore:  100,
 			RiskLevel:  "excellent",
 		},
+	}
+
+	// Check for shallow clone
+	shallowFile := filepath.Join(repoPath, ".git", "shallow")
+	if _, err := os.Stat(shallowFile); err == nil {
+		// It's a shallow clone - return result indicating limited scanning
+		result.Summary.Note = "Repository is a shallow clone. Git history security scanning requires full history. Use 'git fetch --unshallow' or clone with full depth to enable history scanning."
+		result.Summary.CommitsScanned = 0
+		return result, fmt.Errorf("shallow clone detected: git history scanning requires full history")
 	}
 
 	// Parse gitignore

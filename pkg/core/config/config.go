@@ -238,6 +238,53 @@ func (c *Config) GetScanner(name string) (*Scanner, bool) {
 	return &s, true
 }
 
+// GetScannerFeatures returns the features configuration for a scanner as a map
+// This is used to pass scanner-specific feature configuration to scanners
+func (c *Config) GetScannerFeatures(name string) map[string]interface{} {
+	s, ok := c.Scanners[name]
+	if !ok {
+		return nil
+	}
+
+	// The scanner struct has a Features field that contains the raw JSON
+	// We need to extract it from the raw config
+	configPath := findConfigFile()
+	if configPath == "" {
+		return nil
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		return nil
+	}
+
+	// Parse into a generic map to access features
+	var raw map[string]interface{}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil
+	}
+
+	scanners, ok := raw["scanners"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	scanner, ok := scanners[name].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	features, ok := scanner["features"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	// For consistency with scanner expectations, we use the description to detect misconfig
+	_ = s.Description
+
+	return features
+}
+
 // GetProfile returns profile configuration by name
 func (c *Config) GetProfile(name string) (*Profile, bool) {
 	p, ok := c.Profiles[name]

@@ -490,14 +490,18 @@ func (h *Hydrate) scanRepoSimple(ctx context.Context, status *RepoStatus, scanne
 	projectID := github.ProjectID(status.Repo.NameWithOwner)
 	outputDir := filepath.Join(h.zeroHome, "repos", projectID, "analysis")
 
+	// Load feature configs for each scanner
+	featureConfigs := h.loadFeatureConfigs(scanners)
+
 	// Run scanners
 	opts := scanner.RunOptions{
-		RepoPath:     status.RepoPath,
-		OutputDir:    outputDir,
-		Scanners:     scannerList,
-		SkipScanners: skipScanners,
-		Parallel:     h.opts.ParallelScanners,
-		Timeout:      time.Duration(h.cfg.Settings.ScannerTimeoutSeconds) * time.Second,
+		RepoPath:       status.RepoPath,
+		OutputDir:      outputDir,
+		Scanners:       scannerList,
+		SkipScanners:   skipScanners,
+		Parallel:       h.opts.ParallelScanners,
+		Timeout:        time.Duration(h.cfg.Settings.ScannerTimeoutSeconds) * time.Second,
+		FeatureConfigs: featureConfigs,
 	}
 
 	result, err := h.runner.RunScanners(ctx, opts)
@@ -720,13 +724,17 @@ func (h *Hydrate) scanRepoWithProgress(ctx context.Context, status *RepoStatus, 
 		}
 	}
 
+	// Load feature configs for each scanner
+	featureConfigs := h.loadFeatureConfigs(scanners)
+
 	// Run scanners (parallel execution within repo)
 	result, err := h.runner.RunScanners(ctx, scanner.RunOptions{
-		RepoPath:     status.RepoPath,
-		OutputDir:    outputDir,
-		Scanners:     scannerList,
-		SkipScanners: skipScanners,
-		Parallel:     h.opts.ParallelScanners,
+		RepoPath:       status.RepoPath,
+		OutputDir:      outputDir,
+		Scanners:       scannerList,
+		SkipScanners:   skipScanners,
+		Parallel:       h.opts.ParallelScanners,
+		FeatureConfigs: featureConfigs,
 	})
 	status.Duration = time.Since(start)
 
@@ -1074,6 +1082,17 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+// loadFeatureConfigs loads feature configuration from zero.config.json for each scanner
+func (h *Hydrate) loadFeatureConfigs(scanners []string) map[string]map[string]interface{} {
+	configs := make(map[string]map[string]interface{})
+	for _, name := range scanners {
+		if features := h.cfg.GetScannerFeatures(name); features != nil {
+			configs[name] = features
+		}
+	}
+	return configs
 }
 
 // filterOutSkipped returns scanners excluding those in skipScanners

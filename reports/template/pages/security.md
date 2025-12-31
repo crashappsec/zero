@@ -173,6 +173,104 @@ select type, count(*) as count from zero.crypto_findings group by type order by 
 
 ---
 
+## Git History Security
+
+```sql git_history_summary
+select * from zero.git_history_summary
+```
+
+```sql sensitive_files
+select * from zero.sensitive_files order by
+  case severity
+    when 'critical' then 1
+    when 'high' then 2
+    when 'medium' then 3
+    when 'low' then 4
+    else 5
+  end
+```
+
+```sql purge_recommendations
+select * from zero.purge_recommendations order by priority
+```
+
+{#if git_history_summary[0].total_violations > 0}
+
+<Alert status="warning">
+<b>{git_history_summary[0].total_violations}</b> security issues found in git history. These files may have leaked sensitive data even if later removed.
+</Alert>
+
+<Grid cols=4>
+<BigValue
+  data={git_history_summary}
+  value=sensitive_files_found
+  title="Sensitive Files"
+/>
+<BigValue
+  data={git_history_summary}
+  value=gitignore_violations
+  title="Gitignore Violations"
+/>
+<BigValue
+  data={git_history_summary}
+  value=files_to_purge
+  title="Files to Purge"
+/>
+<BigValue
+  data={git_history_summary}
+  value=commits_scanned
+  title="Commits Scanned"
+/>
+</Grid>
+
+### Sensitive Files in History
+
+Files containing credentials, keys, or other sensitive data found in git history:
+
+<DataTable
+  data={sensitive_files}
+  search=true
+  rows=25
+  rowShading=true
+>
+  <Column id=severity title="Severity" contentType=colorscale colorScale=negative/>
+  <Column id=category title="Category"/>
+  <Column id=file title="File" wrap=true/>
+  <Column id=description title="Description" wrap=true/>
+  <Column id=first_commit_date title="First Committed"/>
+  <Column id=still_exists title="Still Exists"/>
+</DataTable>
+
+### Purge Recommendations
+
+Files that should be removed from git history using BFG or git-filter-repo:
+
+<DataTable
+  data={purge_recommendations}
+  search=true
+  rows=25
+  rowShading=true
+>
+  <Column id=priority title="Priority"/>
+  <Column id=severity title="Severity" contentType=colorscale colorScale=negative/>
+  <Column id=file title="File" wrap=true/>
+  <Column id=reason title="Reason" wrap=true/>
+  <Column id=command title="Purge Command" wrap=true/>
+  <Column id=affected_commits title="Commits"/>
+</DataTable>
+
+{:else if git_history_summary[0].note}
+
+<Alert status="info">{git_history_summary[0].note}</Alert>
+
+{:else}
+
+<Alert status="positive">No sensitive files found in git history.</Alert>
+
+{/if}
+
+---
+
 <Grid cols=2>
   <BigLink url="/">Back to Dashboard</BigLink>
   <BigLink url="/dependencies">Dependencies & SBOM</BigLink>

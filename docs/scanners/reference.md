@@ -26,7 +26,7 @@ The `sbom` scanner runs first as the **source of truth**, and `package-analysis`
 | **sbom** | generation, integrity | `sbom.json` + `sbom.cdx.json` | [sbom.md](sbom.md) |
 | **package-analysis** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | `package-analysis.json` | [package-analysis.md](package-analysis.md) |
 | **crypto** | ciphers, keys, random, tls, certificates | `crypto.json` | [crypto.md](crypto.md) |
-| **code-security** | vulns, secrets, api | `code-security.json` | [code-security.md](code-security.md) |
+| **code-security** | vulns, secrets, api, git_history_security | `code-security.json` | [code-security.md](code-security.md) |
 | **code-quality** | tech_debt, complexity, test_coverage, documentation | `code-quality.json` | [code-quality.md](quality.md) |
 | **devops** | iac, containers, github_actions, dora, git | `devops.json` | [devops.md](devops.md) |
 | **tech-id** | technology, models, frameworks, datasets, security, governance, semgrep_rules | `technology.json` | [tech-id.md](technology.md) |
@@ -102,6 +102,7 @@ Static Application Security Testing (SAST).
 - Vulnerability detection (Semgrep)
 - Secret detection with redaction
 - API security analysis (OWASP API Top 10)
+- Git history security scanning (gitignore violations, sensitive files, purge recommendations)
 
 [Full Documentation →](code-security.md)
 
