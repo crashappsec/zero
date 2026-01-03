@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 
+	"github.com/crashappsec/zero/pkg/api/agent"
 	"github.com/crashappsec/zero/pkg/api/handlers"
 	"github.com/crashappsec/zero/pkg/api/jobs"
 	"github.com/crashappsec/zero/pkg/api/ws"
@@ -20,14 +21,15 @@ import (
 
 // Server is the HTTP API server
 type Server struct {
-	cfg        *config.Config
-	zeroHome   string
-	router     chi.Router
-	hub        *ws.Hub
-	queue      *jobs.Queue
-	workerPool *jobs.WorkerPool
-	port       int
-	devMode    bool
+	cfg          *config.Config
+	zeroHome     string
+	router       chi.Router
+	hub          *ws.Hub
+	queue        *jobs.Queue
+	workerPool   *jobs.WorkerPool
+	agentHandler *agent.Handler
+	port         int
+	devMode      bool
 }
 
 // Options configures the server
@@ -55,13 +57,14 @@ func NewServer(opts *Options) (*Server, error) {
 	queue := jobs.NewQueue(100) // Max 100 queued jobs
 
 	s := &Server{
-		cfg:        cfg,
-		zeroHome:   zeroHome,
-		port:       opts.Port,
-		devMode:    opts.DevMode,
-		hub:        hub,
-		queue:      queue,
-		workerPool: jobs.NewWorkerPool(queue, hub, opts.NumWorkers),
+		cfg:          cfg,
+		zeroHome:     zeroHome,
+		port:         opts.Port,
+		devMode:      opts.DevMode,
+		hub:          hub,
+		queue:        queue,
+		workerPool:   jobs.NewWorkerPool(queue, hub, opts.NumWorkers),
+		agentHandler: agent.NewHandler(zeroHome),
 	}
 
 	s.setupRoutes()
@@ -128,11 +131,18 @@ func (s *Server) setupRoutes() {
 		r.Get("/scans/stats", scanHandler.Stats)
 		r.Get("/scans/{jobID}", scanHandler.Get)
 		r.Delete("/scans/{jobID}", scanHandler.Cancel)
+
+		// Agent chat endpoints
+		r.Post("/chat", s.agentHandler.HandleChat)
+		r.Post("/chat/stream", s.agentHandler.HandleChatStream)
+		r.Get("/chat/sessions", s.agentHandler.HandleListSessions)
+		r.Get("/chat/sessions/{sessionID}", s.agentHandler.HandleGetSession)
+		r.Delete("/chat/sessions/{sessionID}", s.agentHandler.HandleDeleteSession)
 	})
 
 	// WebSocket endpoints for real-time updates
 	r.Get("/ws/scan/{jobID}", s.hub.HandleScanWS)
-	r.Get("/ws/agent", s.hub.HandleAgentWS)
+	r.Get("/ws/agent", s.agentHandler.HandleWebSocket)
 
 	s.router = r
 }
