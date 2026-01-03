@@ -9,6 +9,7 @@ import { useToast } from '@/components/ui/Toast';
 import { useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
 import type { ScannerInfo, ProfileInfo } from '@/lib/types';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 import {
   Settings,
   Server,
@@ -21,6 +22,8 @@ import {
   Cpu,
   HardDrive,
   Zap,
+  Palette,
+  Keyboard,
 } from 'lucide-react';
 
 function HealthStatus() {
@@ -252,6 +255,37 @@ export default function SettingsPage() {
             View system configuration and status
           </p>
         </div>
+
+        {/* Preferences */}
+        <Card>
+          <CardTitle className="flex items-center gap-2">
+            <Palette className="h-5 w-5 text-pink-500" />
+            Preferences
+          </CardTitle>
+          <CardContent className="mt-4">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                <div>
+                  <p className="font-medium text-white">Theme</p>
+                  <p className="text-sm text-gray-400">Choose your preferred color scheme</p>
+                </div>
+                <ThemeToggle />
+              </div>
+              <div className="flex items-center justify-between p-3 bg-gray-800/50 rounded-lg">
+                <div>
+                  <p className="font-medium text-white">Keyboard Shortcuts</p>
+                  <p className="text-sm text-gray-400">Quick navigation with keyboard</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <kbd className="rounded bg-gray-900 px-2 py-1 text-xs font-mono text-gray-400 border border-gray-700">
+                    ?
+                  </kbd>
+                  <span className="text-sm text-gray-500">to view</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         <div className="grid gap-6 lg:grid-cols-2">
           <HealthStatus />

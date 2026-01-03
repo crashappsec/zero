@@ -33,7 +33,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-800 bg-gray-900">
+    <aside className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-50 lg:flex lg:w-64 lg:flex-col border-r border-gray-800 bg-gray-900">
       {/* Logo */}
       <div className="flex h-16 items-center gap-3 border-b border-gray-800 px-6">
         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-green-600">
@@ -78,12 +78,15 @@ export function Sidebar() {
   );
 }
 
+import { MobileNav } from './MobileNav';
+
 export function MainLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen">
+      <MobileNav />
       <Sidebar />
-      <main className="pl-64">
-        <div className="container mx-auto max-w-7xl p-6">{children}</div>
+      <main className="lg:pl-64">
+        <div className="container mx-auto max-w-7xl p-4 lg:p-6">{children}</div>
       </main>
     </div>
   );
