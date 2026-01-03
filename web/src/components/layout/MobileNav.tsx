@@ -7,7 +7,7 @@ import {
   Menu,
   X,
   Home,
-  FolderOpen,
+  GitFork,
   Scan,
   AlertTriangle,
   Key,
@@ -19,14 +19,15 @@ import {
   Cpu,
   BarChart3,
   Sparkles,
+  Shield,
 } from 'lucide-react';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: Home },
-  { href: '/projects', label: 'Projects', icon: FolderOpen },
+  { href: '/repos', label: 'Repos', icon: GitFork },
   { href: '/scans', label: 'Scans', icon: Scan },
   { href: '/dependencies', label: 'Dependencies', icon: Package },
-  { href: '/vulnerabilities', label: 'Vulnerabilities', icon: AlertTriangle },
+  { href: '/vulnerabilities', label: 'Vulnerabilities', icon: Shield },
   { href: '/secrets', label: 'Secrets', icon: Key },
   { href: '/ownership', label: 'Code Ownership', icon: Users },
   { href: '/technology', label: 'Technology', icon: Cpu },

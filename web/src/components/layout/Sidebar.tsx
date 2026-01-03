@@ -11,7 +11,6 @@ import {
   Bot,
   Package,
   Shield,
-  Lock,
   Key,
   BarChart3,
   Server,
@@ -19,6 +18,7 @@ import {
   Users,
   Sparkles,
   ChevronDown,
+  Scan,
 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -34,23 +34,23 @@ interface NavGroup {
   defaultOpen?: boolean;
 }
 
-// Scanner navigation - aligned with 9 super scanners
+// Scanner navigation - aligned with existing pages
 const scannerNavigation: NavItem[] = [
-  { name: 'SBOM', href: '/scanners/sbom', icon: Package },
-  { name: 'Package Analysis', href: '/scanners/packages', icon: Package },
-  { name: 'Code Crypto', href: '/scanners/code-crypto', icon: Lock },
-  { name: 'Code Security', href: '/scanners/code-security', icon: Shield },
-  { name: 'Code Quality', href: '/scanners/code-quality', icon: BarChart3 },
-  { name: 'DevOps', href: '/scanners/devops', icon: Server },
-  { name: 'Tech ID', href: '/scanners/tech-id', icon: Cpu },
-  { name: 'Code Ownership', href: '/scanners/code-ownership', icon: Users },
-  { name: 'Developer Experience', href: '/scanners/devx', icon: Sparkles },
+  { name: 'Dependencies', href: '/dependencies', icon: Package },
+  { name: 'Vulnerabilities', href: '/vulnerabilities', icon: Shield },
+  { name: 'Secrets', href: '/secrets', icon: Key },
+  { name: 'Code Quality', href: '/quality', icon: BarChart3 },
+  { name: 'DevOps', href: '/devops', icon: Server },
+  { name: 'Technology', href: '/technology', icon: Cpu },
+  { name: 'Code Ownership', href: '/ownership', icon: Users },
+  { name: 'Developer Experience', href: '/devx', icon: Sparkles },
 ];
 
 // Management navigation
 const managementNavigation: NavItem[] = [
   { name: 'Repos', href: '/repos', icon: GitFork },
-  { name: 'Agents', href: '/agents', icon: Bot },
+  { name: 'Scans', href: '/scans', icon: Scan },
+  { name: 'Chat', href: '/chat', icon: Bot },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
