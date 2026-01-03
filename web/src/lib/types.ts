@@ -179,6 +179,15 @@ export interface DependencyNode {
   depth: number;
 }
 
+// Report types
+export interface ReportInfo {
+  project_id: string;
+  status: 'pending' | 'generating' | 'ready' | 'error';
+  generated_at?: string;
+  url?: string;
+  error?: string;
+}
+
 // API Response wrappers
 export interface ListResponse<T> {
   data: T[];

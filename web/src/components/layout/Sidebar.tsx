@@ -13,6 +13,8 @@ import {
   AlertTriangle,
   FileText,
   Package,
+  Key,
+  Settings,
 } from 'lucide-react';
 
 const navigation = [
@@ -20,9 +22,11 @@ const navigation = [
   { name: 'Projects', href: '/projects', icon: FolderKanban },
   { name: 'Scans', href: '/scans', icon: Scan },
   { name: 'Vulnerabilities', href: '/vulnerabilities', icon: AlertTriangle },
+  { name: 'Secrets', href: '/secrets', icon: Key },
   { name: 'Dependencies', href: '/dependencies', icon: Package },
   { name: 'Reports', href: '/reports', icon: FileText },
   { name: 'Agent Chat', href: '/chat', icon: MessageSquare },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function Sidebar() {

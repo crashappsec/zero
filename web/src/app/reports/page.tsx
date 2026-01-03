@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { MainLayout } from '@/components/layout/Sidebar';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
+import { useToast } from '@/components/ui/Toast';
 import { useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
-import type { Project } from '@/lib/types';
+import type { Project, ReportInfo } from '@/lib/types';
 import {
   FileText,
   Download,
@@ -21,23 +22,17 @@ import {
   FolderOpen,
 } from 'lucide-react';
 
-interface ReportInfo {
-  project_id: string;
-  generated_at: string;
-  url: string;
-  status: 'ready' | 'generating' | 'error';
-  error?: string;
-}
-
 function ReportCard({
   project,
   report,
   onGenerate,
+  onRegenerate,
   generating,
 }: {
   project: Project;
   report?: ReportInfo;
   onGenerate: () => void;
+  onRegenerate: () => void;
   generating: boolean;
 }) {
   const hasReport = report?.status === 'ready';
@@ -55,9 +50,11 @@ function ReportCard({
               {hasReport ? (
                 <>
                   <Badge variant="success">Ready</Badge>
-                  <span className="text-xs text-gray-500">
-                    Generated {new Date(report.generated_at).toLocaleDateString()}
-                  </span>
+                  {report.generated_at && (
+                    <span className="text-xs text-gray-500">
+                      Generated {new Date(report.generated_at).toLocaleDateString()}
+                    </span>
+                  )}
                 </>
               ) : report?.status === 'generating' || generating ? (
                 <Badge variant="info">Generating...</Badge>
@@ -84,7 +81,7 @@ function ReportCard({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onGenerate}
+                onClick={onRegenerate}
                 loading={generating}
                 icon={<RefreshCw className="h-4 w-4" />}
               >
@@ -98,7 +95,7 @@ function ReportCard({
               loading={generating || report?.status === 'generating'}
               icon={generating ? undefined : <FileText className="h-4 w-4" />}
             >
-              {generating ? 'Generating...' : 'Generate Report'}
+              {generating || report?.status === 'generating' ? 'Generating...' : 'Generate Report'}
             </Button>
           )}
         </div>
@@ -133,6 +130,7 @@ function ReportCard({
 }
 
 function ReportsContent() {
+  const toast = useToast();
   const [generating, setGenerating] = useState<Record<string, boolean>>({});
   const [reports, setReports] = useState<Record<string, ReportInfo>>({});
 
@@ -140,48 +138,77 @@ function ReportsContent() {
   const { data: projectsData, loading } = useFetch(() => api.projects.list(), []);
   const projects = projectsData?.data || [];
 
-  const handleGenerate = async (projectId: string) => {
+  // Fetch existing reports
+  const { data: reportsData, refetch: refetchReports } = useFetch(() => api.reports.list(), []);
+
+  // Update reports state when data loads
+  useEffect(() => {
+    if (reportsData?.data) {
+      const reportsMap: Record<string, ReportInfo> = {};
+      reportsData.data.forEach((r) => {
+        reportsMap[r.project_id] = r;
+      });
+      setReports(reportsMap);
+    }
+  }, [reportsData]);
+
+  const handleGenerate = async (projectId: string, force = false) => {
     setGenerating((prev) => ({ ...prev, [projectId]: true }));
 
     try {
-      // In a real implementation, this would call an API endpoint
-      // For now, we'll simulate report generation
-      setReports((prev) => ({
-        ...prev,
-        [projectId]: {
-          project_id: projectId,
-          generated_at: new Date().toISOString(),
-          url: `/api/reports/${encodeURIComponent(projectId)}`,
-          status: 'generating',
-        },
-      }));
+      const result = await api.reports.generate(projectId, force);
+      setReports((prev) => ({ ...prev, [projectId]: result }));
 
-      // Simulate generation time
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-
-      setReports((prev) => ({
-        ...prev,
-        [projectId]: {
-          project_id: projectId,
-          generated_at: new Date().toISOString(),
-          url: `/api/reports/${encodeURIComponent(projectId)}`,
-          status: 'ready',
-        },
-      }));
+      if (result.status === 'generating') {
+        toast.info('Report generation started', `Generating report for ${projectId}`);
+        // Poll for completion
+        pollReportStatus(projectId);
+      } else if (result.status === 'ready') {
+        toast.success('Report ready', `Report for ${projectId} is available`);
+      }
     } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to generate report';
+      toast.error('Report generation failed', message);
       setReports((prev) => ({
         ...prev,
         [projectId]: {
           project_id: projectId,
-          generated_at: new Date().toISOString(),
-          url: '',
           status: 'error',
-          error: err instanceof Error ? err.message : 'Failed to generate report',
+          error: message,
         },
       }));
     } finally {
       setGenerating((prev) => ({ ...prev, [projectId]: false }));
     }
+  };
+
+  const pollReportStatus = async (projectId: string) => {
+    const maxAttempts = 60; // 5 minutes max
+    let attempts = 0;
+
+    const poll = async () => {
+      attempts++;
+      try {
+        const result = await api.reports.get(projectId);
+        setReports((prev) => ({ ...prev, [projectId]: result }));
+
+        if (result.status === 'ready') {
+          toast.success('Report ready', `Report for ${projectId} is available`);
+          return;
+        } else if (result.status === 'error') {
+          toast.error('Report failed', result.error || 'Unknown error');
+          return;
+        }
+
+        if (attempts < maxAttempts && result.status === 'generating') {
+          setTimeout(poll, 5000);
+        }
+      } catch {
+        // Ignore poll errors
+      }
+    };
+
+    setTimeout(poll, 2000);
   };
 
   return (
@@ -244,6 +271,7 @@ function ReportsContent() {
               project={project}
               report={reports[project.id]}
               onGenerate={() => handleGenerate(project.id)}
+              onRegenerate={() => handleGenerate(project.id, true)}
               generating={generating[project.id] || false}
             />
           ))}
