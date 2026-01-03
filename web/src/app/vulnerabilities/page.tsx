@@ -10,6 +10,8 @@ import { Badge, SeverityBadge } from '@/components/ui/Badge';
 import { useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
 import type { Vulnerability, Project } from '@/lib/types';
+import { ExportButton } from '@/components/ui/ExportButton';
+import { downloadCSV, downloadJSON } from '@/lib/export';
 import {
   Search,
   Filter,
@@ -277,6 +279,27 @@ function VulnerabilitiesContent() {
             View and filter security vulnerabilities across your projects
           </p>
         </div>
+        {projectId && vulnerabilities.length > 0 && (
+          <ExportButton
+            onExport={(format) => {
+              const data = filteredVulns.map(v => ({
+                id: v.id,
+                package: v.package,
+                version: v.version,
+                severity: v.severity,
+                title: v.title,
+                description: v.description || '',
+                fix_version: v.fix_version || '',
+                source: v.source,
+              }));
+              if (format === 'csv') {
+                downloadCSV(data, `vulnerabilities-${projectId.replace('/', '-')}`);
+              } else {
+                downloadJSON(data, `vulnerabilities-${projectId.replace('/', '-')}`);
+              }
+            }}
+          />
+        )}
       </div>
 
       {/* Project Selector */}

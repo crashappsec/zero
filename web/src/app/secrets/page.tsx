@@ -10,6 +10,8 @@ import { Badge, SeverityBadge } from '@/components/ui/Badge';
 import { useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
 import type { Secret, Project } from '@/lib/types';
+import { ExportButton } from '@/components/ui/ExportButton';
+import { downloadCSV, downloadJSON } from '@/lib/export';
 import {
   Search,
   Filter,
@@ -308,6 +310,24 @@ function SecretsContent() {
             Detected secrets and credentials in your codebase
           </p>
         </div>
+        {projectId && secrets.length > 0 && (
+          <ExportButton
+            onExport={(format) => {
+              const data = filteredSecrets.map(s => ({
+                file: s.file,
+                line: s.line,
+                type: s.type,
+                severity: s.severity,
+                description: s.description,
+              }));
+              if (format === 'csv') {
+                downloadCSV(data, `secrets-${projectId.replace('/', '-')}`);
+              } else {
+                downloadJSON(data, `secrets-${projectId.replace('/', '-')}`);
+              }
+            }}
+          />
+        )}
       </div>
 
       {/* Project Selector */}

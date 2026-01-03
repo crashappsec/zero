@@ -10,6 +10,8 @@ import { Badge, SeverityBadge } from '@/components/ui/Badge';
 import { useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
 import type { Dependency, Project } from '@/lib/types';
+import { ExportButton } from '@/components/ui/ExportButton';
+import { downloadCSV, downloadJSON } from '@/lib/export';
 import {
   Search,
   Package,
@@ -356,6 +358,27 @@ function DependenciesContent() {
             View and analyze project dependencies
           </p>
         </div>
+        {projectId && dependencies.length > 0 && (
+          <ExportButton
+            onExport={(format) => {
+              const data = filteredDeps.map(d => ({
+                name: d.name,
+                version: d.version,
+                license: d.license || '',
+                direct: d.direct ? 'Yes' : 'No',
+                scope: d.scope || '',
+                vulns_count: d.vulns_count || 0,
+                health_score: d.health?.score || '',
+                deprecated: d.health?.deprecated ? 'Yes' : 'No',
+              }));
+              if (format === 'csv') {
+                downloadCSV(data, `dependencies-${projectId.replace('/', '-')}`);
+              } else {
+                downloadJSON(data, `dependencies-${projectId.replace('/', '-')}`);
+              }
+            }}
+          />
+        )}
       </div>
 
       {/* Project Selector */}
