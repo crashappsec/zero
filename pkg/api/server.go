@@ -101,7 +101,6 @@ func (s *Server) setupRoutes() {
 	analysisHandler := handlers.NewAnalysisHandler(s.zeroHome)
 	systemHandler := handlers.NewSystemHandler(s.cfg)
 	scanHandler := handlers.NewScanHandler(s.queue)
-	reportHandler := handlers.NewReportHandler(s.zeroHome)
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
@@ -140,12 +139,6 @@ func (s *Server) setupRoutes() {
 		r.Get("/chat/sessions", s.agentHandler.HandleListSessions)
 		r.Get("/chat/sessions/{sessionID}", s.agentHandler.HandleGetSession)
 		r.Delete("/chat/sessions/{sessionID}", s.agentHandler.HandleDeleteSession)
-
-		// Report endpoints
-		r.Get("/reports", reportHandler.List)
-		r.Get("/reports/{projectID}", reportHandler.Get)
-		r.Post("/reports/{projectID}", reportHandler.Generate)
-		r.Get("/reports/{projectID}/view/*", reportHandler.View)
 	})
 
 	// WebSocket endpoints for real-time updates

@@ -373,7 +373,7 @@ export default function DashboardPage() {
         {/* Header */}
         <div>
           <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="mt-1 text-gray-400">Overview of your security analysis</p>
+          <p className="mt-1 text-gray-400">Overview of your repository analysis</p>
         </div>
 
         {/* Aggregate Stats */}

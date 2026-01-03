@@ -8,23 +8,30 @@ import {
   FolderKanban,
   Scan,
   MessageSquare,
-  Shield,
   Terminal,
   AlertTriangle,
-  FileText,
   Package,
   Key,
   Settings,
+  Users,
+  Server,
+  Cpu,
+  BarChart3,
+  Sparkles,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Projects', href: '/projects', icon: FolderKanban },
   { name: 'Scans', href: '/scans', icon: Scan },
+  { name: 'Dependencies', href: '/dependencies', icon: Package },
   { name: 'Vulnerabilities', href: '/vulnerabilities', icon: AlertTriangle },
   { name: 'Secrets', href: '/secrets', icon: Key },
-  { name: 'Dependencies', href: '/dependencies', icon: Package },
-  { name: 'Reports', href: '/reports', icon: FileText },
+  { name: 'Code Ownership', href: '/ownership', icon: Users },
+  { name: 'Technology', href: '/technology', icon: Cpu },
+  { name: 'DevOps', href: '/devops', icon: Server },
+  { name: 'Code Quality', href: '/quality', icon: BarChart3 },
+  { name: 'Developer Experience', href: '/devx', icon: Sparkles },
   { name: 'Agent Chat', href: '/chat', icon: MessageSquare },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -41,7 +48,7 @@ export function Sidebar() {
         </div>
         <div>
           <h1 className="text-lg font-bold text-white">Zero</h1>
-          <p className="text-xs text-gray-500">Engineering Intelligence</p>
+          <p className="text-xs text-gray-500">Developer Intelligence</p>
         </div>
       </div>
 
@@ -70,7 +77,7 @@ export function Sidebar() {
       {/* Footer */}
       <div className="border-t border-gray-800 p-4">
         <div className="flex items-center gap-3 text-sm text-gray-500">
-          <Shield className="h-4 w-4" />
+          <Terminal className="h-4 w-4" />
           <span>v0.1.0-experimental</span>
         </div>
       </div>

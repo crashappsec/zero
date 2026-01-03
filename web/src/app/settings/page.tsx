@@ -302,9 +302,10 @@ export default function SettingsPage() {
           <CardTitle>About Zero</CardTitle>
           <CardContent className="mt-4">
             <p className="text-gray-400">
-              Zero provides engineering intelligence tools and specialist AI agents for
-              repository assessment. It analyzes code quality, dependencies, security,
-              DevOps, and developer experience.
+              Zero is a developer intelligence platform with specialist AI agents for
+              comprehensive repository analysis. It provides insights into code ownership,
+              technology stack, dependencies, DevOps practices, developer experience,
+              and code quality.
             </p>
             <p className="mt-4 text-sm text-gray-500">
               Named after characters from the movie Hackers (1995) - "Hack the planet!"

@@ -304,10 +304,10 @@ function SecretsContent() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Key className="h-6 w-6 text-yellow-500" />
-            Secrets Detection
+            Secrets
           </h1>
           <p className="mt-1 text-gray-400">
-            Detected secrets and credentials in your codebase
+            Detected secrets and credentials in your repositories
           </p>
         </div>
         {projectId && secrets.length > 0 && (

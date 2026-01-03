@@ -7,8 +7,8 @@ const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const jetbrains = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
 
 export const metadata: Metadata = {
-  title: 'Zero - Engineering Intelligence',
-  description: 'Security analysis and engineering intelligence platform',
+  title: 'Zero - Developer Intelligence',
+  description: 'Developer intelligence platform for repository analysis',
 };
 
 export default function RootLayout({

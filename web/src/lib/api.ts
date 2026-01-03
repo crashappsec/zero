@@ -10,7 +10,6 @@ import type {
   Vulnerability,
   Secret,
   Dependency,
-  ReportInfo,
   AggregateStats,
   ListResponse,
   HealthResponse,
@@ -94,17 +93,6 @@ export const api = {
     sessions: () => fetchJSON<ListResponse<ChatSession>>('/chat/sessions'),
     session: (id: string) => fetchJSON<ChatSession>(`/chat/sessions/${id}`),
     deleteSession: (id: string) => fetchJSON<void>(`/chat/sessions/${id}`, { method: 'DELETE' }),
-  },
-
-  // Reports
-  reports: {
-    list: () => fetchJSON<ListResponse<ReportInfo>>('/reports'),
-    get: (projectId: string) => fetchJSON<ReportInfo>(`/reports/${encodeURIComponent(projectId)}`),
-    generate: (projectId: string, force = false) =>
-      fetchJSON<ReportInfo>(`/reports/${encodeURIComponent(projectId)}`, {
-        method: 'POST',
-        body: JSON.stringify({ force }),
-      }),
   },
 };
 

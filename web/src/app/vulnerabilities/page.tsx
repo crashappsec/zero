@@ -276,7 +276,7 @@ function VulnerabilitiesContent() {
             Vulnerabilities
           </h1>
           <p className="mt-1 text-gray-400">
-            View and filter security vulnerabilities across your projects
+            Package and code vulnerabilities across your projects
           </p>
         </div>
         {projectId && vulnerabilities.length > 0 && (
