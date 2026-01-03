@@ -188,6 +188,24 @@ export interface ReportInfo {
   error?: string;
 }
 
+// Aggregate stats
+export interface AggregateStats {
+  total_projects: number;
+  total_vulns: number;
+  total_secrets: number;
+  total_deps: number;
+  vulns_by_severity: Record<string, number>;
+  project_stats: ProjectStats[];
+}
+
+export interface ProjectStats {
+  id: string;
+  vulns: number;
+  secrets: number;
+  deps: number;
+  severity: Record<string, number>;
+}
+
 // API Response wrappers
 export interface ListResponse<T> {
   data: T[];

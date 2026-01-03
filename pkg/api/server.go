@@ -120,6 +120,7 @@ func (s *Server) setupRoutes() {
 		r.Get("/projects/{projectID}/analysis/{analysisType}", analysisHandler.GetAnalysis)
 
 		// Analysis aggregation endpoints
+		r.Get("/analysis/stats", analysisHandler.GetAggregateStats)
 		r.Get("/analysis/{projectID}/summary", analysisHandler.GetSummary)
 		r.Get("/analysis/{projectID}/vulnerabilities", analysisHandler.GetVulnerabilities)
 		r.Get("/analysis/{projectID}/secrets", analysisHandler.GetSecrets)

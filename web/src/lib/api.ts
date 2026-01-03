@@ -11,6 +11,7 @@ import type {
   Secret,
   Dependency,
   ReportInfo,
+  AggregateStats,
   ListResponse,
   HealthResponse,
   StreamChunk,
@@ -56,6 +57,7 @@ export const api = {
 
   // Analysis
   analysis: {
+    stats: () => fetchJSON<AggregateStats>('/analysis/stats'),
     summary: (projectId: string) =>
       fetchJSON<AnalysisSummary>(`/analysis/${encodeURIComponent(projectId)}/summary`),
     vulnerabilities: (projectId: string) =>

@@ -208,3 +208,131 @@ func matchSeverity(vuln map[string]interface{}, severity string) bool {
 	}
 	return false
 }
+
+// AggregateStats represents overall stats across all projects
+type AggregateStats struct {
+	TotalProjects   int            `json:"total_projects"`
+	TotalVulns      int            `json:"total_vulns"`
+	TotalSecrets    int            `json:"total_secrets"`
+	TotalDeps       int            `json:"total_deps"`
+	VulnsBySeverity map[string]int `json:"vulns_by_severity"`
+	ProjectStats    []ProjectStats `json:"project_stats"`
+}
+
+// ProjectStats represents stats for a single project
+type ProjectStats struct {
+	ID       string         `json:"id"`
+	Vulns    int            `json:"vulns"`
+	Secrets  int            `json:"secrets"`
+	Deps     int            `json:"deps"`
+	Severity map[string]int `json:"severity"`
+}
+
+// GetAggregateStats returns aggregate stats across all projects
+func (h *AnalysisHandler) GetAggregateStats(w http.ResponseWriter, r *http.Request) {
+	reposPath := filepath.Join(h.zeroHome, "repos")
+	entries, err := os.ReadDir(reposPath)
+	if err != nil {
+		writeJSON(w, http.StatusOK, AggregateStats{
+			VulnsBySeverity: map[string]int{},
+			ProjectStats:    []ProjectStats{},
+		})
+		return
+	}
+
+	stats := AggregateStats{
+		VulnsBySeverity: map[string]int{
+			"critical": 0,
+			"high":     0,
+			"medium":   0,
+			"low":      0,
+		},
+		ProjectStats: []ProjectStats{},
+	}
+
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+
+		// Check for nested owner/repo structure
+		ownerPath := filepath.Join(reposPath, entry.Name())
+		subEntries, err := os.ReadDir(ownerPath)
+		if err != nil {
+			continue
+		}
+
+		for _, subEntry := range subEntries {
+			if !subEntry.IsDir() {
+				continue
+			}
+
+			projectID := entry.Name() + "/" + subEntry.Name()
+			projStats := h.getProjectStats(projectID)
+
+			stats.TotalProjects++
+			stats.TotalVulns += projStats.Vulns
+			stats.TotalSecrets += projStats.Secrets
+			stats.TotalDeps += projStats.Deps
+
+			for sev, count := range projStats.Severity {
+				stats.VulnsBySeverity[sev] += count
+			}
+
+			stats.ProjectStats = append(stats.ProjectStats, projStats)
+		}
+	}
+
+	writeJSON(w, http.StatusOK, stats)
+}
+
+// getProjectStats calculates stats for a single project
+func (h *AnalysisHandler) getProjectStats(projectID string) ProjectStats {
+	stats := ProjectStats{
+		ID: projectID,
+		Severity: map[string]int{
+			"critical": 0,
+			"high":     0,
+			"medium":   0,
+			"low":      0,
+		},
+	}
+
+	// Count vulnerabilities
+	if data, err := h.readAnalysis(projectID, "packages"); err == nil {
+		if findings, ok := data["findings"].(map[string]interface{}); ok {
+			if vulns, ok := findings["vulns"].([]interface{}); ok {
+				stats.Vulns += len(vulns)
+				for _, v := range vulns {
+					if vm, ok := v.(map[string]interface{}); ok {
+						if sev, ok := vm["severity"].(string); ok {
+							stats.Severity[strings.ToLower(sev)]++
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Count secrets
+	if data, err := h.readAnalysis(projectID, "code-security"); err == nil {
+		if findings, ok := data["findings"].(map[string]interface{}); ok {
+			if secrets, ok := findings["secrets"].([]interface{}); ok {
+				stats.Secrets = len(secrets)
+			}
+		}
+	}
+
+	// Count dependencies
+	if data, err := h.readAnalysis(projectID, "sbom"); err == nil {
+		if findings, ok := data["findings"].(map[string]interface{}); ok {
+			if gen, ok := findings["generation"].(map[string]interface{}); ok {
+				if comps, ok := gen["components"].([]interface{}); ok {
+					stats.Deps = len(comps)
+				}
+			}
+		}
+	}
+
+	return stats
+}
