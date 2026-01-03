@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
 import { useToast } from '@/components/ui/Toast';
 import { useActiveScans, useQueueStats, useFetch } from '@/hooks/useApi';
+import { useNotifications } from '@/hooks/useNotifications';
 import { api } from '@/lib/api';
 import { formatRelativeTime, formatDuration } from '@/lib/utils';
 import type { ScanJob, ProfileInfo } from '@/lib/types';
@@ -21,6 +22,8 @@ import {
   AlertTriangle,
   Loader2,
   GitBranch,
+  Bell,
+  BellOff,
 } from 'lucide-react';
 
 function NewScanForm({ onStart, initialTarget = '' }: { onStart: (job: { job_id: string }) => void; initialTarget?: string }) {
@@ -224,6 +227,7 @@ function ScanFormWithParams({ onStart }: { onStart: (job: { job_id: string }) =>
 
 function ScansPageContent() {
   const toast = useToast();
+  const notifications = useNotifications();
   const activeScans = useActiveScans(2000);
   const stats = useQueueStats();
   const { data: historyData, refetch: refetchHistory } = useFetch(
@@ -236,7 +240,7 @@ function ScansPageContent() {
 
   const history = historyData?.data || [];
 
-  // Detect scan status changes and show toast notifications
+  // Detect scan status changes and show toast + browser notifications
   useEffect(() => {
     const prevScans = prevScansRef.current;
 
@@ -246,9 +250,11 @@ function ScansPageContent() {
       if (prevStatus && prevStatus !== scan.status) {
         if (scan.status === 'complete') {
           toast.success('Scan complete', `${scan.target} finished successfully`);
+          notifications.notifyScanComplete(scan.target, true, scan.project_ids);
           refetchHistory();
         } else if (scan.status === 'failed') {
           toast.error('Scan failed', scan.error || `${scan.target} failed`);
+          notifications.notifyScanComplete(scan.target, false);
           refetchHistory();
         } else if (scan.status === 'canceled') {
           toast.warning('Scan canceled', `${scan.target} was canceled`);
@@ -258,7 +264,7 @@ function ScansPageContent() {
 
       prevScans.set(scan.job_id, scan.status);
     });
-  }, [activeScans, toast, refetchHistory]);
+  }, [activeScans, toast, notifications, refetchHistory]);
 
   const handleScanStart = (job: { job_id: string }) => {
     // The active scans will auto-update via polling
@@ -273,14 +279,35 @@ function ScansPageContent() {
     }
   };
 
+  const handleEnableNotifications = async () => {
+    const granted = await notifications.requestPermission();
+    if (granted) {
+      toast.success('Notifications enabled', 'You will receive browser notifications for scan events');
+    } else {
+      toast.warning('Notifications blocked', 'Please enable notifications in your browser settings');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Scans</h1>
-        <p className="mt-1 text-gray-400">
-          Manage repository scans and view history
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Scans</h1>
+          <p className="mt-1 text-gray-400">
+            Manage repository scans and view history
+          </p>
+        </div>
+        {notifications.supported && (
+          <Button
+            variant={notifications.permission === 'granted' ? 'ghost' : 'outline'}
+            size="sm"
+            onClick={handleEnableNotifications}
+            icon={notifications.permission === 'granted' ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
+          >
+            {notifications.permission === 'granted' ? 'Notifications On' : 'Enable Notifications'}
+          </Button>
+        )}
       </div>
 
       {/* Stats */}
