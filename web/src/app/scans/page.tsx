@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { MainLayout } from '@/components/layout/Sidebar';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Badge, StatusBadge } from '@/components/ui/Badge';
+import { useToast } from '@/components/ui/Toast';
 import { useActiveScans, useQueueStats, useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
 import { formatRelativeTime, formatDuration } from '@/lib/utils';
@@ -27,6 +28,7 @@ function NewScanForm({ onStart, initialTarget = '' }: { onStart: (job: { job_id:
   const [profile, setProfile] = useState('standard');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const { data: profilesData } = useFetch(() => api.profiles(), []);
   const profiles = profilesData?.data || [];
@@ -42,8 +44,11 @@ function NewScanForm({ onStart, initialTarget = '' }: { onStart: (job: { job_id:
       const result = await api.scans.start(target.trim(), profile);
       onStart(result);
       setTarget('');
+      toast.success('Scan started', `Scanning ${target.trim()}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to start scan');
+      const message = err instanceof Error ? err.message : 'Failed to start scan';
+      setError(message);
+      toast.error('Failed to start scan', message);
     } finally {
       setLoading(false);
     }
@@ -218,6 +223,7 @@ function ScanFormWithParams({ onStart }: { onStart: (job: { job_id: string }) =>
 }
 
 function ScansPageContent() {
+  const toast = useToast();
   const activeScans = useActiveScans(2000);
   const stats = useQueueStats();
   const { data: historyData, refetch: refetchHistory } = useFetch(
@@ -225,7 +231,34 @@ function ScansPageContent() {
     []
   );
 
+  // Track previous scan statuses to detect changes
+  const prevScansRef = useRef<Map<string, string>>(new Map());
+
   const history = historyData?.data || [];
+
+  // Detect scan status changes and show toast notifications
+  useEffect(() => {
+    const prevScans = prevScansRef.current;
+
+    activeScans.forEach((scan) => {
+      const prevStatus = prevScans.get(scan.job_id);
+
+      if (prevStatus && prevStatus !== scan.status) {
+        if (scan.status === 'complete') {
+          toast.success('Scan complete', `${scan.target} finished successfully`);
+          refetchHistory();
+        } else if (scan.status === 'failed') {
+          toast.error('Scan failed', scan.error || `${scan.target} failed`);
+          refetchHistory();
+        } else if (scan.status === 'canceled') {
+          toast.warning('Scan canceled', `${scan.target} was canceled`);
+          refetchHistory();
+        }
+      }
+
+      prevScans.set(scan.job_id, scan.status);
+    });
+  }, [activeScans, toast, refetchHistory]);
 
   const handleScanStart = (job: { job_id: string }) => {
     // The active scans will auto-update via polling
@@ -234,8 +267,9 @@ function ScansPageContent() {
   const handleCancel = async (jobId: string) => {
     try {
       await api.scans.cancel(jobId);
+      toast.info('Canceling scan...');
     } catch {
-      // Ignore errors
+      toast.error('Failed to cancel scan');
     }
   };
 

@@ -171,21 +171,38 @@ func (w *Worker) executeJob(ctx context.Context, job *Job) {
 
 // setupProgressHook hooks into the hydrate runner for real-time progress
 func (w *Worker) setupProgressHook(job *Job, h *hydrate.Hydrate) {
-	// Note: We need to access the runner from hydrate
-	// This requires adding a method to hydrate.Hydrate to expose the runner
-	// or accepting a callback directly
+	scannerCount := 0
+	completedCount := 0
+	startTimes := make(map[string]time.Time)
 
-	// For now, we'll set up a basic progress tracker that polls
-	// In a full implementation, we'd modify hydrate.Hydrate to accept
-	// an OnProgress callback that we can hook into here
+	h.SetProgressCallback(func(scannerName string, status scanner.Status, summary string) {
+		// Track scanner start time
+		if status == scanner.StatusRunning {
+			if _, exists := startTimes[scannerName]; !exists {
+				startTimes[scannerName] = time.Now()
+				scannerCount++
+			}
+		}
 
-	// The hydrate package's runner.OnProgress is set internally
-	// We would need to either:
-	// 1. Add a method to Hydrate to set a custom OnProgress callback
-	// 2. Or wrap the runner with our own progress tracking
+		// Calculate duration
+		var duration float64
+		if start, ok := startTimes[scannerName]; ok {
+			duration = time.Since(start).Seconds()
+		}
 
-	// For Phase 2, we'll use a simplified approach where we track
-	// status changes via the job's progress field
+		// Update job progress
+		job.Progress.UpdateScanner(scannerName, status, summary, duration)
+		job.Progress.SetScannerProgress(scannerName, completedCount, scannerCount)
+
+		// Track completion
+		if status == scanner.StatusComplete || status == scanner.StatusFailed || status == scanner.StatusSkipped {
+			completedCount++
+			job.Progress.SetScannerProgress(scannerName, completedCount, scannerCount)
+		}
+
+		// Broadcast to WebSocket clients
+		w.broadcastScannerProgress(job.ID, scannerName, status, summary, duration)
+	})
 }
 
 // broadcast sends a message to all clients watching this job

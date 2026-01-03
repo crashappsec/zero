@@ -9,6 +9,7 @@ import type {
   AnalysisSummary,
   Vulnerability,
   Secret,
+  Dependency,
   ListResponse,
   HealthResponse,
   StreamChunk,
@@ -60,6 +61,8 @@ export const api = {
       fetchJSON<ListResponse<Vulnerability>>(`/analysis/${encodeURIComponent(projectId)}/vulnerabilities`),
     secrets: (projectId: string) =>
       fetchJSON<ListResponse<Secret>>(`/analysis/${encodeURIComponent(projectId)}/secrets`),
+    dependencies: (projectId: string) =>
+      fetchJSON<ListResponse<Dependency>>(`/analysis/${encodeURIComponent(projectId)}/dependencies`),
     raw: (projectId: string, type: string) =>
       fetchJSON<unknown>(`/projects/${encodeURIComponent(projectId)}/analysis/${type}`),
   },

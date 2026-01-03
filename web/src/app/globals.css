@@ -82,3 +82,27 @@ body {
   background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.3), transparent);
   animation: scan-line 1.5s ease-in-out infinite;
 }
+
+/* Toast animations */
+@keyframes slide-in-from-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-in {
+  animation-fill-mode: both;
+}
+
+.slide-in-from-right-full {
+  animation-name: slide-in-from-right;
+}
+
+.duration-300 {
+  animation-duration: 300ms;
+}

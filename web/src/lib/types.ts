@@ -143,6 +143,42 @@ export interface Secret {
   redacted_match?: string;
 }
 
+// Dependency types (from SBOM)
+export interface Dependency {
+  name: string;
+  version: string;
+  type: 'library' | 'framework' | 'application';
+  purl?: string;
+  license?: string;
+  licenses?: string[];
+  direct?: boolean;
+  scope?: 'runtime' | 'development' | 'optional';
+  dependencies?: string[];
+  health?: DependencyHealth;
+  vulns_count?: number;
+}
+
+export interface DependencyHealth {
+  score: number;
+  maintenance: number;
+  popularity: number;
+  quality: number;
+  deprecated?: boolean;
+  last_publish?: string;
+}
+
+export interface DependencyTree {
+  root: string;
+  nodes: Record<string, DependencyNode>;
+}
+
+export interface DependencyNode {
+  name: string;
+  version: string;
+  children: string[];
+  depth: number;
+}
+
 // API Response wrappers
 export interface ListResponse<T> {
   data: T[];

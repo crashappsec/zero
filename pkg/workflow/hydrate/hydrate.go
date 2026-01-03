@@ -119,6 +119,14 @@ func New(opts *Options) (*Hydrate, error) {
 	}, nil
 }
 
+// ProgressCallback is called when scanner progress changes
+type ProgressCallback func(scanner string, status scanner.Status, summary string)
+
+// SetProgressCallback sets a callback for scanner progress updates
+func (h *Hydrate) SetProgressCallback(cb ProgressCallback) {
+	h.runner.OnProgress = cb
+}
+
 // Run executes the hydrate process and returns scanned project IDs
 func (h *Hydrate) Run(ctx context.Context) ([]string, error) {
 	start := time.Now()

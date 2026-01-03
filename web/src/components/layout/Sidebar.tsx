@@ -8,15 +8,20 @@ import {
   FolderKanban,
   Scan,
   MessageSquare,
-  Settings,
   Shield,
   Terminal,
+  AlertTriangle,
+  FileText,
+  Package,
 } from 'lucide-react';
 
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Projects', href: '/projects', icon: FolderKanban },
   { name: 'Scans', href: '/scans', icon: Scan },
+  { name: 'Vulnerabilities', href: '/vulnerabilities', icon: AlertTriangle },
+  { name: 'Dependencies', href: '/dependencies', icon: Package },
+  { name: 'Reports', href: '/reports', icon: FileText },
   { name: 'Agent Chat', href: '/chat', icon: MessageSquare },
 ];
 
