@@ -3,7 +3,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -14,24 +13,28 @@ import (
 	"github.com/go-chi/cors"
 
 	"github.com/crashappsec/zero/pkg/api/handlers"
+	"github.com/crashappsec/zero/pkg/api/jobs"
 	"github.com/crashappsec/zero/pkg/api/ws"
 	"github.com/crashappsec/zero/pkg/core/config"
 )
 
 // Server is the HTTP API server
 type Server struct {
-	cfg      *config.Config
-	zeroHome string
-	router   chi.Router
-	hub      *ws.Hub
-	port     int
-	devMode  bool
+	cfg        *config.Config
+	zeroHome   string
+	router     chi.Router
+	hub        *ws.Hub
+	queue      *jobs.Queue
+	workerPool *jobs.WorkerPool
+	port       int
+	devMode    bool
 }
 
 // Options configures the server
 type Options struct {
-	Port    int
-	DevMode bool
+	Port       int
+	DevMode    bool
+	NumWorkers int // Number of scan workers (default: 1)
 }
 
 // NewServer creates a new API server
@@ -43,12 +46,22 @@ func NewServer(opts *Options) (*Server, error) {
 
 	zeroHome := cfg.ZeroHome()
 
+	// Default workers
+	if opts.NumWorkers <= 0 {
+		opts.NumWorkers = 1
+	}
+
+	hub := ws.NewHub()
+	queue := jobs.NewQueue(100) // Max 100 queued jobs
+
 	s := &Server{
-		cfg:      cfg,
-		zeroHome: zeroHome,
-		port:     opts.Port,
-		devMode:  opts.DevMode,
-		hub:      ws.NewHub(),
+		cfg:        cfg,
+		zeroHome:   zeroHome,
+		port:       opts.Port,
+		devMode:    opts.DevMode,
+		hub:        hub,
+		queue:      queue,
+		workerPool: jobs.NewWorkerPool(queue, hub, opts.NumWorkers),
 	}
 
 	s.setupRoutes()
@@ -84,6 +97,7 @@ func (s *Server) setupRoutes() {
 	projectHandler := handlers.NewProjectHandler(s.zeroHome, s.cfg)
 	analysisHandler := handlers.NewAnalysisHandler(s.zeroHome)
 	systemHandler := handlers.NewSystemHandler(s.cfg)
+	scanHandler := handlers.NewScanHandler(s.queue)
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
@@ -107,22 +121,18 @@ func (s *Server) setupRoutes() {
 		r.Get("/analysis/{projectID}/secrets", analysisHandler.GetSecrets)
 		r.Get("/analysis/{projectID}/dependencies", analysisHandler.GetDependencies)
 
-		// Scan endpoints (Phase 2)
-		// r.Post("/scans", scanHandler.Start)
-		// r.Get("/scans/{jobID}", scanHandler.Get)
-		// r.Delete("/scans/{jobID}", scanHandler.Cancel)
-		// r.Get("/scans/active", scanHandler.ListActive)
+		// Scan endpoints
+		r.Post("/scans", scanHandler.Start)
+		r.Get("/scans/active", scanHandler.ListActive)
+		r.Get("/scans/history", scanHandler.ListHistory)
+		r.Get("/scans/stats", scanHandler.Stats)
+		r.Get("/scans/{jobID}", scanHandler.Get)
+		r.Delete("/scans/{jobID}", scanHandler.Cancel)
 	})
 
-	// WebSocket endpoints (Phase 3)
-	r.Get("/ws/scan/{jobID}", func(w http.ResponseWriter, r *http.Request) {
-		// Placeholder for scan progress WebSocket
-		json.NewEncoder(w).Encode(map[string]string{"error": "not implemented"})
-	})
-	r.Get("/ws/agent", func(w http.ResponseWriter, r *http.Request) {
-		// Placeholder for agent chat WebSocket
-		json.NewEncoder(w).Encode(map[string]string{"error": "not implemented"})
-	})
+	// WebSocket endpoints for real-time updates
+	r.Get("/ws/scan/{jobID}", s.hub.HandleScanWS)
+	r.Get("/ws/agent", s.hub.HandleAgentWS)
 
 	s.router = r
 }
@@ -131,6 +141,9 @@ func (s *Server) setupRoutes() {
 func (s *Server) Run(ctx context.Context) error {
 	// Start WebSocket hub
 	go s.hub.Run(ctx)
+
+	// Start worker pool for scan jobs
+	s.workerPool.Start(ctx)
 
 	addr := fmt.Sprintf(":%d", s.port)
 	log.Printf("Starting Zero API server on %s", addr)
@@ -149,6 +162,8 @@ func (s *Server) Run(ctx context.Context) error {
 	// Graceful shutdown
 	go func() {
 		<-ctx.Done()
+		log.Println("Shutting down server...")
+		s.workerPool.Stop()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		srv.Shutdown(shutdownCtx)
