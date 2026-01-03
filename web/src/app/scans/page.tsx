@@ -33,7 +33,7 @@ function NewScanForm({ onStart, initialTarget = '' }: { onStart: (job: { job_id:
   const [error, setError] = useState<string | null>(null);
   const toast = useToast();
 
-  const { data: profilesData } = useFetch(() => api.profiles(), []);
+  const { data: profilesData } = useFetch(() => api.profiles.list(), []);
   const profiles = profilesData?.data || [];
 
   const handleSubmit = async (e: React.FormEvent) => {

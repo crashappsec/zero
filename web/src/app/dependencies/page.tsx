@@ -1,17 +1,16 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useMemo, Suspense, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/Sidebar';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Badge, SeverityBadge } from '@/components/ui/Badge';
+import { Badge } from '@/components/ui/Badge';
 import { useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
-import type { Dependency, Project } from '@/lib/types';
+import type { Dependency } from '@/lib/types';
 import { ExportButton } from '@/components/ui/ExportButton';
 import { downloadCSV, downloadJSON } from '@/lib/export';
+import { ProjectFilter } from '@/components/ui/ProjectFilter';
 import {
   Search,
   Package,
@@ -19,17 +18,17 @@ import {
   ChevronDown,
   AlertTriangle,
   CheckCircle,
-  XCircle,
   Filter,
   LayoutList,
-  Network,
   ArrowUpDown,
-  ExternalLink,
   Scale,
 } from 'lucide-react';
 
-type ViewMode = 'list' | 'tree';
-type SortField = 'name' | 'license' | 'vulns';
+type SortField = 'name' | 'license' | 'vulns' | 'project';
+
+interface DepWithProject extends Dependency {
+  projectId: string;
+}
 
 function HealthIndicator({ health }: { health?: Dependency['health'] }) {
   if (!health) {
@@ -65,7 +64,7 @@ function LicenseBadge({ license }: { license?: string }) {
   );
 }
 
-function DependencyRow({ dep, expanded, onToggle }: { dep: Dependency; expanded: boolean; onToggle: () => void }) {
+function DependencyRow({ dep, expanded, onToggle }: { dep: DepWithProject; expanded: boolean; onToggle: () => void }) {
   const hasChildren = dep.dependencies && dep.dependencies.length > 0;
   const hasVulns = (dep.vulns_count || 0) > 0;
 
@@ -92,23 +91,16 @@ function DependencyRow({ dep, expanded, onToggle }: { dep: Dependency; expanded:
           {dep.direct && (
             <Badge variant="info" className="text-xs">direct</Badge>
           )}
-          {dep.scope === 'development' && (
-            <Badge variant="default" className="text-xs">dev</Badge>
-          )}
+          <Badge variant="default" className="text-xs">{dep.projectId}</Badge>
         </div>
 
         <div className="flex items-center gap-6">
-          {/* License */}
           <div className="w-28">
             <LicenseBadge license={dep.license} />
           </div>
-
-          {/* Health */}
           <div className="w-20">
             <HealthIndicator health={dep.health} />
           </div>
-
-          {/* Vulnerabilities */}
           <div className="w-16">
             {hasVulns ? (
               <span className="flex items-center gap-1 text-red-400">
@@ -142,131 +134,65 @@ function DependencyRow({ dep, expanded, onToggle }: { dep: Dependency; expanded:
   );
 }
 
-function TreeNode({
-  dep,
-  depth,
-  allDeps,
-  expanded,
-  onToggle,
-}: {
-  dep: Dependency;
-  depth: number;
-  allDeps: Map<string, Dependency>;
-  expanded: Set<string>;
-  onToggle: (name: string) => void;
-}) {
-  const isExpanded = expanded.has(dep.name);
-  const hasChildren = dep.dependencies && dep.dependencies.length > 0;
-  const hasVulns = (dep.vulns_count || 0) > 0;
-
-  return (
-    <div>
-      <div
-        className="flex items-center gap-2 py-1.5 hover:bg-gray-800/50 rounded cursor-pointer"
-        style={{ paddingLeft: `${depth * 20 + 8}px` }}
-        onClick={() => onToggle(dep.name)}
-      >
-        <button className="w-4">
-          {hasChildren ? (
-            isExpanded ? (
-              <ChevronDown className="h-3 w-3 text-gray-500" />
-            ) : (
-              <ChevronRight className="h-3 w-3 text-gray-500" />
-            )
-          ) : (
-            <span className="w-3" />
-          )}
-        </button>
-
-        <Package className={`h-4 w-4 ${hasVulns ? 'text-red-400' : 'text-gray-500'}`} />
-
-        <span className="text-sm text-white">{dep.name}</span>
-        <span className="text-xs text-gray-500">@{dep.version}</span>
-
-        {hasVulns && (
-          <Badge variant="error" className="text-xs ml-2">
-            {dep.vulns_count} vuln{dep.vulns_count !== 1 ? 's' : ''}
-          </Badge>
-        )}
-        {dep.health?.deprecated && (
-          <Badge variant="warning" className="text-xs">deprecated</Badge>
-        )}
-      </div>
-
-      {isExpanded && hasChildren && (
-        <div>
-          {dep.dependencies?.map((childName) => {
-            const childDep = allDeps.get(childName);
-            if (!childDep) {
-              return (
-                <div
-                  key={childName}
-                  className="flex items-center gap-2 py-1.5 text-gray-500 text-sm"
-                  style={{ paddingLeft: `${(depth + 1) * 20 + 8}px` }}
-                >
-                  <span className="w-4" />
-                  <Package className="h-4 w-4" />
-                  <span>{childName}</span>
-                  <span className="text-xs">(transitive)</span>
-                </div>
-              );
-            }
-            return (
-              <TreeNode
-                key={childName}
-                dep={childDep}
-                depth={depth + 1}
-                allDeps={allDeps}
-                expanded={expanded}
-                onToggle={onToggle}
-              />
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function DependenciesContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const projectId = searchParams.get('project');
-
   const [search, setSearch] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [showDirect, setShowDirect] = useState(false);
   const [showVulnerable, setShowVulnerable] = useState(false);
   const [sortField, setSortField] = useState<SortField>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [allDeps, setAllDeps] = useState<DepWithProject[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch projects
   const { data: projectsData } = useFetch(() => api.projects.list(), []);
   const projects = projectsData?.data || [];
 
-  // Fetch dependencies
-  const { data: depsData, loading, error } = useFetch(
-    () => projectId ? api.analysis.dependencies(projectId) : Promise.resolve({ data: [], total: 0 }),
-    [projectId]
-  );
-  const dependencies = depsData?.data || [];
+  // Load dependencies for all projects in parallel
+  useEffect(() => {
+    async function loadAllDeps() {
+      if (projects.length === 0) return;
 
-  // Create dependency map for tree view
-  const depMap = useMemo(() => {
-    const map = new Map<string, Dependency>();
-    dependencies.forEach((d) => map.set(d.name, d));
-    return map;
-  }, [dependencies]);
+      setLoading(true);
+
+      // Fetch all projects in parallel for better performance
+      const results = await Promise.all(
+        projects.map(async (project) => {
+          try {
+            const data = await api.analysis.dependencies(project.id);
+            if (data?.data) {
+              return data.data.map(dep => ({ ...dep, projectId: project.id }));
+            }
+          } catch {
+            // Skip projects without dependency data
+          }
+          return [];
+        })
+      );
+
+      setAllDeps(results.flat());
+      setLoading(false);
+    }
+
+    loadAllDeps();
+  }, [projects]);
+
+  // Filter by selected projects
+  const projectFilteredDeps = useMemo(() => {
+    if (selectedProjects.length === 0) return allDeps;
+    return allDeps.filter(d => selectedProjects.includes(d.projectId));
+  }, [allDeps, selectedProjects]);
 
   // Filter and sort
   const filteredDeps = useMemo(() => {
-    let result = [...dependencies];
+    let result = [...projectFilteredDeps];
 
     if (search) {
       const lower = search.toLowerCase();
       result = result.filter(d =>
         d.name.toLowerCase().includes(lower) ||
+        d.projectId.toLowerCase().includes(lower) ||
         (d.license?.toLowerCase().includes(lower))
       );
     }
@@ -291,17 +217,15 @@ function DependenciesContent() {
         case 'vulns':
           cmp = (b.vulns_count || 0) - (a.vulns_count || 0);
           break;
+        case 'project':
+          cmp = a.projectId.localeCompare(b.projectId);
+          break;
       }
       return sortDirection === 'asc' ? cmp : -cmp;
     });
 
     return result;
-  }, [dependencies, search, showDirect, showVulnerable, sortField, sortDirection]);
-
-  // Direct dependencies for tree view
-  const directDeps = useMemo(() => {
-    return dependencies.filter(d => d.direct);
-  }, [dependencies]);
+  }, [projectFilteredDeps, search, showDirect, showVulnerable, sortField, sortDirection]);
 
   // Stats
   const stats = useMemo(() => {
@@ -310,7 +234,7 @@ function DependenciesContent() {
     let deprecatedCount = 0;
     let directCount = 0;
 
-    dependencies.forEach((d) => {
+    projectFilteredDeps.forEach((d) => {
       if (d.license) {
         licenses.set(d.license, (licenses.get(d.license) || 0) + 1);
       }
@@ -320,16 +244,16 @@ function DependenciesContent() {
     });
 
     return {
-      total: dependencies.length,
+      total: projectFilteredDeps.length,
       direct: directCount,
-      transitive: dependencies.length - directCount,
+      transitive: projectFilteredDeps.length - directCount,
       vulnerable: vulnCount,
       deprecated: deprecatedCount,
       topLicenses: Array.from(licenses.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 5),
     };
-  }, [dependencies]);
+  }, [projectFilteredDeps]);
 
   const toggleExpanded = (id: string) => {
     const newSet = new Set(expandedIds);
@@ -341,68 +265,68 @@ function DependenciesContent() {
     setExpandedIds(newSet);
   };
 
-  const handleProjectChange = (newProjectId: string) => {
-    router.push(`/dependencies?project=${encodeURIComponent(newProjectId)}`);
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
   };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Package className="h-6 w-6 text-blue-500" />
             Dependencies
           </h1>
           <p className="mt-1 text-gray-400">
-            View and analyze project dependencies
+            Package dependencies across all projects
           </p>
         </div>
-        {projectId && dependencies.length > 0 && (
-          <ExportButton
-            onExport={(format) => {
-              const data = filteredDeps.map(d => ({
-                name: d.name,
-                version: d.version,
-                license: d.license || '',
-                direct: d.direct ? 'Yes' : 'No',
-                scope: d.scope || '',
-                vulns_count: d.vulns_count || 0,
-                health_score: d.health?.score || '',
-                deprecated: d.health?.deprecated ? 'Yes' : 'No',
-              }));
-              if (format === 'csv') {
-                downloadCSV(data, `dependencies-${projectId.replace('/', '-')}`);
-              } else {
-                downloadJSON(data, `dependencies-${projectId.replace('/', '-')}`);
-              }
-            }}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {projects.length > 0 && (
+            <ProjectFilter
+              projects={projects}
+              selectedProjects={selectedProjects}
+              onChange={setSelectedProjects}
+            />
+          )}
+          {projectFilteredDeps.length > 0 && (
+            <ExportButton
+              onExport={(format) => {
+                const data = filteredDeps.map(d => ({
+                  project: d.projectId,
+                  name: d.name,
+                  version: d.version,
+                  license: d.license || '',
+                  direct: d.direct ? 'Yes' : 'No',
+                  scope: d.scope || '',
+                  vulns_count: d.vulns_count || 0,
+                  health_score: d.health?.score || '',
+                  deprecated: d.health?.deprecated ? 'Yes' : 'No',
+                }));
+                if (format === 'csv') {
+                  downloadCSV(data, 'dependencies');
+                } else {
+                  downloadJSON(data, 'dependencies');
+                }
+              }}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Project Selector */}
-      <Card>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-300">Project:</label>
-            <select
-              value={projectId || ''}
-              onChange={(e) => handleProjectChange(e.target.value)}
-              className="flex-1 max-w-md rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-            >
-              <option value="">Select a project...</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.id}
-                </option>
-              ))}
-            </select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {projectId && (
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse h-24" />
+          ))}
+        </div>
+      ) : allDeps.length > 0 ? (
         <>
           {/* Stats */}
           <div className="grid grid-cols-5 gap-4">
@@ -462,7 +386,6 @@ function DependenciesContent() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                  {/* Filters */}
                   <div className="flex items-center gap-2">
                     <Filter className="h-4 w-4 text-gray-500" />
                     <button
@@ -482,24 +405,6 @@ function DependenciesContent() {
                       Vulnerable
                     </button>
                   </div>
-
-                  {/* View Mode */}
-                  <div className="flex items-center gap-1 border border-gray-700 rounded-md p-1">
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-gray-700' : 'hover:bg-gray-800'}`}
-                      title="List View"
-                    >
-                      <LayoutList className="h-4 w-4 text-gray-400" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('tree')}
-                      className={`p-1.5 rounded ${viewMode === 'tree' ? 'bg-gray-700' : 'hover:bg-gray-800'}`}
-                      title="Tree View"
-                    >
-                      <Network className="h-4 w-4 text-gray-400" />
-                    </button>
-                  </div>
                 </div>
               </div>
             </CardContent>
@@ -507,105 +412,58 @@ function DependenciesContent() {
 
           {/* Results */}
           <Card>
-            {viewMode === 'list' ? (
-              <>
-                {/* List header */}
-                <div className="flex items-center gap-4 px-4 py-2 border-b border-gray-700 bg-gray-800/50">
-                  <div className="w-5" />
-                  <div className="flex-1 text-sm font-medium text-gray-400">Package</div>
-                  <div className="flex items-center gap-6">
-                    <button
-                      onClick={() => {
-                        if (sortField === 'license') {
-                          setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
-                        } else {
-                          setSortField('license');
-                          setSortDirection('asc');
-                        }
-                      }}
-                      className="w-28 text-sm font-medium text-gray-400 text-left flex items-center gap-1"
-                    >
-                      License
-                      {sortField === 'license' && <ArrowUpDown className="h-3 w-3" />}
-                    </button>
-                    <div className="w-20 text-sm font-medium text-gray-400">Health</div>
-                    <button
-                      onClick={() => {
-                        if (sortField === 'vulns') {
-                          setSortDirection(d => d === 'asc' ? 'desc' : 'asc');
-                        } else {
-                          setSortField('vulns');
-                          setSortDirection('desc');
-                        }
-                      }}
-                      className="w-16 text-sm font-medium text-gray-400 text-left flex items-center gap-1"
-                    >
-                      Vulns
-                      {sortField === 'vulns' && <ArrowUpDown className="h-3 w-3" />}
-                    </button>
-                  </div>
-                </div>
+            {/* List header */}
+            <div className="flex items-center gap-4 px-4 py-2 border-b border-gray-700 bg-gray-800/50">
+              <div className="w-5" />
+              <div className="flex-1 text-sm font-medium text-gray-400">Package</div>
+              <div className="flex items-center gap-6">
+                <button
+                  onClick={() => toggleSort('license')}
+                  className="w-28 text-sm font-medium text-gray-400 text-left flex items-center gap-1"
+                >
+                  License
+                  {sortField === 'license' && <ArrowUpDown className="h-3 w-3" />}
+                </button>
+                <div className="w-20 text-sm font-medium text-gray-400">Health</div>
+                <button
+                  onClick={() => toggleSort('vulns')}
+                  className="w-16 text-sm font-medium text-gray-400 text-left flex items-center gap-1"
+                >
+                  Vulns
+                  {sortField === 'vulns' && <ArrowUpDown className="h-3 w-3" />}
+                </button>
+              </div>
+            </div>
 
-                {loading ? (
-                  <div className="p-8 text-center text-gray-400">Loading dependencies...</div>
-                ) : error ? (
-                  <div className="p-8 text-center text-red-400">Failed to load dependencies</div>
-                ) : filteredDeps.length === 0 ? (
-                  <div className="p-8 text-center">
-                    <Package className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-400">
-                      {dependencies.length === 0
-                        ? 'No dependencies found for this project'
-                        : 'No dependencies match your filters'}
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    {filteredDeps.map((dep) => (
-                      <DependencyRow
-                        key={`${dep.name}@${dep.version}`}
-                        dep={dep}
-                        expanded={expandedIds.has(dep.name)}
-                        onToggle={() => toggleExpanded(dep.name)}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
+            {filteredDeps.length === 0 ? (
+              <div className="p-8 text-center">
+                <Package className="h-12 w-12 text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-400">No dependencies match your filters</p>
+              </div>
             ) : (
-              // Tree View
-              <div className="p-4">
-                <h3 className="text-sm font-medium text-gray-400 mb-4">
-                  Dependency Tree ({directDeps.length} direct dependencies)
-                </h3>
-                {loading ? (
-                  <div className="text-center text-gray-400 py-8">Loading...</div>
-                ) : directDeps.length === 0 ? (
-                  <div className="text-center text-gray-400 py-8">No direct dependencies found</div>
-                ) : (
-                  <div className="font-mono text-sm">
-                    {directDeps.map((dep) => (
-                      <TreeNode
-                        key={dep.name}
-                        dep={dep}
-                        depth={0}
-                        allDeps={depMap}
-                        expanded={expandedIds}
-                        onToggle={toggleExpanded}
-                      />
-                    ))}
+              <div>
+                {filteredDeps.slice(0, 100).map((dep, i) => (
+                  <DependencyRow
+                    key={`${dep.projectId}-${dep.name}@${dep.version}-${i}`}
+                    dep={dep}
+                    expanded={expandedIds.has(`${dep.projectId}-${dep.name}`)}
+                    onToggle={() => toggleExpanded(`${dep.projectId}-${dep.name}`)}
+                  />
+                ))}
+                {filteredDeps.length > 100 && (
+                  <div className="p-4 text-center text-gray-400 text-sm">
+                    Showing 100 of {filteredDeps.length} dependencies. Use filters to narrow down.
                   </div>
                 )}
               </div>
             )}
           </Card>
         </>
-      )}
-
-      {!projectId && (
+      ) : (
         <Card className="text-center py-12">
           <Package className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">Select a project to view its dependencies</p>
+          <p className="text-gray-400">No dependencies found</p>
+          <p className="text-sm text-gray-500 mt-1">Run scans with the sbom scanner</p>
         </Card>
       )}
     </div>

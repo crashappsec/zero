@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useMemo, Suspense, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/Sidebar';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge, SeverityBadge } from '@/components/ui/Badge';
@@ -12,49 +11,27 @@ import {
   Container,
   GitBranch,
   Workflow,
-  Clock,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
   FileCode,
-  Shield,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
+import { ProjectFilter } from '@/components/ui/ProjectFilter';
 
-interface DORAMetrics {
-  deployment_frequency: string;
-  lead_time: string;
-  change_failure_rate: number;
-  mttr: string;
-  performance_level: string;
-}
-
-interface IaCFinding {
-  file: string;
-  line: number;
-  rule: string;
-  severity: string;
-  message: string;
-}
-
-interface ContainerFinding {
-  image: string;
-  file: string;
-  issue: string;
-  severity: string;
-}
-
-interface GHAFinding {
-  workflow: string;
-  job: string;
-  issue: string;
-  severity: string;
-}
-
-interface DevOpsData {
-  dora: DORAMetrics | null;
-  iac_findings: IaCFinding[];
-  container_findings: ContainerFinding[];
-  gha_findings: GHAFinding[];
+interface ProjectDevOps {
+  projectId: string;
+  dora: {
+    deployment_frequency: string;
+    lead_time: string;
+    change_failure_rate: number;
+    mttr: string;
+    performance_level: string;
+  } | null;
+  iac_count: number;
+  container_count: number;
+  gha_count: number;
   git_stats: {
     total_commits: number;
     branches: number;
@@ -62,329 +39,318 @@ interface DevOpsData {
   };
 }
 
-function DORACard({ metrics }: { metrics: DORAMetrics }) {
-  const levelColors: Record<string, string> = {
-    elite: 'text-green-500',
-    high: 'text-blue-500',
-    medium: 'text-yellow-500',
-    low: 'text-red-500',
-  };
+function DORABadge({ level }: { level: string }) {
+  const variant = level === 'elite' ? 'success' :
+                  level === 'high' ? 'info' :
+                  level === 'medium' ? 'warning' : 'error';
+  return <Badge variant={variant}>{level} performer</Badge>;
+}
+
+function ProjectDevOpsCard({ data, expanded, onToggle }: {
+  data: ProjectDevOps;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const totalIssues = data.iac_count + data.container_count + data.gha_count;
 
   return (
-    <Card>
-      <CardTitle className="flex items-center gap-2">
-        <TrendingUp className="h-5 w-5 text-blue-500" />
-        DORA Metrics
-        <Badge variant={metrics.performance_level === 'elite' ? 'success' :
-                       metrics.performance_level === 'high' ? 'info' :
-                       metrics.performance_level === 'medium' ? 'warning' : 'error'}>
-          {metrics.performance_level} performer
-        </Badge>
-      </CardTitle>
-      <CardContent className="mt-4">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="p-4 bg-gray-800/50 rounded-lg">
-            <p className="text-sm text-gray-400">Deployment Frequency</p>
-            <p className="text-xl font-bold text-white mt-1">{metrics.deployment_frequency}</p>
-          </div>
-          <div className="p-4 bg-gray-800/50 rounded-lg">
-            <p className="text-sm text-gray-400">Lead Time for Changes</p>
-            <p className="text-xl font-bold text-white mt-1">{metrics.lead_time}</p>
-          </div>
-          <div className="p-4 bg-gray-800/50 rounded-lg">
-            <p className="text-sm text-gray-400">Change Failure Rate</p>
-            <p className={`text-xl font-bold mt-1 ${
-              metrics.change_failure_rate < 15 ? 'text-green-500' :
-              metrics.change_failure_rate < 30 ? 'text-yellow-500' : 'text-red-500'
-            }`}>
-              {metrics.change_failure_rate}%
-            </p>
-          </div>
-          <div className="p-4 bg-gray-800/50 rounded-lg">
-            <p className="text-sm text-gray-400">Mean Time to Recovery</p>
-            <p className="text-xl font-bold text-white mt-1">{metrics.mttr}</p>
+    <Card className="overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-4">
+          {expanded ? (
+            <ChevronDown className="h-4 w-4 text-gray-500" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-gray-500" />
+          )}
+          <div>
+            <h3 className="font-medium text-white text-left">{data.projectId}</h3>
+            <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
+              <span>{data.git_stats.total_commits} commits</span>
+              <span>{data.git_stats.branches} branches</span>
+              {totalIssues > 0 && (
+                <span className="text-yellow-500">{totalIssues} issues</span>
+              )}
+            </div>
           </div>
         </div>
-      </CardContent>
+        {data.dora && <DORABadge level={data.dora.performance_level} />}
+      </button>
+
+      {expanded && (
+        <div className="border-t border-gray-700 p-4 space-y-4">
+          {/* DORA Metrics */}
+          {data.dora && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-400 mb-2">DORA Metrics</h4>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="p-2 bg-gray-800/50 rounded">
+                  <p className="text-xs text-gray-500">Deploy Freq</p>
+                  <p className="text-sm text-white">{data.dora.deployment_frequency}</p>
+                </div>
+                <div className="p-2 bg-gray-800/50 rounded">
+                  <p className="text-xs text-gray-500">Lead Time</p>
+                  <p className="text-sm text-white">{data.dora.lead_time}</p>
+                </div>
+                <div className="p-2 bg-gray-800/50 rounded">
+                  <p className="text-xs text-gray-500">Failure Rate</p>
+                  <p className={`text-sm ${data.dora.change_failure_rate < 15 ? 'text-green-500' : 'text-yellow-500'}`}>
+                    {data.dora.change_failure_rate}%
+                  </p>
+                </div>
+                <div className="p-2 bg-gray-800/50 rounded">
+                  <p className="text-xs text-gray-500">MTTR</p>
+                  <p className="text-sm text-white">{data.dora.mttr}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Issues Summary */}
+          {totalIssues > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-400 mb-2">Issues Found</h4>
+              <div className="flex flex-wrap gap-2">
+                {data.iac_count > 0 && (
+                  <Badge variant="warning">{data.iac_count} IaC issues</Badge>
+                )}
+                {data.container_count > 0 && (
+                  <Badge variant="warning">{data.container_count} container issues</Badge>
+                )}
+                {data.gha_count > 0 && (
+                  <Badge variant="warning">{data.gha_count} GitHub Actions issues</Badge>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
 
-function FindingsTable<T extends { severity: string }>({
-  findings,
-  columns,
-  renderRow
-}: {
-  findings: T[];
-  columns: string[];
-  renderRow: (finding: T) => React.ReactNode;
-}) {
-  if (findings.length === 0) {
-    return (
-      <div className="p-8 text-center text-gray-400">
-        <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
-        No issues found
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-gray-700">
-            {columns.map((col) => (
-              <th key={col} className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase">
-                {col}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {findings.map((finding, i) => (
-            <tr key={i} className="border-b border-gray-700/50 hover:bg-gray-800/50">
-              {renderRow(finding)}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function DevOpsContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const projectId = searchParams.get('project');
-  const [activeTab, setActiveTab] = useState<'overview' | 'iac' | 'containers' | 'actions'>('overview');
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [devopsData, setDevopsData] = useState<ProjectDevOps[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
 
   const { data: projectsData } = useFetch(() => api.projects.list(), []);
   const projects = projectsData?.data || [];
 
-  const { data: devopsData, loading, error } = useFetch(
-    () => projectId ? api.analysis.raw(projectId, 'devops') as Promise<any> : Promise.resolve(null),
-    [projectId]
-  );
+  useEffect(() => {
+    async function loadDevOpsData() {
+      if (projects.length === 0) return;
 
-  const devops = useMemo(() => {
-    if (!devopsData?.findings) return null;
-    const findings = devopsData.findings;
-    return {
-      dora: findings.dora || null,
-      iac_findings: findings.iac?.findings || [],
-      container_findings: findings.containers?.findings || [],
-      gha_findings: findings.github_actions?.findings || [],
-      git_stats: findings.git || { total_commits: 0, branches: 0, contributors: 0 },
-    } as DevOpsData;
-  }, [devopsData]);
+      setLoading(true);
+      const results: ProjectDevOps[] = [];
 
-  const handleProjectChange = (newProjectId: string) => {
-    router.push(`/devops?project=${encodeURIComponent(newProjectId)}`);
+      for (const project of projects) {
+        try {
+          const data = await api.analysis.raw(project.id, 'devops') as any;
+          if (data?.findings) {
+            const findings = data.findings;
+            results.push({
+              projectId: project.id,
+              dora: findings.dora || null,
+              iac_count: findings.iac?.findings?.length || 0,
+              container_count: findings.containers?.findings?.length || 0,
+              gha_count: findings.github_actions?.findings?.length || 0,
+              git_stats: findings.git || { total_commits: 0, branches: 0, contributors: 0 },
+            });
+          }
+        } catch {
+          // Skip projects without devops data
+        }
+      }
+
+      setDevopsData(results);
+      setLoading(false);
+    }
+
+    loadDevOpsData();
+  }, [projects]);
+
+  const toggleProject = (id: string) => {
+    const newSet = new Set(expandedProjects);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setExpandedProjects(newSet);
   };
 
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: Server },
-    { id: 'iac', label: `IaC (${devops?.iac_findings.length || 0})`, icon: FileCode },
-    { id: 'containers', label: `Containers (${devops?.container_findings.length || 0})`, icon: Container },
-    { id: 'actions', label: `Actions (${devops?.gha_findings.length || 0})`, icon: Workflow },
-  ];
+  // Filter data based on selected projects
+  const filteredData = useMemo(() => {
+    if (selectedProjects.length === 0) return devopsData;
+    return devopsData.filter(d => selectedProjects.includes(d.projectId));
+  }, [devopsData, selectedProjects]);
+
+  // Aggregate stats
+  const stats = useMemo(() => {
+    if (filteredData.length === 0) return null;
+
+    const doraLevels = { elite: 0, high: 0, medium: 0, low: 0 };
+    let totalIaC = 0;
+    let totalContainer = 0;
+    let totalGHA = 0;
+    let totalCommits = 0;
+
+    filteredData.forEach((p) => {
+      if (p.dora) {
+        const level = p.dora.performance_level as keyof typeof doraLevels;
+        if (level in doraLevels) doraLevels[level]++;
+      }
+      totalIaC += p.iac_count;
+      totalContainer += p.container_count;
+      totalGHA += p.gha_count;
+      totalCommits += p.git_stats.total_commits;
+    });
+
+    return {
+      doraLevels,
+      totalIaC,
+      totalContainer,
+      totalGHA,
+      totalCommits,
+      projectsAnalyzed: filteredData.length,
+    };
+  }, [filteredData]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Server className="h-6 w-6 text-green-500" />
-          DevOps & Infrastructure
-        </h1>
-        <p className="mt-1 text-gray-400">
-          DORA metrics, infrastructure as code, containers, and CI/CD analysis
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Server className="h-6 w-6 text-green-500" />
+            DevOps & Infrastructure
+          </h1>
+          <p className="mt-1 text-gray-400">
+            DORA metrics, IaC, containers, and CI/CD analysis across all projects
+          </p>
+        </div>
+        {projects.length > 0 && (
+          <ProjectFilter
+            projects={projects}
+            selectedProjects={selectedProjects}
+            onChange={setSelectedProjects}
+          />
+        )}
       </div>
 
-      {/* Project Selector */}
-      <Card>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-300">Project:</label>
-            <select
-              value={projectId || ''}
-              onChange={(e) => handleProjectChange(e.target.value)}
-              className="flex-1 max-w-md rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-            >
-              <option value="">Select a project...</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.id}</option>
-              ))}
-            </select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {projectId && devops && (
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse h-24" />
+          ))}
+        </div>
+      ) : stats ? (
         <>
-          {/* Tabs */}
-          <div className="flex gap-2 border-b border-gray-700">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.id
-                    ? 'text-green-500 border-green-500'
-                    : 'text-gray-400 border-transparent hover:text-white'
-                }`}
-              >
-                <tab.icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            ))}
+          {/* Aggregate Stats */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-600/20">
+                  <TrendingUp className="h-6 w-6 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Elite Performers</p>
+                  <p className="text-2xl font-bold text-green-500">{stats.doraLevels.elite}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-600/20">
+                  <FileCode className="h-6 w-6 text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">IaC Issues</p>
+                  <p className="text-2xl font-bold text-white">{stats.totalIaC}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600/20">
+                  <Container className="h-6 w-6 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Container Issues</p>
+                  <p className="text-2xl font-bold text-white">{stats.totalContainer}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-600/20">
+                  <Workflow className="h-6 w-6 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">GHA Issues</p>
+                  <p className="text-2xl font-bold text-white">{stats.totalGHA}</p>
+                </div>
+              </div>
+            </Card>
           </div>
 
-          {/* Overview */}
-          {activeTab === 'overview' && (
-            <div className="space-y-6">
-              {/* Stats */}
-              <div className="grid gap-4 md:grid-cols-4">
-                <Card>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600/20">
-                      <GitBranch className="h-6 w-6 text-blue-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Commits</p>
-                      <p className="text-2xl font-bold text-white">{devops.git_stats.total_commits}</p>
-                    </div>
-                  </div>
-                </Card>
-                <Card>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-600/20">
-                      <GitBranch className="h-6 w-6 text-purple-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Branches</p>
-                      <p className="text-2xl font-bold text-white">{devops.git_stats.branches}</p>
-                    </div>
-                  </div>
-                </Card>
-                <Card>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-600/20">
-                      <AlertTriangle className="h-6 w-6 text-yellow-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">IaC Issues</p>
-                      <p className="text-2xl font-bold text-white">{devops.iac_findings.length}</p>
-                    </div>
-                  </div>
-                </Card>
-                <Card>
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-600/20">
-                      <Container className="h-6 w-6 text-red-500" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-400">Container Issues</p>
-                      <p className="text-2xl font-bold text-white">{devops.container_findings.length}</p>
-                    </div>
-                  </div>
-                </Card>
+          {/* DORA Distribution */}
+          <Card>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-blue-500" />
+              DORA Performance Distribution
+            </CardTitle>
+            <CardContent className="mt-4">
+              <div className="grid grid-cols-4 gap-4 text-center">
+                <div className="p-4 bg-green-600/10 rounded-lg">
+                  <p className="text-2xl font-bold text-green-500">{stats.doraLevels.elite}</p>
+                  <p className="text-sm text-gray-400">Elite</p>
+                </div>
+                <div className="p-4 bg-blue-600/10 rounded-lg">
+                  <p className="text-2xl font-bold text-blue-500">{stats.doraLevels.high}</p>
+                  <p className="text-sm text-gray-400">High</p>
+                </div>
+                <div className="p-4 bg-yellow-600/10 rounded-lg">
+                  <p className="text-2xl font-bold text-yellow-500">{stats.doraLevels.medium}</p>
+                  <p className="text-sm text-gray-400">Medium</p>
+                </div>
+                <div className="p-4 bg-red-600/10 rounded-lg">
+                  <p className="text-2xl font-bold text-red-500">{stats.doraLevels.low}</p>
+                  <p className="text-sm text-gray-400">Low</p>
+                </div>
               </div>
+            </CardContent>
+          </Card>
 
-              {/* DORA */}
-              {devops.dora && <DORACard metrics={devops.dora} />}
+          {/* Projects List */}
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Projects ({stats.projectsAnalyzed} analyzed)
+            </h2>
+            <div className="space-y-3">
+              {filteredData.map((data) => (
+                <ProjectDevOpsCard
+                  key={data.projectId}
+                  data={data}
+                  expanded={expandedProjects.has(data.projectId)}
+                  onToggle={() => toggleProject(data.projectId)}
+                />
+              ))}
             </div>
-          )}
-
-          {/* IaC Findings */}
-          {activeTab === 'iac' && (
-            <Card>
-              <CardTitle className="flex items-center gap-2">
-                <FileCode className="h-5 w-5 text-orange-500" />
-                Infrastructure as Code Findings
-              </CardTitle>
-              <CardContent className="mt-4 p-0">
-                <FindingsTable
-                  findings={devops.iac_findings}
-                  columns={['Severity', 'File', 'Rule', 'Message']}
-                  renderRow={(f: IaCFinding) => (
-                    <>
-                      <td className="px-4 py-3"><SeverityBadge severity={f.severity} /></td>
-                      <td className="px-4 py-3 text-sm text-white font-mono">{f.file}:{f.line}</td>
-                      <td className="px-4 py-3 text-sm text-gray-400">{f.rule}</td>
-                      <td className="px-4 py-3 text-sm text-gray-300">{f.message}</td>
-                    </>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Container Findings */}
-          {activeTab === 'containers' && (
-            <Card>
-              <CardTitle className="flex items-center gap-2">
-                <Container className="h-5 w-5 text-blue-500" />
-                Container Findings
-              </CardTitle>
-              <CardContent className="mt-4 p-0">
-                <FindingsTable
-                  findings={devops.container_findings}
-                  columns={['Severity', 'Image', 'File', 'Issue']}
-                  renderRow={(f: ContainerFinding) => (
-                    <>
-                      <td className="px-4 py-3"><SeverityBadge severity={f.severity} /></td>
-                      <td className="px-4 py-3 text-sm text-white">{f.image}</td>
-                      <td className="px-4 py-3 text-sm text-gray-400 font-mono">{f.file}</td>
-                      <td className="px-4 py-3 text-sm text-gray-300">{f.issue}</td>
-                    </>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* GitHub Actions Findings */}
-          {activeTab === 'actions' && (
-            <Card>
-              <CardTitle className="flex items-center gap-2">
-                <Workflow className="h-5 w-5 text-purple-500" />
-                GitHub Actions Findings
-              </CardTitle>
-              <CardContent className="mt-4 p-0">
-                <FindingsTable
-                  findings={devops.gha_findings}
-                  columns={['Severity', 'Workflow', 'Job', 'Issue']}
-                  renderRow={(f: GHAFinding) => (
-                    <>
-                      <td className="px-4 py-3"><SeverityBadge severity={f.severity} /></td>
-                      <td className="px-4 py-3 text-sm text-white">{f.workflow}</td>
-                      <td className="px-4 py-3 text-sm text-gray-400">{f.job}</td>
-                      <td className="px-4 py-3 text-sm text-gray-300">{f.issue}</td>
-                    </>
-                  )}
-                />
-              </CardContent>
-            </Card>
-          )}
+          </div>
         </>
-      )}
-
-      {projectId && loading && (
-        <Card className="p-8 text-center text-gray-400">Loading DevOps data...</Card>
-      )}
-
-      {projectId && error && (
-        <Card className="p-8 text-center text-red-400">
-          No DevOps data available. Run a scan with the devops scanner.
-        </Card>
-      )}
-
-      {!projectId && (
+      ) : (
         <Card className="text-center py-12">
           <Server className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">Select a project to view DevOps analysis</p>
+          <p className="text-gray-400">No DevOps data available</p>
+          <p className="text-sm text-gray-500 mt-1">Run scans with the devops scanner</p>
         </Card>
       )}
     </div>

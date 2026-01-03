@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api, connectScanWS, streamChat } from '@/lib/api';
-import type { Project, ScanJob, StreamChunk, QueueStats, AgentInfo } from '@/lib/types';
+import type { Repo, Project, ScanJob, StreamChunk, QueueStats, AgentInfo } from '@/lib/types';
 
 // Generic hook for fetching data
 export function useFetch<T>(
@@ -34,17 +34,28 @@ export function useFetch<T>(
   return { data, loading, error, refetch: fetch };
 }
 
-// Projects hook
-export function useProjects() {
+// Repos hooks (renamed from Projects)
+export function useRepos() {
   return useFetch(async () => {
-    const res = await api.projects.list();
+    const res = await api.repos.list();
     return res.data;
   }, []);
 }
 
-// Single project hook
+export function useRepo(id: string) {
+  return useFetch(() => api.repos.get(id), [id]);
+}
+
+// Backwards compatibility: Projects hooks
+export function useProjects() {
+  return useFetch(async () => {
+    const res = await api.repos.list();
+    return res.data;
+  }, []);
+}
+
 export function useProject(id: string) {
-  return useFetch(() => api.projects.get(id), [id]);
+  return useFetch(() => api.repos.get(id), [id]);
 }
 
 // Agents hook

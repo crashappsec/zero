@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useMemo, Suspense, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/Sidebar';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -15,12 +14,14 @@ import {
   CheckCircle,
   AlertTriangle,
   Workflow,
-  FileText,
   Zap,
-  Target,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
+import { ProjectFilter } from '@/components/ui/ProjectFilter';
 
-interface DevXMetrics {
+interface ProjectDevX {
+  projectId: string;
   onboarding: {
     score: number;
     has_readme: boolean;
@@ -33,7 +34,6 @@ interface DevXMetrics {
     tool_count: number;
     technology_count: number;
     redundant_tools: string[];
-    recommendation: string;
   };
   workflow: {
     has_ci: boolean;
@@ -42,169 +42,316 @@ interface DevXMetrics {
     has_formatting: boolean;
     automation_score: number;
   };
+  overall_score: number;
 }
 
-function OnboardingChecklist({ onboarding }: { onboarding: DevXMetrics['onboarding'] }) {
-  const items = [
-    { label: 'README.md', present: onboarding.has_readme },
-    { label: 'CONTRIBUTING.md', present: onboarding.has_contributing },
-    { label: 'Setup Documentation', present: onboarding.has_setup_docs },
-    { label: 'Examples/Tutorials', present: onboarding.has_examples },
-  ];
-
-  return (
-    <div className="space-y-3">
-      {items.map((item) => (
-        <div key={item.label} className="flex items-center gap-3">
-          {item.present ? (
-            <CheckCircle className="h-5 w-5 text-green-500" />
-          ) : (
-            <AlertTriangle className="h-5 w-5 text-yellow-500" />
-          )}
-          <span className={item.present ? 'text-white' : 'text-gray-400'}>
-            {item.label}
-          </span>
-          {item.present ? (
-            <Badge variant="success" className="ml-auto">Present</Badge>
-          ) : (
-            <Badge variant="warning" className="ml-auto">Missing</Badge>
-          )}
-        </div>
-      ))}
-    </div>
-  );
+function ScoreIndicator({ score }: { score: number }) {
+  const color = score >= 70 ? 'text-green-500' :
+                score >= 50 ? 'text-yellow-500' : 'text-red-500';
+  return <span className={`font-bold ${color}`}>{score}</span>;
 }
 
-function WorkflowChecklist({ workflow }: { workflow: DevXMetrics['workflow'] }) {
-  const items = [
-    { label: 'CI/CD Pipeline', present: workflow.has_ci, icon: Workflow },
-    { label: 'Pre-commit Hooks', present: workflow.has_pre_commit, icon: Zap },
-    { label: 'Code Linting', present: workflow.has_linting, icon: CheckCircle },
-    { label: 'Code Formatting', present: workflow.has_formatting, icon: FileText },
-  ];
+function ProjectDevXCard({ data, expanded, onToggle }: {
+  data: ProjectDevX;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const dxLevel = data.overall_score >= 70 ? 'Good' :
+                  data.overall_score >= 50 ? 'Fair' : 'Needs Work';
+
+  const checklistCount = [
+    data.onboarding.has_readme,
+    data.onboarding.has_contributing,
+    data.onboarding.has_setup_docs,
+    data.onboarding.has_examples,
+  ].filter(Boolean).length;
 
   return (
-    <div className="grid gap-3 md:grid-cols-2">
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className={`flex items-center gap-3 p-3 rounded-lg ${
-            item.present ? 'bg-green-600/10' : 'bg-gray-800/50'
-          }`}
-        >
-          <item.icon className={`h-5 w-5 ${item.present ? 'text-green-500' : 'text-gray-500'}`} />
-          <span className={item.present ? 'text-white' : 'text-gray-400'}>
-            {item.label}
-          </span>
-          {item.present && <CheckCircle className="h-4 w-4 text-green-500 ml-auto" />}
+    <Card className="overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-4">
+          {expanded ? (
+            <ChevronDown className="h-4 w-4 text-gray-500" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-gray-500" />
+          )}
+          <div>
+            <h3 className="font-medium text-white text-left">{data.projectId}</h3>
+            <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
+              <span>DX: <ScoreIndicator score={data.overall_score} /></span>
+              <span>{checklistCount}/4 docs</span>
+              <span>{data.workflow.automation_score}% automated</span>
+            </div>
+          </div>
         </div>
-      ))}
-    </div>
+        <Badge variant={data.overall_score >= 70 ? 'success' : data.overall_score >= 50 ? 'warning' : 'error'}>
+          {dxLevel}
+        </Badge>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-gray-700 p-4 space-y-4">
+          {/* Onboarding */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-400 mb-2">Onboarding ({data.onboarding.score}%)</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {[
+                { label: 'README', present: data.onboarding.has_readme },
+                { label: 'CONTRIBUTING', present: data.onboarding.has_contributing },
+                { label: 'Setup Docs', present: data.onboarding.has_setup_docs },
+                { label: 'Examples', present: data.onboarding.has_examples },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-2 text-sm">
+                  {item.present ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  )}
+                  <span className={item.present ? 'text-white' : 'text-gray-500'}>
+                    {item.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Workflow */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-400 mb-2">Workflow ({data.workflow.automation_score}% automated)</h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {[
+                { label: 'CI/CD', present: data.workflow.has_ci },
+                { label: 'Pre-commit', present: data.workflow.has_pre_commit },
+                { label: 'Linting', present: data.workflow.has_linting },
+                { label: 'Formatting', present: data.workflow.has_formatting },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-2 text-sm">
+                  {item.present ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <AlertTriangle className="h-4 w-4 text-gray-500" />
+                  )}
+                  <span className={item.present ? 'text-white' : 'text-gray-500'}>
+                    {item.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Tool Sprawl */}
+          {data.sprawl.redundant_tools.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-400 mb-2">Redundant Tools</h4>
+              <div className="flex flex-wrap gap-2">
+                {data.sprawl.redundant_tools.map((tool) => (
+                  <Badge key={tool} variant="warning">{tool}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </Card>
   );
 }
 
 function DevXContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const projectId = searchParams.get('project');
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [devxData, setDevxData] = useState<ProjectDevX[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
 
   const { data: projectsData } = useFetch(() => api.projects.list(), []);
   const projects = projectsData?.data || [];
 
-  const { data: devxData, loading, error } = useFetch(
-    () => projectId ? api.analysis.raw(projectId, 'developer-experience') as Promise<any> : Promise.resolve(null),
-    [projectId]
-  );
+  useEffect(() => {
+    async function loadDevXData() {
+      if (projects.length === 0) return;
 
-  const devx = useMemo(() => {
-    if (!devxData?.findings) return null;
-    const findings = devxData.findings;
-    return {
-      onboarding: findings.onboarding || {
-        score: 0,
-        has_readme: false,
-        has_contributing: false,
-        has_setup_docs: false,
-        has_examples: false,
-        estimated_setup_time: 'Unknown',
-      },
-      sprawl: findings.sprawl || {
-        tool_count: 0,
-        technology_count: 0,
-        redundant_tools: [],
-        recommendation: '',
-      },
-      workflow: findings.workflow || {
-        has_ci: false,
-        has_pre_commit: false,
-        has_linting: false,
-        has_formatting: false,
-        automation_score: 0,
-      },
-    } as DevXMetrics;
-  }, [devxData]);
+      setLoading(true);
+      const results: ProjectDevX[] = [];
 
-  const handleProjectChange = (newProjectId: string) => {
-    router.push(`/devx?project=${encodeURIComponent(newProjectId)}`);
+      for (const project of projects) {
+        try {
+          const data = await api.analysis.raw(project.id, 'developer-experience') as any;
+          if (data?.findings) {
+            const findings = data.findings;
+            const onboarding = findings.onboarding || {
+              score: 0,
+              has_readme: false,
+              has_contributing: false,
+              has_setup_docs: false,
+              has_examples: false,
+              estimated_setup_time: 'Unknown',
+            };
+            const sprawl = findings.sprawl || {
+              tool_count: 0,
+              technology_count: 0,
+              redundant_tools: [],
+            };
+            const workflow = findings.workflow || {
+              has_ci: false,
+              has_pre_commit: false,
+              has_linting: false,
+              has_formatting: false,
+              automation_score: 0,
+            };
+
+            const overallScore = Math.round(
+              (onboarding.score + workflow.automation_score) / 2
+            );
+
+            results.push({
+              projectId: project.id,
+              onboarding,
+              sprawl,
+              workflow,
+              overall_score: overallScore,
+            });
+          }
+        } catch {
+          // Skip projects without devx data
+        }
+      }
+
+      setDevxData(results);
+      setLoading(false);
+    }
+
+    loadDevXData();
+  }, [projects]);
+
+  const toggleProject = (id: string) => {
+    const newSet = new Set(expandedProjects);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setExpandedProjects(newSet);
   };
 
-  const overallScore = useMemo(() => {
-    if (!devx) return 0;
-    return Math.round(
-      (devx.onboarding.score + devx.workflow.automation_score) / 2
+  // Filter data based on selected projects
+  const filteredData = useMemo(() => {
+    if (selectedProjects.length === 0) return devxData;
+    return devxData.filter(d => selectedProjects.includes(d.projectId));
+  }, [devxData, selectedProjects]);
+
+  // Aggregate stats
+  const stats = useMemo(() => {
+    if (filteredData.length === 0) return null;
+
+    const good = filteredData.filter(d => d.overall_score >= 70).length;
+    const fair = filteredData.filter(d => d.overall_score >= 50 && d.overall_score < 70).length;
+    const needsWork = filteredData.filter(d => d.overall_score < 50).length;
+
+    const avgScore = Math.round(
+      filteredData.reduce((sum, d) => sum + d.overall_score, 0) / filteredData.length
     );
-  }, [devx]);
+    const avgAutomation = Math.round(
+      filteredData.reduce((sum, d) => sum + d.workflow.automation_score, 0) / filteredData.length
+    );
+
+    const withReadme = filteredData.filter(d => d.onboarding.has_readme).length;
+    const withCI = filteredData.filter(d => d.workflow.has_ci).length;
+
+    return {
+      good,
+      fair,
+      needsWork,
+      avgScore,
+      avgAutomation,
+      withReadme,
+      withCI,
+      projectsAnalyzed: filteredData.length,
+    };
+  }, [filteredData]);
+
+  // Sort by score (lowest first = highest priority)
+  const sortedData = useMemo(() => {
+    return [...filteredData].sort((a, b) => a.overall_score - b.overall_score);
+  }, [filteredData]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Sparkles className="h-6 w-6 text-yellow-500" />
-          Developer Experience
-        </h1>
-        <p className="mt-1 text-gray-400">
-          Onboarding experience, tool sprawl, and workflow automation analysis
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Sparkles className="h-6 w-6 text-yellow-500" />
+            Developer Experience
+          </h1>
+          <p className="mt-1 text-gray-400">
+            Onboarding, tool sprawl, and workflow automation across all projects
+          </p>
+        </div>
+        {projects.length > 0 && (
+          <ProjectFilter
+            projects={projects}
+            selectedProjects={selectedProjects}
+            onChange={setSelectedProjects}
+          />
+        )}
       </div>
 
-      {/* Project Selector */}
-      <Card>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-300">Project:</label>
-            <select
-              value={projectId || ''}
-              onChange={(e) => handleProjectChange(e.target.value)}
-              className="flex-1 max-w-md rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-            >
-              <option value="">Select a project...</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.id}</option>
-              ))}
-            </select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {projectId && devx && (
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse h-24" />
+          ))}
+        </div>
+      ) : stats ? (
         <>
-          {/* Stats Overview */}
-          <div className="grid gap-4 md:grid-cols-4">
+          {/* Aggregate Stats */}
+          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
             <Card>
               <div className="flex items-center gap-3">
-                <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${
-                  overallScore >= 70 ? 'bg-green-600/20' : overallScore >= 50 ? 'bg-yellow-600/20' : 'bg-red-600/20'
-                }`}>
-                  <Target className={`h-6 w-6 ${
-                    overallScore >= 70 ? 'text-green-500' : overallScore >= 50 ? 'text-yellow-500' : 'text-red-500'
-                  }`} />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-600/20">
+                  <CheckCircle className="h-6 w-6 text-green-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Overall DX Score</p>
-                  <p className={`text-2xl font-bold ${
-                    overallScore >= 70 ? 'text-green-500' : overallScore >= 50 ? 'text-yellow-500' : 'text-red-500'
-                  }`}>{overallScore}</p>
+                  <p className="text-sm text-gray-400">Good DX</p>
+                  <p className="text-2xl font-bold text-green-500">{stats.good}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-600/20">
+                  <AlertTriangle className="h-6 w-6 text-yellow-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Fair DX</p>
+                  <p className="text-2xl font-bold text-yellow-500">{stats.fair}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-600/20">
+                  <AlertTriangle className="h-6 w-6 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Needs Work</p>
+                  <p className="text-2xl font-bold text-red-500">{stats.needsWork}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-600/20">
+                  <Sparkles className="h-6 w-6 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Avg DX Score</p>
+                  <p className="text-2xl font-bold text-white">{stats.avgScore}</p>
                 </div>
               </div>
             </Card>
@@ -215,127 +362,47 @@ function DevXContent() {
                   <BookOpen className="h-6 w-6 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Onboarding Score</p>
-                  <p className="text-2xl font-bold text-white">{devx.onboarding.score}</p>
+                  <p className="text-sm text-gray-400">Have README</p>
+                  <p className="text-2xl font-bold text-white">{stats.withReadme}</p>
                 </div>
               </div>
             </Card>
 
             <Card>
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-600/20">
-                  <Layers className="h-6 w-6 text-purple-500" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-600/20">
+                  <Workflow className="h-6 w-6 text-cyan-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Tools</p>
-                  <p className="text-2xl font-bold text-white">{devx.sprawl.tool_count}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-600/20">
-                  <Clock className="h-6 w-6 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Est. Setup Time</p>
-                  <p className="text-xl font-bold text-white">{devx.onboarding.estimated_setup_time}</p>
+                  <p className="text-sm text-gray-400">Have CI/CD</p>
+                  <p className="text-2xl font-bold text-white">{stats.withCI}</p>
                 </div>
               </div>
             </Card>
           </div>
 
-          {/* Onboarding */}
-          <Card>
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-blue-500" />
-              Onboarding Experience
-            </CardTitle>
-            <CardContent className="mt-4">
-              <p className="text-sm text-gray-400 mb-4">
-                Documentation and resources available for new contributors
-              </p>
-              <OnboardingChecklist onboarding={devx.onboarding} />
-            </CardContent>
-          </Card>
-
-          {/* Workflow Automation */}
-          <Card>
-            <CardTitle className="flex items-center gap-2">
-              <Workflow className="h-5 w-5 text-green-500" />
-              Workflow Automation
-              <Badge variant={devx.workflow.automation_score >= 75 ? 'success' :
-                            devx.workflow.automation_score >= 50 ? 'warning' : 'error'}>
-                {devx.workflow.automation_score}% automated
-              </Badge>
-            </CardTitle>
-            <CardContent className="mt-4">
-              <p className="text-sm text-gray-400 mb-4">
-                Development workflow tools and automation
-              </p>
-              <WorkflowChecklist workflow={devx.workflow} />
-            </CardContent>
-          </Card>
-
-          {/* Tool Sprawl */}
-          <Card>
-            <CardTitle className="flex items-center gap-2">
-              <Layers className="h-5 w-5 text-purple-500" />
-              Tool Sprawl Analysis
-            </CardTitle>
-            <CardContent className="mt-4">
-              <div className="grid gap-4 md:grid-cols-2 mb-4">
-                <div className="p-4 bg-gray-800/50 rounded-lg">
-                  <p className="text-sm text-gray-400">Total Tools</p>
-                  <p className="text-2xl font-bold text-white">{devx.sprawl.tool_count}</p>
-                </div>
-                <div className="p-4 bg-gray-800/50 rounded-lg">
-                  <p className="text-sm text-gray-400">Technologies</p>
-                  <p className="text-2xl font-bold text-white">{devx.sprawl.technology_count}</p>
-                </div>
-              </div>
-
-              {devx.sprawl.redundant_tools.length > 0 && (
-                <div className="mt-4">
-                  <h4 className="text-sm font-medium text-gray-400 mb-2 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
-                    Potentially Redundant Tools
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {devx.sprawl.redundant_tools.map((tool) => (
-                      <Badge key={tool} variant="warning">{tool}</Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {devx.sprawl.recommendation && (
-                <div className="mt-4 p-4 bg-blue-600/10 rounded-lg">
-                  <p className="text-sm text-blue-400">
-                    <strong>Recommendation:</strong> {devx.sprawl.recommendation}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* Projects List */}
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Projects ({stats.projectsAnalyzed} analyzed)
+            </h2>
+            <div className="space-y-3">
+              {sortedData.map((data) => (
+                <ProjectDevXCard
+                  key={data.projectId}
+                  data={data}
+                  expanded={expandedProjects.has(data.projectId)}
+                  onToggle={() => toggleProject(data.projectId)}
+                />
+              ))}
+            </div>
+          </div>
         </>
-      )}
-
-      {projectId && loading && (
-        <Card className="p-8 text-center text-gray-400">Loading developer experience data...</Card>
-      )}
-
-      {projectId && error && (
-        <Card className="p-8 text-center text-red-400">
-          No developer experience data available. Run a scan with the developer-experience scanner.
-        </Card>
-      )}
-
-      {!projectId && (
+      ) : (
         <Card className="text-center py-12">
           <Sparkles className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">Select a project to view developer experience analysis</p>
+          <p className="text-gray-400">No developer experience data available</p>
+          <p className="text-sm text-gray-500 mt-1">Run scans with the developer-experience scanner</p>
         </Card>
       )}
     </div>

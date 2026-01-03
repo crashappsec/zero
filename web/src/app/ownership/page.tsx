@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useMemo, Suspense, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/Sidebar';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -13,10 +12,12 @@ import {
   GitCommit,
   AlertTriangle,
   TrendingUp,
-  Calendar,
   FileCode,
   Activity,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
+import { ProjectFilter } from '@/components/ui/ProjectFilter';
 
 interface Contributor {
   name: string;
@@ -29,17 +30,17 @@ interface Contributor {
   files_touched: number;
 }
 
-interface OwnershipData {
+interface ProjectOwnership {
+  projectId: string;
   bus_factor: number;
   total_contributors: number;
   active_contributors: number;
   orphan_files: number;
   top_contributors: Contributor[];
-  ownership_distribution: Record<string, number>;
   churn_hotspots: Array<{ file: string; changes: number }>;
 }
 
-function BusFactorCard({ busFactor }: { busFactor: number }) {
+function BusFactorIndicator({ busFactor }: { busFactor: number }) {
   const getColor = (bf: number) => {
     if (bf <= 1) return 'text-red-500';
     if (bf <= 2) return 'text-orange-500';
@@ -47,237 +48,295 @@ function BusFactorCard({ busFactor }: { busFactor: number }) {
     return 'text-green-500';
   };
 
-  const getRisk = (bf: number) => {
-    if (bf <= 1) return { level: 'Critical', desc: 'Single point of failure' };
-    if (bf <= 2) return { level: 'High', desc: 'Limited knowledge distribution' };
-    if (bf <= 3) return { level: 'Medium', desc: 'Moderate risk' };
-    return { level: 'Low', desc: 'Good knowledge distribution' };
-  };
+  return (
+    <span className={`font-bold ${getColor(busFactor)}`}>{busFactor}</span>
+  );
+}
 
-  const risk = getRisk(busFactor);
+function ProjectOwnershipCard({ data, expanded, onToggle }: {
+  data: ProjectOwnership;
+  expanded: boolean;
+  onToggle: () => void;
+}) {
+  const riskLevel = data.bus_factor <= 1 ? 'Critical' :
+                    data.bus_factor <= 2 ? 'High' :
+                    data.bus_factor <= 3 ? 'Medium' : 'Low';
 
   return (
-    <Card>
-      <div className="flex items-center gap-4">
-        <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-purple-600/20">
-          <Users className="h-7 w-7 text-purple-500" />
-        </div>
-        <div>
-          <p className="text-sm text-gray-400">Bus Factor</p>
-          <p className={`text-3xl font-bold ${getColor(busFactor)}`}>{busFactor}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <Badge variant={busFactor <= 2 ? 'error' : busFactor <= 3 ? 'warning' : 'success'}>
-              {risk.level} Risk
-            </Badge>
-            <span className="text-xs text-gray-500">{risk.desc}</span>
+    <Card className="overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-4 hover:bg-gray-800/50 transition-colors"
+      >
+        <div className="flex items-center gap-4">
+          {expanded ? (
+            <ChevronDown className="h-4 w-4 text-gray-500" />
+          ) : (
+            <ChevronRight className="h-4 w-4 text-gray-500" />
+          )}
+          <div>
+            <h3 className="font-medium text-white text-left">{data.projectId}</h3>
+            <div className="flex items-center gap-4 mt-1 text-sm text-gray-400">
+              <span>Bus Factor: <BusFactorIndicator busFactor={data.bus_factor} /></span>
+              <span>{data.total_contributors} contributors</span>
+              <span>{data.active_contributors} active (90d)</span>
+            </div>
           </div>
         </div>
-      </div>
+        <Badge variant={data.bus_factor <= 2 ? 'error' : data.bus_factor <= 3 ? 'warning' : 'success'}>
+          {riskLevel} Risk
+        </Badge>
+      </button>
+
+      {expanded && (
+        <div className="border-t border-gray-700 p-4 space-y-4">
+          {/* Top Contributors */}
+          {data.top_contributors.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-400 mb-2">Top Contributors</h4>
+              <div className="space-y-2">
+                {data.top_contributors.slice(0, 5).map((c, i) => (
+                  <div key={c.email} className="flex items-center justify-between text-sm">
+                    <div className="flex items-center gap-2">
+                      <span className="text-gray-500 w-4">{i + 1}.</span>
+                      <User className="h-4 w-4 text-gray-500" />
+                      <span className="text-white">{c.name}</span>
+                    </div>
+                    <div className="flex items-center gap-4 text-gray-400">
+                      <span>{c.commits} commits</span>
+                      <span className="text-green-500">+{c.lines_added.toLocaleString()}</span>
+                      <span className="text-red-500">-{c.lines_removed.toLocaleString()}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Churn Hotspots */}
+          {data.churn_hotspots.length > 0 && (
+            <div>
+              <h4 className="text-sm font-medium text-gray-400 mb-2">Churn Hotspots</h4>
+              <div className="flex flex-wrap gap-2">
+                {data.churn_hotspots.slice(0, 5).map((h) => (
+                  <Badge key={h.file} variant="warning">
+                    {h.file.split('/').pop()} ({h.changes} changes)
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </Card>
   );
 }
 
-function ContributorRow({ contributor, rank }: { contributor: Contributor; rank: number }) {
-  return (
-    <div className="flex items-center gap-4 px-4 py-3 border-b border-gray-700 last:border-0 hover:bg-gray-800/50">
-      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-700 text-sm font-medium text-white">
-        {rank}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <User className="h-4 w-4 text-gray-500" />
-          <span className="font-medium text-white truncate">{contributor.name}</span>
-        </div>
-        <p className="text-sm text-gray-500 truncate">{contributor.email}</p>
-      </div>
-      <div className="flex items-center gap-6 text-sm">
-        <div className="text-center">
-          <p className="font-medium text-white">{contributor.commits}</p>
-          <p className="text-xs text-gray-500">commits</p>
-        </div>
-        <div className="text-center">
-          <p className="font-medium text-green-500">+{contributor.lines_added.toLocaleString()}</p>
-          <p className="text-xs text-gray-500">added</p>
-        </div>
-        <div className="text-center">
-          <p className="font-medium text-red-500">-{contributor.lines_removed.toLocaleString()}</p>
-          <p className="text-xs text-gray-500">removed</p>
-        </div>
-        <div className="text-center">
-          <p className="font-medium text-white">{contributor.files_touched}</p>
-          <p className="text-xs text-gray-500">files</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function OwnershipContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const projectId = searchParams.get('project');
+  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [ownershipData, setOwnershipData] = useState<ProjectOwnership[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
 
   const { data: projectsData } = useFetch(() => api.projects.list(), []);
   const projects = projectsData?.data || [];
 
-  const { data: ownershipData, loading, error } = useFetch(
-    () => projectId ? api.analysis.raw(projectId, 'code-ownership') as Promise<any> : Promise.resolve(null),
-    [projectId]
-  );
+  // Load ownership data for all projects in parallel
+  useEffect(() => {
+    async function loadOwnershipData() {
+      if (projects.length === 0) return;
 
-  const ownership = useMemo(() => {
-    if (!ownershipData?.findings) return null;
-    const findings = ownershipData.findings;
-    return {
-      bus_factor: findings.bus_factor?.bus_factor || 0,
-      total_contributors: findings.contributors?.total || 0,
-      active_contributors: findings.contributors?.active_last_90_days || 0,
-      orphan_files: findings.orphans?.count || 0,
-      top_contributors: findings.contributors?.top || [],
-      ownership_distribution: findings.ownership_distribution || {},
-      churn_hotspots: findings.churn?.hotspots || [],
-    } as OwnershipData;
-  }, [ownershipData]);
+      setLoading(true);
 
-  const handleProjectChange = (newProjectId: string) => {
-    router.push(`/ownership?project=${encodeURIComponent(newProjectId)}`);
+      // Fetch all projects in parallel for better performance
+      const results = await Promise.all(
+        projects.map(async (project) => {
+          try {
+            const data = await api.analysis.raw(project.id, 'code-ownership') as any;
+            if (data?.findings) {
+              const findings = data.findings;
+              return {
+                projectId: project.id,
+                bus_factor: findings.bus_factor?.bus_factor || 0,
+                total_contributors: findings.contributors?.total || 0,
+                active_contributors: findings.contributors?.active_last_90_days || 0,
+                orphan_files: findings.orphans?.count || 0,
+                top_contributors: findings.contributors?.top || [],
+                churn_hotspots: findings.churn?.hotspots || [],
+              } as ProjectOwnership;
+            }
+          } catch {
+            // Skip projects without ownership data
+          }
+          return null;
+        })
+      );
+
+      setOwnershipData(results.filter((r): r is ProjectOwnership => r !== null));
+      setLoading(false);
+    }
+
+    loadOwnershipData();
+  }, [projects]);
+
+  const toggleProject = (id: string) => {
+    const newSet = new Set(expandedProjects);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setExpandedProjects(newSet);
   };
+
+  // Filter data based on selected projects
+  const filteredData = useMemo(() => {
+    if (selectedProjects.length === 0) return ownershipData;
+    return ownershipData.filter(d => selectedProjects.includes(d.projectId));
+  }, [ownershipData, selectedProjects]);
+
+  // Aggregate stats
+  const stats = useMemo(() => {
+    if (filteredData.length === 0) return null;
+
+    const criticalRisk = filteredData.filter(d => d.bus_factor <= 1).length;
+    const highRisk = filteredData.filter(d => d.bus_factor === 2).length;
+    const avgBusFactor = filteredData.reduce((sum, d) => sum + d.bus_factor, 0) / filteredData.length;
+    const totalContributors = new Set(
+      filteredData.flatMap(d => d.top_contributors.map(c => c.email))
+    ).size;
+    const totalOrphans = filteredData.reduce((sum, d) => sum + d.orphan_files, 0);
+
+    return {
+      criticalRisk,
+      highRisk,
+      avgBusFactor: avgBusFactor.toFixed(1),
+      totalContributors,
+      totalOrphans,
+      projectsAnalyzed: filteredData.length,
+    };
+  }, [filteredData]);
+
+  // Sort by bus factor (lowest first = highest risk)
+  const sortedData = useMemo(() => {
+    return [...filteredData].sort((a, b) => a.bus_factor - b.bus_factor);
+  }, [filteredData]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <Users className="h-6 w-6 text-purple-500" />
-          Code Ownership
-        </h1>
-        <p className="mt-1 text-gray-400">
-          Contributor analysis, bus factor, and ownership distribution
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Users className="h-6 w-6 text-purple-500" />
+            Code Ownership
+          </h1>
+          <p className="mt-1 text-gray-400">
+            Bus factor, contributor analysis, and ownership distribution across all projects
+          </p>
+        </div>
+        {projects.length > 0 && (
+          <ProjectFilter
+            projects={projects}
+            selectedProjects={selectedProjects}
+            onChange={setSelectedProjects}
+          />
+        )}
       </div>
 
-      {/* Project Selector */}
-      <Card>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-300">Project:</label>
-            <select
-              value={projectId || ''}
-              onChange={(e) => handleProjectChange(e.target.value)}
-              className="flex-1 max-w-md rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-            >
-              <option value="">Select a project...</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>{p.id}</option>
-              ))}
-            </select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {projectId && ownership && (
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse h-24" />
+          ))}
+        </div>
+      ) : stats ? (
         <>
-          {/* Stats */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <BusFactorCard busFactor={ownership.bus_factor} />
+          {/* Aggregate Stats */}
+          <div className="grid gap-4 md:grid-cols-5">
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-600/20">
+                  <AlertTriangle className="h-6 w-6 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Critical Risk</p>
+                  <p className="text-2xl font-bold text-red-500">{stats.criticalRisk}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-600/20">
+                  <AlertTriangle className="h-6 w-6 text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">High Risk</p>
+                  <p className="text-2xl font-bold text-orange-500">{stats.highRisk}</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-600/20">
+                  <TrendingUp className="h-6 w-6 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-400">Avg Bus Factor</p>
+                  <p className="text-2xl font-bold text-white">{stats.avgBusFactor}</p>
+                </div>
+              </div>
+            </Card>
+
             <Card>
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600/20">
                   <Users className="h-6 w-6 text-blue-500" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-400">Total Contributors</p>
-                  <p className="text-2xl font-bold text-white">{ownership.total_contributors}</p>
+                  <p className="text-sm text-gray-400">Contributors</p>
+                  <p className="text-2xl font-bold text-white">{stats.totalContributors}</p>
                 </div>
               </div>
             </Card>
-            <Card>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-600/20">
-                  <Activity className="h-6 w-6 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Active (90 days)</p>
-                  <p className="text-2xl font-bold text-white">{ownership.active_contributors}</p>
-                </div>
-              </div>
-            </Card>
+
             <Card>
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-600/20">
-                  <AlertTriangle className="h-6 w-6 text-yellow-500" />
+                  <FileCode className="h-6 w-6 text-yellow-500" />
                 </div>
                 <div>
                   <p className="text-sm text-gray-400">Orphan Files</p>
-                  <p className="text-2xl font-bold text-white">{ownership.orphan_files}</p>
+                  <p className="text-2xl font-bold text-white">{stats.totalOrphans}</p>
                 </div>
               </div>
             </Card>
           </div>
 
-          {/* Top Contributors */}
-          <Card>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-blue-500" />
-              Top Contributors
-            </CardTitle>
-            <CardContent className="mt-4 p-0">
-              {ownership.top_contributors.length === 0 ? (
-                <div className="p-8 text-center text-gray-400">
-                  No contributor data available
-                </div>
-              ) : (
-                <div>
-                  {ownership.top_contributors.slice(0, 10).map((contributor, i) => (
-                    <ContributorRow key={contributor.email} contributor={contributor} rank={i + 1} />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Churn Hotspots */}
-          {ownership.churn_hotspots.length > 0 && (
-            <Card>
-              <CardTitle className="flex items-center gap-2">
-                <GitCommit className="h-5 w-5 text-orange-500" />
-                Churn Hotspots
-              </CardTitle>
-              <CardContent className="mt-4">
-                <p className="text-sm text-gray-400 mb-4">
-                  Files with the most changes - potential complexity or stability issues
-                </p>
-                <div className="space-y-2">
-                  {ownership.churn_hotspots.slice(0, 10).map((hotspot) => (
-                    <div key={hotspot.file} className="flex items-center justify-between p-2 bg-gray-800/50 rounded">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <FileCode className="h-4 w-4 text-gray-500 shrink-0" />
-                        <span className="text-sm text-white truncate">{hotspot.file}</span>
-                      </div>
-                      <Badge variant="warning">{hotspot.changes} changes</Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          {/* Projects List */}
+          <div>
+            <h2 className="text-lg font-semibold text-white mb-4">
+              Projects ({stats.projectsAnalyzed} analyzed)
+            </h2>
+            <div className="space-y-3">
+              {sortedData.map((data) => (
+                <ProjectOwnershipCard
+                  key={data.projectId}
+                  data={data}
+                  expanded={expandedProjects.has(data.projectId)}
+                  onToggle={() => toggleProject(data.projectId)}
+                />
+              ))}
+            </div>
+          </div>
         </>
-      )}
-
-      {projectId && loading && (
-        <Card className="p-8 text-center text-gray-400">Loading ownership data...</Card>
-      )}
-
-      {projectId && error && (
-        <Card className="p-8 text-center text-red-400">
-          No code ownership data available. Run a scan with the code-ownership scanner.
-        </Card>
-      )}
-
-      {!projectId && (
+      ) : (
         <Card className="text-center py-12">
           <Users className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">Select a project to view code ownership analysis</p>
+          <p className="text-gray-400">No code ownership data available</p>
+          <p className="text-sm text-gray-500 mt-1">Run scans with the code-ownership scanner</p>
         </Card>
       )}
     </div>

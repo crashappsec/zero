@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useMemo, Suspense, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/Sidebar';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -12,6 +11,7 @@ import { api } from '@/lib/api';
 import type { Secret, Project } from '@/lib/types';
 import { ExportButton } from '@/components/ui/ExportButton';
 import { downloadCSV, downloadJSON } from '@/lib/export';
+import { ProjectFilter } from '@/components/ui/ProjectFilter';
 import {
   Search,
   Filter,
@@ -28,7 +28,7 @@ import {
   Copy,
 } from 'lucide-react';
 
-type SortField = 'severity' | 'type' | 'file';
+type SortField = 'severity' | 'type' | 'file' | 'project';
 type SortDirection = 'asc' | 'desc';
 
 const severityOrder: Record<string, number> = {
@@ -47,7 +47,11 @@ const typeIcons: Record<string, typeof Key> = {
   private_key: FileCode,
 };
 
-function SecretRow({ secret, expanded, onToggle }: { secret: Secret; expanded: boolean; onToggle: () => void }) {
+interface SecretWithProject extends Secret {
+  projectId: string;
+}
+
+function SecretRow({ secret, expanded, onToggle }: { secret: SecretWithProject; expanded: boolean; onToggle: () => void }) {
   const [showMatch, setShowMatch] = useState(false);
   const Icon = typeIcons[secret.type.toLowerCase()] || Key;
 
@@ -62,6 +66,7 @@ function SecretRow({ secret, expanded, onToggle }: { secret: Secret; expanded: b
           <div className="flex items-center gap-2">
             <Icon className="h-4 w-4 text-yellow-500" />
             <span className="font-medium text-white">{secret.type}</span>
+            <Badge variant="default" className="text-xs">{secret.projectId}</Badge>
           </div>
           <div className="flex items-center gap-2 mt-0.5 text-sm text-gray-400">
             <FileCode className="h-3 w-3" />
@@ -196,44 +201,72 @@ function TypeFilter({
 }
 
 function SecretsContent() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const projectId = searchParams.get('project');
-
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [sortField, setSortField] = useState<SortField>('severity');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [selectedProjects, setSelectedProjects] = useState<string[]>([]);
+  const [allSecrets, setAllSecrets] = useState<SecretWithProject[]>([]);
+  const [loading, setLoading] = useState(true);
 
   // Fetch projects
   const { data: projectsData } = useFetch(() => api.projects.list(), []);
   const projects = projectsData?.data || [];
 
-  // Fetch secrets
-  const { data: secretsData, loading, error } = useFetch(
-    () => projectId ? api.analysis.secrets(projectId) : Promise.resolve({ data: [], total: 0 }),
-    [projectId]
-  );
-  const secrets = secretsData?.data || [];
+  // Load secrets for all projects in parallel
+  useEffect(() => {
+    async function loadAllSecrets() {
+      if (projects.length === 0) return;
+
+      setLoading(true);
+
+      // Fetch all projects in parallel for better performance
+      const results = await Promise.all(
+        projects.map(async (project) => {
+          try {
+            const data = await api.analysis.secrets(project.id);
+            if (data?.data) {
+              return data.data.map(secret => ({ ...secret, projectId: project.id }));
+            }
+          } catch {
+            // Skip projects without secret data
+          }
+          return [];
+        })
+      );
+
+      setAllSecrets(results.flat());
+      setLoading(false);
+    }
+
+    loadAllSecrets();
+  }, [projects]);
+
+  // Filter by selected projects
+  const projectFilteredSecrets = useMemo(() => {
+    if (selectedProjects.length === 0) return allSecrets;
+    return allSecrets.filter(s => selectedProjects.includes(s.projectId));
+  }, [allSecrets, selectedProjects]);
 
   // Get unique types
   const secretTypes = useMemo(() => {
     const types = new Set<string>();
-    secrets.forEach(s => types.add(s.type));
+    projectFilteredSecrets.forEach(s => types.add(s.type));
     return Array.from(types).sort();
-  }, [secrets]);
+  }, [projectFilteredSecrets]);
 
   // Filter and sort
   const filteredSecrets = useMemo(() => {
-    let result = [...secrets];
+    let result = [...projectFilteredSecrets];
 
     if (search) {
       const lower = search.toLowerCase();
       result = result.filter(s =>
         s.file.toLowerCase().includes(lower) ||
         s.type.toLowerCase().includes(lower) ||
-        s.description.toLowerCase().includes(lower)
+        s.description.toLowerCase().includes(lower) ||
+        s.projectId.toLowerCase().includes(lower)
       );
     }
 
@@ -253,26 +286,29 @@ function SecretsContent() {
         case 'file':
           cmp = a.file.localeCompare(b.file);
           break;
+        case 'project':
+          cmp = a.projectId.localeCompare(b.projectId);
+          break;
       }
       return sortDirection === 'asc' ? cmp : -cmp;
     });
 
     return result;
-  }, [secrets, search, typeFilter, sortField, sortDirection]);
+  }, [projectFilteredSecrets, search, typeFilter, sortField, sortDirection]);
 
   // Stats
   const stats = useMemo(() => {
     const counts = { critical: 0, high: 0, medium: 0, low: 0 };
     const typeCount = new Map<string, number>();
 
-    secrets.forEach(s => {
+    projectFilteredSecrets.forEach(s => {
       const sev = s.severity.toLowerCase() as keyof typeof counts;
       if (sev in counts) counts[sev]++;
       typeCount.set(s.type, (typeCount.get(s.type) || 0) + 1);
     });
 
     return { ...counts, byType: typeCount };
-  }, [secrets]);
+  }, [projectFilteredSecrets]);
 
   const toggleExpanded = (id: string) => {
     const newSet = new Set(expandedIds);
@@ -293,65 +329,56 @@ function SecretsContent() {
     }
   };
 
-  const handleProjectChange = (newProjectId: string) => {
-    router.push(`/secrets?project=${encodeURIComponent(newProjectId)}`);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <Key className="h-6 w-6 text-yellow-500" />
             Secrets
           </h1>
           <p className="mt-1 text-gray-400">
-            Detected secrets and credentials in your repositories
+            Detected secrets and credentials across all projects
           </p>
         </div>
-        {projectId && secrets.length > 0 && (
-          <ExportButton
-            onExport={(format) => {
-              const data = filteredSecrets.map(s => ({
-                file: s.file,
-                line: s.line,
-                type: s.type,
-                severity: s.severity,
-                description: s.description,
-              }));
-              if (format === 'csv') {
-                downloadCSV(data, `secrets-${projectId.replace('/', '-')}`);
-              } else {
-                downloadJSON(data, `secrets-${projectId.replace('/', '-')}`);
-              }
-            }}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {projects.length > 0 && (
+            <ProjectFilter
+              projects={projects}
+              selectedProjects={selectedProjects}
+              onChange={setSelectedProjects}
+            />
+          )}
+          {projectFilteredSecrets.length > 0 && (
+            <ExportButton
+              onExport={(format) => {
+                const data = filteredSecrets.map(s => ({
+                  project: s.projectId,
+                  file: s.file,
+                  line: s.line,
+                  type: s.type,
+                  severity: s.severity,
+                  description: s.description,
+                }));
+                if (format === 'csv') {
+                  downloadCSV(data, 'secrets');
+                } else {
+                  downloadJSON(data, 'secrets');
+                }
+              }}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Project Selector */}
-      <Card>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <label className="text-sm font-medium text-gray-300">Project:</label>
-            <select
-              value={projectId || ''}
-              onChange={(e) => handleProjectChange(e.target.value)}
-              className="flex-1 max-w-md rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 focus:border-green-500 focus:outline-none focus:ring-1 focus:ring-green-500"
-            >
-              <option value="">Select a project...</option>
-              {projects.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.id}
-                </option>
-              ))}
-            </select>
-          </div>
-        </CardContent>
-      </Card>
-
-      {projectId && (
+      {loading ? (
+        <div className="space-y-4">
+          {[1, 2, 3].map((i) => (
+            <Card key={i} className="animate-pulse h-24" />
+          ))}
+        </div>
+      ) : allSecrets.length > 0 ? (
         <>
           {/* Stats */}
           <div className="grid grid-cols-4 gap-4">
@@ -401,7 +428,7 @@ function SecretsContent() {
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
               <div className="flex items-center gap-4">
                 <span className="text-sm text-gray-400">
-                  {filteredSecrets.length} of {secrets.length} secrets
+                  {filteredSecrets.length} of {projectFilteredSecrets.length} secrets
                 </span>
                 {(search || typeFilter.length > 0) && (
                   <button
@@ -418,54 +445,31 @@ function SecretsContent() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-500">Sort by:</span>
-                <button
-                  onClick={() => toggleSort('severity')}
-                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${
-                    sortField === 'severity' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Severity
-                  <ArrowUpDown className="h-3 w-3" />
-                </button>
-                <button
-                  onClick={() => toggleSort('type')}
-                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${
-                    sortField === 'type' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  Type
-                  <ArrowUpDown className="h-3 w-3" />
-                </button>
-                <button
-                  onClick={() => toggleSort('file')}
-                  className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${
-                    sortField === 'file' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
-                  }`}
-                >
-                  File
-                  <ArrowUpDown className="h-3 w-3" />
-                </button>
+                {(['severity', 'type', 'file', 'project'] as SortField[]).map((field) => (
+                  <button
+                    key={field}
+                    onClick={() => toggleSort(field)}
+                    className={`flex items-center gap-1 px-2 py-1 text-xs rounded ${
+                      sortField === field ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    {field.charAt(0).toUpperCase() + field.slice(1)}
+                    <ArrowUpDown className="h-3 w-3" />
+                  </button>
+                ))}
               </div>
             </div>
 
-            {loading ? (
-              <div className="p-8 text-center text-gray-400">Loading secrets...</div>
-            ) : error ? (
-              <div className="p-8 text-center text-red-400">Failed to load secrets</div>
-            ) : filteredSecrets.length === 0 ? (
+            {filteredSecrets.length === 0 ? (
               <div className="p-8 text-center">
                 <Lock className="h-12 w-12 text-green-600 mx-auto mb-4" />
-                <p className="text-gray-400">
-                  {secrets.length === 0
-                    ? 'No secrets detected in this project'
-                    : 'No secrets match your filters'}
-                </p>
+                <p className="text-gray-400">No secrets match your filters</p>
               </div>
             ) : (
               <div>
                 {filteredSecrets.map((secret, i) => (
                   <SecretRow
-                    key={`${secret.file}-${secret.line}-${i}`}
+                    key={`${secret.projectId}-${secret.file}-${secret.line}-${i}`}
                     secret={secret}
                     expanded={expandedIds.has(`${secret.file}-${secret.line}`)}
                     onToggle={() => toggleExpanded(`${secret.file}-${secret.line}`)}
@@ -475,12 +479,11 @@ function SecretsContent() {
             )}
           </Card>
         </>
-      )}
-
-      {!projectId && (
+      ) : (
         <Card className="text-center py-12">
           <Key className="h-12 w-12 text-gray-600 mx-auto mb-4" />
-          <p className="text-gray-400">Select a project to view detected secrets</p>
+          <p className="text-gray-400">No secrets detected</p>
+          <p className="text-sm text-gray-500 mt-1">Run scans with the code-security scanner</p>
         </Card>
       )}
     </div>

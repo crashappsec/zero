@@ -1,6 +1,7 @@
 // API Types
 
-export interface Project {
+// Repo (formerly Project) represents a hydrated repository
+export interface Repo {
   id: string;
   name: string;
   owner: string;
@@ -11,6 +12,9 @@ export interface Project {
   last_scan: string;
   freshness?: FreshnessInfo;
 }
+
+// Backwards compatibility alias
+export type Project = Repo;
 
 export interface FreshnessInfo {
   level: 'fresh' | 'stale' | 'very_stale' | 'expired';
@@ -207,4 +211,36 @@ export interface HealthResponse {
   status: string;
   version: string;
   timestamp: string;
+}
+
+// Configuration types
+export interface Settings {
+  default_profile: string;
+  storage_path: string;
+  parallel_repos: number;
+  parallel_scanners: number;
+  scanner_timeout_seconds: number;
+  cache_ttl_hours: number;
+}
+
+export interface ScannerConfig {
+  name: string;
+  description: string;
+  estimated_time: string;
+  output_file: string;
+  features: Record<string, FeatureConfig>;
+}
+
+export interface FeatureConfig {
+  enabled: boolean;
+  [key: string]: unknown;
+}
+
+// Scanner metadata with features
+export interface ScannerMeta {
+  name: string;
+  displayName: string;
+  description: string;
+  features: string[];
+  icon?: string;
 }

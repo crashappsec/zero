@@ -2,9 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dark mode (default) */
 :root {
   --foreground-rgb: 255, 255, 255;
   --background-rgb: 17, 24, 39;
+  --card-rgb: 31, 41, 55;
+  --card-border-rgb: 55, 65, 81;
+  --muted-rgb: 156, 163, 175;
+}
+
+/* Light mode */
+html.light {
+  --foreground-rgb: 17, 24, 39;
+  --background-rgb: 249, 250, 251;
+  --card-rgb: 255, 255, 255;
+  --card-border-rgb: 229, 231, 235;
+  --muted-rgb: 107, 114, 128;
 }
 
 body {
@@ -12,7 +25,7 @@ body {
   background: rgb(var(--background-rgb));
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar - dark mode */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -31,16 +44,35 @@ body {
   background: #6b7280;
 }
 
+/* Custom scrollbar - light mode */
+html.light ::-webkit-scrollbar-track {
+  background: #f3f4f6;
+}
+
+html.light ::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+}
+
+html.light ::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
 /* Terminal-style text */
 .terminal-text {
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-/* Severity badges */
+/* Severity badges - dark mode */
 .severity-critical { @apply bg-red-900/50 text-red-400 border-red-700; }
 .severity-high { @apply bg-orange-900/50 text-orange-400 border-orange-700; }
 .severity-medium { @apply bg-yellow-900/50 text-yellow-400 border-yellow-700; }
 .severity-low { @apply bg-blue-900/50 text-blue-400 border-blue-700; }
+
+/* Severity badges - light mode */
+html.light .severity-critical { @apply bg-red-100 text-red-700 border-red-300; }
+html.light .severity-high { @apply bg-orange-100 text-orange-700 border-orange-300; }
+html.light .severity-medium { @apply bg-yellow-100 text-yellow-700 border-yellow-300; }
+html.light .severity-low { @apply bg-blue-100 text-blue-700 border-blue-300; }
 
 /* Status indicators */
 .status-dot {
@@ -51,13 +83,22 @@ body {
 .status-stale { @apply bg-yellow-500; }
 .status-expired { @apply bg-red-500; }
 
-/* Chat messages */
+/* Chat messages - dark mode */
 .chat-message-user {
   @apply bg-blue-900/30 border-blue-700;
 }
 
 .chat-message-assistant {
   @apply bg-gray-800/50 border-gray-700;
+}
+
+/* Chat messages - light mode */
+html.light .chat-message-user {
+  @apply bg-blue-100 border-blue-300;
+}
+
+html.light .chat-message-assistant {
+  @apply bg-gray-100 border-gray-300;
 }
 
 /* Animations */

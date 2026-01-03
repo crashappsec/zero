@@ -84,7 +84,7 @@ function HealthStatus() {
 
 function ScannersConfig() {
   const { data: scannersData, loading } = useFetch(
-    () => api.scanners(),
+    () => api.scanners.list(),
     []
   );
   const scanners = scannersData?.data || [];
@@ -132,7 +132,7 @@ function ScannersConfig() {
 
 function ProfilesConfig() {
   const { data: profilesData, loading } = useFetch(
-    () => api.profiles(),
+    () => api.profiles.list(),
     []
   );
   const profiles = profilesData?.data || [];

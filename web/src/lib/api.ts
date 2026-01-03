@@ -1,4 +1,5 @@
 import type {
+  Repo,
   Project,
   ScannerInfo,
   AgentInfo,
@@ -14,6 +15,8 @@ import type {
   ListResponse,
   HealthResponse,
   StreamChunk,
+  Settings,
+  ScannerConfig,
 } from './types';
 
 const API_BASE = '/api';
@@ -42,31 +45,82 @@ export const api = {
   config: () => fetchJSON<Record<string, unknown>>('/config'),
 
   // Lists
-  scanners: () => fetchJSON<ListResponse<ScannerInfo>>('/scanners'),
+  scanners: {
+    list: () => fetchJSON<ListResponse<ScannerInfo>>('/scanners'),
+    get: (name: string) => fetchJSON<ScannerConfig>(`/scanners/${name}`),
+    update: (name: string, config: Partial<ScannerConfig>) =>
+      fetchJSON<{ status: string }>(`/scanners/${name}`, {
+        method: 'PUT',
+        body: JSON.stringify(config),
+      }),
+  },
   agents: () => fetchJSON<ListResponse<AgentInfo>>('/agents'),
-  profiles: () => fetchJSON<ListResponse<ProfileInfo>>('/profiles'),
 
-  // Projects
+  // Profiles (CRUD)
+  profiles: {
+    list: () => fetchJSON<ListResponse<ProfileInfo>>('/profiles'),
+    get: (name: string) => fetchJSON<ProfileInfo>(`/profiles/${name}`),
+    create: (profile: Omit<ProfileInfo, 'name'> & { name: string }) =>
+      fetchJSON<ProfileInfo>('/profiles', {
+        method: 'POST',
+        body: JSON.stringify(profile),
+      }),
+    update: (name: string, profile: Partial<ProfileInfo>) =>
+      fetchJSON<ProfileInfo>(`/profiles/${name}`, {
+        method: 'PUT',
+        body: JSON.stringify(profile),
+      }),
+    delete: (name: string) =>
+      fetchJSON<void>(`/profiles/${name}`, { method: 'DELETE' }),
+  },
+
+  // Settings
+  settings: {
+    get: () => fetchJSON<Settings>('/settings'),
+    update: (settings: Partial<Settings>) =>
+      fetchJSON<{ status: string }>('/settings', {
+        method: 'PUT',
+        body: JSON.stringify(settings),
+      }),
+  },
+
+  // Config export/import
+  configExport: () => fetchJSON<unknown>('/config/export'),
+  configImport: (config: unknown) =>
+    fetchJSON<{ status: string }>('/config/import', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    }),
+
+  // Repos (renamed from projects)
+  repos: {
+    list: () => fetchJSON<ListResponse<Repo>>('/repos'),
+    get: (id: string) => fetchJSON<Repo>(`/repos/${encodeURIComponent(id)}`),
+    delete: (id: string) => fetchJSON<void>(`/repos/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    freshness: (id: string) => fetchJSON<{ freshness: string }>(`/repos/${encodeURIComponent(id)}/freshness`),
+  },
+
+  // Backwards compatibility: projects alias
   projects: {
-    list: () => fetchJSON<ListResponse<Project>>('/projects'),
-    get: (id: string) => fetchJSON<Project>(`/projects/${encodeURIComponent(id)}`),
-    delete: (id: string) => fetchJSON<void>(`/projects/${encodeURIComponent(id)}`, { method: 'DELETE' }),
-    freshness: (id: string) => fetchJSON<{ freshness: string }>(`/projects/${encodeURIComponent(id)}/freshness`),
+    list: () => fetchJSON<ListResponse<Project>>('/repos'),
+    get: (id: string) => fetchJSON<Project>(`/repos/${encodeURIComponent(id)}`),
+    delete: (id: string) => fetchJSON<void>(`/repos/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    freshness: (id: string) => fetchJSON<{ freshness: string }>(`/repos/${encodeURIComponent(id)}/freshness`),
   },
 
   // Analysis
   analysis: {
     stats: () => fetchJSON<AggregateStats>('/analysis/stats'),
-    summary: (projectId: string) =>
-      fetchJSON<AnalysisSummary>(`/analysis/${encodeURIComponent(projectId)}/summary`),
-    vulnerabilities: (projectId: string) =>
-      fetchJSON<ListResponse<Vulnerability>>(`/analysis/${encodeURIComponent(projectId)}/vulnerabilities`),
-    secrets: (projectId: string) =>
-      fetchJSON<ListResponse<Secret>>(`/analysis/${encodeURIComponent(projectId)}/secrets`),
-    dependencies: (projectId: string) =>
-      fetchJSON<ListResponse<Dependency>>(`/analysis/${encodeURIComponent(projectId)}/dependencies`),
-    raw: (projectId: string, type: string) =>
-      fetchJSON<unknown>(`/projects/${encodeURIComponent(projectId)}/analysis/${type}`),
+    summary: (repoId: string) =>
+      fetchJSON<AnalysisSummary>(`/analysis/${encodeURIComponent(repoId)}/summary`),
+    vulnerabilities: (repoId: string) =>
+      fetchJSON<ListResponse<Vulnerability>>(`/analysis/${encodeURIComponent(repoId)}/vulnerabilities`),
+    secrets: (repoId: string) =>
+      fetchJSON<ListResponse<Secret>>(`/analysis/${encodeURIComponent(repoId)}/secrets`),
+    dependencies: (repoId: string) =>
+      fetchJSON<ListResponse<Dependency>>(`/analysis/${encodeURIComponent(repoId)}/dependencies`),
+    raw: (repoId: string, type: string) =>
+      fetchJSON<unknown>(`/repos/${encodeURIComponent(repoId)}/analysis/${type}`),
   },
 
   // Scans

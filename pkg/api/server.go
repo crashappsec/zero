@@ -97,25 +97,32 @@ func (s *Server) setupRoutes() {
 	r.Use(cors.Handler(corsOpts))
 
 	// Create handlers
-	projectHandler := handlers.NewProjectHandler(s.zeroHome, s.cfg)
+	repoHandler := handlers.NewProjectHandler(s.zeroHome, s.cfg) // Renamed: projects → repos
 	analysisHandler := handlers.NewAnalysisHandler(s.zeroHome)
 	systemHandler := handlers.NewSystemHandler(s.cfg)
 	scanHandler := handlers.NewScanHandler(s.queue)
+	configHandler := handlers.NewConfigHandler(s.cfg)
 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
 		// System endpoints
 		r.Get("/health", systemHandler.Health)
 		r.Get("/config", systemHandler.GetConfig)
-		r.Get("/profiles", systemHandler.ListProfiles)
 		r.Get("/scanners", systemHandler.ListScanners)
 		r.Get("/agents", systemHandler.ListAgents)
 
-		// Project endpoints
-		r.Get("/projects", projectHandler.List)
-		r.Get("/projects/{projectID}", projectHandler.Get)
-		r.Delete("/projects/{projectID}", projectHandler.Delete)
-		r.Get("/projects/{projectID}/freshness", projectHandler.GetFreshness)
+		// Repos endpoints (renamed from projects)
+		r.Get("/repos", repoHandler.List)
+		r.Get("/repos/{projectID}", repoHandler.Get)
+		r.Delete("/repos/{projectID}", repoHandler.Delete)
+		r.Get("/repos/{projectID}/freshness", repoHandler.GetFreshness)
+		r.Get("/repos/{projectID}/analysis/{analysisType}", analysisHandler.GetAnalysis)
+
+		// Backwards compatibility: /projects routes still work
+		r.Get("/projects", repoHandler.List)
+		r.Get("/projects/{projectID}", repoHandler.Get)
+		r.Delete("/projects/{projectID}", repoHandler.Delete)
+		r.Get("/projects/{projectID}/freshness", repoHandler.GetFreshness)
 		r.Get("/projects/{projectID}/analysis/{analysisType}", analysisHandler.GetAnalysis)
 
 		// Analysis aggregation endpoints
@@ -124,6 +131,25 @@ func (s *Server) setupRoutes() {
 		r.Get("/analysis/{projectID}/vulnerabilities", analysisHandler.GetVulnerabilities)
 		r.Get("/analysis/{projectID}/secrets", analysisHandler.GetSecrets)
 		r.Get("/analysis/{projectID}/dependencies", analysisHandler.GetDependencies)
+
+		// Profile management
+		r.Get("/profiles", configHandler.ListProfiles)
+		r.Get("/profiles/{name}", configHandler.GetProfile)
+		r.Post("/profiles", configHandler.CreateProfile)
+		r.Put("/profiles/{name}", configHandler.UpdateProfile)
+		r.Delete("/profiles/{name}", configHandler.DeleteProfile)
+
+		// Settings management
+		r.Get("/settings", configHandler.GetSettings)
+		r.Put("/settings", configHandler.UpdateSettings)
+
+		// Scanner configuration
+		r.Get("/scanners/{name}", configHandler.GetScanner)
+		r.Put("/scanners/{name}", configHandler.UpdateScanner)
+
+		// Config export/import
+		r.Get("/config/export", configHandler.ExportConfig)
+		r.Post("/config/import", configHandler.ImportConfig)
 
 		// Scan endpoints
 		r.Post("/scans", scanHandler.Start)
