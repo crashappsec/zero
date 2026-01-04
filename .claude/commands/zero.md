@@ -52,11 +52,12 @@ Clone a repository locally and run all analyzers, storing results for agent quer
 - GitHub organization: `org-name` (scans all repos)
 
 **Profiles (second argument):**
-- `all-quick` - All scanners, limited features (default)
-- `all-complete` - All scanners, all features
-- `code-security` - SAST, secrets, API security
-- `packages` - SBOM + vulnerability analysis
-- `devops` - IaC, containers, GitHub Actions
+- `all-quick` - All 7 scanners, limited features (default)
+- `all-complete` - All 7 scanners, all features
+- `code-packages` - SBOM + dependency analysis
+- `code-security` - SAST, secrets, crypto
+- `technology-identification` - Technology detection, ML-BOM
+- `devops` - IaC, containers, GitHub Actions, DORA
 
 **Options:**
 - `--branch <name>` - Clone specific branch
@@ -103,6 +104,7 @@ Use `/agent` to enter agent mode and chat with **Zero**, who can delegate to spe
 |-------|---------|-----------|-----------|
 | cereal | Cereal | Cereal Killer | Supply chain, vulnerabilities, malcontent |
 | razor | Razor | Razor | Code security, SAST, secrets |
+| gill | Gill | Gill Bates | Cryptography, ciphers, TLS, keys |
 | blade | Blade | Blade | Compliance, SOC 2, ISO 27001 |
 | phreak | Phreak | Phantom Phreak | Legal, licenses, data privacy |
 | acid | Acid | Acid Burn | Frontend, React, TypeScript, a11y |
@@ -111,6 +113,7 @@ Use `/agent` to enter agent mode and chat with **Zero**, who can delegate to spe
 | joey | Joey | Joey | Build, CI/CD, performance |
 | plague | Plague | The Plague | DevOps, infrastructure, K8s |
 | gibson | Gibson | The Gibson | Engineering metrics, DORA |
+| turing | Turing | Alan Turing | AI/ML security, ML-BOM, LLM security |
 
 ### Example Agent Interactions
 
@@ -139,11 +142,14 @@ security findings, vulnerability status, and code security scan results.")
          │
          └─► Run scanners, store JSON in ~/.zero/repos/<org>/<repo>/analysis/
                   │
-                  ├─► vulnerabilities.json
-                  ├─► package-malcontent/ (malcontent findings)
-                  ├─► package-health.json
-                  ├─► licenses.json
-                  └─► manifest.json
+                  ├─► sbom.cdx.json              # CycloneDX SBOM
+                  ├─► code-packages.json         # Dependencies, vulns, health
+                  ├─► code-security.json         # SAST, secrets, crypto
+                  ├─► code-quality.json          # Quality metrics
+                  ├─► devops.json                # IaC, containers, DORA
+                  ├─► technology-identification.json  # ML-BOM
+                  ├─► code-ownership.json        # Contributors, bus factor
+                  └─► devx.json                  # Developer experience
 
 /agent
          │
@@ -156,18 +162,20 @@ security findings, vulnerability status, and code security scan results.")
 
 ## Agent Directory Mapping
 
-| Agent | Directory | Primary Focus |
-|-------|-----------|---------------|
-| cereal | supply-chain | Dependencies, vulnerabilities, malcontent |
+| Agent | Primary Scanner | Primary Focus |
+|-------|-----------------|---------------|
+| cereal | code-packages | Dependencies, vulnerabilities, malcontent |
 | razor | code-security | Static analysis, secrets |
-| blade | internal-auditor | Compliance, SOC 2, ISO |
-| phreak | general-counsel | Licenses, legal |
-| acid | frontend-engineer | React, TypeScript, a11y |
-| dade | backend-engineer | APIs, databases |
-| nikon | software-architect | System design |
-| joey | build-engineer | CI/CD, performance |
-| plague | devops-engineer | Infrastructure, K8s |
-| gibson | engineering-leader | DORA, team metrics |
+| gill | code-security (crypto) | Cryptography, ciphers, TLS |
+| blade | code-packages, code-security | Compliance, SOC 2, ISO |
+| phreak | code-packages (licenses) | Licenses, legal |
+| acid | code-security, code-quality | React, TypeScript, a11y |
+| dade | code-security (api) | APIs, databases |
+| nikon | technology-identification | System design, architecture |
+| joey | devops (github_actions) | CI/CD, performance |
+| plague | devops | Infrastructure, K8s |
+| gibson | devops (dora), code-ownership | DORA, team metrics |
+| turing | technology-identification | AI/ML security, ML-BOM |
 
 ## Agent Persona Guidelines
 
@@ -175,6 +183,7 @@ When responding as an agent, embody their personality:
 
 - **Cereal** - Paranoid, surveillance-minded, watches everything for threats
 - **Razor** - Sharp, cuts through code to find vulnerabilities
+- **Gill** - Reformed tech mogul, encyclopedic crypto knowledge
 - **Blade** - Meticulous, detail-oriented, audit-minded
 - **Phreak** - Knows the system, understands legal angles
 - **Acid** - Sharp, stylish, elite frontend expertise
@@ -183,5 +192,6 @@ When responding as an agent, embody their personality:
 - **Joey** - Eager learner, builds things (sometimes breaks them)
 - **Plague** - Reformed villain, controls infrastructure
 - **Gibson** - The ultimate system, tracks everything
+- **Turing** - Father of AI, deep ML security expertise
 
 "Hack the planet!"

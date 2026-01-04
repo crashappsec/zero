@@ -1,6 +1,6 @@
 # Scanner Reference
 
-Complete reference for Zero's 8 super scanners. Each scanner provides multiple features that can be individually enabled or disabled.
+Complete reference for Zero's 7 super scanners (v4.0). Each scanner provides multiple features that can be individually enabled or disabled.
 
 ## Architecture Overview
 
@@ -10,89 +10,52 @@ Zero uses a consolidated "super scanner" architecture where each scanner handles
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Zero Scanner Engine                       │
 ├─────────────────────────────────────────────────────────────────┤
-│  sbom ──► package-analysis ──► [parallel scanners]              │
+│  code-packages ──► [parallel scanners]                          │
 │                                                                  │
-│  Parallel: crypto, code-security, code-quality, devops,         │
-│            tech-id, code-ownership                               │
+│  Parallel: code-security, code-quality, devops,                 │
+│            technology-identification, code-ownership, devx       │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-The `sbom` scanner runs first as the **source of truth**, and `package-analysis` depends on its output. All other scanners can run in parallel.
+The `code-packages` scanner generates the SBOM as **source of truth**. All other scanners can run in parallel. The `devx` scanner depends on `technology-identification`.
 
 ## Super Scanners
 
 | Scanner | Features | Output | Docs |
 |---------|----------|--------|------|
-| **sbom** | generation, integrity | `sbom.json` + `sbom.cdx.json` | [sbom.md](sbom.md) |
-| **package-analysis** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | `package-analysis.json` | [package-analysis.md](package-analysis.md) |
-| **crypto** | ciphers, keys, random, tls, certificates | `crypto.json` | [crypto.md](crypto.md) |
-| **code-security** | vulns, secrets, api, git_history_security | `code-security.json` | [code-security.md](code-security.md) |
+| **code-packages** | generation, integrity, vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | `code-packages.json` + `sbom.cdx.json` | [code-packages.md](code-packages.md) |
+| **code-security** | vulns, secrets, api, ciphers, keys, random, tls, certificates | `code-security.json` | [code-security.md](code-security.md) |
 | **code-quality** | tech_debt, complexity, test_coverage, documentation | `code-quality.json` | [code-quality.md](quality.md) |
 | **devops** | iac, containers, github_actions, dora, git | `devops.json` | [devops.md](devops.md) |
-| **tech-id** | technology, models, frameworks, datasets, security, governance, semgrep_rules | `technology.json` | [tech-id.md](technology.md) |
+| **technology-identification** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | `technology-identification.json` | [technology-identification.md](technology.md) |
 | **code-ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | `code-ownership.json` | [code-ownership.md](ownership.md) |
+| **devx** | onboarding, sprawl, workflow | `devx.json` | [devx.md](devx.md) |
 
 ## Quick Reference
 
-### SBOM Scanner
+### Code Packages Scanner
 
-Generates Software Bill of Materials in CycloneDX format.
+SBOM generation and package/dependency analysis (consolidated from sbom + package-analysis).
 
 ```bash
-./zero scan --scanner sbom /path/to/repo
+./zero scan --scanner code-packages /path/to/repo
 ```
 
 **Key Features:**
 - CycloneDX 1.5 SBOM generation (cdxgen or syft)
-- Lockfile integrity verification
-- Drift detection
-
-[Full Documentation →](sbom.md)
-
----
-
-### Package Analysis Scanner
-
-Supply chain security analysis for dependencies.
-
-```bash
-./zero scan --scanner package-analysis /path/to/repo  # Requires sbom
-```
-
-**Key Features:**
 - Vulnerability scanning (OSV, CISA KEV)
 - Package health assessment (deps.dev)
 - License compliance checking
 - Malcontent behavioral analysis
-- Dependency confusion detection
-- Typosquatting detection
+- Dependency confusion and typosquatting detection
 
-[Full Documentation →](packages.md)
-
----
-
-### Crypto Scanner
-
-Cryptographic security analysis.
-
-```bash
-./zero scan --scanner crypto /path/to/repo
-```
-
-**Key Features:**
-- Weak cipher detection (DES, MD5, SHA-1)
-- Hardcoded key detection
-- Insecure random number generation
-- TLS misconfiguration
-- Certificate analysis
-
-[Full Documentation →](crypto.md)
+[Full Documentation →](code-packages.md)
 
 ---
 
 ### Code Security Scanner
 
-Static Application Security Testing (SAST).
+Static analysis, secret detection, and cryptographic security (consolidated from code-security + crypto).
 
 ```bash
 ./zero scan --scanner code-security /path/to/repo
@@ -102,7 +65,9 @@ Static Application Security Testing (SAST).
 - Vulnerability detection (Semgrep)
 - Secret detection with redaction
 - API security analysis (OWASP API Top 10)
-- Git history security scanning (gitignore violations, sensitive files, purge recommendations)
+- Weak cipher detection (DES, MD5, SHA-1)
+- Hardcoded key detection
+- TLS misconfiguration analysis
 
 [Full Documentation →](code-security.md)
 
@@ -145,12 +110,12 @@ DevOps and CI/CD security analysis.
 
 ---
 
-### Tech-ID Scanner
+### Technology Identification Scanner
 
-Technology identification and AI/ML analysis with ML-BOM generation.
+Technology detection and AI/ML analysis with ML-BOM generation.
 
 ```bash
-./zero scan --scanner tech-id /path/to/repo
+./zero scan --scanner technology-identification /path/to/repo
 ```
 
 **Key Features:**
@@ -162,6 +127,23 @@ Technology identification and AI/ML analysis with ML-BOM generation.
 - ML-BOM generation
 
 [Full Documentation →](technology.md)
+
+---
+
+### DevX Scanner
+
+Developer experience analysis (depends on technology-identification).
+
+```bash
+./zero scan --scanner devx /path/to/repo
+```
+
+**Key Features:**
+- Onboarding friction analysis
+- Tool sprawl detection
+- Workflow efficiency assessment
+
+[Full Documentation →](devx.md)
 
 ---
 
@@ -191,24 +173,23 @@ Profiles combine scanners with specific feature configurations for common use ca
 
 | Profile | Scanners | Time | Use Case |
 |---------|----------|------|----------|
-| `quick` | sbom, package-analysis (limited) | ~30s | Fast initial assessment |
-| `standard` | sbom, package-analysis, code-security, code-quality | ~2min | Balanced analysis |
-| `security` | sbom, package-analysis, crypto, code-security, devops | ~4min | Security assessment |
-| `full` | All 8 scanners | ~12min | Complete analysis |
-| `ai-security` | sbom, package-analysis, code-security, tech-id | ~3min | AI/ML projects |
-| `supply-chain` | sbom, package-analysis, tech-id | ~2min | Supply chain analysis |
-| `compliance` | sbom, package-analysis, tech-id | ~2min | License/compliance |
+| `all-quick` | All 7 scanners (limited features) | ~2min | Fast initial assessment |
+| `all-complete` | All 7 scanners (all features) | ~12min | Complete analysis |
+| `code-packages` | code-packages | ~1min | SBOM + dependency analysis |
+| `code-security` | code-security | ~2min | Security assessment |
+| `technology-identification` | technology-identification | ~1min | Technology detection, ML-BOM |
+| `developer-experience` | technology-identification, devx | ~2min | Developer experience |
 
 ### Profile-Specific Configurations
 
-Profiles can override default feature settings. For example, the `quick` profile disables slower features:
+Profiles can override default feature settings. For example, the `all-quick` profile disables slower features:
 
 ```json
 {
-  "quick": {
-    "scanners": ["sbom", "package-analysis"],
+  "all-quick": {
+    "scanners": ["code-packages", "code-security", "code-quality", "devops", "technology-identification", "code-ownership", "devx"],
     "feature_overrides": {
-      "package-analysis": {
+      "code-packages": {
         "malcontent": {"enabled": false},
         "provenance": {"enabled": false}
       }
@@ -223,11 +204,12 @@ See `config/zero.config.json` for all profile definitions.
 
 | Tool | Used By | Purpose | Install |
 |------|---------|---------|---------|
-| cdxgen | sbom | SBOM generation | `npm i -g @cyclonedx/cdxgen` |
-| syft | sbom | SBOM generation (fallback) | `brew install syft` |
-| osv-scanner | packages | Vulnerability scanning | `go install github.com/google/osv-scanner/...` |
-| malcontent | packages | Behavioral analysis | `brew install malcontent` |
-| semgrep | crypto, code-security, quality | Pattern analysis | `pip install semgrep` |
+| cdxgen | code-packages | SBOM generation | `npm i -g @cyclonedx/cdxgen` |
+| syft | code-packages | SBOM generation (fallback) | `brew install syft` |
+| osv-scanner | code-packages | Vulnerability scanning | `go install github.com/google/osv-scanner/...` |
+| malcontent | code-packages | Behavioral analysis | `brew install malcontent` |
+| semgrep | code-security, code-quality | Pattern analysis | `pip install semgrep` |
+| gitleaks | code-security | Secret detection | `brew install gitleaks` |
 | checkov | devops | IaC scanning | `pip install checkov` |
 | trivy | devops | Container/IaC scanning | `brew install trivy` |
 
@@ -238,24 +220,28 @@ Scanner configuration is managed in `config/zero.config.json`:
 ```json
 {
   "scanners": {
-    "sbom": {
+    "code-packages": {
       "features": {
         "generation": {"enabled": true, "tool": "auto"},
-        "integrity": {"enabled": true}
-      }
-    },
-    "package-analysis": {
-      "features": {
+        "integrity": {"enabled": true},
         "vulns": {"enabled": true},
         "health": {"enabled": true},
         "licenses": {"enabled": true, "blocked_licenses": ["GPL-3.0"]}
       }
     },
-    "tech-id": {
+    "code-security": {
       "features": {
-        "technology": {"enabled": true},
+        "vulns": {"enabled": true},
+        "secrets": {"enabled": true},
+        "ciphers": {"enabled": true},
+        "keys": {"enabled": true}
+      }
+    },
+    "technology-identification": {
+      "features": {
+        "detection": {"enabled": true},
         "models": {"enabled": true},
-        "security": {"enabled": true}
+        "ai_security": {"enabled": true}
       }
     },
     "code-ownership": {
@@ -263,13 +249,6 @@ Scanner configuration is managed in `config/zero.config.json`:
         "contributors": {"enabled": true, "period_days": 90},
         "bus_factor": {"enabled": true},
         "codeowners": {"enabled": true}
-      }
-    },
-    "code-quality": {
-      "features": {
-        "tech_debt": {"enabled": true},
-        "test_coverage": {"enabled": true},
-        "documentation": {"enabled": true}
       }
     }
   }
@@ -282,38 +261,37 @@ All scanner outputs are written to the analysis directory:
 
 ```
 .zero/repos/<project>/analysis/
-├── sbom.json              # SBOM summary
-├── sbom.cdx.json          # Full CycloneDX SBOM
-├── package-analysis.json  # Package analysis
-├── crypto.json            # Crypto analysis
-├── code-security.json     # Code security
-├── code-quality.json      # Code quality (includes tests, docs)
-├── devops.json            # DevOps analysis
-├── tech-id.json           # Technology ID + AI/ML (ML-BOM)
-└── code-ownership.json    # Code ownership
+├── sbom.cdx.json                    # Full CycloneDX SBOM
+├── code-packages.json               # Package analysis
+├── code-security.json               # Code security + crypto
+├── code-quality.json                # Code quality
+├── devops.json                      # DevOps analysis
+├── technology-identification.json   # Technology + AI/ML (ML-BOM)
+├── code-ownership.json              # Code ownership
+└── devx.json                        # Developer experience
 ```
 
 ## Scanner Relationships
 
 ```
-    ┌───────────────┐   ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
-    │ code-quality  │   │code-ownership │   │    tech-id    │   │    crypto     │
-    │  (debt,tests, │   │ (contributors,│   │ (detection,   │   │(ciphers,keys, │
-    │   docs,cplx)  │   │  bus factor)  │   │  AI/ML, MLBOM)│   │  tls,certs)   │
-    └───────────────┘   └───────────────┘   └───────────────┘   └───────────────┘
+    ┌───────────────┐   ┌───────────────┐   ┌─────────────────────┐
+    │ code-quality  │   │code-ownership │   │  technology-id      │
+    │  (debt,tests, │   │ (contributors,│   │ (detection, AI/ML,  │
+    │   docs,cplx)  │   │  bus factor)  │   │    MLBOM)           │
+    └───────────────┘   └───────────────┘   └──────────┬──────────┘
+                                                       │
+    ┌───────────────┐   ┌───────────────┐   ┌──────────▼──────────┐
+    │ code-security │   │    devops     │   │        devx         │
+    │(vulns,secrets,│   │(iac,containers│   │(onboarding, sprawl, │
+    │ crypto, api)  │   │  gha,dora)    │   │     workflow)       │
+    └───────────────┘   └───────────────┘   └─────────────────────┘
 
-    ┌───────────────┐   ┌───────────────┐   ┌─────────────────────────────────┐
-    │ code-security │   │    devops     │   │       package-analysis          │
-    │(vulns,secrets,│   │(iac,containers│   │    (vulns, health, licenses,    │
-    │     api)      │   │  gha,dora)    │   │     malcontent, confusion)      │
-    └───────────────┘   └───────────────┘   └─────────────────┬───────────────┘
-                                                              │
-                                                              ▼
-                                                      ┌───────────────┐
-                                                      │     sbom      │
-                                                      │  (source of   │
-                                                      │    truth)     │
-                                                      └───────────────┘
+                        ┌─────────────────────────────────────────┐
+                        │             code-packages               │
+                        │    (sbom, vulns, health, licenses,      │
+                        │      malcontent, confusion)             │
+                        │           [source of truth]             │
+                        └─────────────────────────────────────────┘
 ```
 
 ## See Also
