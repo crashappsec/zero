@@ -463,7 +463,7 @@ function DependenciesContent() {
         <Card className="text-center py-12">
           <Package className="h-12 w-12 text-gray-600 mx-auto mb-4" />
           <p className="text-gray-400">No dependencies found</p>
-          <p className="text-sm text-gray-500 mt-1">Run scans with the sbom scanner</p>
+          <p className="text-sm text-gray-500 mt-1">Run scans with the supply-chain scanner</p>
         </Card>
       )}
     </div>

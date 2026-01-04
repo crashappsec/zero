@@ -1,6 +1,6 @@
-// Package codecrypto provides a consolidated cryptographic security super scanner
+// Crypto features (merged from code-crypto scanner)
 // Features: ciphers, keys, random, tls, certificates
-package codecrypto
+package codesecurity
 
 import (
 	"bufio"
@@ -13,360 +13,17 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/crashappsec/zero/pkg/core/cyclonedx"
 	"github.com/crashappsec/zero/pkg/scanner"
 	"github.com/crashappsec/zero/pkg/scanner/common"
 )
-
-const (
-	Name    = "code-crypto"
-	Version = "3.0.0"
-)
-
-func init() {
-	scanner.Register(&CryptoScanner{})
-}
-
-// CryptoScanner consolidates all cryptographic security analysis
-type CryptoScanner struct{}
-
-func (s *CryptoScanner) Name() string {
-	return Name
-}
-
-func (s *CryptoScanner) Description() string {
-	return "Consolidated cryptographic security scanner: weak ciphers, hardcoded keys, insecure random, TLS config, certificates"
-}
-
-func (s *CryptoScanner) Dependencies() []string {
-	return nil
-}
-
-func (s *CryptoScanner) EstimateDuration(fileCount int) time.Duration {
-	// Base estimate: 10 seconds + 1 second per 500 files
-	est := 10 + fileCount/500
-	return time.Duration(est) * time.Second
-}
-
-func (s *CryptoScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scanner.ScanResult, error) {
-	start := time.Now()
-
-	// Get feature config
-	cfg := getConfig(opts)
-
-	result := &Result{
-		FeaturesRun: []string{},
-		Summary:     Summary{},
-		Findings:    Findings{},
-	}
-
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-
-	// Run all pattern-based features in parallel (ciphers, keys, random, tls)
-	if cfg.Ciphers.Enabled {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			summary, findings := s.runCiphers(ctx, opts, cfg.Ciphers)
-			mu.Lock()
-			result.FeaturesRun = append(result.FeaturesRun, "ciphers")
-			result.Summary.Ciphers = summary
-			result.Findings.Ciphers = findings
-			mu.Unlock()
-		}()
-	}
-
-	if cfg.Keys.Enabled {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			summary, findings := s.runKeys(ctx, opts, cfg.Keys)
-			mu.Lock()
-			result.FeaturesRun = append(result.FeaturesRun, "keys")
-			result.Summary.Keys = summary
-			result.Findings.Keys = findings
-			mu.Unlock()
-		}()
-	}
-
-	if cfg.Random.Enabled {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			summary, findings := s.runRandom(ctx, opts, cfg.Random)
-			mu.Lock()
-			result.FeaturesRun = append(result.FeaturesRun, "random")
-			result.Summary.Random = summary
-			result.Findings.Random = findings
-			mu.Unlock()
-		}()
-	}
-
-	if cfg.TLS.Enabled {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			summary, findings := s.runTLS(ctx, opts, cfg.TLS)
-			mu.Lock()
-			result.FeaturesRun = append(result.FeaturesRun, "tls")
-			result.Summary.TLS = summary
-			result.Findings.TLS = findings
-			mu.Unlock()
-		}()
-	}
-
-	if cfg.Certificates.Enabled {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			summary, certResults := s.runCertificates(ctx, opts, cfg.Certificates)
-			mu.Lock()
-			result.FeaturesRun = append(result.FeaturesRun, "certificates")
-			result.Summary.Certificates = summary
-			result.Findings.Certificates = certResults
-			mu.Unlock()
-		}()
-	}
-
-	wg.Wait()
-
-	scanResult := scanner.NewScanResult(Name, Version, start)
-	scanResult.Repository = opts.RepoPath
-	scanResult.SetSummary(result.Summary)
-	scanResult.SetFindings(result.Findings)
-
-	// Add features_run to metadata
-	scanResult.SetMetadata(map[string]interface{}{
-		"features_run": result.FeaturesRun,
-	})
-
-	if opts.OutputDir != "" {
-		if err := os.MkdirAll(opts.OutputDir, 0755); err != nil {
-			return nil, fmt.Errorf("creating output directory: %w", err)
-		}
-		resultFile := filepath.Join(opts.OutputDir, Name+".json")
-		if err := scanResult.WriteJSON(resultFile); err != nil {
-			return nil, fmt.Errorf("writing result: %w", err)
-		}
-
-		// Export CBOM (CycloneDX Cryptography Bill of Materials)
-		if err := s.exportCBOM(opts.OutputDir, result); err != nil {
-			// Log warning but don't fail the scan
-			if opts.Verbose {
-				fmt.Printf("[crypto] Warning: failed to export CBOM: %v\n", err)
-			}
-		}
-	}
-
-	return scanResult, nil
-}
-
-// exportCBOM exports findings as a CycloneDX CBOM
-func (s *CryptoScanner) exportCBOM(outputDir string, result *Result) error {
-	bom := cyclonedx.NewCBOM()
-
-	// Add cipher findings as algorithm components
-	for _, cipher := range result.Findings.Ciphers {
-		c := cyclonedx.CipherFindingToComponent(
-			cipher.Algorithm,
-			extractCipherMode(cipher.Match),
-			cipher.Severity,
-			cipher.File,
-			cipher.Line,
-			cipher.Description,
-		)
-		bom.WithComponent(c)
-
-		// Add vulnerability for weak/deprecated ciphers
-		if cipher.Severity == "high" || cipher.Severity == "critical" {
-			v := cyclonedx.Vulnerability{
-				ID: fmt.Sprintf("CRYPTO-WEAK-%s-%s-%d", strings.ToUpper(cipher.Algorithm), filepath.Base(cipher.File), cipher.Line),
-				Source: &cyclonedx.VulnSource{
-					Name: "Zero Crypto Scanner",
-				},
-				Description:    cipher.Description,
-				Recommendation: cipher.Suggestion,
-				Ratings: []cyclonedx.VulnRating{
-					{
-						Severity: cyclonedx.SeverityToCycloneDX(cipher.Severity),
-						Method:   "other",
-					},
-				},
-				Affects: []cyclonedx.VulnAffect{
-					{Ref: c.BOMRef},
-				},
-			}
-			if cweInt := cyclonedx.CWEToInt(cipher.CWE); cweInt > 0 {
-				v.CWEs = []int{cweInt}
-			}
-			bom.WithVulnerability(v)
-		}
-	}
-
-	// Add key findings as vulnerabilities (hardcoded keys are vulnerabilities, not assets)
-	for _, key := range result.Findings.Keys {
-		v := cyclonedx.Vulnerability{
-			ID: fmt.Sprintf("CRYPTO-HARDCODED-KEY-%s-%s-%d", strings.ToUpper(key.Type), filepath.Base(key.File), key.Line),
-			Source: &cyclonedx.VulnSource{
-				Name: "Zero Crypto Scanner",
-			},
-			Description:    key.Description,
-			Recommendation: "Remove hardcoded keys and use secure key management",
-			Detail:         fmt.Sprintf("Found in: %s:%d", key.File, key.Line),
-			Ratings: []cyclonedx.VulnRating{
-				{
-					Severity: cyclonedx.SeverityToCycloneDX(key.Severity),
-					Method:   "other",
-				},
-			},
-		}
-		if cweInt := cyclonedx.CWEToInt(key.CWE); cweInt > 0 {
-			v.CWEs = []int{cweInt}
-		}
-		bom.WithVulnerability(v)
-	}
-
-	// Add TLS findings as protocol components
-	for _, tls := range result.Findings.TLS {
-		c := cyclonedx.TLSFindingToComponent(
-			tls.Type,
-			extractTLSVersion(tls.Match, tls.Description),
-			tls.Severity,
-			tls.File,
-			tls.Line,
-			tls.Description,
-		)
-		bom.WithComponent(c)
-
-		// Add vulnerability for TLS issues
-		v := cyclonedx.Vulnerability{
-			ID: fmt.Sprintf("CRYPTO-TLS-%s-%s-%d", strings.ToUpper(tls.Type), filepath.Base(tls.File), tls.Line),
-			Source: &cyclonedx.VulnSource{
-				Name: "Zero Crypto Scanner",
-			},
-			Description:    tls.Description,
-			Recommendation: tls.Suggestion,
-			Detail:         fmt.Sprintf("Found in: %s:%d", tls.File, tls.Line),
-			Ratings: []cyclonedx.VulnRating{
-				{
-					Severity: cyclonedx.SeverityToCycloneDX(tls.Severity),
-					Method:   "other",
-				},
-			},
-			Affects: []cyclonedx.VulnAffect{
-				{Ref: c.BOMRef},
-			},
-		}
-		if cweInt := cyclonedx.CWEToInt(tls.CWE); cweInt > 0 {
-			v.CWEs = []int{cweInt}
-		}
-		bom.WithVulnerability(v)
-	}
-
-	// Add certificates as components
-	if result.Findings.Certificates != nil {
-		for _, cert := range result.Findings.Certificates.Certificates {
-			c := cyclonedx.CertInfoToComponent(
-				cert.Subject,
-				cert.Issuer,
-				cert.NotBefore.Format(time.RFC3339),
-				cert.NotAfter.Format(time.RFC3339),
-				cert.KeyType,
-				cert.KeySize,
-				cert.SignatureAlgo,
-				cert.File,
-				cert.IsSelfSigned,
-			)
-			bom.WithComponent(c)
-		}
-
-		// Add certificate findings as vulnerabilities
-		for _, finding := range result.Findings.Certificates.Findings {
-			v := cyclonedx.Vulnerability{
-				ID: fmt.Sprintf("CRYPTO-CERT-%s-%s", strings.ToUpper(finding.Type), filepath.Base(finding.File)),
-				Source: &cyclonedx.VulnSource{
-					Name: "Zero Crypto Scanner",
-				},
-				Description:    finding.Description,
-				Recommendation: finding.Suggestion,
-				Ratings: []cyclonedx.VulnRating{
-					{
-						Severity: cyclonedx.SeverityToCycloneDX(finding.Severity),
-						Method:   "other",
-					},
-				},
-			}
-			if finding.File != "" {
-				v.Detail = fmt.Sprintf("Certificate file: %s", finding.File)
-				v.Affects = []cyclonedx.VulnAffect{
-					{Ref: fmt.Sprintf("crypto/certificate/%s", finding.File)},
-				}
-			}
-			bom.WithVulnerability(v)
-		}
-	}
-
-	// Write CBOM
-	exporter := cyclonedx.NewExporter(outputDir)
-	return exporter.WriteCBOM(bom, "cbom.cdx.json")
-}
-
-// extractCipherMode extracts cipher mode from match string
-func extractCipherMode(match string) string {
-	modes := []string{"gcm", "cbc", "ctr", "ecb", "cfb", "ofb", "ccm"}
-	matchLower := strings.ToLower(match)
-	for _, mode := range modes {
-		if strings.Contains(matchLower, mode) {
-			return mode
-		}
-	}
-	return ""
-}
-
-// extractTLSVersion extracts TLS version from match/description
-func extractTLSVersion(match, description string) string {
-	text := strings.ToLower(match + " " + description)
-	versions := []string{"1.3", "1.2", "1.1", "1.0"}
-	for _, v := range versions {
-		if strings.Contains(text, "tls"+v) || strings.Contains(text, "tls "+v) ||
-			strings.Contains(text, "tlsv"+v) {
-			return v
-		}
-	}
-	if strings.Contains(text, "sslv3") || strings.Contains(text, "ssl3") {
-		return "SSLv3"
-	}
-	return "unknown"
-}
-
-func getConfig(opts *scanner.ScanOptions) FeatureConfig {
-	if opts.FeatureConfig == nil {
-		return DefaultConfig()
-	}
-
-	// Try to parse from FeatureConfig
-	data, err := json.Marshal(opts.FeatureConfig)
-	if err != nil {
-		return DefaultConfig()
-	}
-
-	var cfg FeatureConfig
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return DefaultConfig()
-	}
-
-	return cfg
-}
 
 // ============================================================================
 // CIPHERS FEATURE
 // ============================================================================
 
-func (s *CryptoScanner) runCiphers(ctx context.Context, opts *scanner.ScanOptions, cfg CiphersConfig) (*CiphersSummary, []CipherFinding) {
+func (s *CodeSecurityScanner) runCiphers(ctx context.Context, opts *scanner.ScanOptions, cfg CiphersConfig) (*CiphersSummary, []CipherFinding) {
 	var findings []CipherFinding
 	usedSemgrep := false
 
@@ -486,8 +143,8 @@ func runSemgrepCryptoAnalysis(ctx context.Context, repoPath string, timeout time
 			severity = "low"
 		}
 
-		algorithm := extractAlgorithm(r.CheckID, r.Extra.Message)
-		cwe := extractCWE(r.Extra.Metadata.CWE)
+		algorithm := extractCryptoAlgorithm(r.CheckID, r.Extra.Message)
+		cwe := extractCryptoCWE(r.Extra.Metadata.CWE)
 
 		file := r.Path
 		if strings.HasPrefix(file, repoPath) {
@@ -510,7 +167,7 @@ func runSemgrepCryptoAnalysis(ctx context.Context, repoPath string, timeout time
 	return findings
 }
 
-func extractAlgorithm(checkID, message string) string {
+func extractCryptoAlgorithm(checkID, message string) string {
 	combined := strings.ToLower(checkID + " " + message)
 
 	if strings.Contains(combined, "md5") {
@@ -541,7 +198,7 @@ func extractAlgorithm(checkID, message string) string {
 	return "Weak Crypto"
 }
 
-func extractCWE(cwe interface{}) string {
+func extractCryptoCWE(cwe interface{}) string {
 	switch v := cwe.(type) {
 	case string:
 		return v
@@ -661,13 +318,13 @@ var weakCipherPatterns = []struct {
 	},
 }
 
-var codeExtensions = map[string]bool{
+var cryptoCodeExtensions = map[string]bool{
 	".go": true, ".py": true, ".js": true, ".ts": true, ".java": true,
 	".rb": true, ".php": true, ".cs": true, ".cpp": true, ".c": true,
 	".h": true, ".hpp": true, ".rs": true, ".swift": true, ".kt": true,
 }
 
-var configExtensions = map[string]bool{
+var cryptoConfigExtensions = map[string]bool{
 	".yaml": true, ".yml": true, ".json": true, ".xml": true,
 	".conf": true, ".config": true, ".ini": true, ".properties": true,
 }
@@ -687,7 +344,7 @@ func scanForWeakCiphers(repoPath string) []CipherFinding {
 		}
 
 		ext := strings.ToLower(filepath.Ext(path))
-		if !codeExtensions[ext] {
+		if !cryptoCodeExtensions[ext] {
 			return nil
 		}
 
@@ -734,7 +391,7 @@ func scanFileForCiphers(filePath, repoPath string) []CipherFinding {
 					File:        relPath,
 					Line:        lineNum,
 					Description: pat.description,
-					Match:       truncateMatch(pat.pattern.FindString(line)),
+					Match:       truncateCryptoMatch(pat.pattern.FindString(line)),
 					Suggestion:  pat.suggestion,
 					CWE:         pat.cwe,
 					Source:      "pattern",
@@ -750,7 +407,7 @@ func scanFileForCiphers(filePath, repoPath string) []CipherFinding {
 // KEYS FEATURE
 // ============================================================================
 
-func (s *CryptoScanner) runKeys(ctx context.Context, opts *scanner.ScanOptions, cfg KeysConfig) (*KeysSummary, []KeyFinding) {
+func (s *CodeSecurityScanner) runKeys(ctx context.Context, opts *scanner.ScanOptions, cfg KeysConfig) (*KeysSummary, []KeyFinding) {
 	findings := scanForHardcodedKeys(opts.RepoPath, cfg)
 
 	summary := &KeysSummary{
@@ -906,7 +563,7 @@ func scanForHardcodedKeys(repoPath string, cfg KeysConfig) []KeyFinding {
 		}
 
 		ext := strings.ToLower(filepath.Ext(path))
-		if !codeExtensions[ext] && !configExtensions[ext] {
+		if !cryptoCodeExtensions[ext] && !cryptoConfigExtensions[ext] {
 			return nil
 		}
 
@@ -955,7 +612,7 @@ func scanFileForKeys(filePath, repoPath string, patterns []struct {
 			if pat.pattern.MatchString(line) {
 				match := pat.pattern.FindString(line)
 				if redact {
-					match = redactSensitive(match)
+					match = redactCryptoSensitive(match)
 				}
 				findings = append(findings, KeyFinding{
 					Type:        pat.keyType,
@@ -973,7 +630,7 @@ func scanFileForKeys(filePath, repoPath string, patterns []struct {
 	return findings
 }
 
-func redactSensitive(match string) string {
+func redactCryptoSensitive(match string) string {
 	if len(match) > 30 {
 		return match[:10] + "[REDACTED]"
 	}
@@ -984,7 +641,7 @@ func redactSensitive(match string) string {
 // RANDOM FEATURE
 // ============================================================================
 
-func (s *CryptoScanner) runRandom(ctx context.Context, opts *scanner.ScanOptions, cfg RandomConfig) (*RandomSummary, []RandomFinding) {
+func (s *CodeSecurityScanner) runRandom(ctx context.Context, opts *scanner.ScanOptions, cfg RandomConfig) (*RandomSummary, []RandomFinding) {
 	findings := scanForWeakRandom(opts.RepoPath)
 
 	summary := &RandomSummary{
@@ -1098,7 +755,7 @@ func scanForWeakRandom(repoPath string) []RandomFinding {
 		}
 
 		ext := strings.ToLower(filepath.Ext(path))
-		if !codeExtensions[ext] {
+		if !cryptoCodeExtensions[ext] {
 			return nil
 		}
 
@@ -1145,7 +802,7 @@ func scanFileForRandom(filePath, repoPath string) []RandomFinding {
 					File:        relPath,
 					Line:        lineNum,
 					Description: pat.description,
-					Match:       truncateMatch(pat.pattern.FindString(line)),
+					Match:       truncateCryptoMatch(pat.pattern.FindString(line)),
 					Suggestion:  pat.suggestion,
 					CWE:         pat.cwe,
 				})
@@ -1160,7 +817,7 @@ func scanFileForRandom(filePath, repoPath string) []RandomFinding {
 // TLS FEATURE
 // ============================================================================
 
-func (s *CryptoScanner) runTLS(ctx context.Context, opts *scanner.ScanOptions, cfg TLSConfig) (*TLSSummary, []TLSFinding) {
+func (s *CodeSecurityScanner) runTLS(ctx context.Context, opts *scanner.ScanOptions, cfg TLSConfig) (*TLSSummary, []TLSFinding) {
 	findings := scanForTLSIssues(opts.RepoPath, cfg)
 
 	summary := &TLSSummary{
@@ -1347,7 +1004,7 @@ func scanForTLSIssues(repoPath string, cfg TLSConfig) []TLSFinding {
 		}
 
 		ext := strings.ToLower(filepath.Ext(path))
-		if !codeExtensions[ext] && !configExtensions[ext] {
+		if !cryptoCodeExtensions[ext] && !cryptoConfigExtensions[ext] {
 			return nil
 		}
 
@@ -1401,7 +1058,7 @@ func scanFileForTLS(filePath, repoPath string, patterns []struct {
 					File:        relPath,
 					Line:        lineNum,
 					Description: pat.description,
-					Match:       truncateMatch(pat.pattern.FindString(line)),
+					Match:       truncateCryptoMatch(pat.pattern.FindString(line)),
 					Suggestion:  pat.suggestion,
 					CWE:         pat.cwe,
 				})
@@ -1416,7 +1073,7 @@ func scanFileForTLS(filePath, repoPath string, patterns []struct {
 // CERTIFICATES FEATURE
 // ============================================================================
 
-func (s *CryptoScanner) runCertificates(ctx context.Context, opts *scanner.ScanOptions, cfg CertificatesConfig) (*CertificatesSummary, *CertificatesResult) {
+func (s *CodeSecurityScanner) runCertificates(ctx context.Context, opts *scanner.ScanOptions, cfg CertificatesConfig) (*CertificatesSummary, *CertificatesResult) {
 	certs := findCertificates(opts.RepoPath)
 
 	var allCertInfos []CertInfo
@@ -1556,7 +1213,7 @@ func analyzeParsedCert(cert *x509.Certificate, file string, cfg CertificatesConf
 
 	daysUntilExp := int(cert.NotAfter.Sub(now).Hours() / 24)
 
-	keyType, keySize := getKeyInfo(cert)
+	keyType, keySize := getCertKeyInfo(cert)
 
 	info := CertInfo{
 		File:          file,
@@ -1695,7 +1352,7 @@ func analyzeParsedCert(cert *x509.Certificate, file string, cfg CertificatesConf
 	return info, findings
 }
 
-func getKeyInfo(cert *x509.Certificate) (string, int) {
+func getCertKeyInfo(cert *x509.Certificate) (string, int) {
 	switch pub := cert.PublicKey.(type) {
 	case interface{ Size() int }:
 		return "RSA", pub.Size() * 8
@@ -1717,7 +1374,7 @@ func getKeyInfo(cert *x509.Certificate) (string, int) {
 // UTILITIES
 // ============================================================================
 
-func truncateMatch(match string) string {
+func truncateCryptoMatch(match string) string {
 	if len(match) > 50 {
 		return match[:50] + "..."
 	}

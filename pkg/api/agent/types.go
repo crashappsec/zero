@@ -105,10 +105,14 @@ func (m *SessionManager) Get(id string) (*Session, bool) {
 
 // GetOrCreate gets an existing session or creates a new one
 func (m *SessionManager) GetOrCreate(id, agentID string) *Session {
-	if session, ok := m.Get(id); ok {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if session, ok := m.sessions[id]; ok {
 		return session
 	}
-	return m.Create(id, agentID)
+	session := NewSession(id, agentID)
+	m.sessions[id] = session
+	return session
 }
 
 // Delete removes a session

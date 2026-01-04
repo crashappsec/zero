@@ -15,24 +15,16 @@ export interface ScannerMetadata {
   features: ScannerFeature[];
 }
 
-// Scanner → Features mapping (from CLAUDE.md)
+// Scanner → Features mapping (v4.0 - 7 scanners)
 export const scannerMetadata: Record<string, ScannerMetadata> = {
-  sbom: {
-    name: 'sbom',
-    displayName: 'SBOM',
-    description: 'Software Bill of Materials generation and integrity verification',
+  'supply-chain': {
+    name: 'supply-chain',
+    displayName: 'Supply Chain',
+    description: 'SBOM generation and comprehensive package/dependency analysis',
     icon: 'Package',
     features: [
       { key: 'generation', name: 'Generation', description: 'SBOM generation in CycloneDX format' },
-      { key: 'integrity', name: 'Integrity', description: 'SBOM integrity verification' },
-    ],
-  },
-  packages: {
-    name: 'packages',
-    displayName: 'Package Analysis',
-    description: 'Comprehensive package and dependency analysis',
-    icon: 'Package',
-    features: [
+      { key: 'integrity', name: 'Integrity', description: 'SBOM integrity verification against lockfiles' },
       { key: 'vulns', name: 'Vulnerabilities', description: 'Known vulnerability detection via OSV.dev' },
       { key: 'health', name: 'Health', description: 'Package health and maintenance scores' },
       { key: 'licenses', name: 'Licenses', description: 'License detection and compatibility analysis' },
@@ -47,29 +39,20 @@ export const scannerMetadata: Record<string, ScannerMetadata> = {
       { key: 'recommendations', name: 'Recommendations', description: 'Update recommendations' },
     ],
   },
-  'code-crypto': {
-    name: 'code-crypto',
-    displayName: 'Code Crypto',
-    description: 'Cryptographic security analysis',
-    icon: 'Lock',
-    features: [
-      { key: 'ciphers', name: 'Ciphers', description: 'Cipher usage and strength analysis' },
-      { key: 'keys', name: 'Keys', description: 'Cryptographic key detection' },
-      { key: 'random', name: 'Random', description: 'Random number generation security' },
-      { key: 'tls', name: 'TLS', description: 'TLS configuration analysis' },
-      { key: 'certificates', name: 'Certificates', description: 'Certificate security analysis' },
-    ],
-  },
   'code-security': {
     name: 'code-security',
     displayName: 'Code Security',
-    description: 'Static analysis and secret detection',
+    description: 'Static analysis, secret detection, API security, and cryptography',
     icon: 'Shield',
     features: [
       { key: 'vulns', name: 'Vulnerabilities', description: 'Code vulnerability detection (SAST)' },
       { key: 'secrets', name: 'Secrets', description: 'Secret and credential detection' },
       { key: 'api', name: 'API', description: 'API security analysis' },
-      { key: 'git_history_security', name: 'Git History', description: 'Historical secret detection in git history' },
+      { key: 'ciphers', name: 'Ciphers', description: 'Weak cipher detection' },
+      { key: 'keys', name: 'Keys', description: 'Hardcoded key detection' },
+      { key: 'random', name: 'Random', description: 'Insecure random number generation' },
+      { key: 'tls', name: 'TLS', description: 'TLS configuration analysis' },
+      { key: 'certificates', name: 'Certificates', description: 'Certificate security analysis' },
     ],
   },
   'code-quality': {

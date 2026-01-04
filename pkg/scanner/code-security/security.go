@@ -1,5 +1,5 @@
 // Package codesecurity provides the consolidated code security super scanner
-// Features: vulns, secrets, api
+// Features: vulns, secrets, api, ciphers, keys, random, tls, certificates
 package codesecurity
 
 import (
@@ -33,7 +33,7 @@ func (s *CodeSecurityScanner) Name() string {
 }
 
 func (s *CodeSecurityScanner) Description() string {
-	return "Security-focused code analysis: vulnerabilities, secrets, API security"
+	return "Security-focused code analysis: vulnerabilities, secrets, API security, cryptography"
 }
 
 func (s *CodeSecurityScanner) Dependencies() []string {
@@ -131,6 +131,72 @@ func (s *CodeSecurityScanner) Run(ctx context.Context, opts *scanner.ScanOptions
 				// Add error to result summary
 				result.Summary.Errors = append(result.Summary.Errors, "git_history_security: "+err.Error())
 			}
+			mu.Unlock()
+		}()
+	}
+
+	// Crypto features (merged from code-crypto scanner)
+	if cfg.Ciphers.Enabled {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			summary, findings := s.runCiphers(ctx, opts, cfg.Ciphers)
+			mu.Lock()
+			result.FeaturesRun = append(result.FeaturesRun, "ciphers")
+			result.Summary.Ciphers = summary
+			result.Findings.Ciphers = findings
+			mu.Unlock()
+		}()
+	}
+
+	if cfg.Keys.Enabled {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			summary, findings := s.runKeys(ctx, opts, cfg.Keys)
+			mu.Lock()
+			result.FeaturesRun = append(result.FeaturesRun, "keys")
+			result.Summary.Keys = summary
+			result.Findings.Keys = findings
+			mu.Unlock()
+		}()
+	}
+
+	if cfg.Random.Enabled {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			summary, findings := s.runRandom(ctx, opts, cfg.Random)
+			mu.Lock()
+			result.FeaturesRun = append(result.FeaturesRun, "random")
+			result.Summary.Random = summary
+			result.Findings.Random = findings
+			mu.Unlock()
+		}()
+	}
+
+	if cfg.TLS.Enabled {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			summary, findings := s.runTLS(ctx, opts, cfg.TLS)
+			mu.Lock()
+			result.FeaturesRun = append(result.FeaturesRun, "tls")
+			result.Summary.TLS = summary
+			result.Findings.TLS = findings
+			mu.Unlock()
+		}()
+	}
+
+	if cfg.Certificates.Enabled {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			summary, certResults := s.runCertificates(ctx, opts, cfg.Certificates)
+			mu.Lock()
+			result.FeaturesRun = append(result.FeaturesRun, "certificates")
+			result.Summary.Certificates = summary
+			result.Findings.Certificates = certResults
 			mu.Unlock()
 		}()
 	}

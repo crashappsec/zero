@@ -1,21 +1,18 @@
 {
   "$schema": "./zero.config.schema.json",
-  "_version": "3.3.0",
+  "_version": "4.0.0",
   "_docs": "===================================================================================",
-  "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v3.3)",
+  "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v4.0)",
   "_docs3": "===================================================================================",
-  "_docs4": "Zero uses 10 consolidated 'super scanners' with configurable features:",
-  "_docs5": "  - sbom: SBOM generation and integrity verification (source of truth)",
-  "_docs6": "  - packages: vulnerabilities, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations, confusion, reachability",
-  "_docs7": "  - code-crypto: ciphers, keys, random, tls, certificates",
-  "_docs8": "  - code-security: vulns, secrets (RAG-based with API validation), api",
-  "_docs9": "  - quality: tech_debt, complexity, test_coverage, documentation",
-  "_docs10": "  - devops: iac, containers, github_actions, dora, git",
-  "_docs11": "  - technology: detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure (ML-BOM)",
-  "_docs12": "  - ownership: contributors, bus_factor, codeowners, orphans, churn, patterns",
-  "_docs13": "  - health: score, summary, recommendations, trends (aggregator)",
-  "_docs14": "  - developer-experience: onboarding, tooling, workflow (developer experience)",
-  "_docs15": "===================================================================================",
+  "_docs4": "Zero uses 7 consolidated 'super scanners' with configurable features:",
+  "_docs5": "  - supply-chain: generation, integrity, vulns, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations, confusion, reachability",
+  "_docs6": "  - code-security: vulns, secrets, api, ciphers, keys, random, tls, certificates",
+  "_docs7": "  - code-quality: tech_debt, complexity, test_coverage, documentation",
+  "_docs8": "  - devops: iac, containers, github_actions, dora, git",
+  "_docs9": "  - tech-id: detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure (ML-BOM)",
+  "_docs10": "  - code-ownership: contributors, bus_factor, codeowners, orphans, churn, patterns",
+  "_docs11": "  - developer-experience: onboarding, sprawl, workflow (depends on tech-id)",
+  "_docs12": "===================================================================================",
   "settings": {
     "default_profile": "all-quick",
     "storage_path": ".zero",
@@ -35,162 +32,192 @@
     }
   },
   "scanners": {
-    "sbom": {
-      "name": "SBOM",
-      "description": "Software Bill of Materials generation and integrity verification - source of truth for package data",
-      "estimated_time": "30-60s",
-      "output_file": "sbom.json",
+    "supply-chain": {
+      "name": "Supply Chain",
+      "description": "SBOM generation and package/dependency analysis: vulnerabilities, health, malcontent, licenses, provenance",
+      "estimated_time": "60-180s",
+      "output_file": "supply-chain.json",
       "dependencies": [],
       "features": {
         "generation": {
           "enabled": true,
           "tool": "auto",
           "spec_version": "1.5",
-          "fallback_to_syft": true
+          "fallback_to_syft": true,
+          "include_dev": false,
+          "deep": false
         },
         "integrity": {
           "enabled": true,
           "verify_lockfiles": true,
-          "detect_drift": true
-        }
-      }
-    },
-    "packages": {
-      "name": "Packages",
-      "description": "Package/dependency analysis: vulnerabilities, health, malcontent, provenance, bundle optimization, licenses",
-      "estimated_time": "60-180s",
-      "output_file": "packages.json",
-      "dependencies": ["sbom"],
-      "features": {
+          "detect_drift": false,
+          "check_completeness": true
+        },
         "vulns": {
           "enabled": true,
-          "include_dev": false,
-          "check_reachability": true
+          "severity_threshold": "low",
+          "include_kev": true
         },
         "health": {
           "enabled": true,
-          "check_deprecated": true,
-          "check_maintained": true,
-          "check_downloads": true
+          "min_score": 0,
+          "max_packages": 50,
+          "check_scorecard": true
         },
         "malcontent": {
           "enabled": true,
-          "min_risk": "medium"
+          "min_risk_level": "medium",
+          "scan_node_modules": false
         },
         "provenance": {
-          "enabled": true,
-          "check_sigstore": true,
-          "check_slsa": true
+          "enabled": false,
+          "require_signatures": false,
+          "require_slsa": false
         },
         "bundle": {
-          "enabled": true,
-          "size_threshold_kb": 100
+          "enabled": false,
+          "size_threshold_kb": 500,
+          "check_duplicates": true,
+          "check_treeshake": true
         },
         "licenses": {
           "enabled": true,
-          "include_dev": false,
-          "blocked_licenses": ["GPL-3.0", "AGPL-3.0"],
-          "allowed_licenses": []
+          "blocked": ["GPL-3.0", "AGPL-3.0"],
+          "allowed": [],
+          "fail_on_unknown": false
         },
         "duplicates": {
-          "enabled": true
+          "enabled": true,
+          "check_versions": true,
+          "check_functionality": false
         },
         "recommendations": {
-          "enabled": true
+          "enabled": false,
+          "include_security": true,
+          "include_health": true,
+          "include_performance": false
         },
         "typosquats": {
-          "enabled": true
+          "enabled": true,
+          "check_similar_names": true,
+          "check_new_packages": true
         },
         "deprecations": {
-          "enabled": true
+          "enabled": true,
+          "check_npm": true,
+          "check_pypi": true,
+          "check_go": true
         },
         "confusion": {
           "enabled": true,
-          "check_internal_names": true
+          "check_npm": true,
+          "check_pypi": true,
+          "check_go": false
         },
         "reachability": {
-          "enabled": true,
-          "filter_unreachable": false
-        }
-      }
-    },
-    "code-crypto": {
-      "name": "Code Cryptography",
-      "description": "Cryptographic security analysis: ciphers, keys, random number generation, TLS, certificates",
-      "estimated_time": "30-90s",
-      "output_file": "code-crypto.json",
-      "dependencies": [],
-      "features": {
-        "ciphers": {
-          "enabled": true,
-          "check_weak": true,
-          "check_deprecated": true
-        },
-        "keys": {
-          "enabled": true,
-          "check_hardcoded": true,
-          "check_weak_length": true,
-          "min_rsa_bits": 2048,
-          "min_ec_bits": 256
-        },
-        "random": {
-          "enabled": true,
-          "check_insecure": true
-        },
-        "tls": {
-          "enabled": true,
-          "check_verification": true,
-          "check_protocols": true,
-          "min_version": "1.2"
-        },
-        "certificates": {
-          "enabled": true,
-          "check_expiry": true,
-          "expiry_warning_days": 30
+          "enabled": false,
+          "experimental": true
         }
       }
     },
     "code-security": {
       "name": "Code Security",
-      "description": "Security-focused code analysis: vulnerabilities, RAG-based secrets detection, API security",
+      "description": "Security-focused code analysis: vulnerabilities, secrets, API security, cryptography",
       "estimated_time": "60-180s",
       "output_file": "code-security.json",
       "dependencies": [],
       "features": {
         "vulns": {
           "enabled": true,
-          "rulesets": ["p/security-audit", "p/owasp-top-ten"],
+          "include_owasp": true,
+          "include_cwe": true,
           "severity_minimum": "low"
         },
         "secrets": {
           "enabled": true,
-          "detection_method": "rag",
-          "rag_patterns_path": "rag/tech-id",
-          "validate_with_api": true,
           "redact_secrets": true,
-          "min_confidence": 0.8,
-          "git_history_security": {
+          "entropy_analysis": {
             "enabled": true,
+            "min_length": 16,
+            "high_threshold": 4.5,
+            "med_threshold": 3.5
+          },
+          "git_history_scan": {
+            "enabled": false,
+            "max_commits": 1000,
+            "max_age": "1y",
+            "scan_removed": true
+          },
+          "git_history_security": {
+            "enabled": false,
             "max_commits": 1000,
             "max_age": "1y",
             "scan_gitignore_history": true,
             "scan_sensitive_files": true,
             "generate_purge_report": true
+          },
+          "ai_analysis": {
+            "enabled": false,
+            "max_findings": 50,
+            "confidence_threshold": 0.8
+          },
+          "rotation_guidance": true,
+          "iac_secrets": {
+            "enabled": true
           }
         },
         "api": {
           "enabled": true,
+          "check_auth": true,
+          "check_injection": true,
+          "check_ssrf": true,
+          "check_cors": true,
           "check_openapi": true,
           "check_graphql": true,
-          "check_owasp_api": true
+          "check_owasp_api": true,
+          "check_design": true,
+          "check_performance": true,
+          "check_observability": true,
+          "check_documentation": true
+        },
+        "ciphers": {
+          "enabled": true,
+          "use_semgrep": true,
+          "use_patterns": true
+        },
+        "keys": {
+          "enabled": true,
+          "check_api_keys": true,
+          "check_private_keys": true,
+          "check_aws_keys": true,
+          "check_signing_keys": true,
+          "redact_matches": true
+        },
+        "random": {
+          "enabled": true
+        },
+        "tls": {
+          "enabled": true,
+          "check_protocols": true,
+          "check_verification": true,
+          "check_cipher_suites": true,
+          "check_insecure_urls": false
+        },
+        "certificates": {
+          "enabled": true,
+          "expiry_warning_days": 90,
+          "check_key_strength": true,
+          "check_signature_algo": true,
+          "check_self_signed": true,
+          "check_validity_period": true
         }
       }
     },
-    "quality": {
+    "code-quality": {
       "name": "Code Quality",
       "description": "Code quality analysis: technical debt, complexity, test coverage, documentation",
       "estimated_time": "30-90s",
-      "output_file": "quality.json",
+      "output_file": "code-quality.json",
       "dependencies": [],
       "features": {
         "tech_debt": {
@@ -313,11 +340,11 @@
         }
       }
     },
-    "ownership": {
+    "code-ownership": {
       "name": "Code Ownership",
       "description": "Code ownership, contributor analysis, and team health metrics",
       "estimated_time": "30-60s",
-      "output_file": "ownership.json",
+      "output_file": "code-ownership.json",
       "dependencies": [],
       "features": {
         "contributors": {
@@ -353,42 +380,6 @@
           "enabled": true,
           "include_time_distribution": true,
           "include_message_analysis": true
-        }
-      }
-    },
-    "health": {
-      "name": "Project Health",
-      "description": "Aggregate project health scoring and recommendations (meta-scanner)",
-      "estimated_time": "10-30s",
-      "output_file": "health.json",
-      "dependencies": ["quality", "ownership", "packages", "code-security", "technology"],
-      "features": {
-        "score": {
-          "enabled": true,
-          "include_quality": true,
-          "include_ownership": true,
-          "include_security": true,
-          "weights": {
-            "quality": 0.30,
-            "ownership": 0.25,
-            "security": 0.25,
-            "activity": 0.20
-          }
-        },
-        "summary": {
-          "enabled": true,
-          "include_top_issues": true,
-          "max_issues": 10
-        },
-        "recommendations": {
-          "enabled": true,
-          "priority_threshold": "medium",
-          "max_recommendations": 10
-        },
-        "trends": {
-          "enabled": true,
-          "compare_to_previous": true,
-          "history_days": 30
         }
       }
     },
@@ -429,17 +420,19 @@
       "name": "All Quick",
       "description": "All scanners with limited features for fast feedback",
       "estimated_time": "~2 minutes",
-      "scanners": ["sbom", "packages", "code-crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"],
+      "scanners": ["supply-chain", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"],
       "feature_overrides": {
-        "sbom": {
-          "integrity": {"enabled": false}
-        },
-        "packages": {
+        "supply-chain": {
+          "integrity": {"enabled": false},
           "malcontent": {"enabled": false},
           "provenance": {"enabled": false},
           "bundle": {"enabled": false},
           "confusion": {"enabled": false},
           "reachability": {"enabled": false}
+        },
+        "code-security": {
+          "certificates": {"enabled": false},
+          "tls": {"check_insecure_urls": false}
         },
         "devops": {
           "dora": {"enabled": false}
@@ -454,29 +447,17 @@
       "name": "All Complete",
       "description": "All scanners with all features enabled",
       "estimated_time": "~12 minutes",
-      "scanners": ["sbom", "packages", "code-crypto", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"]
+      "scanners": ["supply-chain", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"]
     },
-    "sbom": {
-      "name": "SBOM",
-      "description": "SBOM generation and integrity verification",
-      "estimated_time": "~1 minute",
-      "scanners": ["sbom"]
-    },
-    "packages": {
-      "name": "Packages",
-      "description": "Package/dependency analysis (vulnerabilities, licenses, health)",
+    "supply-chain": {
+      "name": "Supply Chain",
+      "description": "SBOM generation and package analysis",
       "estimated_time": "~3 minutes",
-      "scanners": ["sbom", "packages"]
-    },
-    "code-crypto": {
-      "name": "Code Cryptography",
-      "description": "Cryptographic security analysis",
-      "estimated_time": "~2 minutes",
-      "scanners": ["code-crypto"]
+      "scanners": ["supply-chain"]
     },
     "code-security": {
       "name": "Code Security",
-      "description": "SAST, secrets detection, API security",
+      "description": "SAST, secrets detection, API security, cryptography",
       "estimated_time": "~3 minutes",
       "scanners": ["code-security"]
     },

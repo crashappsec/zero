@@ -4,15 +4,13 @@ import (
 	"testing"
 
 	"github.com/crashappsec/zero/pkg/scanner"
-	// Import scanners to register them (v3.6 super scanners)
+	// Import scanners to register them (v4.0 super scanners)
 	_ "github.com/crashappsec/zero/pkg/scanner/code-ownership"
 	_ "github.com/crashappsec/zero/pkg/scanner/code-quality"
 	_ "github.com/crashappsec/zero/pkg/scanner/code-security"
-	_ "github.com/crashappsec/zero/pkg/scanner/code-crypto"
 	_ "github.com/crashappsec/zero/pkg/scanner/developer-experience"
 	_ "github.com/crashappsec/zero/pkg/scanner/devops"
-	_ "github.com/crashappsec/zero/pkg/scanner/packages"
-	_ "github.com/crashappsec/zero/pkg/scanner/sbom"
+	_ "github.com/crashappsec/zero/pkg/scanner/supply-chain"
 	_ "github.com/crashappsec/zero/pkg/scanner/tech-id"
 )
 
@@ -20,11 +18,9 @@ func TestRegisteredScanners(t *testing.T) {
 	// List all registered scanners
 	scanners := scanner.List()
 
-	// v3.6 super scanners
+	// v4.0 super scanners (7 total)
 	expected := []string{
-		"sbom",
-		"packages",
-		"code-crypto",
+		"supply-chain",
 		"code-security",
 		"code-quality",
 		"devops",
@@ -63,21 +59,22 @@ func TestTopologicalSort(t *testing.T) {
 		t.Logf("  %d. %s (deps: %v)", i+1, s.Name(), s.Dependencies())
 	}
 
-	// Verify SBOM comes before packages (since packages depends on sbom)
-	sbomIdx := -1
-	pkgIdx := -1
+	// In v4.0, supply-chain has no dependencies (it generates SBOM internally)
+	// and developer-experience depends on tech-id
+	techIdx := -1
+	devxIdx := -1
 
 	for i, s := range sorted {
 		switch s.Name() {
-		case "sbom":
-			sbomIdx = i
-		case "packages":
-			pkgIdx = i
+		case "tech-id":
+			techIdx = i
+		case "developer-experience":
+			devxIdx = i
 		}
 	}
 
-	if sbomIdx >= 0 && pkgIdx >= 0 && sbomIdx > pkgIdx {
-		t.Error("sbom should come before packages")
+	if techIdx >= 0 && devxIdx >= 0 && techIdx > devxIdx {
+		t.Error("tech-id should come before developer-experience")
 	}
 }
 

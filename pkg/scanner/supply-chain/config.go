@@ -1,9 +1,13 @@
-// Package packages provides the consolidated package analysis super scanner
-// NOTE: This scanner DEPENDS ON the sbom scanner output. It does NOT generate SBOMs.
-package packages
+// Package supplychain provides the consolidated supply chain security scanner
+// This scanner generates SBOMs and performs comprehensive package analysis.
+package supplychain
 
-// FeatureConfig holds configuration for all package analysis features
+// FeatureConfig holds configuration for all supply chain features
 type FeatureConfig struct {
+	// SBOM features (from sbom scanner)
+	Generation GenerationConfig `json:"generation"`
+	Integrity  IntegrityConfig  `json:"integrity"`
+	// Package analysis features
 	Vulns           VulnsConfig           `json:"vulns"`
 	Health          HealthConfig          `json:"health"`
 	Malcontent      MalcontentConfig      `json:"malcontent"`
@@ -16,6 +20,26 @@ type FeatureConfig struct {
 	Typosquats      TyposquatsConfig      `json:"typosquats"`
 	Deprecations    DeprecationsConfig    `json:"deprecations"`
 	Duplicates      DuplicatesConfig      `json:"duplicates"`
+}
+
+// GenerationConfig configures SBOM generation
+type GenerationConfig struct {
+	Enabled        bool   `json:"enabled"`
+	Tool           string `json:"tool"`             // cdxgen, syft, auto
+	SpecVersion    string `json:"spec_version"`     // CycloneDX version (1.4, 1.5, 1.6)
+	Format         string `json:"format"`           // json, xml
+	FallbackToSyft bool   `json:"fallback_to_syft"` // Use syft if cdxgen fails
+	IncludeDev     bool   `json:"include_dev"`      // Include dev dependencies
+	Deep           bool   `json:"deep"`             // Deep analysis mode
+}
+
+// IntegrityConfig configures SBOM integrity verification
+type IntegrityConfig struct {
+	Enabled           bool   `json:"enabled"`
+	VerifyLockfiles   bool   `json:"verify_lockfiles"`   // Compare SBOM against lockfiles
+	DetectDrift       bool   `json:"detect_drift"`       // Detect drift from previous SBOM
+	CheckCompleteness bool   `json:"check_completeness"` // Verify all deps are captured
+	PreviousSBOMPath  string `json:"previous_sbom_path"` // Path to previous SBOM for diff
 }
 
 // VulnsConfig configures vulnerability scanning
@@ -111,6 +135,21 @@ type DuplicatesConfig struct {
 // DefaultConfig returns default feature configuration
 func DefaultConfig() FeatureConfig {
 	return FeatureConfig{
+		Generation: GenerationConfig{
+			Enabled:        true,
+			Tool:           "auto",
+			SpecVersion:    "1.5",
+			Format:         "json",
+			FallbackToSyft: true,
+			IncludeDev:     false,
+			Deep:           false,
+		},
+		Integrity: IntegrityConfig{
+			Enabled:           true,
+			VerifyLockfiles:   true,
+			DetectDrift:       false,
+			CheckCompleteness: true,
+		},
 		Vulns: VulnsConfig{
 			Enabled:           true,
 			SeverityThreshold: "low",
@@ -214,6 +253,21 @@ func SecurityConfig() FeatureConfig {
 // FullConfig returns config with all features enabled
 func FullConfig() FeatureConfig {
 	return FeatureConfig{
+		Generation: GenerationConfig{
+			Enabled:        true,
+			Tool:           "auto",
+			SpecVersion:    "1.5",
+			Format:         "json",
+			FallbackToSyft: true,
+			IncludeDev:     true, // Full config includes dev deps
+			Deep:           true, // Full config uses deep analysis
+		},
+		Integrity: IntegrityConfig{
+			Enabled:           true,
+			VerifyLockfiles:   true,
+			DetectDrift:       true,
+			CheckCompleteness: true,
+		},
 		Vulns: VulnsConfig{
 			Enabled:           true,
 			SeverityThreshold: "low",

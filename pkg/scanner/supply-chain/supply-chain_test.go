@@ -1,38 +1,35 @@
-package packages
+package supplychain
 
 import (
 	"testing"
 	"time"
 )
 
-func TestPackagesScanner_Name(t *testing.T) {
-	s := &PackagesScanner{}
-	if s.Name() != "packages" {
-		t.Errorf("Name() = %q, want %q", s.Name(), "packages")
+func TestSupplyChainScanner_Name(t *testing.T) {
+	s := &SupplyChainScanner{}
+	if s.Name() != "supply-chain" {
+		t.Errorf("Name() = %q, want %q", s.Name(), "supply-chain")
 	}
 }
 
-func TestPackagesScanner_Description(t *testing.T) {
-	s := &PackagesScanner{}
+func TestSupplyChainScanner_Description(t *testing.T) {
+	s := &SupplyChainScanner{}
 	desc := s.Description()
 	if desc == "" {
 		t.Error("Description() should not be empty")
 	}
 }
 
-func TestPackagesScanner_Dependencies(t *testing.T) {
-	s := &PackagesScanner{}
+func TestSupplyChainScanner_Dependencies(t *testing.T) {
+	s := &SupplyChainScanner{}
 	deps := s.Dependencies()
-	// Depends on sbom scanner
-	if len(deps) != 1 {
-		t.Errorf("Dependencies() = %v, want 1 dependency", deps)
-	}
-	if deps[0] != "sbom" {
-		t.Errorf("Dependencies()[0] = %q, want %q", deps[0], "sbom")
+	// No dependencies - generates SBOM internally
+	if len(deps) != 0 {
+		t.Errorf("Dependencies() = %v, want 0 dependencies", deps)
 	}
 }
 
-func TestPackagesScanner_EstimateDuration(t *testing.T) {
+func TestSupplyChainScanner_EstimateDuration(t *testing.T) {
 	tests := []struct {
 		name      string
 		config    FeatureConfig
@@ -81,7 +78,7 @@ func TestPackagesScanner_EstimateDuration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &PackagesScanner{config: tt.config}
+			s := &SupplyChainScanner{config: tt.config}
 			got := s.EstimateDuration(tt.fileCount)
 			if got < tt.wantMin {
 				t.Errorf("EstimateDuration(%d) = %v, want at least %v", tt.fileCount, got, tt.wantMin)
@@ -366,7 +363,7 @@ func TestExtractEcosystem(t *testing.T) {
 }
 
 func TestRunDuplicatesFeature(t *testing.T) {
-	s := &PackagesScanner{
+	s := &SupplyChainScanner{
 		config: FeatureConfig{
 			Duplicates: DuplicatesConfig{
 				Enabled:            true,
@@ -401,7 +398,7 @@ func TestRunDuplicatesFeature(t *testing.T) {
 }
 
 func TestRunDuplicatesFeature_VersionsOnly(t *testing.T) {
-	s := &PackagesScanner{
+	s := &SupplyChainScanner{
 		config: FeatureConfig{
 			Duplicates: DuplicatesConfig{
 				Enabled:            true,
@@ -432,7 +429,7 @@ func TestRunDuplicatesFeature_VersionsOnly(t *testing.T) {
 }
 
 func TestRunProvenanceFeature(t *testing.T) {
-	s := &PackagesScanner{}
+	s := &SupplyChainScanner{}
 
 	components := []ComponentData{
 		{Name: "lodash", Version: "4.17.21", Ecosystem: "npm"},
@@ -453,7 +450,7 @@ func TestRunProvenanceFeature(t *testing.T) {
 }
 
 func TestRunRecommendationsFeature(t *testing.T) {
-	s := &PackagesScanner{}
+	s := &SupplyChainScanner{}
 
 	// Create a result with vulns and health data
 	scanResult := &Result{
@@ -487,7 +484,7 @@ func TestRunRecommendationsFeature(t *testing.T) {
 }
 
 func TestRunRecommendationsFeature_NoVulns(t *testing.T) {
-	s := &PackagesScanner{}
+	s := &SupplyChainScanner{}
 
 	// Create a result with no vulns or health issues
 	scanResult := &Result{

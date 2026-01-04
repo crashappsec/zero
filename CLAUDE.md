@@ -4,16 +4,14 @@ Zero provides engineering intelligence tools and specialist AI agents for reposi
 Analyzes code quality, dependencies, security, DevOps, and developer experience.
 Named after characters from the movie Hackers (1995) - "Hack the planet!"
 
-## Super Scanner Architecture (v3.6)
+## Super Scanner Architecture (v4.0)
 
-Zero uses **9 consolidated super scanners** with configurable features:
+Zero uses **7 consolidated super scanners** with configurable features:
 
 | Scanner | Features | Description |
 |---------|----------|-------------|
-| **sbom** | generation, integrity | SBOM generation (source of truth) |
-| **package-analysis** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | Package/dependency analysis (depends on sbom) |
-| **code-crypto** | ciphers, keys, random, tls, certificates | Cryptographic security |
-| **code-security** | vulns, secrets, api, git_history_security | Security-focused code analysis |
+| **supply-chain** | generation, integrity, vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | SBOM generation + package/dependency analysis |
+| **code-security** | vulns, secrets, api, ciphers, keys, random, tls, certificates | Security-focused code analysis + cryptography |
 | **code-quality** | tech_debt, complexity, test_coverage, documentation | Code quality metrics |
 | **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security |
 | **tech-id** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | Technology detection and ML-BOM generation |
@@ -21,8 +19,8 @@ Zero uses **9 consolidated super scanners** with configurable features:
 | **devx** | onboarding, sprawl, workflow | Developer experience analysis (depends on tech-id) |
 
 **Key architecture notes:**
-- `sbom` scanner runs first and generates `sbom.cdx.json` (CycloneDX format)
-- `package-analysis` scanner depends on sbom output - does not generate its own SBOM
+- `supply-chain` scanner generates SBOM internally and produces `sbom.cdx.json` (CycloneDX format) + `supply-chain.json`
+- `code-security` scanner includes all crypto features (ciphers, keys, random, tls, certificates)
 - `tech-id` scanner generates ML-BOM (Machine Learning Bill of Materials)
 - `devx` scanner depends on tech-id for technology detection (tool vs technology sprawl)
 - Each scanner produces **one JSON output file** with all feature results
@@ -38,17 +36,17 @@ The following agents are available for specialized analysis tasks. Use the Task 
 
 | Agent | Persona | Character | Expertise | Primary Scanner |
 |-------|---------|-----------|-----------|-----------------|
-| `cereal` | Cereal | Cereal Killer | Supply chain, vulnerabilities, malcontent | **sbom**, **package-analysis** |
+| `cereal` | Cereal | Cereal Killer | Supply chain, vulnerabilities, malcontent | **supply-chain** |
 | `razor` | Razor | Razor | Code security, SAST, secrets detection | **code-security** |
-| `blade` | Blade | Blade | Compliance, SOC 2, ISO 27001, audit prep | package-analysis, code-security |
-| `phreak` | Phreak | Phantom Phreak | Legal, licenses, data privacy | **package-analysis** (licenses) |
+| `blade` | Blade | Blade | Compliance, SOC 2, ISO 27001, audit prep | supply-chain, code-security |
+| `phreak` | Phreak | Phantom Phreak | Legal, licenses, data privacy | **supply-chain** (licenses) |
 | `acid` | Acid | Acid Burn | Frontend, React, TypeScript, accessibility | **code-security**, **code-quality** |
 | `dade` | Dade | Dade Murphy | Backend, APIs, databases, Node.js, Python | **code-security** (api) |
 | `nikon` | Nikon | Lord Nikon | Architecture, system design, patterns | **tech-id** |
 | `joey` | Joey | Joey | CI/CD, build optimization, caching | **devops** (github_actions) |
 | `plague` | Plague | The Plague | DevOps, infrastructure, Kubernetes, IaC | **devops** |
 | `gibson` | Gibson | The Gibson | DORA metrics, team health, engineering KPIs | **devops** (dora, git), **code-ownership** |
-| `gill` | Gill | Gill Bates | Cryptography, ciphers, keys, TLS, random | **code-crypto** |
+| `gill` | Gill | Gill Bates | Cryptography, ciphers, keys, TLS, random | **code-security** (crypto) |
 | `turing` | Turing | Alan Turing | AI/ML security, ML-BOM, model safety, LLM security | **tech-id** |
 
 ### Agent Details
@@ -59,8 +57,8 @@ The following agents are available for specialized analysis tasks. Use the Task 
 Cereal Killer was paranoid about surveillance - perfect for watching for malware hiding in dependencies.
 Specializes in dependency vulnerability analysis, malcontent findings investigation (supply chain compromise detection), package health assessment, license compliance, and typosquatting detection.
 
-**Primary scanners:** `sbom`, `package-analysis`
-**Required data:** `sbom.json`, `package-analysis.json` (contains vulns, health, malcontent, licenses, etc.)
+**Primary scanner:** `supply-chain`
+**Required data:** `supply-chain.json` (contains vulns, health, malcontent, licenses, etc.)
 
 **Example invocation:**
 ```
@@ -83,8 +81,8 @@ Specializes in static analysis, secret detection, code vulnerability assessment,
 Gill Bates represented the corporate establishment in Hackers - now reformed and using vast crypto knowledge to help secure implementations.
 Specializes in cryptographic security analysis, cipher review, key management, TLS configuration, and random number generation security.
 
-**Primary scanner:** `code-crypto`
-**Required data:** `code-crypto.json` (contains ciphers, keys, random, tls, certificates)
+**Primary scanner:** `code-security` (crypto features)
+**Required data:** `code-security.json` (contains ciphers, keys, random, tls, certificates)
 
 **Example invocation:**
 ```
@@ -417,10 +415,8 @@ zero/
          │
          ├─► Run super scanners, store JSON in .zero/repos/<project>/analysis/
          │        │
-         │        ├─► sbom.json               (2 features) + sbom.cdx.json
-         │        ├─► package-analysis.json   (12 features, depends on sbom)
-         │        ├─► code-crypto.json        (5 features)
-         │        ├─► code-security.json      (3 features)
+         │        ├─► supply-chain.json       (14 features) + sbom.cdx.json
+         │        ├─► code-security.json      (8 features, includes crypto)
          │        ├─► code-quality.json       (4 features)
          │        ├─► devops.json             (5 features)
          │        ├─► technology.json         (7 features) - ML-BOM
@@ -515,12 +511,10 @@ Profiles define which scanners and features to run:
 
 | Profile | Scanners | Description |
 |---------|----------|-------------|
-| `all-quick` | All 9 scanners (limited features) | Fast scan of everything |
-| `all-complete` | All 9 scanners (all features) | Complete analysis |
-| `sbom` | sbom | SBOM generation only |
-| `packages` | sbom, packages | Dependency analysis |
-| `code-crypto` | code-crypto | Cryptographic security |
-| `code-security` | code-security | SAST and secrets |
+| `all-quick` | All 7 scanners (limited features) | Fast scan of everything |
+| `all-complete` | All 7 scanners (all features) | Complete analysis |
+| `supply-chain` | supply-chain | SBOM + package analysis |
+| `code-security` | code-security | SAST, secrets, and crypto |
 | `code-quality` | code-quality | Quality metrics |
 | `devops` | devops | IaC, containers, CI/CD |
 | `tech-id` | tech-id | Technology detection, ML-BOM |
