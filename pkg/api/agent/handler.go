@@ -79,12 +79,12 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		send:    make(chan []byte, 256),
 	}
 
-	// Send connection confirmation
+	// Send connection confirmation (use session's agentID in case it already existed)
 	client.sendJSON(map[string]interface{}{
 		"type":       "connected",
-		"session_id": sessionID,
-		"agent_id":   agentID,
-		"agent_name": GetAgentInfo(agentID).Name,
+		"session_id": session.ID,
+		"agent_id":   session.AgentID,
+		"agent_name": GetAgentInfo(session.AgentID).Name,
 	})
 
 	// Start read/write pumps
@@ -200,16 +200,17 @@ func (h *Handler) HandleChatStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set up SSE
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-
+	// Check Flusher support before setting SSE headers
 	flusher, ok := w.(http.Flusher)
 	if !ok {
 		writeError(w, http.StatusInternalServerError, "streaming not supported", nil)
 		return
 	}
+
+	// Set up SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
 
 	// Add user message
 	session.AddMessage(RoleUser, req.Message)

@@ -247,10 +247,11 @@ func (h *ProjectHandler) getAvailableScans(analysisPath string) []string {
 func (h *ProjectHandler) loadSummary(analysisPath string) *types.ProjectSummary {
 	summary := &types.ProjectSummary{}
 
-	// Load vulnerability counts from package-analysis or code-security
-	if data := readAnalysisFile(analysisPath, "packages"); data != nil {
-		if vulns, ok := data["summary"].(map[string]interface{}); ok {
-			if vulnSummary, ok := vulns["vulns"].(map[string]interface{}); ok {
+	// v4.0: Load from supply-chain scanner (contains both SBOM and package analysis)
+	if data := readAnalysisFile(analysisPath, "supply-chain"); data != nil {
+		if summ, ok := data["summary"].(map[string]interface{}); ok {
+			// Load vulnerability counts
+			if vulnSummary, ok := summ["vulns"].(map[string]interface{}); ok {
 				summary.Vulnerabilities = &types.SeverityCounts{
 					Critical: getInt(vulnSummary, "critical"),
 					High:     getInt(vulnSummary, "high"),
@@ -258,10 +259,14 @@ func (h *ProjectHandler) loadSummary(analysisPath string) *types.ProjectSummary 
 					Low:      getInt(vulnSummary, "low"),
 				}
 			}
+			// Load package count from SBOM generation
+			if gen, ok := summ["generation"].(map[string]interface{}); ok {
+				summary.Packages = getInt(gen, "total_components")
+			}
 		}
 	}
 
-	// Load secrets count
+	// Load secrets count from code-security scanner
 	if data := readAnalysisFile(analysisPath, "code-security"); data != nil {
 		if summ, ok := data["summary"].(map[string]interface{}); ok {
 			if secrets, ok := summ["secrets"].(map[string]interface{}); ok {
@@ -270,17 +275,8 @@ func (h *ProjectHandler) loadSummary(analysisPath string) *types.ProjectSummary 
 		}
 	}
 
-	// Load package count from SBOM
-	if data := readAnalysisFile(analysisPath, "sbom"); data != nil {
-		if summ, ok := data["summary"].(map[string]interface{}); ok {
-			if gen, ok := summ["generation"].(map[string]interface{}); ok {
-				summary.Packages = getInt(gen, "total_components")
-			}
-		}
-	}
-
-	// Load technology count
-	if data := readAnalysisFile(analysisPath, "technology"); data != nil {
+	// Load technology count from tech-id scanner
+	if data := readAnalysisFile(analysisPath, "tech-id"); data != nil {
 		if summ, ok := data["summary"].(map[string]interface{}); ok {
 			if det, ok := summ["detection"].(map[string]interface{}); ok {
 				summary.Technologies = getInt(det, "total_technologies")

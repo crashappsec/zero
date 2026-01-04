@@ -157,11 +157,9 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("scanner_timeout_seconds must be non-negative")
 	}
 
-	// Check profiles reference valid scanners
+	// Check profiles reference valid scanners (v4.0 super scanners)
 	validScanners := map[string]bool{
-		"sbom":                  true,
-		"packages":              true,
-		"code-crypto":           true,
+		"supply-chain":          true,
 		"code-security":         true,
 		"code-quality":          true,
 		"devops":                true,

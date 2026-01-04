@@ -48,8 +48,8 @@ func (h *AnalysisHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 		"project": projectID,
 	}
 
-	// Aggregate from multiple scanners
-	scanners := []string{"sbom", "packages", "code-security", "code-crypto", "devops", "technology", "code-ownership"}
+	// Aggregate from multiple scanners (v4.0 super scanners)
+	scanners := []string{"supply-chain", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"}
 	for _, scanner := range scanners {
 		if data, err := h.readAnalysis(projectID, scanner); err == nil {
 			if summ, ok := data["summary"]; ok {
@@ -81,8 +81,8 @@ func (h *AnalysisHandler) GetVulnerabilities(w http.ResponseWriter, r *http.Requ
 
 	var allVulns []interface{}
 
-	// Package vulnerabilities
-	if data, err := h.readAnalysis(projectID, "packages"); err == nil {
+	// Package vulnerabilities (from supply-chain scanner)
+	if data, err := h.readAnalysis(projectID, "supply-chain"); err == nil {
 		if findings, ok := data["findings"].(map[string]interface{}); ok {
 			if vulns, ok := findings["vulns"].([]interface{}); ok {
 				for _, v := range vulns {
@@ -154,9 +154,10 @@ func (h *AnalysisHandler) GetDependencies(w http.ResponseWriter, r *http.Request
 	projectID := chi.URLParam(r, "projectID")
 	projectID = strings.ReplaceAll(projectID, "%2F", "/")
 
-	data, err := h.readAnalysis(projectID, "sbom")
+	// v4.0: supply-chain scanner contains both SBOM generation and package analysis
+	data, err := h.readAnalysis(projectID, "supply-chain")
 	if err != nil {
-		writeError(w, http.StatusNotFound, "no SBOM data found", err)
+		writeError(w, http.StatusNotFound, "no supply-chain data found", err)
 		return
 	}
 
@@ -175,12 +176,10 @@ func (h *AnalysisHandler) GetDependencies(w http.ResponseWriter, r *http.Request
 		"packages": packages,
 	}
 
-	// Add license summary if available
-	if pkgData, err := h.readAnalysis(projectID, "packages"); err == nil {
-		if findings, ok := pkgData["findings"].(map[string]interface{}); ok {
-			if licenses, ok := findings["licenses"].([]interface{}); ok {
-				result["licenses"] = licenses
-			}
+	// Add license summary if available (now in same supply-chain scanner)
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		if licenses, ok := findings["licenses"].([]interface{}); ok {
+			result["licenses"] = licenses
 		}
 	}
 
@@ -298,8 +297,8 @@ func (h *AnalysisHandler) getProjectStats(projectID string) ProjectStats {
 		},
 	}
 
-	// Count vulnerabilities
-	if data, err := h.readAnalysis(projectID, "packages"); err == nil {
+	// Count vulnerabilities (from supply-chain scanner)
+	if data, err := h.readAnalysis(projectID, "supply-chain"); err == nil {
 		if findings, ok := data["findings"].(map[string]interface{}); ok {
 			if vulns, ok := findings["vulns"].([]interface{}); ok {
 				stats.Vulns += len(vulns)
@@ -323,8 +322,8 @@ func (h *AnalysisHandler) getProjectStats(projectID string) ProjectStats {
 		}
 	}
 
-	// Count dependencies
-	if data, err := h.readAnalysis(projectID, "sbom"); err == nil {
+	// Count dependencies (from supply-chain scanner)
+	if data, err := h.readAnalysis(projectID, "supply-chain"); err == nil {
 		if findings, ok := data["findings"].(map[string]interface{}); ok {
 			if gen, ok := findings["generation"].(map[string]interface{}); ok {
 				if comps, ok := gen["components"].([]interface{}); ok {

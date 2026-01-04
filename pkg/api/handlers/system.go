@@ -68,27 +68,17 @@ func (h *SystemHandler) ListProfiles(w http.ResponseWriter, r *http.Request) {
 
 // ListScanners returns available scanners
 func (h *SystemHandler) ListScanners(w http.ResponseWriter, r *http.Request) {
-	// Define the 9 super scanners
+	// Define the 7 v4.0 super scanners
 	scanners := []types.ScannerInfo{
 		{
-			Name:        "sbom",
-			Description: "SBOM generation (source of truth for dependencies)",
-			Features:    []string{"generation", "integrity"},
-		},
-		{
-			Name:        "package-analysis",
-			Description: "Package/dependency analysis (vulns, health, licenses, malcontent)",
-			Features:    []string{"vulns", "health", "licenses", "malcontent", "confusion", "typosquats", "deprecations", "duplicates", "reachability", "provenance", "bundle", "recommendations"},
-		},
-		{
-			Name:        "code-crypto",
-			Description: "Cryptographic security analysis",
-			Features:    []string{"ciphers", "keys", "random", "tls", "certificates"},
+			Name:        "supply-chain",
+			Description: "SBOM generation and package analysis (vulns, health, licenses, malcontent, provenance)",
+			Features:    []string{"generation", "integrity", "vulns", "health", "licenses", "malcontent", "confusion", "typosquats", "deprecations", "duplicates", "reachability", "provenance", "bundle", "recommendations"},
 		},
 		{
 			Name:        "code-security",
-			Description: "Security-focused code analysis (SAST, secrets)",
-			Features:    []string{"vulns", "secrets", "api", "git_history_security"},
+			Description: "Security-focused code analysis (SAST, secrets, API security, cryptography)",
+			Features:    []string{"vulns", "secrets", "api", "ciphers", "keys", "random", "tls", "certificates"},
 		},
 		{
 			Name:        "code-quality",
@@ -111,7 +101,7 @@ func (h *SystemHandler) ListScanners(w http.ResponseWriter, r *http.Request) {
 			Features:    []string{"contributors", "bus_factor", "codeowners", "orphans", "churn", "patterns"},
 		},
 		{
-			Name:        "devx",
+			Name:        "developer-experience",
 			Description: "Developer experience analysis",
 			Features:    []string{"onboarding", "sprawl", "workflow"},
 		},
@@ -127,17 +117,17 @@ func (h *SystemHandler) ListScanners(w http.ResponseWriter, r *http.Request) {
 func (h *SystemHandler) ListAgents(w http.ResponseWriter, r *http.Request) {
 	agents := []types.AgentInfo{
 		{ID: "zero", Name: "Zero", Persona: "Zero Cool", Description: "Master orchestrator", Scanner: "all"},
-		{ID: "cereal", Name: "Cereal", Persona: "Cereal Killer", Description: "Supply chain security", Scanner: "package-analysis"},
+		{ID: "cereal", Name: "Cereal", Persona: "Cereal Killer", Description: "Supply chain security", Scanner: "supply-chain"},
 		{ID: "razor", Name: "Razor", Persona: "Razor", Description: "Code security, SAST, secrets", Scanner: "code-security"},
 		{ID: "blade", Name: "Blade", Persona: "Blade", Description: "Compliance, SOC 2, ISO 27001", Scanner: "multiple"},
-		{ID: "phreak", Name: "Phreak", Persona: "Phantom Phreak", Description: "Legal, licenses, privacy", Scanner: "package-analysis"},
+		{ID: "phreak", Name: "Phreak", Persona: "Phantom Phreak", Description: "Legal, licenses, privacy", Scanner: "supply-chain"},
 		{ID: "acid", Name: "Acid", Persona: "Acid Burn", Description: "Frontend, React, TypeScript", Scanner: "code-security"},
 		{ID: "dade", Name: "Dade", Persona: "Dade Murphy", Description: "Backend, APIs, databases", Scanner: "code-security"},
 		{ID: "nikon", Name: "Nikon", Persona: "Lord Nikon", Description: "Architecture, system design", Scanner: "tech-id"},
 		{ID: "joey", Name: "Joey", Persona: "Joey", Description: "CI/CD, build optimization", Scanner: "devops"},
 		{ID: "plague", Name: "Plague", Persona: "The Plague", Description: "DevOps, IaC, Kubernetes", Scanner: "devops"},
 		{ID: "gibson", Name: "Gibson", Persona: "The Gibson", Description: "DORA metrics, team health", Scanner: "devops"},
-		{ID: "gill", Name: "Gill", Persona: "Gill Bates", Description: "Cryptography specialist", Scanner: "code-crypto"},
+		{ID: "gill", Name: "Gill", Persona: "Gill Bates", Description: "Cryptography specialist", Scanner: "code-security"},
 		{ID: "turing", Name: "Turing", Persona: "Alan Turing", Description: "AI/ML security", Scanner: "tech-id"},
 	}
 
