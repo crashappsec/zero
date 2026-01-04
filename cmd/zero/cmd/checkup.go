@@ -137,15 +137,6 @@ var toolInstallers = map[string]ToolInstaller{
 			"pip3 install semgrep",
 		},
 	},
-	"gitleaks": {
-		Name:        "gitleaks",
-		Description: "Secrets detection",
-		CheckCmd:    "gitleaks version",
-		InstallCmds: []string{
-			"brew install gitleaks",
-			"go install github.com/gitleaks/gitleaks/v8@latest",
-		},
-	},
 	"trivy": {
 		Name:        "trivy",
 		Description: "Container and IaC scanning",

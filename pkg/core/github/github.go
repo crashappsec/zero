@@ -560,9 +560,9 @@ var ScannerRequirements = map[string]ScannerRequirement{
 	},
 	"code-secrets": {
 		Scanner:        "code-secrets",
-		Description:    "Detect hardcoded secrets",
+		Description:    "Detect hardcoded secrets (native RAG-based detection)",
 		NeedsGitHubAPI: false,
-		RequiredTools:  []string{"gitleaks", "trufflehog"},
+		// Native implementation uses Semgrep p/secrets + RAG patterns + entropy analysis
 	},
 	"api-security": {
 		Scanner:        "api-security",
@@ -714,7 +714,7 @@ var ScannerRequirements = map[string]ScannerRequirement{
 		Scanner:        "code",
 		Description:    "Consolidated code security scanner (SAST, secrets, API security)",
 		NeedsGitHubAPI: false,
-		RequiredTools:  []string{"semgrep", "gitleaks"},
+		RequiredTools:  []string{"semgrep"},
 	},
 	"infra": {
 		Scanner:        "infra",
@@ -736,7 +736,7 @@ var ScannerRequirements = map[string]ScannerRequirement{
 			"actions":  "read",
 			"contents": "read",
 		},
-		RequiredTools: []string{"trivy"},
+		RequiredTools: []string{"trivy", "checkov"},
 	},
 	"health": {
 		Scanner:        "health",
@@ -756,6 +756,50 @@ var ScannerRequirements = map[string]ScannerRequirement{
 	"ai": {
 		Scanner:        "ai",
 		Description:    "AI/ML security analysis and ML-BOM generation",
+		NeedsGitHubAPI: false,
+	},
+
+	// Super scanners v3.6 - consolidated scanners with updated names
+	"package-analysis": {
+		Scanner:        "package-analysis",
+		Description:    "Package analysis (vulnerabilities, health, licenses, malcontent)",
+		NeedsGitHubAPI: true,
+		RequiredScopes: []string{"public_repo"},
+		RequiredPermissions: map[string]string{
+			"metadata": "read",
+		},
+		RequiredTools: []string{"cdxgen", "osv-scanner", "malcontent"},
+	},
+	"code-security": {
+		Scanner:        "code-security",
+		Description:    "Code security scanning (SAST, secrets, API security)",
+		NeedsGitHubAPI: false,
+		RequiredTools:  []string{"semgrep"},
+	},
+	"code-crypto": {
+		Scanner:        "code-crypto",
+		Description:    "Cryptographic security analysis",
+		NeedsGitHubAPI: false,
+	},
+	"code-quality": {
+		Scanner:        "code-quality",
+		Description:    "Code quality metrics (complexity, tech debt, test coverage)",
+		NeedsGitHubAPI: false,
+		RequiredTools:  []string{"semgrep"},
+	},
+	"tech-id": {
+		Scanner:        "tech-id",
+		Description:    "Technology detection and ML-BOM generation",
+		NeedsGitHubAPI: false,
+	},
+	"devx": {
+		Scanner:        "devx",
+		Description:    "Developer experience analysis",
+		NeedsGitHubAPI: false,
+	},
+	"developer-experience": {
+		Scanner:        "developer-experience",
+		Description:    "Developer experience analysis",
 		NeedsGitHubAPI: false,
 	},
 }
