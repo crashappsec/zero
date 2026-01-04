@@ -103,13 +103,13 @@ External Tools
 Scanner Compatibility
 ────────────────────────────────────────────────────────────────
   Ready
-    ✓ package-sbom
-    ✓ package-vulns
-    ✓ code-vulns
+    ✓ code-packages
+    ✓ code-security
+    ✓ technology-identification
     ...
 
   Limited
-    ⚠ package-malcontent
+    ⚠ code-packages (malcontent)
       Missing tool: malcontent
 ```
 
@@ -122,8 +122,8 @@ Scanner Compatibility
 ./main hydrate expressjs/express
 
 # With a specific profile (profile is a positional argument)
-./main hydrate expressjs/express security
-./main hydrate expressjs/express packages
+./main hydrate expressjs/express code-security
+./main hydrate expressjs/express code-packages
 ```
 
 ### Available Profiles
@@ -132,14 +132,14 @@ Profiles are defined in `config/zero.config.json` and specify which scanners to 
 
 | Profile | Description | Typical Time |
 |---------|-------------|--------------|
-| `quick` | Fast scan (SBOM, vulnerabilities, licenses) | ~30 seconds |
-| `standard` | Default (+ health, secrets, ownership) | ~2 minutes |
-| `security` | Security focused (vulns, SAST, secrets, malcontent) | ~3 minutes |
-| `packages` | Package analysis (SBOM, vulns, health, bundle, provenance) | ~5 minutes |
-| `advanced` | All scanners | ~5 minutes |
-| `crypto` | Cryptography analysis (ciphers, keys, TLS, random) | ~5 minutes |
-| `compliance` | License and documentation compliance | ~2 minutes |
-| `devops` | CI/CD and operational metrics | ~3 minutes |
+| `all-quick` | All 7 scanners (limited features) | ~2 minutes |
+| `all-complete` | All 7 scanners (all features) | ~12 minutes |
+| `code-packages` | SBOM + dependency analysis | ~1 minute |
+| `code-security` | SAST, secrets, and crypto | ~2 minutes |
+| `technology-identification` | Technology detection, ML-BOM | ~1 minute |
+| `code-quality` | Quality metrics | ~1 minute |
+| `devops` | IaC, containers, CI/CD, DORA | ~3 minutes |
+| `developer-experience` | DevX analysis (depends on tech-id) | ~2 minutes |
 
 ### Check Analysis Status
 
@@ -193,7 +193,7 @@ Scan all repositories in a GitHub organization (target without `/` is treated as
 ./main list
 ```
 
-This shows all 25 scanners with their descriptions.
+This shows all 7 super scanners with their descriptions.
 
 ## Common Use Cases
 
@@ -211,20 +211,20 @@ This shows all 25 scanners with their descriptions.
 
 ```bash
 # Package-focused scan
-./main hydrate owner/repo packages
+./main hydrate owner/repo code-packages
 
 # View vulnerabilities
-cat .zero/repos/owner/repo/analysis/package-vulns.json | jq '.summary'
+cat .zero/repos/owner/repo/analysis/code-packages.json | jq '.summary'
 ```
 
 ### Pre-Merge Check
 
 ```bash
 # Quick scan for PR review
-./main hydrate owner/repo quick
+./main hydrate owner/repo all-quick
 
 # Check for critical issues
-cat .zero/repos/owner/repo/analysis/code-secrets.json | jq '.summary'
+cat .zero/repos/owner/repo/analysis/code-security.json | jq '.summary'
 ```
 
 ### Organization-Wide Assessment
@@ -242,11 +242,11 @@ cat .zero/repos/owner/repo/analysis/code-secrets.json | jq '.summary'
 Scanner results are stored in `.zero/repos/<owner>/<repo>/analysis/`:
 
 ```json
-// package-vulns.json
+// code-packages.json
 {
-  "scanner": "package-vulns",
-  "version": "2.0.0",
-  "timestamp": "2025-12-13T10:30:00Z",
+  "scanner": "code-packages",
+  "version": "4.0.0",
+  "timestamp": "2026-01-04T10:30:00Z",
   "summary": {
     "total_vulnerabilities": 12,
     "critical": 0,
@@ -265,20 +265,16 @@ Create or edit `config/zero.config.json`:
 ```json
 {
   "settings": {
-    "default_profile": "standard",
+    "default_profile": "all-quick",
     "scanner_timeout_seconds": 300,
     "parallel_jobs": 4
   },
   "scanners": {
-    "package-sbom": {
-      "options": {
-        "sbom": {
-          "tool": "auto",
-          "spec_version": "1.5",
-          "recurse": true,
-          "install_deps": false,
-          "fallback_to_syft": true
-        }
+    "code-packages": {
+      "features": {
+        "generation": { "enabled": true, "tool": "auto" },
+        "vulns": { "enabled": true },
+        "health": { "enabled": true }
       }
     }
   }

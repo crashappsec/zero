@@ -23,7 +23,7 @@ var scanYes bool
 var scanCmd = &cobra.Command{
 	Use:   "scan <target> [profile]",
 	Short: "Run scanners on already-cloned repositories",
-	Long: `Run security scanners on repositories that have already been cloned.
+	Long: `Run analysis scanners on repositories that have already been cloned.
 
 Target can be:
   - owner/repo    Single repository (e.g., expressjs/express)

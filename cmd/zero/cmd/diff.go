@@ -28,11 +28,11 @@ var (
 var diffCmd = &cobra.Command{
 	Use:   "diff <owner/repo> [baseline] [compare]",
 	Short: "Compare scan results between two points in time",
-	Long: `Compare security scan findings between two scans to identify:
+	Long: `Compare scan findings between two scans to identify:
 - New findings introduced
 - Fixed findings resolved
 - Findings that moved (code refactoring)
-- Overall security posture trend
+- Overall trend analysis
 
 Arguments:
   owner/repo    Repository to analyze (required)

@@ -86,7 +86,7 @@ func TestContainsScanner(t *testing.T) {
 		want     bool
 	}{
 		{[]string{"sbom", "package-analysis", "crypto"}, "sbom", true},
-		{[]string{"sbom", "package-analysis", "crypto"}, "tech-id", false},
+		{[]string{"sbom", "package-analysis", "crypto"}, "technology-identification", false},
 		{[]string{}, "sbom", false},
 		{nil, "sbom", false},
 	}
@@ -420,11 +420,11 @@ func TestFormatScanCompleteMessage(t *testing.T) {
 			want: "test-repo complete (5s) - 100 packages, 1.0MB",
 		},
 		{
-			name: "tech-id with technologies",
+			name: "technology-identification with technologies",
 			status: &RepoStatus{
 				Repo:              github.Repository{Name: "test-repo"},
 				Duration:          3 * 1000000000,
-				ScannersRun:       []string{"tech-id"},
+				ScannersRun:       []string{"technology-identification"},
 				TechIDTotalTech:   5,
 				TechIDTopTechs:    []string{"Go", "Python"},
 				TechIDTotalModels: 2,
@@ -495,7 +495,7 @@ func TestNeedsDeepHistory(t *testing.T) {
 		{"health", true},
 		{"ownership", true},
 		{"code-ownership-only", true},
-		{"supply-chain", false},
+		{"code-packages", false},
 	}
 
 	for _, tt := range tests {

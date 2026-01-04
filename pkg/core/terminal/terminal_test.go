@@ -119,7 +119,7 @@ func TestScanFindings(t *testing.T) {
 
 func TestScanFindings_TechID(t *testing.T) {
 	findings := &ScanFindings{
-		ScannersRun:       map[string]bool{"tech-id": true},
+		ScannersRun:       map[string]bool{"technology-identification": true},
 		TechTotalTechs:    15,
 		TechByCategory:    map[string]int{"language": 5, "framework": 8, "database": 2},
 		TechTopList:       []string{"Go", "JavaScript", "Python"},

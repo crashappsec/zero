@@ -354,7 +354,7 @@ func inferSecurityLevel(algorithm string, keySize int) int {
 	}
 
 	// SHA family
-	if strings.Contains(alg, "sha1") {
+	if strings.Contains(alg, "sha1") || strings.Contains(alg, "sha-1") {
 		return 80 // Deprecated but not completely broken
 	}
 	if strings.Contains(alg, "sha256") || strings.Contains(alg, "sha-256") {

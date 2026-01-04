@@ -6,6 +6,12 @@ type FeatureConfig struct {
 	Vulns   VulnsConfig   `json:"vulns"`
 	Secrets SecretsConfig `json:"secrets"`
 	API     APIConfig     `json:"api"`
+	// Crypto features (merged from code-crypto)
+	Ciphers      CiphersConfig      `json:"ciphers"`
+	Keys         KeysConfig         `json:"keys"`
+	Random       RandomConfig       `json:"random"`
+	TLS          TLSConfig          `json:"tls"`
+	Certificates CertificatesConfig `json:"certificates"`
 }
 
 // VulnsConfig configures code vulnerability scanning
@@ -87,6 +93,47 @@ type APIConfig struct {
 	CheckDocumentation bool `json:"check_documentation"` // API documentation completeness
 }
 
+// CiphersConfig configures weak cipher detection
+type CiphersConfig struct {
+	Enabled     bool `json:"enabled"`
+	UseSemgrep  bool `json:"use_semgrep"`  // Use Semgrep for AST-based detection
+	UsePatterns bool `json:"use_patterns"` // Use regex pattern matching
+}
+
+// KeysConfig configures hardcoded key detection
+type KeysConfig struct {
+	Enabled       bool `json:"enabled"`
+	CheckAPIKeys  bool `json:"check_api_keys"`
+	CheckPrivate  bool `json:"check_private_keys"`
+	CheckAWS      bool `json:"check_aws_keys"`
+	CheckSigning  bool `json:"check_signing_keys"`
+	RedactMatches bool `json:"redact_matches"` // Redact sensitive values in output
+}
+
+// RandomConfig configures insecure random detection
+type RandomConfig struct {
+	Enabled bool `json:"enabled"`
+}
+
+// TLSConfig configures TLS misconfiguration detection
+type TLSConfig struct {
+	Enabled           bool `json:"enabled"`
+	CheckProtocols    bool `json:"check_protocols"`    // Check for deprecated SSL/TLS versions
+	CheckVerification bool `json:"check_verification"` // Check for disabled cert verification
+	CheckCipherSuites bool `json:"check_cipher_suites"` // Check for weak cipher suites
+	CheckInsecureURLs bool `json:"check_insecure_urls"` // Check for HTTP URLs
+}
+
+// CertificatesConfig configures X.509 certificate analysis
+type CertificatesConfig struct {
+	Enabled             bool `json:"enabled"`
+	ExpiryWarningDays   int  `json:"expiry_warning_days"` // Warn if expiring within N days
+	CheckKeyStrength    bool `json:"check_key_strength"`
+	CheckSignatureAlgo  bool `json:"check_signature_algo"`
+	CheckSelfSigned     bool `json:"check_self_signed"`
+	CheckValidityPeriod bool `json:"check_validity_period"`
+}
+
 // DefaultConfig returns default feature configuration
 func DefaultConfig() FeatureConfig {
 	return FeatureConfig{
@@ -144,6 +191,38 @@ func DefaultConfig() FeatureConfig {
 			CheckObservability: true,
 			CheckDocumentation: true,
 		},
+		// Crypto features
+		Ciphers: CiphersConfig{
+			Enabled:     true,
+			UseSemgrep:  true,
+			UsePatterns: true,
+		},
+		Keys: KeysConfig{
+			Enabled:       true,
+			CheckAPIKeys:  true,
+			CheckPrivate:  true,
+			CheckAWS:      true,
+			CheckSigning:  true,
+			RedactMatches: true,
+		},
+		Random: RandomConfig{
+			Enabled: true,
+		},
+		TLS: TLSConfig{
+			Enabled:           true,
+			CheckProtocols:    true,
+			CheckVerification: true,
+			CheckCipherSuites: true,
+			CheckInsecureURLs: false, // Noisy, off by default
+		},
+		Certificates: CertificatesConfig{
+			Enabled:             true,
+			ExpiryWarningDays:   90,
+			CheckKeyStrength:    true,
+			CheckSignatureAlgo:  true,
+			CheckSelfSigned:     true,
+			CheckValidityPeriod: true,
+		},
 	}
 }
 
@@ -155,6 +234,10 @@ func QuickConfig() FeatureConfig {
 	cfg.Secrets.GitHistoryScan.Enabled = false
 	cfg.Secrets.AIAnalysis.Enabled = false
 	cfg.Secrets.RotationGuidance = false // Skip for speed
+	// Crypto: faster without semgrep, skip certs
+	cfg.Ciphers.UseSemgrep = false
+	cfg.Certificates.Enabled = false
+	cfg.TLS.CheckInsecureURLs = false
 	return cfg
 }
 
@@ -170,6 +253,8 @@ func SecurityConfig() FeatureConfig {
 	cfg.Secrets.GitHistorySecurity.MaxAge = "2y"
 	cfg.Secrets.AIAnalysis.Enabled = true // Enable AI analysis if API key available
 	cfg.Secrets.RotationGuidance = true
+	// Crypto: enable all checks for security
+	cfg.TLS.CheckInsecureURLs = true
 	return cfg
 }
 
@@ -185,5 +270,14 @@ func FullConfig() FeatureConfig {
 	cfg.Secrets.GitHistorySecurity.MaxAge = "5y"
 	cfg.Secrets.AIAnalysis.Enabled = true
 	cfg.Secrets.RotationGuidance = true
+	// Crypto: all features enabled
+	cfg.Ciphers.Enabled = true
+	cfg.Ciphers.UseSemgrep = true
+	cfg.Ciphers.UsePatterns = true
+	cfg.Keys.Enabled = true
+	cfg.Random.Enabled = true
+	cfg.TLS.Enabled = true
+	cfg.TLS.CheckInsecureURLs = true
+	cfg.Certificates.Enabled = true
 	return cfg
 }

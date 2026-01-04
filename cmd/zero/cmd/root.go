@@ -24,15 +24,15 @@ var (
 // rootCmd represents the base command
 var rootCmd = &cobra.Command{
 	Use:   "zero",
-	Short: "Zero - Security analysis for repositories",
-	Long: `Zero provides security analysis tools and specialist AI agents for repository assessment.
+	Short: "Zero - Developer intelligence for repositories",
+	Long: `Zero provides engineering intelligence tools and specialist AI agents for repository assessment.
 Named after characters from the movie Hackers (1995) - "Hack the planet!"
 
 Quick Start:
   zero hydrate owner/repo           Clone and scan a repository
   zero hydrate --org myorg          Clone and scan all org repos
   zero status                       Show analyzed projects
-  zero report owner/repo            Generate security report`,
+  zero report owner/repo            Generate analysis report`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if noColor {
 			os.Setenv("NO_COLOR", "1")

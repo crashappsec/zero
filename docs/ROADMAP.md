@@ -6,7 +6,7 @@ SPDX-License-Identifier: GPL-3.0
 
 # Zero Roadmap
 
-> Last updated: 2025-12-16 | Current version: 6.2.0
+> Last updated: 2026-01-04 | Current version: 4.0.0
 
 ## Current State Assessment
 
@@ -14,10 +14,10 @@ SPDX-License-Identifier: GPL-3.0
 
 | Component | Status | Coverage |
 |-----------|--------|----------|
-| 8 Super Scanners | ✅ Complete | All implemented and registered |
-| SBOM Generation | ✅ Complete | CycloneDX 1.5 via cdxgen/syft |
-| Package Analysis | ✅ Complete | 12 features (vulns, health, licenses, etc.) |
-| Tech-ID + Semgrep | ✅ Complete | RAG patterns → Semgrep rules |
+| 7 Super Scanners (v4.0) | ✅ Complete | All implemented and registered |
+| code-packages | ✅ Complete | SBOM + 14 features (vulns, health, licenses, etc.) |
+| code-security | ✅ Complete | SAST + secrets + crypto (8 features) |
+| technology-identification | ✅ Complete | RAG patterns → Semgrep rules, ML-BOM |
 | Code Ownership | ✅ Complete | Adaptive periods, historical stats |
 | Hydrate Command | ✅ Complete | Clone + scan with profiles |
 | Agent Definitions | ✅ Complete | 12 specialist agents defined |
@@ -35,10 +35,12 @@ SPDX-License-Identifier: GPL-3.0
 ### Test Coverage Summary
 
 ```
-pkg/config           47.2%  ✅ Good
-pkg/scanner          11.9%  ⚠️  Needs improvement
-pkg/scanners/tech-id  6.8%  ⚠️  Recently added tests
-All other packages    0.0%  ❌ Critical gap
+pkg/core/sarif       94.2%  ✅ Excellent
+pkg/core/errors      90.2%  ✅ Excellent
+pkg/core/feeds       80.4%  ✅ Good
+pkg/scanner/devx     70.9%  ✅ Good
+pkg/scanner/code-packages  8.0%  ⚠️  Needs improvement
+pkg/api/handlers      0.0%  ❌ Critical gap
 ```
 
 ---
@@ -51,17 +53,16 @@ All other packages    0.0%  ❌ Critical gap
 
 | Package | Priority | Complexity | Impact |
 |---------|----------|------------|--------|
-| `pkg/hydrate` | P1 | Medium | Core functionality |
-| `pkg/scanners/sbom` | P1 | Medium | Source of truth |
-| `pkg/scanners/package-analysis` | P1 | High | Supply chain |
-| `pkg/scanners/code-security` | P2 | Medium | Security analysis |
-| `pkg/scanners/crypto` | P2 | Medium | Crypto analysis |
-| `pkg/terminal` | P2 | Low | Output display |
-| `pkg/scanners/devops` | P3 | High | Multiple tools |
-| `pkg/scanners/code-quality` | P3 | Medium | Quality metrics |
-| `pkg/scanners/code-ownership` | P3 | Medium | Git analysis |
+| `pkg/api/handlers` | P1 | Medium | API layer at 0% |
+| `pkg/scanner/code-packages` | P1 | High | Core scanner at 8% |
+| `pkg/scanner/code-security` | P1 | Medium | Security analysis at 28% |
+| `pkg/scanner/technology-identification` | P2 | Medium | ML-BOM at 34% |
+| `pkg/core/scoring` | P2 | Low | Health scoring at 0% |
+| `pkg/workflow/hydrate` | P2 | Medium | Core workflow at 17% |
+| `pkg/scanner/devops` | P3 | High | Multiple tools at 24% |
+| `pkg/scanner/code-quality` | P3 | Medium | Quality metrics at 53% |
 
-**Target**: 50% coverage across all packages
+**Target**: 70% coverage across critical packages
 
 **Approach**:
 1. Table-driven tests for scanner detection logic
@@ -118,7 +119,7 @@ All other packages    0.0%  ❌ Critical gap
 
 ### Priority 4: RAG Converter Improvements
 
-**Rationale**: Tech-ID Semgrep integration is working but has edge cases
+**Rationale**: Technology-identification Semgrep integration is working but has edge cases
 
 **Current Limitations**:
 - Not all RAG pattern types converted
@@ -133,8 +134,8 @@ All other packages    0.0%  ❌ Critical gap
 4. Better error messages for rule generation failures
 
 **Files**:
-- `pkg/scanners/tech-id/rag_converter.go`
-- `pkg/scanners/tech-id/rules.go`
+- `pkg/scanner/technology-identification/rag_converter.go`
+- `pkg/scanner/technology-identification/rules.go`
 
 ---
 
@@ -162,8 +163,8 @@ All other packages    0.0%  ❌ Critical gap
 **Rationale**: Docs have legacy references and inconsistencies
 
 **Tasks**:
-1. Remove references to old scanner names in all docs
-2. Update architecture diagrams with 8 scanner model
+1. ✅ Updated all docs to v4.0 scanner names (7 scanners)
+2. ✅ Updated architecture diagrams with v4.0 model
 3. Add examples for each scanner
 4. Document all CLI flags and options
 5. Add troubleshooting guide

@@ -488,8 +488,8 @@ func (t *Terminal) SummaryWithFindings(org string, duration int, success, failed
 		fmt.Printf("  Package health:  %s\n", healthStr)
 	}
 
-	// Tech-ID (only show if tech-id scanner was run)
-	if findings.ScannersRun["tech-id"] && findings.TechTotalTechs > 0 {
+	// Tech-ID (only show if technology-identification scanner was run)
+	if findings.ScannersRun["technology-identification"] && findings.TechTotalTechs > 0 {
 		// Show top technologies
 		if len(findings.TechTopList) > 0 {
 			techStr := strings.Join(findings.TechTopList, ", ")

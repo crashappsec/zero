@@ -22,12 +22,12 @@ var (
 
 var feedsCmd = &cobra.Command{
 	Use:   "feeds",
-	Short: "Manage external security feeds",
-	Long: `Synchronize and manage external security data feeds.
+	Short: "Manage external data feeds",
+	Long: `Synchronize and manage external data feeds.
 
-Zero can sync with various security data sources to enhance scanning:
+Zero can sync with various data sources to enhance scanning:
   - Semgrep community rules
-  - GitHub security advisories
+  - GitHub advisories
   - OSV vulnerability database
 
 Examples:
@@ -40,7 +40,7 @@ Examples:
 var feedsSyncCmd = &cobra.Command{
 	Use:   "sync",
 	Short: "Sync external feeds",
-	Long: `Synchronize external security data feeds.
+	Long: `Synchronize external data feeds.
 
 Downloads and caches data from configured feed sources.
 By default, only syncs feeds that are due based on their frequency settings.`,

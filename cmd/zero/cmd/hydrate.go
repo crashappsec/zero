@@ -10,13 +10,11 @@ import (
 	"syscall"
 
 	"github.com/crashappsec/zero/pkg/core/config"
-	"github.com/crashappsec/zero/pkg/reports"
 	"github.com/crashappsec/zero/pkg/workflow/hydrate"
 	"github.com/spf13/cobra"
 )
 
 var hydrateOpts hydrate.Options
-var showReport bool
 
 var hydrateCmd = &cobra.Command{
 	Use:   "hydrate <target> [profile]",
@@ -56,9 +54,6 @@ func init() {
 	hydrateCmd.Flags().BoolVar(&hydrateOpts.SkipSlow, "skip-slow", false, "Skip slow scanners")
 	hydrateCmd.Flags().BoolVarP(&hydrateOpts.Yes, "yes", "y", false, "Auto-accept prompts")
 	hydrateCmd.Flags().IntVar(&hydrateOpts.ParallelScanners, "parallel", 4, "Parallel scanners per repo")
-
-	// Report options
-	hydrateCmd.Flags().BoolVar(&showReport, "report", false, "Show detailed findings report after scan")
 }
 
 func runHydrate(cmd *cobra.Command, args []string) error {
@@ -116,33 +111,6 @@ func runHydrate(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	projectIDs, err := h.Run(ctx)
-	if err != nil {
-		return err
-	}
-
-	// Generate Evidence report for each project
-	if len(projectIDs) > 0 {
-		gen := evidence.NewGenerator(cfg.ZeroHome())
-
-		for _, projectID := range projectIDs {
-			term.Info("Generating report for %s...", projectID)
-
-			reportPath, err := gen.Generate(evidence.Options{
-				Repository:  projectID,
-				OpenBrowser: false,
-			})
-
-			if err != nil {
-				term.Warn("Report generation failed: %v", err)
-			} else {
-				term.Success("Report ready")
-				term.Divider()
-				term.Info("  View Report: file://%s", reportPath)
-				term.Divider()
-			}
-		}
-	}
-
-	return nil
+	_, err = h.Run(ctx)
+	return err
 }

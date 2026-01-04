@@ -4,27 +4,25 @@ Zero provides engineering intelligence tools and specialist AI agents for reposi
 Analyzes code quality, dependencies, security, DevOps, and developer experience.
 Named after characters from the movie Hackers (1995) - "Hack the planet!"
 
-## Super Scanner Architecture (v3.6)
+## Super Scanner Architecture (v4.0)
 
-Zero uses **9 consolidated super scanners** with configurable features:
+Zero uses **7 consolidated super scanners** with configurable features:
 
 | Scanner | Features | Description |
 |---------|----------|-------------|
-| **sbom** | generation, integrity | SBOM generation (source of truth) |
-| **package-analysis** | vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | Package/dependency analysis (depends on sbom) |
-| **code-crypto** | ciphers, keys, random, tls, certificates | Cryptographic security |
-| **code-security** | vulns, secrets, api, git_history_security | Security-focused code analysis |
+| **code-packages** | generation, integrity, vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | SBOM generation + package/dependency analysis |
+| **code-security** | vulns, secrets, api, ciphers, keys, random, tls, certificates | Security-focused code analysis + cryptography |
 | **code-quality** | tech_debt, complexity, test_coverage, documentation | Code quality metrics |
 | **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security |
-| **tech-id** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | Technology detection and ML-BOM generation |
+| **technology-identification** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | Technology detection and ML-BOM generation |
 | **code-ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | Code ownership analysis |
-| **devx** | onboarding, sprawl, workflow | Developer experience analysis (depends on tech-id) |
+| **devx** | onboarding, sprawl, workflow | Developer experience analysis (depends on technology-identification) |
 
 **Key architecture notes:**
-- `sbom` scanner runs first and generates `sbom.cdx.json` (CycloneDX format)
-- `package-analysis` scanner depends on sbom output - does not generate its own SBOM
-- `tech-id` scanner generates ML-BOM (Machine Learning Bill of Materials)
-- `devx` scanner depends on tech-id for technology detection (tool vs technology sprawl)
+- `code-packages` scanner generates SBOM internally and produces `sbom.cdx.json` (CycloneDX format) + `code-packages.json`
+- `code-security` scanner includes all crypto features (ciphers, keys, random, tls, certificates)
+- `technology-identification` scanner generates ML-BOM (Machine Learning Bill of Materials)
+- `devx` scanner depends on technology-identification for technology detection (tool vs technology sprawl)
 - Each scanner produces **one JSON output file** with all feature results
 
 ## Orchestrator: Zero
@@ -38,18 +36,18 @@ The following agents are available for specialized analysis tasks. Use the Task 
 
 | Agent | Persona | Character | Expertise | Primary Scanner |
 |-------|---------|-----------|-----------|-----------------|
-| `cereal` | Cereal | Cereal Killer | Supply chain, vulnerabilities, malcontent | **sbom**, **package-analysis** |
+| `cereal` | Cereal | Cereal Killer | Supply chain, vulnerabilities, malcontent | **code-packages** |
 | `razor` | Razor | Razor | Code security, SAST, secrets detection | **code-security** |
-| `blade` | Blade | Blade | Compliance, SOC 2, ISO 27001, audit prep | package-analysis, code-security |
-| `phreak` | Phreak | Phantom Phreak | Legal, licenses, data privacy | **package-analysis** (licenses) |
+| `blade` | Blade | Blade | Compliance, SOC 2, ISO 27001, audit prep | code-packages, code-security |
+| `phreak` | Phreak | Phantom Phreak | Legal, licenses, data privacy | **code-packages** (licenses) |
 | `acid` | Acid | Acid Burn | Frontend, React, TypeScript, accessibility | **code-security**, **code-quality** |
 | `dade` | Dade | Dade Murphy | Backend, APIs, databases, Node.js, Python | **code-security** (api) |
-| `nikon` | Nikon | Lord Nikon | Architecture, system design, patterns | **tech-id** |
+| `nikon` | Nikon | Lord Nikon | Architecture, system design, patterns | **technology-identification** |
 | `joey` | Joey | Joey | CI/CD, build optimization, caching | **devops** (github_actions) |
 | `plague` | Plague | The Plague | DevOps, infrastructure, Kubernetes, IaC | **devops** |
 | `gibson` | Gibson | The Gibson | DORA metrics, team health, engineering KPIs | **devops** (dora, git), **code-ownership** |
-| `gill` | Gill | Gill Bates | Cryptography, ciphers, keys, TLS, random | **code-crypto** |
-| `turing` | Turing | Alan Turing | AI/ML security, ML-BOM, model safety, LLM security | **tech-id** |
+| `gill` | Gill | Gill Bates | Cryptography, ciphers, keys, TLS, random | **code-security** (crypto) |
+| `turing` | Turing | Alan Turing | AI/ML security, ML-BOM, model safety, LLM security | **technology-identification** |
 
 ### Agent Details
 
@@ -59,8 +57,8 @@ The following agents are available for specialized analysis tasks. Use the Task 
 Cereal Killer was paranoid about surveillance - perfect for watching for malware hiding in dependencies.
 Specializes in dependency vulnerability analysis, malcontent findings investigation (supply chain compromise detection), package health assessment, license compliance, and typosquatting detection.
 
-**Primary scanners:** `sbom`, `package-analysis`
-**Required data:** `sbom.json`, `package-analysis.json` (contains vulns, health, malcontent, licenses, etc.)
+**Primary scanner:** `code-packages`
+**Required data:** `code-packages.json` (contains vulns, health, malcontent, licenses, etc.)
 
 **Example invocation:**
 ```
@@ -83,8 +81,8 @@ Specializes in static analysis, secret detection, code vulnerability assessment,
 Gill Bates represented the corporate establishment in Hackers - now reformed and using vast crypto knowledge to help secure implementations.
 Specializes in cryptographic security analysis, cipher review, key management, TLS configuration, and random number generation security.
 
-**Primary scanner:** `code-crypto`
-**Required data:** `code-crypto.json` (contains ciphers, keys, random, tls, certificates)
+**Primary scanner:** `code-security` (crypto features)
+**Required data:** `code-security.json` (contains ciphers, keys, random, tls, certificates)
 
 **Example invocation:**
 ```
@@ -98,8 +96,8 @@ prompt: "Analyze the cryptographic security of this repository. Focus on hardcod
 Alan Turing - the father of artificial intelligence and legendary codebreaker. Uses deep understanding of machine learning to secure AI systems against emerging ML supply chain threats.
 Specializes in ML model security, ML-BOM generation, AI framework analysis, LLM security, and AI governance.
 
-**Primary scanner:** `tech-id`
-**Required data:** `technology.json` (contains models, frameworks, datasets, security, governance)
+**Primary scanner:** `technology-identification`
+**Required data:** `technology-identification.json` (contains models, frameworks, datasets, security, governance)
 
 **Example invocation:**
 ```
@@ -140,8 +138,8 @@ Specializes in DORA metrics analysis, team health assessment, and engineering KP
 Lord Nikon had photographic memory - sees the big picture.
 Specializes in system design, architectural patterns, trade-offs analysis, and design review.
 
-**Primary scanner:** `tech-id`
-**Required data:** `technology.json`, `package-analysis.json`
+**Primary scanner:** `technology-identification`
+**Required data:** `technology-identification.json`, `code-packages.json`
 
 #### Blade (Internal Auditor)
 **subagent_type:** `blade`
@@ -279,8 +277,8 @@ zero report expressjs/express --serve
 | **Dependencies** | Package inventory, license distribution | sbom, package-analysis |
 | **Supply Chain** | Malcontent detection, package health | package-analysis |
 | **DevOps** | DORA metrics, IaC, GitHub Actions, containers | devops |
-| **Quality & Ownership** | Quality metrics, devx, technologies, ownership | code-quality, tech-id, code-ownership, devx |
-| **AI/ML** | ML models, frameworks, datasets | tech-id |
+| **Quality & Ownership** | Quality metrics, devx, technologies, ownership | code-quality, technology-identification, code-ownership, devx |
+| **AI/ML** | ML models, frameworks, datasets | technology-identification |
 
 ### Report Data Sources
 
@@ -299,13 +297,13 @@ Reports use JavaScript data sources in `reports/template/sources/zero/`:
 | `iac_findings.js` | devops | Infrastructure as Code issues |
 | `github_actions_findings.js` | devops | CI/CD security |
 | `container_findings.js` | devops | Container security |
-| `technologies.js` | tech-id | Detected technologies |
+| `technologies.js` | technology-identification | Detected technologies |
 | `contributors.js` | code-ownership | Top contributors |
 | `ownership_summary.js` | code-ownership | Bus factor, ownership |
 | `code_quality.js` | code-quality | Quality metrics |
 | `devx_metrics.js` | devx | Developer experience |
-| `ai_security.js` | tech-id | AI/ML security findings |
-| `ml_models.js` | tech-id | Detected ML models |
+| `ai_security.js` | technology-identification | AI/ML security findings |
+| `ml_models.js` | technology-identification | Detected ML models |
 
 ## Docker
 
@@ -370,15 +368,13 @@ zero/
 │   ├── scanner/               # Scanner framework + implementations
 │   │   ├── interface.go       # Scanner interface
 │   │   ├── runner.go          # Scanner runner
-│   │   ├── sbom/              # SBOM scanner
-│   │   ├── package-analysis/  # Package analysis
-│   │   ├── code-crypto/       # Cryptography scanner
-│   │   ├── code-security/     # Code security scanner
+│   │   ├── code-packages/     # SBOM + package analysis
+│   │   ├── code-security/     # Code security scanner (includes crypto)
 │   │   ├── code-quality/      # Code quality scanner
 │   │   ├── devops/            # DevOps scanner
-│   │   ├── tech-id/           # Technology detection
+│   │   ├── technology-identification/  # Technology detection + ML-BOM
 │   │   ├── code-ownership/    # Code ownership scanner
-│   │   └── devx/              # Developer experience
+│   │   └── developer-experience/  # Developer experience
 │   ├── workflow/              # Workflow management
 │   │   ├── hydrate/           # Clone and scan
 │   │   ├── automation/        # Watch mode
@@ -395,7 +391,7 @@ zero/
 │       ├── package.json       # Evidence dependencies
 │       └── evidence.config.yaml
 ├── rag/                       # Retrieval-Augmented Generation knowledge
-│   └── tech-id/               # Technology detection patterns
+│   └── technology-identification/  # Technology detection patterns
 ├── config/
 │   └── zero.config.json       # Scanner configuration
 ├── docs/
@@ -417,15 +413,13 @@ zero/
          │
          ├─► Run super scanners, store JSON in .zero/repos/<project>/analysis/
          │        │
-         │        ├─► sbom.json               (2 features) + sbom.cdx.json
-         │        ├─► package-analysis.json   (12 features, depends on sbom)
-         │        ├─► code-crypto.json        (5 features)
-         │        ├─► code-security.json      (3 features)
+         │        ├─► code-packages.json       (14 features) + sbom.cdx.json
+         │        ├─► code-security.json      (8 features, includes crypto)
          │        ├─► code-quality.json       (4 features)
          │        ├─► devops.json             (5 features)
-         │        ├─► technology.json         (7 features) - ML-BOM
+         │        ├─► technology-identification.json (7 features) - ML-BOM
          │        ├─► code-ownership.json     (6 features)
-         │        └─► devx.json               (3 features)
+         │        └─► developer-experience.json (3 features)
          │
          └─► Record freshness metadata in .zero/repos/<project>/freshness.json
 
@@ -515,17 +509,15 @@ Profiles define which scanners and features to run:
 
 | Profile | Scanners | Description |
 |---------|----------|-------------|
-| `all-quick` | All 9 scanners (limited features) | Fast scan of everything |
-| `all-complete` | All 9 scanners (all features) | Complete analysis |
-| `sbom` | sbom | SBOM generation only |
-| `packages` | sbom, packages | Dependency analysis |
-| `code-crypto` | code-crypto | Cryptographic security |
-| `code-security` | code-security | SAST and secrets |
+| `all-quick` | All 7 scanners (limited features) | Fast scan of everything |
+| `all-complete` | All 7 scanners (all features) | Complete analysis |
+| `code-packages` | code-packages | SBOM + package analysis |
+| `code-security` | code-security | SAST, secrets, and crypto |
 | `code-quality` | code-quality | Quality metrics |
 | `devops` | devops | IaC, containers, CI/CD |
-| `tech-id` | tech-id | Technology detection, ML-BOM |
+| `technology-identification` | technology-identification | Technology detection, ML-BOM |
 | `code-ownership` | code-ownership | Contributor analysis |
-| `developer-experience` | tech-id, developer-experience | Developer experience |
+| `developer-experience` | technology-identification, developer-experience | Developer experience |
 
 ## Environment Variables
 
