@@ -85,4 +85,5 @@ rag/semgrep/community-rules/
 mcp-server/node_modules/
 mcp-server/dist/
 bin/
+/zero
 .DS_Store
