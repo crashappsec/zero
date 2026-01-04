@@ -159,13 +159,13 @@ func (c *Config) Validate() error {
 
 	// Check profiles reference valid scanners (v4.0 super scanners)
 	validScanners := map[string]bool{
-		"supply-chain":          true,
-		"code-security":         true,
-		"code-quality":          true,
-		"devops":                true,
-		"tech-id":               true,
-		"code-ownership":        true,
-		"developer-experience":  true,
+		"code-packages":              true,
+		"code-security":              true,
+		"code-quality":               true,
+		"devops":                     true,
+		"technology-identification":  true,
+		"code-ownership":             true,
+		"developer-experience":       true,
 	}
 
 	for profileName, profile := range c.Profiles {

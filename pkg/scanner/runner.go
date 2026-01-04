@@ -680,7 +680,7 @@ func extractSummaryString(name string, result *ScanResult) string {
 		}
 		return fmt.Sprintf("%d package recommendations", total)
 
-	case "tech-id":
+	case "technology-identification":
 		// Get technology summary
 		var techSummary map[string]interface{}
 		if ts, ok := summary["technology"].(map[string]interface{}); ok {

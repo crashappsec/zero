@@ -247,8 +247,8 @@ func (h *ProjectHandler) getAvailableScans(analysisPath string) []string {
 func (h *ProjectHandler) loadSummary(analysisPath string) *types.ProjectSummary {
 	summary := &types.ProjectSummary{}
 
-	// v4.0: Load from supply-chain scanner (contains both SBOM and package analysis)
-	if data := readAnalysisFile(analysisPath, "supply-chain"); data != nil {
+	// v4.0: Load from code-packages scanner (contains both SBOM and package analysis)
+	if data := readAnalysisFile(analysisPath, "code-packages"); data != nil {
 		if summ, ok := data["summary"].(map[string]interface{}); ok {
 			// Load vulnerability counts
 			if vulnSummary, ok := summ["vulns"].(map[string]interface{}); ok {
@@ -275,8 +275,8 @@ func (h *ProjectHandler) loadSummary(analysisPath string) *types.ProjectSummary 
 		}
 	}
 
-	// Load technology count from tech-id scanner
-	if data := readAnalysisFile(analysisPath, "tech-id"); data != nil {
+	// Load technology count from technology-identification scanner
+	if data := readAnalysisFile(analysisPath, "technology-identification"); data != nil {
 		if summ, ok := data["summary"].(map[string]interface{}); ok {
 			if det, ok := summ["detection"].(map[string]interface{}); ok {
 				summary.Technologies = getInt(det, "total_technologies")

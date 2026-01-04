@@ -34,9 +34,9 @@ func NewRuleManager(cfg RuleManagerConfig) *RuleManager {
 		cfg.RAGPath = rag.FindRAGPath()
 	}
 	if cfg.CachePath == "" {
-		// Default to .zero/cache/tech-id/rules
+		// Default to .zero/cache/technology-identification/rules
 		homeDir, _ := os.UserHomeDir()
-		cfg.CachePath = filepath.Join(homeDir, ".zero", "cache", "tech-id", "rules")
+		cfg.CachePath = filepath.Join(homeDir, ".zero", "cache", "technology-identification", "rules")
 	}
 	if cfg.TTL == 0 {
 		cfg.TTL = 24 * time.Hour

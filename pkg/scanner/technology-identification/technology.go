@@ -26,7 +26,7 @@ var ruleLoadMessageOnce sync.Once
 var ruleLoadMessagePrinted bool
 
 const (
-	Name        = "tech-id"
+	Name        = "technology-identification"
 	Description = "Technology identification, AI/ML security analysis and ML-BOM generation"
 )
 

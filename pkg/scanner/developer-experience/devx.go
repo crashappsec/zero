@@ -37,7 +37,7 @@ func (s *DevXScanner) Description() string {
 }
 
 func (s *DevXScanner) Dependencies() []string {
-	return []string{"tech-id"}
+	return []string{"technology-identification"}
 }
 
 func (s *DevXScanner) EstimateDuration(fileCount int) time.Duration {

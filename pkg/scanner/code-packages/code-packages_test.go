@@ -1,14 +1,14 @@
-package supplychain
+package codepackages
 
 import (
 	"testing"
 	"time"
 )
 
-func TestSupplyChainScanner_Name(t *testing.T) {
+func TestCodePackagesScanner_Name(t *testing.T) {
 	s := &SupplyChainScanner{}
-	if s.Name() != "supply-chain" {
-		t.Errorf("Name() = %q, want %q", s.Name(), "supply-chain")
+	if s.Name() != "code-packages" {
+		t.Errorf("Name() = %q, want %q", s.Name(), "code-packages")
 	}
 }
 

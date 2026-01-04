@@ -251,8 +251,8 @@ func TestBuildTechnologySummary(t *testing.T) {
 
 func TestTechnologyScanner_Name(t *testing.T) {
 	s := &TechnologyScanner{}
-	if s.Name() != "tech-id" {
-		t.Errorf("Name() = %q, want %q", s.Name(), "tech-id")
+	if s.Name() != "technology-identification" {
+		t.Errorf("Name() = %q, want %q", s.Name(), "technology-identification")
 	}
 }
 

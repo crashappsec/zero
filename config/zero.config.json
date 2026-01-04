@@ -5,13 +5,13 @@
   "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v4.0)",
   "_docs3": "===================================================================================",
   "_docs4": "Zero uses 7 consolidated 'super scanners' with configurable features:",
-  "_docs5": "  - supply-chain: generation, integrity, vulns, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations, confusion, reachability",
+  "_docs5": "  - code-packages: generation, integrity, vulns, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations, confusion, reachability",
   "_docs6": "  - code-security: vulns, secrets, api, ciphers, keys, random, tls, certificates",
   "_docs7": "  - code-quality: tech_debt, complexity, test_coverage, documentation",
   "_docs8": "  - devops: iac, containers, github_actions, dora, git",
-  "_docs9": "  - tech-id: detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure (ML-BOM)",
+  "_docs9": "  - technology-identification: detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure (ML-BOM)",
   "_docs10": "  - code-ownership: contributors, bus_factor, codeowners, orphans, churn, patterns",
-  "_docs11": "  - developer-experience: onboarding, sprawl, workflow (depends on tech-id)",
+  "_docs11": "  - developer-experience: onboarding, sprawl, workflow (depends on technology-identification)",
   "_docs12": "===================================================================================",
   "settings": {
     "default_profile": "all-quick",
@@ -32,11 +32,11 @@
     }
   },
   "scanners": {
-    "supply-chain": {
-      "name": "Supply Chain",
+    "code-packages": {
+      "name": "Code Packages",
       "description": "SBOM generation and package/dependency analysis: vulnerabilities, health, malcontent, licenses, provenance",
       "estimated_time": "60-180s",
-      "output_file": "supply-chain.json",
+      "output_file": "code-packages.json",
       "dependencies": [],
       "features": {
         "generation": {
@@ -285,17 +285,17 @@
         }
       }
     },
-    "tech-id": {
+    "technology-identification": {
       "name": "Technology Identification",
       "description": "Technology detection and AI/ML analysis with ML-BOM generation",
       "estimated_time": "30-90s",
-      "output_file": "tech-id.json",
+      "output_file": "technology-identification.json",
       "dependencies": [],
       "features": {
         "detection": {
           "enabled": true,
           "tier": "auto",
-          "rag_patterns_path": "rag/tech-id",
+          "rag_patterns_path": "rag/technology-identification",
           "scan_extensions": true,
           "scan_config": true,
           "scan_sbom": true,
@@ -388,7 +388,7 @@
       "description": "Developer experience analysis: onboarding friction, sprawl analysis (tools + technologies), workflow efficiency",
       "estimated_time": "15-30s",
       "output_file": "developer-experience.json",
-      "dependencies": ["tech-id"],
+      "dependencies": ["technology-identification"],
       "features": {
         "onboarding": {
           "enabled": true,
@@ -420,9 +420,9 @@
       "name": "All Quick",
       "description": "All scanners with limited features for fast feedback",
       "estimated_time": "~2 minutes",
-      "scanners": ["supply-chain", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"],
+      "scanners": ["code-packages", "code-security", "code-quality", "devops", "technology-identification", "code-ownership", "developer-experience"],
       "feature_overrides": {
-        "supply-chain": {
+        "code-packages": {
           "integrity": {"enabled": false},
           "malcontent": {"enabled": false},
           "provenance": {"enabled": false},
@@ -447,13 +447,13 @@
       "name": "All Complete",
       "description": "All scanners with all features enabled",
       "estimated_time": "~12 minutes",
-      "scanners": ["supply-chain", "code-security", "code-quality", "devops", "tech-id", "code-ownership", "developer-experience"]
+      "scanners": ["code-packages", "code-security", "code-quality", "devops", "technology-identification", "code-ownership", "developer-experience"]
     },
-    "supply-chain": {
-      "name": "Supply Chain",
+    "code-packages": {
+      "name": "Code Packages",
       "description": "SBOM generation and package analysis",
       "estimated_time": "~3 minutes",
-      "scanners": ["supply-chain"]
+      "scanners": ["code-packages"]
     },
     "code-security": {
       "name": "Code Security",
@@ -473,11 +473,11 @@
       "estimated_time": "~3 minutes",
       "scanners": ["devops"]
     },
-    "tech-id": {
+    "technology-identification": {
       "name": "Technology Identification",
       "description": "Technology detection and ML-BOM generation",
       "estimated_time": "~2 minutes",
-      "scanners": ["tech-id"]
+      "scanners": ["technology-identification"]
     },
     "code-ownership": {
       "name": "Code Ownership",
@@ -489,7 +489,7 @@
       "name": "Developer Experience",
       "description": "Onboarding, tooling sprawl, workflow analysis",
       "estimated_time": "~1 minute",
-      "scanners": ["tech-id", "developer-experience"]
+      "scanners": ["technology-identification", "developer-experience"]
     }
   }
 }

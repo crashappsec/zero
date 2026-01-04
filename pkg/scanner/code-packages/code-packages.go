@@ -1,6 +1,6 @@
-// Package supplychain implements the consolidated supply chain security scanner
+// Package codepackages implements the consolidated code packages scanner
 // This scanner generates SBOMs and performs comprehensive package analysis.
-package supplychain
+package codepackages
 
 import (
 	"bufio"
@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	Name    = "supply-chain"
+	Name    = "code-packages"
 	Version = "4.0.0"
 )
 

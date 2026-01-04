@@ -161,18 +161,18 @@ type AgentInfo struct {
 func GetAgentInfo(agentID string) AgentInfo {
 	agents := map[string]AgentInfo{
 		"zero":   {ID: "zero", Name: "Zero", Persona: "Zero Cool", Description: "Master orchestrator", Scanner: "all"},
-		"cereal": {ID: "cereal", Name: "Cereal", Persona: "Cereal Killer", Description: "Supply chain security", Scanner: "supply-chain"},
+		"cereal": {ID: "cereal", Name: "Cereal", Persona: "Cereal Killer", Description: "Supply chain security", Scanner: "code-packages"},
 		"razor":  {ID: "razor", Name: "Razor", Persona: "Razor", Description: "Code security, SAST, secrets", Scanner: "code-security"},
 		"blade":  {ID: "blade", Name: "Blade", Persona: "Blade", Description: "Compliance, SOC 2, ISO 27001", Scanner: "multiple"},
-		"phreak": {ID: "phreak", Name: "Phreak", Persona: "Phantom Phreak", Description: "Legal, licenses, privacy", Scanner: "supply-chain"},
+		"phreak": {ID: "phreak", Name: "Phreak", Persona: "Phantom Phreak", Description: "Legal, licenses, privacy", Scanner: "code-packages"},
 		"acid":   {ID: "acid", Name: "Acid", Persona: "Acid Burn", Description: "Frontend, React, TypeScript", Scanner: "code-security"},
 		"dade":   {ID: "dade", Name: "Dade", Persona: "Dade Murphy", Description: "Backend, APIs, databases", Scanner: "code-security"},
-		"nikon":  {ID: "nikon", Name: "Nikon", Persona: "Lord Nikon", Description: "Architecture, system design", Scanner: "tech-id"},
+		"nikon":  {ID: "nikon", Name: "Nikon", Persona: "Lord Nikon", Description: "Architecture, system design", Scanner: "technology-identification"},
 		"joey":   {ID: "joey", Name: "Joey", Persona: "Joey", Description: "CI/CD, build optimization", Scanner: "devops"},
 		"plague": {ID: "plague", Name: "Plague", Persona: "The Plague", Description: "DevOps, IaC, Kubernetes", Scanner: "devops"},
 		"gibson": {ID: "gibson", Name: "Gibson", Persona: "The Gibson", Description: "DORA metrics, team health", Scanner: "devops"},
 		"gill":   {ID: "gill", Name: "Gill", Persona: "Gill Bates", Description: "Cryptography specialist", Scanner: "code-security"},
-		"turing": {ID: "turing", Name: "Turing", Persona: "Alan Turing", Description: "AI/ML security", Scanner: "tech-id"},
+		"turing": {ID: "turing", Name: "Turing", Persona: "Alan Turing", Description: "AI/ML security", Scanner: "technology-identification"},
 	}
 
 	if info, ok := agents[agentID]; ok {

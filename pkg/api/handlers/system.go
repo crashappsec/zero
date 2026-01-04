@@ -71,7 +71,7 @@ func (h *SystemHandler) ListScanners(w http.ResponseWriter, r *http.Request) {
 	// Define the 7 v4.0 super scanners
 	scanners := []types.ScannerInfo{
 		{
-			Name:        "supply-chain",
+			Name:        "code-packages",
 			Description: "SBOM generation and package analysis (vulns, health, licenses, malcontent, provenance)",
 			Features:    []string{"generation", "integrity", "vulns", "health", "licenses", "malcontent", "confusion", "typosquats", "deprecations", "duplicates", "reachability", "provenance", "bundle", "recommendations"},
 		},
@@ -91,7 +91,7 @@ func (h *SystemHandler) ListScanners(w http.ResponseWriter, r *http.Request) {
 			Features:    []string{"iac", "containers", "github_actions", "dora", "git"},
 		},
 		{
-			Name:        "tech-id",
+			Name:        "technology-identification",
 			Description: "Technology detection and ML-BOM generation",
 			Features:    []string{"detection", "models", "frameworks", "datasets", "ai_security", "ai_governance", "infrastructure"},
 		},
@@ -117,18 +117,18 @@ func (h *SystemHandler) ListScanners(w http.ResponseWriter, r *http.Request) {
 func (h *SystemHandler) ListAgents(w http.ResponseWriter, r *http.Request) {
 	agents := []types.AgentInfo{
 		{ID: "zero", Name: "Zero", Persona: "Zero Cool", Description: "Master orchestrator", Scanner: "all"},
-		{ID: "cereal", Name: "Cereal", Persona: "Cereal Killer", Description: "Supply chain security", Scanner: "supply-chain"},
+		{ID: "cereal", Name: "Cereal", Persona: "Cereal Killer", Description: "Supply chain security", Scanner: "code-packages"},
 		{ID: "razor", Name: "Razor", Persona: "Razor", Description: "Code security, SAST, secrets", Scanner: "code-security"},
 		{ID: "blade", Name: "Blade", Persona: "Blade", Description: "Compliance, SOC 2, ISO 27001", Scanner: "multiple"},
-		{ID: "phreak", Name: "Phreak", Persona: "Phantom Phreak", Description: "Legal, licenses, privacy", Scanner: "supply-chain"},
+		{ID: "phreak", Name: "Phreak", Persona: "Phantom Phreak", Description: "Legal, licenses, privacy", Scanner: "code-packages"},
 		{ID: "acid", Name: "Acid", Persona: "Acid Burn", Description: "Frontend, React, TypeScript", Scanner: "code-security"},
 		{ID: "dade", Name: "Dade", Persona: "Dade Murphy", Description: "Backend, APIs, databases", Scanner: "code-security"},
-		{ID: "nikon", Name: "Nikon", Persona: "Lord Nikon", Description: "Architecture, system design", Scanner: "tech-id"},
+		{ID: "nikon", Name: "Nikon", Persona: "Lord Nikon", Description: "Architecture, system design", Scanner: "technology-identification"},
 		{ID: "joey", Name: "Joey", Persona: "Joey", Description: "CI/CD, build optimization", Scanner: "devops"},
 		{ID: "plague", Name: "Plague", Persona: "The Plague", Description: "DevOps, IaC, Kubernetes", Scanner: "devops"},
 		{ID: "gibson", Name: "Gibson", Persona: "The Gibson", Description: "DORA metrics, team health", Scanner: "devops"},
 		{ID: "gill", Name: "Gill", Persona: "Gill Bates", Description: "Cryptography specialist", Scanner: "code-security"},
-		{ID: "turing", Name: "Turing", Persona: "Alan Turing", Description: "AI/ML security", Scanner: "tech-id"},
+		{ID: "turing", Name: "Turing", Persona: "Alan Turing", Description: "AI/ML security", Scanner: "technology-identification"},
 	}
 
 	writeJSON(w, http.StatusOK, types.ListResponse[types.AgentInfo]{

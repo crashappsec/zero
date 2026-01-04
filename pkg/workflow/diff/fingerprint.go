@@ -38,7 +38,7 @@ func (g *FingerprintGenerator) FingerprintFindings(scanner string, data json.Raw
 		return g.fingerprintCrypto(result.Findings)
 	case "devops":
 		return g.fingerprintDevops(result.Findings)
-	case "tech-id":
+	case "technology-identification":
 		return g.fingerprintTechID(result.Findings)
 	default:
 		// Unknown scanner - return empty
@@ -598,7 +598,7 @@ func (g *FingerprintGenerator) fingerprintDevops(data json.RawMessage) ([]Finger
 	return result, nil
 }
 
-// fingerprintTechID handles tech-id scanner findings (security and governance)
+// fingerprintTechID handles technology-identification scanner findings (security and governance)
 func (g *FingerprintGenerator) fingerprintTechID(data json.RawMessage) ([]FingerprintedFinding, error) {
 	var findings struct {
 		Security   []json.RawMessage `json:"security"`
@@ -626,7 +626,7 @@ func (g *FingerprintGenerator) fingerprintTechID(data json.RawMessage) ([]Finger
 		}
 
 		fp := FindingFingerprint{
-			Scanner:     "tech-id/security",
+			Scanner:     "technology-identification/security",
 			PrimaryKey:  fmt.Sprintf("%s:%s", f.ID, f.Category),
 			LocationKey: fmt.Sprintf("%s:%d", f.File, f.Line),
 			ContentHash: hashContent(f.ID, f.Category, f.ModelName),
@@ -636,7 +636,7 @@ func (g *FingerprintGenerator) fingerprintTechID(data json.RawMessage) ([]Finger
 			Fingerprint: fp,
 			Finding:     raw,
 			Severity:    f.Severity,
-			Scanner:     "tech-id",
+			Scanner:     "technology-identification",
 			Feature:     "security",
 			File:        f.File,
 			Line:        f.Line,
@@ -658,7 +658,7 @@ func (g *FingerprintGenerator) fingerprintTechID(data json.RawMessage) ([]Finger
 		}
 
 		fp := FindingFingerprint{
-			Scanner:     "tech-id/governance",
+			Scanner:     "technology-identification/governance",
 			PrimaryKey:  fmt.Sprintf("%s:%s:%s", f.ID, f.Category, f.ModelName),
 			LocationKey: "",
 			ContentHash: hashContent(f.ID, f.Category, f.ModelName),
@@ -668,7 +668,7 @@ func (g *FingerprintGenerator) fingerprintTechID(data json.RawMessage) ([]Finger
 			Fingerprint: fp,
 			Finding:     raw,
 			Severity:    f.Severity,
-			Scanner:     "tech-id",
+			Scanner:     "technology-identification",
 			Feature:     "governance",
 			Message:     f.Title,
 		})

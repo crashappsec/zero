@@ -1056,8 +1056,8 @@ func formatScanCompleteMessage(s *RepoStatus) string {
 		return fmt.Sprintf("%s - %d packages, %s", base, s.SBOMPackages, formatBytes(s.SBOMSize))
 	}
 
-	// Tech-id was run - show technology stats (if SBOM didn't already return above)
-	hasTechID := containsScanner(s.ScannersRun, "tech-id")
+	// Technology-identification was run - show technology stats (if SBOM didn't already return above)
+	hasTechID := containsScanner(s.ScannersRun, "technology-identification")
 	if hasTechID && s.TechIDTotalTech > 0 {
 		result := fmt.Sprintf("%s - %d tech", base, s.TechIDTotalTech)
 		if len(s.TechIDTopTechs) > 0 {
@@ -1255,8 +1255,8 @@ func (h *Hydrate) aggregateFindings(statuses []*RepoStatus, runningScanners []st
 			h.aggregateSecrets(analysisDir, findings)
 		}
 
-		// Aggregate tech-id data (from tech-id scanner)
-		if scannerSet["tech-id"] {
+		// Aggregate tech-id data (from technology-identification scanner)
+		if scannerSet["technology-identification"] {
 			h.aggregateTechID(analysisDir, findings)
 		}
 

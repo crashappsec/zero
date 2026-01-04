@@ -1,6 +1,6 @@
-// Package supplychain provides the consolidated supply chain security scanner
+// Package codepackages provides the consolidated code packages scanner
 // This scanner generates SBOMs and performs comprehensive package analysis.
-package supplychain
+package codepackages
 
 // FeatureConfig holds configuration for all supply chain features
 type FeatureConfig struct {
