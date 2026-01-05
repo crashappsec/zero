@@ -65,12 +65,10 @@ go build -o main ./cmd/zero
 |------|---------|---------|
 | [cdxgen](https://github.com/CycloneDX/cdxgen) | SBOM generation (preferred) | `npm install -g @cyclonedx/cdxgen` |
 | [syft](https://github.com/anchore/syft) | SBOM generation (fallback) | `brew install syft` |
-| [grype](https://github.com/anchore/grype) | Vulnerability scanning | `brew install grype` |
 | [osv-scanner](https://github.com/google/osv-scanner) | Vulnerability scanning | `go install github.com/google/osv-scanner/cmd/osv-scanner@latest` |
 | [semgrep](https://github.com/returntocorp/semgrep) | Code security scanning | `brew install semgrep` |
-| [gitleaks](https://github.com/gitleaks/gitleaks) | Secrets detection | `brew install gitleaks` |
 | [malcontent](https://github.com/chainguard-dev/malcontent) | Supply chain malware detection | `go install github.com/chainguard-dev/malcontent/cmd/mal@latest` |
-| [trivy](https://github.com/aquasecurity/trivy) | Container scanning | `brew install trivy` |
+| [trivy](https://github.com/aquasecurity/trivy) | Container/IaC scanning | `brew install trivy` |
 | [checkov](https://github.com/bridgecrewio/checkov) | IaC security | `pip install checkov` |
 
 ### Basic Usage
@@ -93,15 +91,90 @@ go build -o main ./cmd/zero
 # Check status of analyzed projects
 ./main status
 
-# Generate reports
-./main report <owner/repo>
-
 # See what scanners work with your token
 ./main checkup
 
 # List all available scanners
 ./main list
 ```
+
+## Servers
+
+Zero includes three server components for different use cases:
+
+### API Server
+
+The API server provides a REST API and WebSocket endpoints for real-time scan progress:
+
+```bash
+# Start API server (default port 3001)
+./main serve
+
+# Custom port
+./main serve --port 8080
+
+# Development mode (enables CORS for frontend dev server)
+./main serve --dev
+```
+
+**API Endpoints:**
+- `GET /api/projects` - List all analyzed projects
+- `GET /api/projects/:id` - Get project details
+- `POST /api/scans` - Start a new scan
+- `GET /api/scans/:id` - Get scan status
+- `WS /ws` - WebSocket for real-time updates
+
+### Web UI
+
+Zero includes a Next.js web dashboard for visualizing analysis results:
+
+```bash
+# Install dependencies (first time only)
+cd web && npm install
+
+# Start development server (default port 3000)
+npm run dev
+
+# Production build
+npm run build && npm start
+```
+
+The Web UI connects to the API server, so start both:
+```bash
+# Terminal 1: Start API server
+./main serve --dev
+
+# Terminal 2: Start Web UI
+cd web && npm run dev
+```
+
+Then open http://localhost:3000 in your browser.
+
+### MCP Server (Claude Desktop Integration)
+
+Zero provides an MCP (Model Context Protocol) server for Claude Desktop integration:
+
+```bash
+# Start MCP server (for testing)
+./main mcp
+```
+
+**Claude Desktop Configuration:**
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "zero": {
+      "command": "/path/to/zero",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+This enables Claude Desktop to query your analysis data directly.
 
 ## Commands
 
@@ -110,9 +183,10 @@ go build -o main ./cmd/zero
 | `hydrate <target> [profile]` | Clone and scan (target: `owner/repo` or `org-name`) |
 | `scan <target> [profile]` | Re-scan already-cloned repos |
 | `status` | Show all analyzed projects |
-| `report <owner/repo>` | Generate security report |
+| `serve` | Start the API server |
 | `checkup` | Check setup, token permissions, and install missing tools |
 | `list` | List all available scanners |
+| `mcp` | Start MCP server for Claude Desktop |
 | `clean <owner/repo>` | Remove analysis data |
 | `history <owner/repo>` | Show scan history |
 
@@ -126,8 +200,8 @@ Zero uses **7 consolidated super scanners** (v4.0 architecture), each with multi
 
 | Scanner | Features | Description | External Tools |
 |---------|----------|-------------|----------------|
-| **code-packages** | generation, integrity, vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | SBOM generation + package/dependency analysis | cdxgen, syft, grype, osv-scanner, malcontent |
-| **code-security** | vulns, secrets, api, ciphers, keys, random, tls, certificates | Code analysis + cryptographic security | semgrep, gitleaks |
+| **code-packages** | generation, integrity, vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | SBOM generation + package/dependency analysis | cdxgen, syft, osv-scanner, malcontent |
+| **code-security** | vulns, secrets, api, ciphers, keys, random, tls, certificates | Code analysis + cryptographic security | semgrep |
 | **code-quality** | tech_debt, complexity, test_coverage, documentation | Code quality metrics | - |
 | **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD analysis | trivy, checkov |
 | **technology-identification** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | Technology detection and ML-BOM generation | - |
