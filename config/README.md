@@ -120,6 +120,34 @@ zero config clear
 
 The credentials file is stored at `~/.zero/credentials.json` with restricted permissions (0600).
 
+## User Overrides
+
+Create `~/.zero/config.json` to override settings without modifying the main config:
+
+```json
+{
+  "settings": {
+    "parallel_repos": 4,
+    "cache_ttl_hours": 48
+  },
+  "profiles": {
+    "my-custom": {
+      "name": "My Custom Profile",
+      "description": "Custom scanner selection",
+      "scanners": ["code-security", "code-packages"]
+    }
+  }
+}
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `GITHUB_TOKEN` | GitHub API token |
+| `ANTHROPIC_API_KEY` | Anthropic API key for agents |
+| `ZERO_HOME` | Override default storage path |
+
 ## Scanner Defaults (defaults/scanners.json)
 
 Each scanner has configurable features with defaults:
@@ -229,34 +257,6 @@ Developer experience analysis.
 | `onboarding` | enabled | Onboarding friction |
 | `sprawl` | enabled | Tool/technology sprawl |
 | `workflow` | enabled | Workflow analysis |
-
-## User Overrides
-
-Create `~/.zero/config.json` to override settings without modifying the main config:
-
-```json
-{
-  "settings": {
-    "parallel_repos": 4,
-    "cache_ttl_hours": 48
-  },
-  "profiles": {
-    "my-custom": {
-      "name": "My Custom Profile",
-      "description": "Custom scanner selection",
-      "scanners": ["code-security", "code-packages"]
-    }
-  }
-}
-```
-
-## Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| `GITHUB_TOKEN` | GitHub API token |
-| `ANTHROPIC_API_KEY` | Anthropic API key for agents |
-| `ZERO_HOME` | Override default storage path |
 
 ## Examples
 
