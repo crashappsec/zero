@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -10,6 +11,42 @@ import (
 
 	"github.com/crashappsec/zero/pkg/api/jobs"
 )
+
+// validTargetPattern matches valid GitHub owner/repo or org names
+// Allows alphanumeric, hyphens, underscores, periods, and single forward slash
+var validTargetPattern = regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9_.]*(/[a-zA-Z0-9][-a-zA-Z0-9_.]*)?$`)
+
+// dangerousPatterns that should never appear in targets
+var dangerousPatterns = []string{
+	"..", // path traversal
+	"//", // double slash
+	";",  // command separator
+	"|",  // pipe
+	"&",  // background/and
+	"$",  // variable expansion
+	"`",  // command substitution
+	"\n", // newline
+	"\r", // carriage return
+	"\x00", // null byte
+}
+
+// isValidTarget validates a scan target (owner/repo or org name)
+func isValidTarget(target string) bool {
+	// Check length limits (GitHub max is 39 chars for username, 100 for repo)
+	if len(target) == 0 || len(target) > 150 {
+		return false
+	}
+
+	// Check for dangerous patterns
+	for _, pattern := range dangerousPatterns {
+		if strings.Contains(target, pattern) {
+			return false
+		}
+	}
+
+	// Validate against allowed pattern
+	return validTargetPattern.MatchString(target)
+}
 
 // ScanHandler handles scan-related API requests
 type ScanHandler struct {
@@ -54,6 +91,12 @@ func (h *ScanHandler) Start(w http.ResponseWriter, r *http.Request) {
 	// Validate target
 	if req.Target == "" {
 		writeError(w, http.StatusBadRequest, "target is required", nil)
+		return
+	}
+
+	// Validate target format to prevent path traversal and injection
+	if !isValidTarget(req.Target) {
+		writeError(w, http.StatusBadRequest, "invalid target format: must be a valid GitHub owner/repo or org name", nil)
 		return
 	}
 

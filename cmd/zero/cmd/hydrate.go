@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"regexp"
 	"sort"
 	"strings"
 	"syscall"
@@ -13,6 +14,9 @@ import (
 	"github.com/crashappsec/zero/pkg/workflow/hydrate"
 	"github.com/spf13/cobra"
 )
+
+// validTargetPattern matches valid GitHub owner/repo or org names
+var validTargetPattern = regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9_.]*(/[a-zA-Z0-9][-a-zA-Z0-9_.]*)?$`)
 
 var hydrateOpts hydrate.Options
 
@@ -65,6 +69,12 @@ func runHydrate(cmd *cobra.Command, args []string) error {
 
 	// Parse target: owner/repo (single repo) or org-name (organization)
 	target := args[0]
+
+	// Validate target format
+	if !validTargetPattern.MatchString(target) || len(target) > 150 {
+		return fmt.Errorf("invalid target format: %q\nTarget must be a valid GitHub owner/repo or org name", target)
+	}
+
 	profile := cfg.Settings.DefaultProfile
 	if profile == "" {
 		profile = "standard"

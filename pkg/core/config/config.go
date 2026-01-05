@@ -4,6 +4,7 @@ package config
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 )
@@ -93,8 +94,8 @@ func Load() (*Config, error) {
 
 	// 1. Load scanner defaults
 	if err := loadScannerDefaults(cfg); err != nil {
-		// Non-fatal: continue without defaults
-		_ = err
+		// Non-fatal: continue without defaults but log warning
+		log.Printf("warning: failed to load scanner defaults: %v", err)
 	}
 
 	// 2. Load main config
@@ -109,8 +110,8 @@ func Load() (*Config, error) {
 	userConfigPath := findUserConfig()
 	if userConfigPath != "" {
 		if err := loadAndMerge(cfg, userConfigPath); err != nil {
-			// Non-fatal: continue without user overrides
-			_ = err
+			// Non-fatal: continue without user overrides but log warning
+			log.Printf("warning: failed to load user config overrides from %s: %v", userConfigPath, err)
 		}
 	}
 

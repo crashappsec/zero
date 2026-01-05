@@ -171,11 +171,15 @@ func (w *Worker) executeJob(ctx context.Context, job *Job) {
 
 // setupProgressHook hooks into the hydrate runner for real-time progress
 func (w *Worker) setupProgressHook(job *Job, h *hydrate.Hydrate) {
+	var mu sync.Mutex
 	scannerCount := 0
 	completedCount := 0
 	startTimes := make(map[string]time.Time)
 
 	h.SetProgressCallback(func(scannerName string, status scanner.Status, summary string) {
+		mu.Lock()
+		defer mu.Unlock()
+
 		// Track scanner start time
 		if status == scanner.StatusRunning {
 			if _, exists := startTimes[scannerName]; !exists {
