@@ -1,325 +1,66 @@
-<!--
-Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
-
-SPDX-License-Identifier: GPL-3.0
--->
-
 # Zero Configuration
 
-Global configuration files for Zero analysers and tools.
+Configuration files for Zero scanners, profiles, and credentials.
 
-## SBOM Configuration
+## Configuration Files
 
-### Quick Start
+| File | Purpose |
+|------|---------|
+| `zero.config.json` | Main config: settings and scan profiles |
+| `defaults/scanners.json` | Scanner feature defaults |
+| `~/.zero/config.json` | User overrides (optional) |
+| `~/.zero/credentials.json` | API keys and tokens |
 
-```bash
-# 1. Copy example configuration
-cp utils/scanners/package-sbom/config/sbom-config.example.json utils/scanners/package-sbom/config/sbom-config.json
+## Configuration Loading
 
-# 2. Edit configuration
-# Customize settings based on your needs
+Zero loads configuration from multiple sources with the following priority:
 
-# 3. Use with analysers
-./utils/supply-chain/package-health-analysis/package-health-analyser.sh --repo owner/repo
-```
+1. **Scanner defaults** from `config/defaults/scanners.json`
+2. **Main config** from `config/zero.config.json`
+3. **User overrides** from `~/.zero/config.json` (if present)
 
-### Configuration Files
+Later sources override earlier ones.
 
-- **`sbom-config.json`** - Main SBOM configuration (create from example)
-- **`sbom-config.example.json`** - Example configuration with documentation
+## Main Configuration (zero.config.json)
 
-### Available Presets
-
-The SBOM configuration includes several presets for common use cases:
-
-#### 1. Production (Default)
-- **Use case**: Production releases, customer delivery
-- **Includes**: Only production runtime dependencies
-- **Format**: CycloneDX JSON
-- **Lock files**: Enabled
+### Settings
 
 ```json
 {
-  "preset": "production"
-}
-```
-
-#### 2. Compliance
-- **Use case**: Regulatory compliance, CISA NTIA requirements
-- **Includes**: Production dependencies with full metadata
-- **Format**: SPDX JSON
-- **Validation**: CISA NTIA minimum elements
-
-```json
-{
-  "preset": "compliance"
-}
-```
-
-#### 3. Development
-- **Use case**: Internal development, full dependency tree
-- **Includes**: All dependencies (dev, test, runtime)
-- **Format**: CycloneDX JSON
-
-```json
-{
-  "preset": "development"
-}
-```
-
-#### 4. Security Audit
-- **Use case**: Security analysis, vulnerability scanning
-- **Includes**: All dependencies with security metadata
-- **Format**: CycloneDX JSON with CPEs
-- **Integrations**: OSV vulnerability checking
-
-```json
-{
-  "preset": "security_audit"
-}
-```
-
-## Configuration Structure
-
-### Core Settings
-
-```json
-{
-  "sbom": {
-    "format": "cyclonedx-json",           // Output format
-    "use_lock_files": true,               // Use lock files for accuracy
-    "include_dev_deps": false,            // Include dev dependencies
-    "include_test_deps": false,           // Include test dependencies
-    "scan_node_modules": false,           // Scan node_modules directory
-    "resolve_versions": true,             // Resolve version ranges
-    "output_dir": "sbom-output"          // Output directory
+  "settings": {
+    "default_profile": "all-quick",
+    "storage_path": ".zero",
+    "parallel_repos": 8,
+    "parallel_scanners": 4,
+    "scanner_timeout_seconds": 300,
+    "cache_ttl_hours": 24
   }
 }
 ```
 
-### Supported Formats
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `default_profile` | Profile to use when none specified | `all-quick` |
+| `storage_path` | Where to store cloned repos and results | `.zero` |
+| `parallel_repos` | Max repos to process concurrently | `8` |
+| `parallel_scanners` | Max scanners per repo | `4` |
+| `scanner_timeout_seconds` | Timeout for each scanner | `300` |
+| `cache_ttl_hours` | How long to cache results | `24` |
 
-- **CycloneDX**: `cyclonedx-json`, `cyclonedx-xml`
-- **SPDX**: `spdx-json`, `spdx-tag-value`
-- **Syft**: `syft-json`
-- **Table**: `table` (human-readable)
+### Profiles
 
-### Package Managers
-
-Automatic detection and lock file support for:
-
-| Ecosystem | Package Manager | Lock File | Status |
-|-----------|----------------|-----------|--------|
-| JavaScript | npm | package-lock.json | ✅ Full |
-| JavaScript | yarn | yarn.lock | ✅ Full |
-| JavaScript | pnpm | pnpm-lock.yaml | ✅ Full |
-| JavaScript | bun | bun.lockb | ✅ Full |
-| Python | pip | requirements.txt | ⚠️ Basic |
-| Python | poetry | poetry.lock | ✅ Full |
-| Python | pipenv | Pipfile.lock | ✅ Full |
-| Rust | cargo | Cargo.lock | ✅ Full |
-| Go | go | go.sum | ✅ Full |
-| Ruby | bundler | Gemfile.lock | ✅ Full |
-| Java | maven | pom.xml | ⚠️ Basic |
-| Java | gradle | gradle.lockfile | ✅ Full |
-| PHP | composer | composer.lock | ✅ Full |
-
-### Lock File vs Manifest
-
-**Why use lock files?**
-
-Lock files provide:
-- ✅ **Exact versions** - No version range ambiguity
-- ✅ **Reproducibility** - Same dependencies every time
-- ✅ **Transitive deps** - Complete dependency tree
-- ✅ **Integrity hashes** - Checksum verification
-
-**When to use manifests:**
-- Package manager doesn't support lock files
-- Quick analysis where exact versions aren't critical
-- Lock file is missing or corrupted
-
-### Dependency Types
-
-Configure which dependencies to include:
+Profiles define which scanners to run and feature overrides:
 
 ```json
 {
-  "dependencies": {
-    "production": {
-      "include": true,
-      "transitive": true
-    },
-    "development": {
-      "include": false,
-      "transitive": false
-    },
-    "test": {
-      "include": false,
-      "transitive": false
-    },
-    "optional": {
-      "include": true
-    },
-    "peer": {
-      "include": true
-    }
-  }
-}
-```
-
-### Metadata Options
-
-Control what information is included in the SBOM:
-
-```json
-{
-  "metadata": {
-    "include_licenses": true,
-    "include_checksums": true,
-    "include_purls": true,
-    "include_cpes": false,
-
-    "checksum_algorithms": ["sha256", "sha1"],
-
-    "component_metadata": {
-      "supplier": true,
-      "author": true,
-      "description": true,
-      "homepage": true,
-      "repository": true,
-      "download_location": true
-    }
-  }
-}
-```
-
-### Validation
-
-Enable SBOM validation and compliance checks:
-
-```json
-{
-  "validation": {
-    "enabled": true,
-    "strict_mode": false,
-
-    "checks": {
-      "minimum_elements": true,
-      "cisa_ntia_compliance": true,
-      "license_presence": true,
-      "checksum_presence": true,
-      "purl_format": true,
-      "lock_file_consistency": true
-    }
-  }
-}
-```
-
-### Performance
-
-Optimize SBOM generation performance:
-
-```json
-{
-  "performance": {
-    "cache": {
-      "enabled": true,
-      "directory": ".sbom-cache",
-      "ttl_hours": 24
-    },
-
-    "parallel": {
-      "enabled": true,
-      "max_workers": 4
-    },
-
-    "timeout": {
-      "generation": 600,
-      "api_calls": 30
-    }
-  }
-}
-```
-
-## Common Scenarios
-
-### Scenario 1: Production Release SBOM
-
-```json
-{
-  "sbom": {
-    "format": "cyclonedx-json",
-    "use_lock_files": true,
-    "include_dev_deps": false,
-    "include_test_deps": false,
-    "metadata": {
-      "include_licenses": true,
-      "include_checksums": true
-    }
-  }
-}
-```
-
-### Scenario 2: Security Audit
-
-```json
-{
-  "sbom": {
-    "format": "cyclonedx-json",
-    "use_lock_files": true,
-    "include_dev_deps": true,
-    "include_test_deps": true,
-    "metadata": {
-      "include_licenses": true,
-      "include_checksums": true,
-      "include_cpes": true
-    },
-    "integrations": {
-      "osv": {
-        "enabled": true,
-        "vulnerability_check": true
-      }
-    }
-  }
-}
-```
-
-### Scenario 3: Compliance (CISA NTIA)
-
-```json
-{
-  "sbom": {
-    "format": "spdx-json",
-    "use_lock_files": true,
-    "include_dev_deps": false,
-    "validation": {
-      "enabled": true,
-      "checks": {
-        "cisa_ntia_compliance": true
-      }
-    }
-  }
-}
-```
-
-### Scenario 4: Monorepo
-
-```json
-{
-  "sbom": {
-    "format": "cyclonedx-json",
-    "use_lock_files": true,
-    "scanning": {
-      "include_paths": [
-        "packages/*",
-        "apps/*"
-      ]
-    },
-    "lock_files": {
-      "package_managers": {
-        "npm": {
-          "include_workspaces": true
+  "profiles": {
+    "all-quick": {
+      "name": "All Quick",
+      "description": "All scanners with fast defaults",
+      "scanners": ["code-packages", "code-security", "code-quality", "devops", "technology-identification", "code-ownership", "developer-experience"],
+      "feature_overrides": {
+        "code-packages": {
+          "malcontent": {"enabled": false}
         }
       }
     }
@@ -327,105 +68,233 @@ Optimize SBOM generation performance:
 }
 ```
 
-## Environment Variables
+#### Built-in Profiles
 
-Override configuration with environment variables:
+| Profile | Scanners | Description |
+|---------|----------|-------------|
+| `all-quick` | All 7 | Fast scan with slow features disabled |
+| `all-complete` | All 7 | Complete scan with all features |
+| `code-packages` | code-packages | SBOM and package analysis only |
+| `code-security` | code-security | SAST, secrets, crypto only |
+| `code-quality` | code-quality | Tech debt, complexity only |
+| `devops` | devops | IaC, containers, CI/CD only |
+| `technology-identification` | technology-identification | Tech detection only |
+| `code-ownership` | code-ownership | Contributor analysis only |
+| `developer-experience` | technology-identification, developer-experience | DevX analysis |
 
-```bash
-# Format
-export SBOM_FORMAT="spdx-json"
+## Credentials
 
-# Lock file usage
-export SBOM_USE_LOCK_FILES=true
+Credentials are managed separately from configuration for security.
 
-# Dependencies
-export SBOM_INCLUDE_DEV_DEPS=false
-export SBOM_INCLUDE_TEST_DEPS=false
+### Priority Order
 
-# Scanning
-export SBOM_SCAN_NODE_MODULES=false
+1. Environment variables (`GITHUB_TOKEN`, `ANTHROPIC_API_KEY`)
+2. Config file (`~/.zero/credentials.json`)
+3. GitHub CLI (`gh auth token`)
 
-# Output
-export SBOM_OUTPUT_DIR="custom-sbom-output"
-```
-
-## Troubleshooting
-
-### Issue: SBOM generation fails
-
-**Solution**: Check that syft is installed and lock files exist
+### Managing Credentials
 
 ```bash
-# Install syft
-brew install syft
+# View current credentials
+zero config
 
-# Check for lock files
-ls -la package-lock.json yarn.lock pnpm-lock.yaml
+# Set credentials
+zero config set github_token
+zero config set anthropic_key
+
+# Get specific credential
+zero config get github_token
+
+# Clear all credentials
+zero config clear
 ```
 
-### Issue: Missing dependencies in SBOM
-
-**Solution**: Ensure lock file exists and `use_lock_files` is enabled
-
-```bash
-# Generate lock file if missing
-npm install
-# or
-yarn install
-```
-
-### Issue: SBOM too large
-
-**Solution**: Exclude dev and test dependencies
+### Credentials File Format
 
 ```json
 {
-  "sbom": {
-    "include_dev_deps": false,
-    "include_test_deps": false
-  }
+  "github_token": "ghp_xxxxxxxxxxxx",
+  "anthropic_api_key": "sk-ant-xxxxxxxxxxxx"
 }
 ```
 
-### Issue: Slow generation
+The credentials file is stored at `~/.zero/credentials.json` with restricted permissions (0600).
 
-**Solution**: Enable caching and parallel processing
+## Scanner Defaults (defaults/scanners.json)
+
+Each scanner has configurable features with defaults:
 
 ```json
 {
-  "performance": {
-    "cache": {
-      "enabled": true
-    },
-    "parallel": {
-      "enabled": true,
-      "max_workers": 4
+  "code-security": {
+    "name": "Code Security",
+    "description": "Security-focused code analysis",
+    "output_file": "code-security.json",
+    "features": {
+      "vulns": {"enabled": true},
+      "secrets": {
+        "enabled": true,
+        "redact_secrets": true,
+        "git_history_scan": {"enabled": false}
+      }
     }
   }
 }
 ```
 
-## Best Practices
+### Available Scanners and Features
 
-1. **Always use lock files** for production SBOMs
-2. **Exclude dev/test deps** for release artifacts
-3. **Include licenses** for compliance
-4. **Enable validation** for quality assurance
-5. **Sign SBOMs** for authenticity
-6. **Cache results** for performance
-7. **Version control** SBOM configurations
-8. **Document** custom configurations
+#### code-packages
+SBOM generation and package/dependency analysis.
 
-## References
+| Feature | Default | Description |
+|---------|---------|-------------|
+| `generation` | enabled | SBOM generation (CycloneDX) |
+| `vulns` | enabled | Vulnerability scanning |
+| `health` | enabled | Package health scores |
+| `licenses` | enabled | License compliance |
+| `malcontent` | enabled | Malware detection |
+| `typosquats` | enabled | Typosquatting detection |
+| `deprecations` | enabled | Deprecated package detection |
+| `duplicates` | enabled | Duplicate dependency detection |
+| `confusion` | enabled | Dependency confusion detection |
+| `provenance` | disabled | Package provenance verification |
+| `reachability` | disabled | Reachability analysis |
 
-- [SBOM Generation Best Practices](../rag/supply-chain/sbom-generation-best-practices.md)
-- [Package Manager Specifications](../rag/supply-chain/package-manager-specifications.md)
-- [CycloneDX Specification](https://cyclonedx.org/specification/overview/)
-- [SPDX Specification](https://spdx.dev/specifications/)
-- [CISA NTIA Minimum Elements](https://www.ntia.gov/files/ntia/publications/sbom_minimum_elements_report.pdf)
+#### code-security
+Security-focused code analysis.
 
-## Support
+| Feature | Default | Description |
+|---------|---------|-------------|
+| `vulns` | enabled | SAST vulnerability detection |
+| `secrets` | enabled | Secret detection |
+| `api` | enabled | API security analysis |
+| `ciphers` | enabled | Weak cipher detection |
+| `keys` | enabled | Hardcoded key detection |
+| `random` | enabled | Insecure random detection |
+| `tls` | enabled | TLS configuration analysis |
+| `certificates` | enabled | Certificate analysis |
 
-For issues or questions:
-- [GitHub Issues](https://github.com/crashappsec/zero/issues)
-- [Documentation](../README.md)
+#### code-quality
+Code quality metrics.
+
+| Feature | Default | Description |
+|---------|---------|-------------|
+| `tech_debt` | enabled | TODO/FIXME markers |
+| `complexity` | enabled | Cyclomatic complexity |
+| `test_coverage` | enabled | Test coverage analysis |
+| `code_docs` | enabled | Documentation coverage |
+
+#### devops
+DevOps and infrastructure analysis.
+
+| Feature | Default | Description |
+|---------|---------|-------------|
+| `iac` | enabled | Infrastructure as Code scanning |
+| `containers` | enabled | Dockerfile analysis |
+| `github_actions` | enabled | CI/CD security |
+| `dora` | enabled | DORA metrics |
+| `git` | enabled | Git repository analysis |
+
+#### technology-identification
+Technology detection and ML-BOM.
+
+| Feature | Default | Description |
+|---------|---------|-------------|
+| `detection` | enabled | Technology detection |
+| `models` | enabled | ML model detection |
+| `frameworks` | enabled | Framework detection |
+| `datasets` | enabled | Dataset detection |
+| `ai_security` | enabled | AI security analysis |
+| `ai_governance` | enabled | AI governance checks |
+| `infrastructure` | enabled | Infrastructure detection |
+
+#### code-ownership
+Code ownership analysis.
+
+| Feature | Default | Description |
+|---------|---------|-------------|
+| `contributors` | enabled | Contributor analysis |
+| `bus_factor` | enabled | Bus factor calculation |
+| `codeowners` | enabled | CODEOWNERS validation |
+| `orphans` | enabled | Orphaned code detection |
+| `churn` | enabled | Code churn analysis |
+| `patterns` | enabled | Ownership patterns |
+
+#### developer-experience
+Developer experience analysis.
+
+| Feature | Default | Description |
+|---------|---------|-------------|
+| `onboarding` | enabled | Onboarding friction |
+| `sprawl` | enabled | Tool/technology sprawl |
+| `workflow` | enabled | Workflow analysis |
+
+## User Overrides
+
+Create `~/.zero/config.json` to override settings without modifying the main config:
+
+```json
+{
+  "settings": {
+    "parallel_repos": 4,
+    "cache_ttl_hours": 48
+  },
+  "profiles": {
+    "my-custom": {
+      "name": "My Custom Profile",
+      "description": "Custom scanner selection",
+      "scanners": ["code-security", "code-packages"]
+    }
+  }
+}
+```
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `GITHUB_TOKEN` | GitHub API token |
+| `ANTHROPIC_API_KEY` | Anthropic API key for agents |
+| `ZERO_HOME` | Override default storage path |
+
+## Examples
+
+### Run with specific profile
+
+```bash
+zero hydrate owner/repo all-complete
+zero hydrate owner/repo code-security
+```
+
+### Create custom profile for security audits
+
+Add to `~/.zero/config.json`:
+
+```json
+{
+  "profiles": {
+    "security-audit": {
+      "name": "Security Audit",
+      "description": "Deep security scan",
+      "scanners": ["code-packages", "code-security"],
+      "feature_overrides": {
+        "code-security": {
+          "secrets": {
+            "git_history_scan": {"enabled": true, "max_commits": 5000}
+          }
+        },
+        "code-packages": {
+          "malcontent": {"enabled": true},
+          "provenance": {"enabled": true}
+        }
+      }
+    }
+  }
+}
+```
+
+Then run:
+```bash
+zero hydrate owner/repo security-audit
+```
