@@ -54,7 +54,6 @@ Added a complete web interface for visualizing scan results and managing project
 - **Demo Scripts** (`demo/`):
   - `LOOM_SCRIPT.md` - Step-by-step demo recording guide
   - `COMMANDS.sh` - All demo commands in sequence
-  - `check-prereqs.sh` - Prerequisite verification
 
 ### Changed
 
