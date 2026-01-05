@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/crashappsec/zero/pkg/core/credentials"
 )
 
 // ============================================================================
@@ -38,16 +39,11 @@ type Client struct {
 
 // NewClient creates a new GitHub client
 func NewClient() *Client {
-	token := os.Getenv("GITHUB_TOKEN")
-	if token == "" {
-		// Try gh auth token
-		if out, err := exec.Command("gh", "auth", "token").Output(); err == nil {
-			token = strings.TrimSpace(string(out))
-		}
-	}
+	// Use credentials package to get token from best available source
+	tokenInfo := credentials.GetGitHubToken()
 
 	return &Client{
-		token: token,
+		token: tokenInfo.Value,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -705,6 +701,16 @@ var ScannerRequirements = map[string]ScannerRequirement{
 		},
 		RequiredTools: []string{"cdxgen", "osv-scanner", "malcontent"},
 	},
+	"code-packages": {
+		Scanner:        "code-packages",
+		Description:    "SBOM generation + package/dependency analysis (vulns, health, licenses, malcontent)",
+		NeedsGitHubAPI: true,
+		RequiredScopes: []string{"public_repo"},
+		RequiredPermissions: map[string]string{
+			"metadata": "read",
+		},
+		RequiredTools: []string{"cdxgen"},
+	},
 	"crypto": {
 		Scanner:        "crypto",
 		Description:    "Consolidated cryptographic security scanner",
@@ -791,6 +797,12 @@ var ScannerRequirements = map[string]ScannerRequirement{
 		Scanner:        "tech-id",
 		Description:    "Technology detection and ML-BOM generation",
 		NeedsGitHubAPI: false,
+	},
+	"technology-identification": {
+		Scanner:        "technology-identification",
+		Description:    "Technology detection, ML-BOM generation, AI/ML security analysis",
+		NeedsGitHubAPI: false,
+		RequiredTools:  []string{"semgrep"},
 	},
 	"devx": {
 		Scanner:        "devx",
@@ -1094,4 +1106,164 @@ func hasAccessLevel(have, need string) bool {
 		"admin": 3,
 	}
 	return levels[have] >= levels[need]
+}
+
+// ============================================================================
+// Accessible Repos and Organizations
+// ============================================================================
+
+// AccessibleRepo represents a repo the token can access
+type AccessibleRepo struct {
+	FullName string `json:"full_name"`
+	Private  bool   `json:"private"`
+	Owner    string `json:"owner"`
+}
+
+// AccessibleOrg represents an organization the user has access to
+type AccessibleOrg struct {
+	Login       string           `json:"login"`
+	Description string           `json:"description"`
+	Repos       []AccessibleRepo `json:"repos"`
+}
+
+// AccessibleRepoSummary provides a summary of accessible repos
+type AccessibleRepoSummary struct {
+	User          string           `json:"user"`
+	PersonalRepos []AccessibleRepo `json:"personal_repos"`
+	Orgs          []AccessibleOrg  `json:"orgs"`
+	TotalRepos    int              `json:"total_repos"`
+}
+
+// ListAccessibleRepos returns a detailed list of repos the token can access
+func (c *Client) ListAccessibleRepos() (*AccessibleRepoSummary, error) {
+	if c.token == "" {
+		return nil, fmt.Errorf("no GitHub token available")
+	}
+
+	summary := &AccessibleRepoSummary{}
+
+	// Get authenticated user
+	req, err := http.NewRequest("GET", "https://api.github.com/user", nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Accept", "application/vnd.github+json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to get user info: status %d", resp.StatusCode)
+	}
+
+	var user struct {
+		Login string `json:"login"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
+		return nil, err
+	}
+	summary.User = user.Login
+
+	// Get user's own repos
+	summary.PersonalRepos = c.listUserRepos(user.Login)
+	summary.TotalRepos = len(summary.PersonalRepos)
+
+	// Get organizations
+	orgsReq, err := http.NewRequest("GET", "https://api.github.com/user/orgs", nil)
+	if err != nil {
+		return summary, nil // Return partial result
+	}
+	orgsReq.Header.Set("Authorization", "Bearer "+c.token)
+	orgsReq.Header.Set("Accept", "application/vnd.github+json")
+
+	orgsResp, err := c.httpClient.Do(orgsReq)
+	if err != nil {
+		return summary, nil
+	}
+	defer orgsResp.Body.Close()
+
+	if orgsResp.StatusCode == 200 {
+		var orgs []struct {
+			Login       string `json:"login"`
+			Description string `json:"description"`
+		}
+		if err := json.NewDecoder(orgsResp.Body).Decode(&orgs); err == nil {
+			for _, org := range orgs {
+				repos := c.listOrgRepos(org.Login)
+				summary.Orgs = append(summary.Orgs, AccessibleOrg{
+					Login:       org.Login,
+					Description: org.Description,
+					Repos:       repos,
+				})
+				summary.TotalRepos += len(repos)
+			}
+		}
+	}
+
+	return summary, nil
+}
+
+// listUserRepos returns repos owned by the user
+func (c *Client) listUserRepos(username string) []AccessibleRepo {
+	// Use gh CLI for consistency with auth
+	cmd := exec.Command("gh", "repo", "list", username,
+		"--json", "nameWithOwner,isPrivate",
+		"--limit", "100",
+		"--no-archived")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+
+	var ghRepos []struct {
+		NameWithOwner string `json:"nameWithOwner"`
+		IsPrivate     bool   `json:"isPrivate"`
+	}
+	if err := json.Unmarshal(out, &ghRepos); err != nil {
+		return nil
+	}
+
+	repos := make([]AccessibleRepo, len(ghRepos))
+	for i, r := range ghRepos {
+		repos[i] = AccessibleRepo{
+			FullName: r.NameWithOwner,
+			Private:  r.IsPrivate,
+			Owner:    username,
+		}
+	}
+	return repos
+}
+
+// listOrgRepos returns repos in an organization
+func (c *Client) listOrgRepos(org string) []AccessibleRepo {
+	cmd := exec.Command("gh", "repo", "list", org,
+		"--json", "nameWithOwner,isPrivate",
+		"--limit", "100",
+		"--no-archived")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil
+	}
+
+	var ghRepos []struct {
+		NameWithOwner string `json:"nameWithOwner"`
+		IsPrivate     bool   `json:"isPrivate"`
+	}
+	if err := json.Unmarshal(out, &ghRepos); err != nil {
+		return nil
+	}
+
+	repos := make([]AccessibleRepo, len(ghRepos))
+	for i, r := range ghRepos {
+		repos[i] = AccessibleRepo{
+			FullName: r.NameWithOwner,
+			Private:  r.IsPrivate,
+			Owner:    org,
+		}
+	}
+	return repos
 }

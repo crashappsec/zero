@@ -8,194 +8,119 @@ import (
 	"path/filepath"
 )
 
-// Config represents the main Zero configuration from zero.config.json
+// Config represents the main Zero configuration
 type Config struct {
-	Version  string              `json:"_version"`
-	Settings Settings            `json:"settings"`
-	Scanners map[string]Scanner  `json:"scanners"`
-	Profiles map[string]Profile  `json:"profiles"`
+	Version  string             `json:"_version"`
+	Settings Settings           `json:"settings"`
+	Profiles map[string]Profile `json:"profiles"`
+	Scanners map[string]Scanner `json:"scanners,omitempty"` // Loaded from defaults
 }
 
 // Settings contains global settings
 type Settings struct {
-	DefaultProfile        string      `json:"default_profile"`
-	StoragePath           string      `json:"storage_path"`
-	ParallelRepos         int         `json:"parallel_repos"`          // Parallel repo processing (default: 1 for sequential)
-	ParallelScanners      int         `json:"parallel_scanners"`       // Parallel scanner execution per repo (default: 4)
-	ScannerTimeoutSeconds int         `json:"scanner_timeout_seconds"`
-	CacheTTLHours         int         `json:"cache_ttl_hours"`
-	Environment           Environment `json:"environment"`
+	DefaultProfile        string `json:"default_profile"`
+	StoragePath           string `json:"storage_path"`
+	ParallelRepos         int    `json:"parallel_repos"`
+	ParallelScanners      int    `json:"parallel_scanners"`
+	ScannerTimeoutSeconds int    `json:"scanner_timeout_seconds"`
+	CacheTTLHours         int    `json:"cache_ttl_hours"`
 }
 
-// Environment contains environment variable names
-type Environment struct {
-	GitHubTokenEnv   string `json:"github_token_env"`
-	AnthropicKeyEnv  string `json:"anthropic_key_env"`
-}
-
-// Scanner defines a scanner configuration
+// Scanner defines a scanner configuration with features
 type Scanner struct {
-	Name           string         `json:"name"`
-	Description    string         `json:"description"`
-	Script         string         `json:"script"`
-	ClaudeMode     string         `json:"claude_mode"`
-	ClaudeFeatures []string       `json:"claude_features"`
-	EstimatedTime  string         `json:"estimated_time"`
-	OutputFile     string         `json:"output_file"`
-	Options        ScannerOptions `json:"options,omitempty"`
+	Name          string                 `json:"name"`
+	Description   string                 `json:"description"`
+	OutputFile    string                 `json:"output_file"`
+	EstimatedTime string                 `json:"estimated_time,omitempty"`
+	Dependencies  []string               `json:"dependencies,omitempty"`
+	Features      map[string]interface{} `json:"features,omitempty"`
 }
 
-// ScannerOptions contains scanner-specific configuration
-type ScannerOptions struct {
-	SBOM    *SBOMOptions    `json:"sbom,omitempty"`
-	Secrets *SecretsOptions `json:"secrets,omitempty"`
-	CodeSec *CodeSecOptions `json:"code_security,omitempty"`
-}
-
-// SBOMOptions configures SBOM generation (cdxgen/syft)
-type SBOMOptions struct {
-	// Tool preference: "cdxgen", "syft", or "auto" (default: auto - prefers cdxgen)
-	Tool string `json:"tool"`
-	// SpecVersion for CycloneDX (default: 1.5)
-	SpecVersion string `json:"spec_version"`
-	// Format output format: "json", "xml" (default: json)
-	Format string `json:"format"`
-	// Recurse into subdirectories for mono-repos (default: true)
-	Recurse bool `json:"recurse"`
-	// InstallDeps install dependencies before scanning (default: false for speed)
-	InstallDeps bool `json:"install_deps"`
-	// BabelAnalysis run babel for JS/TS usage analysis (default: false for speed)
-	BabelAnalysis bool `json:"babel_analysis"`
-	// Deep perform deep searches for C/C++, live OS, OCI images (default: false)
-	Deep bool `json:"deep"`
-	// Evidence generate SBOM with evidence (default: false)
-	Evidence bool `json:"evidence"`
-	// Profile cdxgen profile: "generic", "research", "appsec", "operational" (default: generic)
-	Profile string `json:"profile"`
-	// ExcludePatterns glob patterns to exclude
-	ExcludePatterns []string `json:"exclude_patterns,omitempty"`
-	// FallbackToSyft use syft if cdxgen fails (default: true)
-	FallbackToSyft bool `json:"fallback_to_syft"`
-	// TimeoutSeconds override default timeout for SBOM generation
-	TimeoutSeconds int `json:"timeout_seconds,omitempty"`
-}
-
-// SecretsOptions configures secrets detection
-type SecretsOptions struct {
-	// Tool preference: "gitleaks", "trufflehog", "detect-secrets" (default: gitleaks)
-	Tool string `json:"tool"`
-	// IncludePatterns additional regex patterns to detect
-	IncludePatterns []string `json:"include_patterns,omitempty"`
-	// ExcludePatterns patterns to ignore
-	ExcludePatterns []string `json:"exclude_patterns,omitempty"`
-	// ExcludePaths paths to skip
-	ExcludePaths []string `json:"exclude_paths,omitempty"`
-	// Entropy enable entropy-based detection (default: true)
-	Entropy bool `json:"entropy"`
-}
-
-// CodeSecOptions configures code security scanning
-type CodeSecOptions struct {
-	// Tool preference: "semgrep", "codeql" (default: semgrep)
-	Tool string `json:"tool"`
-	// Rulesets semgrep rulesets to use (default: ["auto"])
-	Rulesets []string `json:"rulesets,omitempty"`
-	// ExcludePaths paths to skip
-	ExcludePaths []string `json:"exclude_paths,omitempty"`
-	// Severity minimum severity: "INFO", "WARNING", "ERROR" (default: WARNING)
-	Severity string `json:"severity"`
-}
-
-// Profile defines a scanning profile with its scanners
+// Profile defines a scanning profile
 type Profile struct {
-	Name           string   `json:"name"`
-	Description    string   `json:"description"`
-	EstimatedTime  string   `json:"estimated_time"`
-	ClaudeMode     string   `json:"claude_mode"`
-	SBOMGenerator  string   `json:"sbom_generator"`
-	ClaudeScanners []string `json:"claude_scanners"`
-	Scanners       []string `json:"scanners"`
+	Name             string                            `json:"name"`
+	Description      string                            `json:"description"`
+	EstimatedTime    string                            `json:"estimated_time,omitempty"`
+	Scanners         []string                          `json:"scanners"`
+	FeatureOverrides map[string]map[string]interface{} `json:"feature_overrides,omitempty"`
 }
 
-// DefaultConfig returns sensible defaults
-func DefaultConfig() *Config {
-	return &Config{
-		Version: "1.0",
+// Load reads configuration from multiple sources and merges them
+// Priority: defaults < main config < user config (~/.zero/config.json)
+func Load() (*Config, error) {
+	cfg := &Config{
 		Settings: Settings{
-			DefaultProfile:        "standard",
+			DefaultProfile:        "all-quick",
 			StoragePath:           ".zero",
-			ParallelRepos:         1, // Sequential repo processing for cleaner output
-			ParallelScanners:      4, // Parallel scanner execution for speed
+			ParallelRepos:         8,
+			ParallelScanners:      4,
 			ScannerTimeoutSeconds: 300,
 			CacheTTLHours:         24,
 		},
-		Profiles: map[string]Profile{
-			"packages": {
-				Name:        "Packages",
-				Description: "Package-focused analysis",
-				Scanners: []string{
-					"package-sbom",
-					"package-vulns",
-					"package-health",
-					"package-provenance",
-					"package-malcontent",
-					"package-bundle-optimization",
-					"package-recommendations",
-				},
-			},
-		},
+		Profiles: make(map[string]Profile),
+		Scanners: make(map[string]Scanner),
 	}
+
+	// 1. Load scanner defaults
+	if err := loadScannerDefaults(cfg); err != nil {
+		// Non-fatal: continue without defaults
+		_ = err
+	}
+
+	// 2. Load main config
+	mainConfigPath := findMainConfig()
+	if mainConfigPath != "" {
+		if err := loadAndMerge(cfg, mainConfigPath); err != nil {
+			return nil, fmt.Errorf("loading main config: %w", err)
+		}
+	}
+
+	// 3. Load user config overrides
+	userConfigPath := findUserConfig()
+	if userConfigPath != "" {
+		if err := loadAndMerge(cfg, userConfigPath); err != nil {
+			// Non-fatal: continue without user overrides
+			_ = err
+		}
+	}
+
+	return cfg, nil
 }
 
-// Load reads configuration from the default location
-func Load() (*Config, error) {
-	// Find config file
-	configPath := findConfigFile()
-	if configPath == "" {
-		return DefaultConfig(), nil
+// loadScannerDefaults loads scanner feature defaults from config/defaults/scanners.json
+func loadScannerDefaults(cfg *Config) error {
+	candidates := []string{
+		"config/defaults/scanners.json",
+		filepath.Join(execDir(), "config/defaults/scanners.json"),
 	}
 
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("reading config: %w", err)
+	for _, path := range candidates {
+		data, err := os.ReadFile(path)
+		if err != nil {
+			continue
+		}
+
+		var scanners map[string]Scanner
+		if err := json.Unmarshal(data, &scanners); err != nil {
+			return fmt.Errorf("parsing scanner defaults: %w", err)
+		}
+
+		// Remove docs field if present
+		delete(scanners, "_docs")
+
+		cfg.Scanners = scanners
+		return nil
 	}
 
-	var cfg Config
-	if err := json.Unmarshal(data, &cfg); err != nil {
-		return nil, fmt.Errorf("parsing config: %w", err)
-	}
-
-	// Apply defaults for missing values
-	if cfg.Settings.ParallelRepos == 0 {
-		cfg.Settings.ParallelRepos = 1 // Sequential repo processing by default
-	}
-	if cfg.Settings.ParallelScanners == 0 {
-		cfg.Settings.ParallelScanners = 4 // Parallel scanner execution by default
-	}
-	if cfg.Settings.ScannerTimeoutSeconds == 0 {
-		cfg.Settings.ScannerTimeoutSeconds = 300
-	}
-	if cfg.Settings.StoragePath == "" {
-		cfg.Settings.StoragePath = ".zero"
-	}
-	if cfg.Settings.DefaultProfile == "" {
-		cfg.Settings.DefaultProfile = "standard"
-	}
-
-	return &cfg, nil
+	return fmt.Errorf("scanner defaults not found")
 }
 
-// findConfigFile looks for zero.config.json in standard locations
-func findConfigFile() string {
-	// Get executable directory for relative path resolution
-	exePath, _ := os.Executable()
-	exeDir := filepath.Dir(exePath)
-
+// findMainConfig looks for zero.config.json
+func findMainConfig() string {
 	candidates := []string{
 		"config/zero.config.json",
-		filepath.Join(exeDir, "..", "config/zero.config.json"),
+		filepath.Join(execDir(), "config/zero.config.json"),
 		"zero.config.json",
-		filepath.Join(os.Getenv("HOME"), ".zero", "config.json"),
 	}
 
 	for _, path := range candidates {
@@ -204,6 +129,71 @@ func findConfigFile() string {
 		}
 	}
 	return ""
+}
+
+// findUserConfig looks for user config in ~/.zero/config.json
+func findUserConfig() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+
+	path := filepath.Join(home, ".zero", "config.json")
+	if _, err := os.Stat(path); err == nil {
+		return path
+	}
+	return ""
+}
+
+// execDir returns the directory containing the executable
+func execDir() string {
+	exePath, _ := os.Executable()
+	return filepath.Dir(exePath)
+}
+
+// loadAndMerge loads a config file and merges it into the existing config
+func loadAndMerge(cfg *Config, path string) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
+	var overlay Config
+	if err := json.Unmarshal(data, &overlay); err != nil {
+		return fmt.Errorf("parsing config %s: %w", path, err)
+	}
+
+	// Merge settings (overlay wins)
+	if overlay.Settings.DefaultProfile != "" {
+		cfg.Settings.DefaultProfile = overlay.Settings.DefaultProfile
+	}
+	if overlay.Settings.StoragePath != "" {
+		cfg.Settings.StoragePath = overlay.Settings.StoragePath
+	}
+	if overlay.Settings.ParallelRepos != 0 {
+		cfg.Settings.ParallelRepos = overlay.Settings.ParallelRepos
+	}
+	if overlay.Settings.ParallelScanners != 0 {
+		cfg.Settings.ParallelScanners = overlay.Settings.ParallelScanners
+	}
+	if overlay.Settings.ScannerTimeoutSeconds != 0 {
+		cfg.Settings.ScannerTimeoutSeconds = overlay.Settings.ScannerTimeoutSeconds
+	}
+	if overlay.Settings.CacheTTLHours != 0 {
+		cfg.Settings.CacheTTLHours = overlay.Settings.CacheTTLHours
+	}
+
+	// Merge profiles (overlay wins for each profile)
+	for name, profile := range overlay.Profiles {
+		cfg.Profiles[name] = profile
+	}
+
+	// Merge scanners (overlay wins for each scanner)
+	for name, scanner := range overlay.Scanners {
+		cfg.Scanners[name] = scanner
+	}
+
+	return nil
 }
 
 // GetProfileScanners returns the scanner list for a profile
@@ -224,9 +214,13 @@ func (c *Config) GetProfileNames() []string {
 	return names
 }
 
-// GetScannerTimeout returns the timeout for a scanner (in seconds)
-func (c *Config) GetScannerTimeout(scanner string) int {
-	return c.Settings.ScannerTimeoutSeconds
+// GetProfile returns profile configuration by name
+func (c *Config) GetProfile(name string) (*Profile, bool) {
+	p, ok := c.Profiles[name]
+	if !ok {
+		return nil, false
+	}
+	return &p, true
 }
 
 // GetScanner returns scanner configuration by name
@@ -238,75 +232,60 @@ func (c *Config) GetScanner(name string) (*Scanner, bool) {
 	return &s, true
 }
 
-// GetScannerFeatures returns the features configuration for a scanner as a map
-// This is used to pass scanner-specific feature configuration to scanners
-func (c *Config) GetScannerFeatures(name string) map[string]interface{} {
-	s, ok := c.Scanners[name]
+// GetScannerFeatures returns features for a scanner, with profile overrides applied
+func (c *Config) GetScannerFeatures(scanner, profile string) map[string]interface{} {
+	s, ok := c.Scanners[scanner]
 	if !ok {
 		return nil
 	}
 
-	// The scanner struct has a Features field that contains the raw JSON
-	// We need to extract it from the raw config
-	configPath := findConfigFile()
-	if configPath == "" {
-		return nil
+	// Start with default features
+	features := make(map[string]interface{})
+	for k, v := range s.Features {
+		features[k] = v
 	}
 
-	data, err := os.ReadFile(configPath)
-	if err != nil {
-		return nil
+	// Apply profile overrides if any
+	if profile != "" {
+		p, ok := c.Profiles[profile]
+		if ok && p.FeatureOverrides != nil {
+			if overrides, ok := p.FeatureOverrides[scanner]; ok {
+				mergeFeatures(features, overrides)
+			}
+		}
 	}
-
-	// Parse into a generic map to access features
-	var raw map[string]interface{}
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil
-	}
-
-	scanners, ok := raw["scanners"].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	scanner, ok := scanners[name].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	features, ok := scanner["features"].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-
-	// For consistency with scanner expectations, we use the description to detect misconfig
-	_ = s.Description
 
 	return features
 }
 
-// GetProfile returns profile configuration by name
-func (c *Config) GetProfile(name string) (*Profile, bool) {
-	p, ok := c.Profiles[name]
-	if !ok {
-		return nil, false
+// mergeFeatures merges override features into base features
+func mergeFeatures(base, override map[string]interface{}) {
+	for k, v := range override {
+		if baseMap, ok := base[k].(map[string]interface{}); ok {
+			if overrideMap, ok := v.(map[string]interface{}); ok {
+				mergeFeatures(baseMap, overrideMap)
+				continue
+			}
+		}
+		base[k] = v
 	}
-	return &p, true
 }
 
-// ZeroHome returns the storage path (resolves to absolute if needed)
+// GetScannerTimeout returns the timeout for a scanner (in seconds)
+func (c *Config) GetScannerTimeout(scanner string) int {
+	return c.Settings.ScannerTimeoutSeconds
+}
+
+// ZeroHome returns the storage path
 func (c *Config) ZeroHome() string {
 	return c.Settings.StoragePath
 }
 
-// SlowScanners returns scanners that are known to be slow on large repos
+// SlowScanners returns scanners that are known to be slow
 func (c *Config) SlowScanners() []string {
 	return []string{
-		"package-malcontent",
-		"code-vulns",
-		"code-secrets",
-		"bundle-analysis",
-		"container-security",
+		"code-packages",
+		"code-security",
 	}
 }
 
@@ -318,99 +297,4 @@ func (c *Config) IsSlowScanner(name string) bool {
 		}
 	}
 	return false
-}
-
-// GetSBOMOptions returns SBOM configuration with sensible defaults
-func (c *Config) GetSBOMOptions() *SBOMOptions {
-	// Check if scanner has custom options
-	if scanner, ok := c.Scanners["package-sbom"]; ok {
-		if scanner.Options.SBOM != nil {
-			opts := scanner.Options.SBOM
-			// Apply defaults for unset values
-			if opts.Tool == "" {
-				opts.Tool = "auto"
-			}
-			if opts.SpecVersion == "" {
-				opts.SpecVersion = "1.5"
-			}
-			if opts.Format == "" {
-				opts.Format = "json"
-			}
-			if opts.Profile == "" {
-				opts.Profile = "generic"
-			}
-			return opts
-		}
-	}
-
-	// Return defaults optimized for speed
-	return &SBOMOptions{
-		Tool:           "auto",      // Prefer cdxgen, fall back to syft
-		SpecVersion:    "1.5",
-		Format:         "json",
-		Recurse:        true,        // Support mono-repos
-		InstallDeps:    false,       // Speed optimization
-		BabelAnalysis:  false,       // Speed optimization
-		Deep:           false,       // Speed optimization
-		Evidence:       false,       // Speed optimization
-		Profile:        "generic",
-		FallbackToSyft: true,        // Resilience
-		TimeoutSeconds: 300,         // 5 minutes default
-	}
-}
-
-// GetSecretsOptions returns secrets scanner configuration with sensible defaults
-func (c *Config) GetSecretsOptions() *SecretsOptions {
-	if scanner, ok := c.Scanners["code-secrets"]; ok {
-		if scanner.Options.Secrets != nil {
-			return scanner.Options.Secrets
-		}
-	}
-	return &SecretsOptions{
-		Tool:    "gitleaks",
-		Entropy: true,
-	}
-}
-
-// GetCodeSecOptions returns code security scanner configuration with sensible defaults
-func (c *Config) GetCodeSecOptions() *CodeSecOptions {
-	if scanner, ok := c.Scanners["code-vulns"]; ok {
-		if scanner.Options.CodeSec != nil {
-			return scanner.Options.CodeSec
-		}
-	}
-	return &CodeSecOptions{
-		Tool:     "semgrep",
-		Rulesets: []string{"auto"},
-		Severity: "WARNING",
-	}
-}
-
-// SheetsConfig holds configuration for Google Sheets export
-type SheetsConfig struct {
-	ClientID     string `json:"oauth_client_id"`
-	ClientSecret string `json:"oauth_client_secret"`
-	TokenPath    string `json:"token_cache_path"`
-	Enabled      bool   `json:"enabled"`
-}
-
-// GetSheetsConfig returns Google Sheets export configuration
-func (c *Config) GetSheetsConfig() *SheetsConfig {
-	// Check environment variables first (override)
-	clientID := os.Getenv("ZERO_SHEETS_CLIENT_ID")
-	clientSecret := os.Getenv("ZERO_SHEETS_CLIENT_SECRET")
-	tokenPath := os.Getenv("ZERO_SHEETS_TOKEN_PATH")
-
-	// Default token path
-	if tokenPath == "" {
-		home, _ := os.UserHomeDir()
-		tokenPath = filepath.Join(home, ".zero", "google-token.json")
-	}
-
-	return &SheetsConfig{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		TokenPath:    tokenPath,
-		Enabled:      clientID != "" && clientSecret != "",
-	}
 }

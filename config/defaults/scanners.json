@@ -1,0 +1,232 @@
+{
+  "_docs": "Scanner feature defaults. Override in ~/.zero/config.json or via profile feature_overrides.",
+
+  "code-packages": {
+    "name": "Code Packages",
+    "description": "SBOM generation and package/dependency analysis",
+    "output_file": "code-packages.json",
+    "features": {
+      "generation": {
+        "enabled": true,
+        "tool": "auto",
+        "spec_version": "1.5",
+        "fallback_to_syft": true
+      },
+      "vulns": {
+        "enabled": true,
+        "severity_threshold": "low",
+        "include_kev": true
+      },
+      "health": {
+        "enabled": true,
+        "max_packages": 50,
+        "check_scorecard": true
+      },
+      "licenses": {
+        "enabled": true,
+        "blocked": ["GPL-3.0", "AGPL-3.0"],
+        "fail_on_unknown": false
+      },
+      "malcontent": {
+        "enabled": true,
+        "min_risk_level": "medium"
+      },
+      "typosquats": {
+        "enabled": true
+      },
+      "deprecations": {
+        "enabled": true
+      },
+      "duplicates": {
+        "enabled": true
+      },
+      "confusion": {
+        "enabled": true
+      },
+      "provenance": {
+        "enabled": false
+      },
+      "reachability": {
+        "enabled": false
+      }
+    }
+  },
+
+  "code-security": {
+    "name": "Code Security",
+    "description": "Security-focused code analysis",
+    "output_file": "code-security.json",
+    "features": {
+      "vulns": {
+        "enabled": true,
+        "severity_minimum": "low"
+      },
+      "secrets": {
+        "enabled": true,
+        "redact_secrets": true,
+        "entropy_analysis": {
+          "enabled": true,
+          "min_length": 16
+        },
+        "git_history_scan": {
+          "enabled": false,
+          "max_commits": 1000
+        }
+      },
+      "api": {
+        "enabled": true,
+        "check_auth": true,
+        "check_injection": true,
+        "check_graphql": true
+      },
+      "ciphers": {
+        "enabled": true
+      },
+      "keys": {
+        "enabled": true,
+        "redact_matches": true
+      },
+      "random": {
+        "enabled": true
+      },
+      "tls": {
+        "enabled": true
+      },
+      "certificates": {
+        "enabled": true,
+        "expiry_warning_days": 90
+      }
+    }
+  },
+
+  "code-quality": {
+    "name": "Code Quality",
+    "description": "Code quality analysis",
+    "output_file": "code-quality.json",
+    "features": {
+      "tech_debt": {
+        "enabled": true,
+        "marker_types": ["TODO", "FIXME", "HACK", "XXX", "BUG"]
+      },
+      "complexity": {
+        "enabled": true,
+        "max_cyclomatic": 10,
+        "max_function_lines": 50
+      },
+      "test_coverage": {
+        "enabled": true,
+        "minimum_threshold": 80
+      },
+      "code_docs": {
+        "enabled": true
+      }
+    }
+  },
+
+  "devops": {
+    "name": "DevOps",
+    "description": "DevOps and infrastructure analysis",
+    "output_file": "devops.json",
+    "features": {
+      "iac": {
+        "enabled": true,
+        "tool": "auto"
+      },
+      "containers": {
+        "enabled": true
+      },
+      "github_actions": {
+        "enabled": true,
+        "check_pinning": true,
+        "check_secrets": true
+      },
+      "dora": {
+        "enabled": true,
+        "period_days": 90
+      },
+      "git": {
+        "enabled": true
+      }
+    }
+  },
+
+  "technology-identification": {
+    "name": "Technology Identification",
+    "description": "Technology detection and ML-BOM generation",
+    "output_file": "technology-identification.json",
+    "features": {
+      "detection": {
+        "enabled": true,
+        "tier": "auto"
+      },
+      "models": {
+        "enabled": true
+      },
+      "frameworks": {
+        "enabled": true
+      },
+      "datasets": {
+        "enabled": true
+      },
+      "ai_security": {
+        "enabled": true
+      },
+      "ai_governance": {
+        "enabled": true
+      },
+      "infrastructure": {
+        "enabled": true
+      }
+    }
+  },
+
+  "code-ownership": {
+    "name": "Code Ownership",
+    "description": "Code ownership and contributor analysis",
+    "output_file": "code-ownership.json",
+    "features": {
+      "contributors": {
+        "enabled": true,
+        "period_days": 90
+      },
+      "bus_factor": {
+        "enabled": true,
+        "period_days": 365
+      },
+      "codeowners": {
+        "enabled": true
+      },
+      "orphans": {
+        "enabled": true,
+        "inactive_days": 180
+      },
+      "churn": {
+        "enabled": true,
+        "period_days": 90
+      },
+      "patterns": {
+        "enabled": true
+      }
+    }
+  },
+
+  "developer-experience": {
+    "name": "Developer Experience",
+    "description": "Developer experience analysis",
+    "output_file": "developer-experience.json",
+    "dependencies": ["technology-identification"],
+    "features": {
+      "onboarding": {
+        "enabled": true
+      },
+      "sprawl": {
+        "enabled": true,
+        "max_recommended_tools": 10,
+        "max_recommended_technologies": 15
+      },
+      "workflow": {
+        "enabled": true
+      }
+    }
+  }
+}

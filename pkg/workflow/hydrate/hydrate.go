@@ -1095,8 +1095,12 @@ func contains(slice []string, item string) bool {
 // loadFeatureConfigs loads feature configuration from zero.config.json for each scanner
 func (h *Hydrate) loadFeatureConfigs(scanners []string) map[string]map[string]interface{} {
 	configs := make(map[string]map[string]interface{})
+	profile := ""
+	if h.opts != nil {
+		profile = h.opts.Profile
+	}
 	for _, name := range scanners {
-		if features := h.cfg.GetScannerFeatures(name); features != nil {
+		if features := h.cfg.GetScannerFeatures(name, profile); features != nil {
 			configs[name] = features
 		}
 	}

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/crashappsec/zero/pkg/core/config"
+	"github.com/crashappsec/zero/pkg/core/credentials"
 	"github.com/crashappsec/zero/pkg/core/github"
 	"github.com/crashappsec/zero/pkg/scanner"
 	"github.com/crashappsec/zero/pkg/core/terminal"
@@ -217,7 +218,7 @@ func runCheckup(cmd *cobra.Command, args []string) error {
 	fmt.Println()
 
 	missingPrereqs := printPrerequisites(term)
-	printTokenStatus(result, term)
+	printTokenStatus(result, gh, term)
 	missingTools := printToolsStatus(result, term)
 	missingTools = append(missingPrereqs, missingTools...)
 	printScannerCompatibility(result, checkupProfile, term)
@@ -266,43 +267,120 @@ func printPrerequisites(term *terminal.Terminal) []string {
 	return missing
 }
 
-func printTokenStatus(result *github.RoadmapResult, term *terminal.Terminal) {
-	fmt.Println("\033[1mGitHub Token Status\033[0m")
+func printTokenStatus(result *github.RoadmapResult, gh *github.Client, term *terminal.Terminal) {
+	fmt.Println("\033[1mCredentials\033[0m")
 	fmt.Println(strings.Repeat("─", 60))
 
-	if !result.TokenInfo.Valid {
-		fmt.Printf("  \033[0;31m✗\033[0m Status: \033[0;31mInvalid or Missing\033[0m\n")
-		if result.TokenInfo.Error != "" {
-			fmt.Printf("    Error: %s\n", result.TokenInfo.Error)
-		}
-		fmt.Println()
-		fmt.Println("  \033[2mTo authenticate:\033[0m")
-		fmt.Println("    • Run: gh auth login")
-		fmt.Println("    • Or set: export GITHUB_TOKEN=ghp_...")
-	} else {
-		fmt.Printf("  \033[0;32m✓\033[0m Status: \033[0;32mValid\033[0m\n")
-		fmt.Printf("    User: %s\n", result.TokenInfo.Username)
-		fmt.Printf("    Type: %s\n", formatTokenType(result.TokenInfo.Type))
-
-		if result.TokenInfo.RateLimit > 0 {
-			fmt.Printf("    Rate Limit: %d/%d remaining\n",
-				result.TokenInfo.RateRemaining, result.TokenInfo.RateLimit)
-		}
-
-		if len(result.TokenInfo.Scopes) > 0 {
-			fmt.Printf("    Scopes: %s\n", strings.Join(result.TokenInfo.Scopes, ", "))
-		}
-
-		if len(result.TokenInfo.Permissions) > 0 {
-			perms := make([]string, 0)
-			for k, v := range result.TokenInfo.Permissions {
-				perms = append(perms, fmt.Sprintf("%s:%s", k, v))
+	// GitHub Token - show source
+	ghInfo := credentials.GetGitHubToken()
+	fmt.Print("  GitHub Token:    ")
+	if ghInfo.Valid {
+		fmt.Printf("\033[0;32m✓\033[0m %s \033[2m(%s)\033[0m\n",
+			credentials.MaskToken(ghInfo.Value), ghInfo.Source)
+		if result.TokenInfo.Valid {
+			fmt.Printf("    User: %s, Type: %s\n", result.TokenInfo.Username, formatTokenType(result.TokenInfo.Type))
+			if result.TokenInfo.RateLimit > 0 {
+				fmt.Printf("    Rate Limit: %d/%d remaining\n",
+					result.TokenInfo.RateRemaining, result.TokenInfo.RateLimit)
 			}
-			sort.Strings(perms)
-			fmt.Printf("    Permissions: %s\n", strings.Join(perms, ", "))
+
+			// Warn about classic tokens
+			if result.TokenInfo.Type == "classic" {
+				fmt.Println()
+				fmt.Println("  \033[0;33m⚠ Security Warning: Classic PAT detected\033[0m")
+				fmt.Println("    Classic tokens often have broader access than needed.")
+				fmt.Println("    \033[2mRecommendation: Use a fine-grained PAT scoped to specific repos.\033[0m")
+				fmt.Println("    \033[2mCreate one at: https://github.com/settings/tokens?type=beta\033[0m")
+			}
 		}
+	} else {
+		fmt.Printf("\033[0;31m✗\033[0m \033[2mnot configured\033[0m\n")
+	}
+
+	// Anthropic Key - show source
+	akInfo := credentials.GetAnthropicKey()
+	fmt.Print("  Anthropic Key:   ")
+	if akInfo.Valid {
+		fmt.Printf("\033[0;32m✓\033[0m %s \033[2m(%s)\033[0m\n",
+			credentials.MaskToken(akInfo.Value), akInfo.Source)
+	} else {
+		fmt.Printf("\033[0;31m✗\033[0m \033[2mnot configured\033[0m\n")
+	}
+
+	if !ghInfo.Valid || !akInfo.Valid {
+		fmt.Println()
+		fmt.Println("  \033[2mTo configure:\033[0m")
+		fmt.Println("    • Run: zero config set github_token")
+		fmt.Println("    • Run: zero config set anthropic_key")
+		fmt.Println("    • Or set environment variables")
 	}
 	fmt.Println()
+
+	// Show accessible repos if token is valid
+	if ghInfo.Valid && result.TokenInfo.Valid {
+		printAccessibleRepos(gh, result.TokenInfo.Type, term)
+	}
+}
+
+func printAccessibleRepos(gh *github.Client, tokenType string, term *terminal.Terminal) {
+	fmt.Println("\033[1mAccessible Repositories\033[0m")
+	fmt.Println(strings.Repeat("─", 60))
+
+	if tokenType == "classic" {
+		fmt.Println("  \033[0;33mThis token has access to the following repos:\033[0m")
+		fmt.Println()
+	}
+
+	summary, err := gh.ListAccessibleRepos()
+	if err != nil {
+		fmt.Printf("  \033[2mUnable to list repos: %v\033[0m\n", err)
+		fmt.Println()
+		return
+	}
+
+	// Personal repos - list actual names
+	if len(summary.PersonalRepos) > 0 {
+		fmt.Printf("  \033[1mPersonal (%s)\033[0m\n", summary.User)
+		printRepoList(summary.PersonalRepos)
+	}
+
+	// Organization repos - list actual names
+	for _, org := range summary.Orgs {
+		if len(org.Repos) > 0 {
+			fmt.Printf("\n  \033[1m%s\033[0m", org.Login)
+			if org.Description != "" {
+				desc := org.Description
+				if len(desc) > 40 {
+					desc = desc[:37] + "..."
+				}
+				fmt.Printf(" \033[2m- %s\033[0m", desc)
+			}
+			fmt.Println()
+			printRepoList(org.Repos)
+		}
+	}
+
+	if len(summary.Orgs) == 0 && len(summary.PersonalRepos) == 0 {
+		fmt.Println("  \033[2mNo repositories accessible\033[0m")
+	}
+
+	fmt.Printf("\n  Total: \033[0;32m%d repos\033[0m accessible to this token\n", summary.TotalRepos)
+	fmt.Println()
+}
+
+func printRepoList(repos []github.AccessibleRepo) {
+	for _, repo := range repos {
+		visibility := "\033[2mpublic\033[0m"
+		if repo.Private {
+			visibility = "\033[0;33mprivate\033[0m"
+		}
+		// Show just repo name without owner for cleaner display
+		name := repo.FullName
+		if idx := strings.Index(name, "/"); idx > 0 {
+			name = name[idx+1:]
+		}
+		fmt.Printf("    • %s (%s)\n", name, visibility)
+	}
 }
 
 func printToolsStatus(result *github.RoadmapResult, term *terminal.Terminal) []string {

@@ -232,8 +232,8 @@ func (h *ConfigHandler) GetScanner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get features from raw config
-	features := h.cfg.GetScannerFeatures(name)
+	// Get features from raw config (no profile override)
+	features := h.cfg.GetScannerFeatures(name, "")
 
 	resp := map[string]interface{}{
 		"name":           scanner.Name,

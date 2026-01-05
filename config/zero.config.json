@@ -1,494 +1,73 @@
 {
   "$schema": "./zero.config.schema.json",
-  "_version": "4.0.0",
-  "_docs": "===================================================================================",
-  "_docs2": "ZERO CONFIGURATION - Super Scanners Architecture (v4.0)",
-  "_docs3": "===================================================================================",
-  "_docs4": "Zero uses 7 consolidated 'super scanners' with configurable features:",
-  "_docs5": "  - code-packages: generation, integrity, vulns, health, malcontent, provenance, bundle, licenses, duplicates, recommendations, typosquats, deprecations, confusion, reachability",
-  "_docs6": "  - code-security: vulns, secrets, api, ciphers, keys, random, tls, certificates",
-  "_docs7": "  - code-quality: tech_debt, complexity, test_coverage, documentation",
-  "_docs8": "  - devops: iac, containers, github_actions, dora, git",
-  "_docs9": "  - technology-identification: detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure (ML-BOM)",
-  "_docs10": "  - code-ownership: contributors, bus_factor, codeowners, orphans, churn, patterns",
-  "_docs11": "  - developer-experience: onboarding, sprawl, workflow (depends on technology-identification)",
-  "_docs12": "===================================================================================",
+  "_version": "4.1.0",
+
   "settings": {
     "default_profile": "all-quick",
     "storage_path": ".zero",
     "parallel_repos": 8,
     "parallel_scanners": 4,
     "scanner_timeout_seconds": 300,
-    "cache_ttl_hours": 24,
-    "environment": {
-      "github_token_env": "GITHUB_TOKEN",
-      "anthropic_key_env": "ANTHROPIC_API_KEY"
-    },
-    "history": {
-      "enabled": true,
-      "retention_days": 90,
-      "max_scans": 50,
-      "compress_old": true
-    }
+    "cache_ttl_hours": 24
   },
-  "scanners": {
-    "code-packages": {
-      "name": "Code Packages",
-      "description": "SBOM generation and package/dependency analysis: vulnerabilities, health, malcontent, licenses, provenance",
-      "estimated_time": "60-180s",
-      "output_file": "code-packages.json",
-      "dependencies": [],
-      "features": {
-        "generation": {
-          "enabled": true,
-          "tool": "auto",
-          "spec_version": "1.5",
-          "fallback_to_syft": true,
-          "include_dev": false,
-          "deep": false
-        },
-        "integrity": {
-          "enabled": true,
-          "verify_lockfiles": true,
-          "detect_drift": false,
-          "check_completeness": true
-        },
-        "vulns": {
-          "enabled": true,
-          "severity_threshold": "low",
-          "include_kev": true
-        },
-        "health": {
-          "enabled": true,
-          "min_score": 0,
-          "max_packages": 50,
-          "check_scorecard": true
-        },
-        "malcontent": {
-          "enabled": true,
-          "min_risk_level": "medium",
-          "scan_node_modules": false
-        },
-        "provenance": {
-          "enabled": false,
-          "require_signatures": false,
-          "require_slsa": false
-        },
-        "bundle": {
-          "enabled": false,
-          "size_threshold_kb": 500,
-          "check_duplicates": true,
-          "check_treeshake": true
-        },
-        "licenses": {
-          "enabled": true,
-          "blocked": ["GPL-3.0", "AGPL-3.0"],
-          "allowed": [],
-          "fail_on_unknown": false
-        },
-        "duplicates": {
-          "enabled": true,
-          "check_versions": true,
-          "check_functionality": false
-        },
-        "recommendations": {
-          "enabled": false,
-          "include_security": true,
-          "include_health": true,
-          "include_performance": false
-        },
-        "typosquats": {
-          "enabled": true,
-          "check_similar_names": true,
-          "check_new_packages": true
-        },
-        "deprecations": {
-          "enabled": true,
-          "check_npm": true,
-          "check_pypi": true,
-          "check_go": true
-        },
-        "confusion": {
-          "enabled": true,
-          "check_npm": true,
-          "check_pypi": true,
-          "check_go": false
-        },
-        "reachability": {
-          "enabled": false,
-          "experimental": true
-        }
-      }
-    },
-    "code-security": {
-      "name": "Code Security",
-      "description": "Security-focused code analysis: vulnerabilities, secrets, API security, cryptography",
-      "estimated_time": "60-180s",
-      "output_file": "code-security.json",
-      "dependencies": [],
-      "features": {
-        "vulns": {
-          "enabled": true,
-          "include_owasp": true,
-          "include_cwe": true,
-          "severity_minimum": "low"
-        },
-        "secrets": {
-          "enabled": true,
-          "redact_secrets": true,
-          "entropy_analysis": {
-            "enabled": true,
-            "min_length": 16,
-            "high_threshold": 4.5,
-            "med_threshold": 3.5
-          },
-          "git_history_scan": {
-            "enabled": false,
-            "max_commits": 1000,
-            "max_age": "1y",
-            "scan_removed": true
-          },
-          "git_history_security": {
-            "enabled": false,
-            "max_commits": 1000,
-            "max_age": "1y",
-            "scan_gitignore_history": true,
-            "scan_sensitive_files": true,
-            "generate_purge_report": true
-          },
-          "ai_analysis": {
-            "enabled": false,
-            "max_findings": 50,
-            "confidence_threshold": 0.8
-          },
-          "rotation_guidance": true,
-          "iac_secrets": {
-            "enabled": true
-          }
-        },
-        "api": {
-          "enabled": true,
-          "check_auth": true,
-          "check_injection": true,
-          "check_ssrf": true,
-          "check_cors": true,
-          "check_openapi": true,
-          "check_graphql": true,
-          "check_owasp_api": true,
-          "check_design": true,
-          "check_performance": true,
-          "check_observability": true,
-          "check_documentation": true
-        },
-        "ciphers": {
-          "enabled": true,
-          "use_semgrep": true,
-          "use_patterns": true
-        },
-        "keys": {
-          "enabled": true,
-          "check_api_keys": true,
-          "check_private_keys": true,
-          "check_aws_keys": true,
-          "check_signing_keys": true,
-          "redact_matches": true
-        },
-        "random": {
-          "enabled": true
-        },
-        "tls": {
-          "enabled": true,
-          "check_protocols": true,
-          "check_verification": true,
-          "check_cipher_suites": true,
-          "check_insecure_urls": false
-        },
-        "certificates": {
-          "enabled": true,
-          "expiry_warning_days": 90,
-          "check_key_strength": true,
-          "check_signature_algo": true,
-          "check_self_signed": true,
-          "check_validity_period": true
-        }
-      }
-    },
-    "code-quality": {
-      "name": "Code Quality",
-      "description": "Code quality analysis: technical debt, complexity, test coverage, documentation",
-      "estimated_time": "30-90s",
-      "output_file": "code-quality.json",
-      "dependencies": [],
-      "features": {
-        "tech_debt": {
-          "enabled": true,
-          "include_markers": true,
-          "include_issues": true,
-          "marker_types": ["TODO", "FIXME", "HACK", "XXX", "BUG", "WORKAROUND"]
-        },
-        "complexity": {
-          "enabled": true,
-          "check_cyclomatic": true,
-          "check_cognitive": true,
-          "check_nesting": true,
-          "max_function_lines": 50,
-          "max_cyclomatic": 10
-        },
-        "test_coverage": {
-          "enabled": true,
-          "parse_reports": true,
-          "minimum_threshold": 80
-        },
-        "code_docs": {
-          "enabled": true,
-          "check_public_api": true,
-          "check_readme": true
-        }
-      }
-    },
-    "devops": {
-      "name": "DevOps",
-      "description": "DevOps and infrastructure analysis: IaC security, containers, GitHub Actions, DORA metrics, git insights",
-      "estimated_time": "60-180s",
-      "output_file": "devops.json",
-      "dependencies": [],
-      "features": {
-        "iac": {
-          "enabled": true,
-          "tool": "auto",
-          "fallback_tool": true,
-          "scan_secrets": true,
-          "check_best_practices": true
-        },
-        "containers": {
-          "enabled": true,
-          "scan_base_images": true,
-          "check_hardened": true
-        },
-        "github_actions": {
-          "enabled": true,
-          "check_pinning": true,
-          "check_secrets": true,
-          "check_injection": true,
-          "check_permissions": true
-        },
-        "dora": {
-          "enabled": true,
-          "period_days": 90
-        },
-        "git": {
-          "enabled": true,
-          "include_churn": true,
-          "include_age": true,
-          "include_patterns": true,
-          "include_branches": true
-        }
-      }
-    },
-    "technology-identification": {
-      "name": "Technology Identification",
-      "description": "Technology detection and AI/ML analysis with ML-BOM generation",
-      "estimated_time": "30-90s",
-      "output_file": "technology-identification.json",
-      "dependencies": [],
-      "features": {
-        "detection": {
-          "enabled": true,
-          "tier": "auto",
-          "rag_patterns_path": "rag/technology-identification",
-          "scan_extensions": true,
-          "scan_config": true,
-          "scan_sbom": true,
-          "scan_imports": true
-        },
-        "models": {
-          "enabled": true,
-          "detect_model_files": true,
-          "scan_code_patterns": true,
-          "scan_configs": true,
-          "query_registries": true
-        },
-        "frameworks": {
-          "enabled": true,
-          "detect_deep_learning": true,
-          "detect_llm": true,
-          "detect_mlops": true
-        },
-        "datasets": {
-          "enabled": true,
-          "detect_references": true,
-          "check_provenance": true
-        },
-        "ai_security": {
-          "enabled": true,
-          "check_pickle_files": true,
-          "detect_unsafe_loading": true,
-          "check_api_key_exposure": true
-        },
-        "ai_governance": {
-          "enabled": true,
-          "require_model_cards": true,
-          "require_license": true,
-          "require_dataset_info": false,
-          "blocked_licenses": ["CC-BY-NC-4.0", "proprietary"]
-        },
-        "infrastructure": {
-          "enabled": true,
-          "extract_registries": true,
-          "extract_cloud_accounts": true,
-          "extract_clusters": true
-        }
-      }
-    },
-    "code-ownership": {
-      "name": "Code Ownership",
-      "description": "Code ownership, contributor analysis, and team health metrics",
-      "estimated_time": "30-60s",
-      "output_file": "code-ownership.json",
-      "dependencies": [],
-      "features": {
-        "contributors": {
-          "enabled": true,
-          "period_days": 90,
-          "include_lines_changed": true,
-          "group_by_email_domain": false
-        },
-        "bus_factor": {
-          "enabled": true,
-          "period_days": 365,
-          "weight_by_recency": true
-        },
-        "codeowners": {
-          "enabled": true,
-          "check_coverage": true,
-          "validate_owners": true,
-          "check_conflicts": true
-        },
-        "orphans": {
-          "enabled": true,
-          "inactive_days": 180,
-          "check_codeowners_coverage": true,
-          "exclude_patterns": ["vendor/", "node_modules/", "*.generated.*"]
-        },
-        "churn": {
-          "enabled": true,
-          "period_days": 90,
-          "min_changes": 5,
-          "top_n": 30
-        },
-        "patterns": {
-          "enabled": true,
-          "include_time_distribution": true,
-          "include_message_analysis": true
-        }
-      }
-    },
-    "developer-experience": {
-      "name": "Developer Experience",
-      "description": "Developer experience analysis: onboarding friction, sprawl analysis (tools + technologies), workflow efficiency",
-      "estimated_time": "15-30s",
-      "output_file": "developer-experience.json",
-      "dependencies": ["technology-identification"],
-      "features": {
-        "onboarding": {
-          "enabled": true,
-          "check_readme_quality": true,
-          "check_contributing": true,
-          "check_env_setup": true
-        },
-        "sprawl": {
-          "enabled": true,
-          "check_tool_sprawl": true,
-          "check_technology_sprawl": true,
-          "check_config_complexity": true,
-          "max_recommended_tools": 10,
-          "max_recommended_technologies": 15,
-          "tool_categories": ["linter", "formatter", "bundler", "test", "ci-cd", "build"],
-          "technology_categories": ["language", "framework", "database", "cloud", "container", "infrastructure"]
-        },
-        "workflow": {
-          "enabled": true,
-          "check_pr_templates": true,
-          "check_local_dev": true,
-          "check_feedback_loop": true
-        }
-      }
-    }
-  },
+
   "profiles": {
     "all-quick": {
       "name": "All Quick",
-      "description": "All scanners with limited features for fast feedback",
-      "estimated_time": "~2 minutes",
+      "description": "All scanners with fast defaults",
       "scanners": ["code-packages", "code-security", "code-quality", "devops", "technology-identification", "code-ownership", "developer-experience"],
       "feature_overrides": {
         "code-packages": {
-          "integrity": {"enabled": false},
           "malcontent": {"enabled": false},
           "provenance": {"enabled": false},
-          "bundle": {"enabled": false},
-          "confusion": {"enabled": false},
           "reachability": {"enabled": false}
         },
         "code-security": {
-          "certificates": {"enabled": false},
-          "tls": {"check_insecure_urls": false}
+          "secrets": {"git_history_scan": {"enabled": false}}
         },
         "devops": {
           "dora": {"enabled": false}
-        },
-        "code-ownership": {
-          "orphans": {"enabled": false},
-          "churn": {"enabled": false}
         }
       }
     },
     "all-complete": {
       "name": "All Complete",
       "description": "All scanners with all features enabled",
-      "estimated_time": "~12 minutes",
       "scanners": ["code-packages", "code-security", "code-quality", "devops", "technology-identification", "code-ownership", "developer-experience"]
     },
     "code-packages": {
       "name": "Code Packages",
       "description": "SBOM generation and package analysis",
-      "estimated_time": "~3 minutes",
       "scanners": ["code-packages"]
     },
     "code-security": {
       "name": "Code Security",
-      "description": "SAST, secrets detection, API security, cryptography",
-      "estimated_time": "~3 minutes",
+      "description": "SAST, secrets, API security, cryptography",
       "scanners": ["code-security"]
     },
     "code-quality": {
       "name": "Code Quality",
       "description": "Tech debt, complexity, test coverage",
-      "estimated_time": "~2 minutes",
       "scanners": ["code-quality"]
     },
     "devops": {
       "name": "DevOps",
       "description": "IaC, containers, GitHub Actions, DORA metrics",
-      "estimated_time": "~3 minutes",
       "scanners": ["devops"]
     },
     "technology-identification": {
       "name": "Technology Identification",
       "description": "Technology detection and ML-BOM generation",
-      "estimated_time": "~2 minutes",
       "scanners": ["technology-identification"]
     },
     "code-ownership": {
       "name": "Code Ownership",
       "description": "Contributors, bus factor, CODEOWNERS analysis",
-      "estimated_time": "~1 minute",
       "scanners": ["code-ownership"]
     },
     "developer-experience": {
       "name": "Developer Experience",
       "description": "Onboarding, tooling sprawl, workflow analysis",
-      "estimated_time": "~1 minute",
       "scanners": ["technology-identification", "developer-experience"]
     }
   }

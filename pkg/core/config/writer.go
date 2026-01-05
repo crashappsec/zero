@@ -16,7 +16,7 @@ func (c *Config) Save() error {
 	configMutex.Lock()
 	defer configMutex.Unlock()
 
-	configPath := findConfigFile()
+	configPath := findMainConfig()
 	if configPath == "" {
 		// Default to config/zero.config.json
 		configPath = "config/zero.config.json"
@@ -117,7 +117,7 @@ func (c *Config) UpdateScanner(name string, scanner Scanner) error {
 
 // GetConfigPath returns the current config file path
 func GetConfigPath() string {
-	return findConfigFile()
+	return findMainConfig()
 }
 
 // Export returns the full config as JSON bytes
