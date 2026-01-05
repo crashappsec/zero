@@ -44,13 +44,13 @@ git clone https://github.com/crashappsec/zero.git
 cd zero
 
 # Build the CLI
-go build -o main ./cmd/zero
+go build -o zero ./cmd/zero
 
 # Check prerequisites and install missing tools
-./main checkup --fix
+./zero checkup --fix
 
 # Verify your GitHub token and see what scanners will work
-./main checkup
+./zero checkup
 ```
 
 ### Prerequisites
@@ -60,7 +60,7 @@ go build -o main ./cmd/zero
 - Git
 - GitHub CLI (`gh`) - for authentication
 
-**Recommended Tools** (install with `./main checkup --fix`):
+**Recommended Tools** (install with `./zero checkup --fix`):
 | Tool | Purpose | Install |
 |------|---------|---------|
 | [cdxgen](https://github.com/CycloneDX/cdxgen) | SBOM generation (preferred) | `npm install -g @cyclonedx/cdxgen` |
@@ -75,27 +75,27 @@ go build -o main ./cmd/zero
 
 ```bash
 # Hydrate (clone and scan) a repository
-./main hydrate <owner/repo>
+./zero hydrate <owner/repo>
 
 # With analysis profiles (profile is a positional argument)
-./main hydrate <owner/repo> all-quick       # All scanners, limited features (~2min)
-./main hydrate <owner/repo> all-complete    # All scanners, all features (~12min)
-./main hydrate <owner/repo> code-packages   # SBOM + dependency analysis
-./main hydrate <owner/repo> code-security   # Security scanning only
+./zero hydrate <owner/repo> all-quick       # All scanners, limited features (~2min)
+./zero hydrate <owner/repo> all-complete    # All scanners, all features (~12min)
+./zero hydrate <owner/repo> code-packages   # SBOM + dependency analysis
+./zero hydrate <owner/repo> code-security   # Security scanning only
 
 # Scan an entire GitHub organization (no "/" means org)
-./main hydrate <org>                        # All repos in org
-./main hydrate <org> all-quick              # With profile
-./main hydrate <org> --limit 10             # Limit repos
+./zero hydrate <org>                        # All repos in org
+./zero hydrate <org> all-quick              # With profile
+./zero hydrate <org> --limit 10             # Limit repos
 
 # Check status of analyzed projects
-./main status
+./zero status
 
 # See what scanners work with your token
-./main checkup
+./zero checkup
 
 # List all available scanners
-./main list
+./zero list
 ```
 
 ## Servers
@@ -108,13 +108,13 @@ The API server provides a REST API and WebSocket endpoints for real-time scan pr
 
 ```bash
 # Start API server (default port 3001)
-./main serve
+./zero serve
 
 # Custom port
-./main serve --port 8080
+./zero serve --port 8080
 
 # Development mode (enables CORS for frontend dev server)
-./main serve --dev
+./zero serve --dev
 ```
 
 **API Endpoints:**
@@ -142,7 +142,7 @@ npm run build && npm start
 The Web UI connects to the API server, so start both:
 ```bash
 # Terminal 1: Start API server
-./main serve --dev
+./zero serve --dev
 
 # Terminal 2: Start Web UI
 cd web && npm run dev
@@ -156,7 +156,7 @@ Zero provides an MCP (Model Context Protocol) server for Claude Desktop integrat
 
 ```bash
 # Start MCP server (for testing)
-./main mcp
+./zero mcp
 ```
 
 **Claude Desktop Configuration:**
@@ -252,38 +252,51 @@ export GITHUB_TOKEN="ghp_..."
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
-### Configuration File
+### Configuration Files
 
-Zero uses `config/zero.config.json` for scanner configuration. Each scanner has multiple features that can be enabled/disabled:
+Configuration is loaded from multiple sources (later overrides earlier):
 
+1. `config/defaults/scanners.json` - Scanner feature defaults
+2. `config/zero.config.json` - Main config with settings and profiles
+3. `~/.zero/config.json` - User overrides (optional)
+
+**Main config (`config/zero.config.json`):**
 ```json
 {
   "settings": {
-    "default_profile": "standard",
-    "scanner_timeout_seconds": 300,
-    "parallel_scanners": 4
+    "default_profile": "all-quick",
+    "parallel_repos": 8,
+    "parallel_scanners": 4,
+    "scanner_timeout_seconds": 300
   },
-  "scanners": {
-    "code-packages": {
-      "features": {
-        "generation": { "enabled": true, "tool": "auto", "spec_version": "1.5" },
-        "integrity": { "enabled": true, "verify_lockfiles": true },
-        "vulns": { "enabled": true, "include_dev": false },
-        "health": { "enabled": true },
-        "malcontent": { "enabled": true, "min_risk": "medium" },
-        "licenses": { "enabled": true, "blocked_licenses": ["GPL-3.0", "AGPL-3.0"] }
-      }
-    },
-    "code-security": {
-      "features": {
-        "vulns": { "enabled": true },
-        "secrets": { "enabled": true },
-        "ciphers": { "enabled": true }
+  "profiles": {
+    "all-quick": {
+      "name": "All Quick",
+      "description": "All scanners with fast defaults",
+      "scanners": ["code-packages", "code-security", "code-quality", "devops", "technology-identification", "code-ownership", "developer-experience"]
+    }
+  }
+}
+```
+
+**User overrides (`~/.zero/config.json`):**
+```json
+{
+  "profiles": {
+    "my-custom": {
+      "name": "My Custom Profile",
+      "scanners": ["code-security", "code-packages"],
+      "feature_overrides": {
+        "code-security": {
+          "secrets": { "git_history_scan": { "enabled": true } }
+        }
       }
     }
   }
 }
 ```
+
+See `config/README.md` for full documentation.
 
 ### Scan Profiles
 
@@ -297,14 +310,14 @@ Zero uses `config/zero.config.json` for scanner configuration. Each scanner has 
 | `devops` | devops | IaC, containers, CI/CD |
 | `technology-identification` | technology-identification | Technology detection, ML-BOM |
 | `code-ownership` | code-ownership | Contributor analysis |
-| `developer-experience` | technology-identification, devx | Developer experience |
+| `developer-experience` | technology-identification, developer-experience | Developer experience |
 
 ## Checkup Command
 
 The `checkup` command helps you understand what scanners will work with your current setup:
 
 ```bash
-./main checkup
+./zero checkup
 ```
 
 This shows:
@@ -401,7 +414,7 @@ zero/
 
 ```bash
 # Build
-go build -o main ./cmd/zero
+go build -o zero ./cmd/zero
 
 # Run tests
 go test ./...
@@ -436,8 +449,8 @@ go test ./pkg/scanner/code-packages/...
 We maintain [phantom-tests](https://github.com/phantom-tests) for safe testing:
 
 ```bash
-./main hydrate phantom-tests/express
-./main hydrate phantom-tests/platform
+./zero hydrate phantom-tests/express
+./zero hydrate phantom-tests/platform
 ```
 
 ## Contributing
