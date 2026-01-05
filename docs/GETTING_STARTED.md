@@ -45,10 +45,10 @@ git clone https://github.com/crashappsec/zero.git
 cd zero
 
 # Build the CLI
-go build -o main ./cmd/zero
+go build -o zero ./cmd/zero
 
 # Verify installation
-./main --help
+./zero --help
 ```
 
 ## Authentication
@@ -74,7 +74,7 @@ export ANTHROPIC_API_KEY="sk-ant-your_key_here"
 Run the checkup command to see what scanners will work with your current setup:
 
 ```bash
-./main checkup
+./zero checkup
 ```
 
 This shows:
@@ -119,11 +119,11 @@ Scanner Compatibility
 
 ```bash
 # Clone and scan a repository (uses default profile from config)
-./main hydrate expressjs/express
+./zero hydrate expressjs/express
 
 # With a specific profile (profile is a positional argument)
-./main hydrate expressjs/express code-security
-./main hydrate expressjs/express code-packages
+./zero hydrate expressjs/express code-security
+./zero hydrate expressjs/express code-packages
 ```
 
 ### Available Profiles
@@ -144,7 +144,7 @@ Profiles are defined in `config/zero.config.json` and specify which scanners to 
 ### Check Analysis Status
 
 ```bash
-./main status
+./zero status
 ```
 
 Example output:
@@ -162,11 +162,15 @@ Hydrated Projects
     Scanners: 8 completed
 ```
 
-### Generate Reports
+### View Reports
+
+Start the web UI to view interactive reports:
 
 ```bash
-./main report expressjs/express
+./zero serve
 ```
+
+Then open http://localhost:3000 in your browser.
 
 ## Scanning an Organization
 
@@ -174,23 +178,23 @@ Scan all repositories in a GitHub organization (target without `/` is treated as
 
 ```bash
 # Scan all public repos (uses default profile)
-./main hydrate myorganization
+./zero hydrate myorganization
 
 # With a specific profile
-./main hydrate myorganization security
-./main hydrate myorganization quick
+./zero hydrate myorganization security
+./zero hydrate myorganization quick
 
 # Limit number of repos
-./main hydrate myorganization --limit 10
+./zero hydrate myorganization --limit 10
 
 # Skip slow scanners for faster org scans
-./main hydrate myorganization quick --skip-slow
+./zero hydrate myorganization quick --skip-slow
 ```
 
 ## List Available Scanners
 
 ```bash
-./main list
+./zero list
 ```
 
 This shows all 7 super scanners with their descriptions.
@@ -201,17 +205,17 @@ This shows all 7 super scanners with their descriptions.
 
 ```bash
 # Full security scan
-./main hydrate owner/repo security
+./zero hydrate owner/repo code-security
 
-# Check the report
-./main report owner/repo
+# View in web UI
+./zero serve
 ```
 
 ### Dependency Analysis
 
 ```bash
 # Package-focused scan
-./main hydrate owner/repo code-packages
+./zero hydrate owner/repo code-packages
 
 # View vulnerabilities
 cat .zero/repos/owner/repo/analysis/code-packages.json | jq '.summary'
@@ -221,7 +225,7 @@ cat .zero/repos/owner/repo/analysis/code-packages.json | jq '.summary'
 
 ```bash
 # Quick scan for PR review
-./main hydrate owner/repo all-quick
+./zero hydrate owner/repo all-quick
 
 # Check for critical issues
 cat .zero/repos/owner/repo/analysis/code-security.json | jq '.summary'
@@ -231,10 +235,10 @@ cat .zero/repos/owner/repo/analysis/code-security.json | jq '.summary'
 
 ```bash
 # Scan all repos with security profile
-./main hydrate myorg security
+./zero hydrate myorg security
 
 # Check status
-./main status
+./zero status
 ```
 
 ## Understanding Scanner Output
@@ -260,26 +264,29 @@ Scanner results are stored in `.zero/repos/<owner>/<repo>/analysis/`:
 
 ## Configuration
 
-Create or edit `config/zero.config.json`:
+Configuration is loaded from multiple sources (later overrides earlier):
+1. `config/defaults/scanners.json` - Scanner feature defaults
+2. `config/zero.config.json` - Main config with settings and profiles
+3. `~/.zero/config.json` - User overrides (optional)
+
+Example user override in `~/.zero/config.json`:
 
 ```json
 {
   "settings": {
-    "default_profile": "all-quick",
-    "scanner_timeout_seconds": 300,
-    "parallel_jobs": 4
+    "parallel_repos": 4,
+    "scanner_timeout_seconds": 600
   },
-  "scanners": {
-    "code-packages": {
-      "features": {
-        "generation": { "enabled": true, "tool": "auto" },
-        "vulns": { "enabled": true },
-        "health": { "enabled": true }
-      }
+  "profiles": {
+    "my-custom": {
+      "name": "My Custom Profile",
+      "scanners": ["code-security", "code-packages"]
     }
   }
 }
 ```
+
+See `config/README.md` for full configuration documentation.
 
 ## Agent Mode (Claude Code)
 
@@ -331,22 +338,22 @@ Increase timeout in config:
 
 Check your token permissions:
 ```bash
-./main checkup
+./zero checkup
 ```
 
 The checkup command shows exactly what permissions you need.
 
 ## Next Steps
 
-1. **Run `./main checkup`** to understand your current capabilities
-2. **Install missing tools** with `./main checkup --fix`
-3. **Try `./main hydrate` on a test repo** to see it in action
+1. **Run `./zero checkup`** to understand your current capabilities
+2. **Install missing tools** with `./zero checkup --fix`
+3. **Try `./zero hydrate` on a test repo** to see it in action
 4. **Explore agent mode** with `/agent` in Claude Code
 5. **Review scanner results** in `.zero/repos/*/analysis/`
 
 ## Getting Help
 
-- Run `./main --help` for CLI help
-- Run `./main <command> --help` for command-specific help
+- Run `./zero --help` for CLI help
+- Run `./zero <command> --help` for command-specific help
 - Check the [README](../README.md) for full documentation
 - Report issues at https://github.com/crashappsec/zero/issues

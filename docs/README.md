@@ -41,8 +41,8 @@ go build -o zero ./cmd/zero
 # Check scan status
 ./zero status
 
-# View the HTML report
-./zero report phantom-tests/juice-shop
+# Start web UI to view reports
+./zero serve
 ```
 
 ### Available Profiles
@@ -120,62 +120,49 @@ How to integrate Zero with other tools.
 |----------|-------------|
 | [MCP Server](integrations/mcp.md) | Model Context Protocol server for Claude Code |
 
-## Scanner Categories
+## Super Scanners (v4.0)
 
-### Code Scanners
-
-| Scanner | Description |
-|---------|-------------|
-| `code-security` | SAST vulnerabilities, secret detection, API security, git history security |
-| `code-crypto` | Cryptographic security: ciphers, keys, random, TLS, certificates |
-| `tech-id` | Technology stack identification, AI/ML detection |
-| `code-quality` | TODO, FIXME, complexity markers, test coverage |
-
-### Package Scanners
+Zero uses 7 consolidated super scanners with configurable features:
 
 | Scanner | Description |
 |---------|-------------|
-| `package-sbom` | CycloneDX SBOM generation (syft/cdxgen) |
-| `package-vulns` | CVE detection (OSV database) |
-| `package-health` | Abandonment, typosquatting risk |
-| `package-malcontent` | Supply chain malware detection |
-| `package-provenance` | SLSA provenance verification |
-| `package-licenses` | SPDX license compliance (feature of packages scanner) |
-
-### Infrastructure Scanners
-
-| Scanner | Description |
-|---------|-------------|
-| `iac-security` | Terraform, CloudFormation, K8s (Checkov) |
-| `container-security` | Dockerfile, images (Trivy, Hadolint) |
+| `code-packages` | SBOM generation + dependency analysis (vulns, licenses, malcontent, health) |
+| `code-security` | SAST, secrets, API security, cryptography (ciphers, keys, TLS) |
+| `code-quality` | Tech debt markers, complexity, test coverage, documentation |
+| `devops` | IaC security, containers, GitHub Actions, DORA metrics |
+| `technology-identification` | Technology detection, ML-BOM generation, AI/ML frameworks |
+| `code-ownership` | Contributors, bus factor, CODEOWNERS, code churn |
+| `developer-experience` | Onboarding friction, tool sprawl, workflow analysis |
 
 ## Scan Profiles
 
 | Profile | Scanners | Time |
 |---------|----------|------|
-| `all-quick` | All 9 scanners (limited features) | ~2 min |
-| `all-complete` | All 9 scanners (all features) | ~12 min |
-| `code-crypto` | Cryptographic security | ~2 min |
-| `code-security` | SAST, secrets, API, git history security | ~3 min |
-| `packages` | sbom, package analysis | ~3 min |
+| `all-quick` | All 7 scanners (limited features) | ~2 min |
+| `all-complete` | All 7 scanners (all features) | ~12 min |
+| `code-packages` | SBOM + dependency analysis | ~1 min |
+| `code-security` | SAST, secrets, API, cryptography | ~2 min |
+| `devops` | IaC, containers, GitHub Actions, DORA | ~3 min |
 
 ## Data Storage
 
-Zero stores data in `~/.zero/`:
+Zero stores data in `.zero/` (project local by default, override with `ZERO_HOME`):
 
 ```
-~/.zero/
+.zero/
 └── repos/
     └── owner/
         └── repo/
             ├── repo/           # Cloned repository
             └── analysis/       # Scanner output
-                ├── manifest.json
-                ├── package-sbom.json
-                ├── package-vulns.json
-                ├── code-secrets.json
-                ├── code-crypto.json
-                └── ...
+                ├── sbom.cdx.json               # CycloneDX SBOM
+                ├── code-packages.json          # Package analysis
+                ├── code-security.json          # Security findings
+                ├── code-quality.json           # Quality metrics
+                ├── devops.json                 # DevOps analysis
+                ├── technology-identification.json  # Tech detection
+                ├── code-ownership.json         # Ownership analysis
+                └── developer-experience.json   # DevX metrics
 ```
 
 ## Environment Variables
