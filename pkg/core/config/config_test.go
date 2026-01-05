@@ -98,32 +98,32 @@ func TestSlowScanners(t *testing.T) {
 		t.Error("expected at least one slow scanner")
 	}
 
-	// Check package-malcontent is in slow scanners
+	// Check code-packages is in slow scanners
 	found := false
 	for _, s := range slowScanners {
-		if s == "package-malcontent" {
+		if s == "code-packages" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("expected 'package-malcontent' in slow scanners")
+		t.Error("expected 'code-packages' in slow scanners")
 	}
 }
 
 func TestIsSlowScanner(t *testing.T) {
 	cfg := DefaultConfig()
 
-	if !cfg.IsSlowScanner("package-malcontent") {
-		t.Error("expected package-malcontent to be a slow scanner")
+	if !cfg.IsSlowScanner("code-packages") {
+		t.Error("expected code-packages to be a slow scanner")
 	}
 
-	if !cfg.IsSlowScanner("code-vulns") {
-		t.Error("expected code-vulns to be a slow scanner")
+	if !cfg.IsSlowScanner("code-security") {
+		t.Error("expected code-security to be a slow scanner")
 	}
 
-	if cfg.IsSlowScanner("package-sbom") {
-		t.Error("expected package-sbom to NOT be a slow scanner")
+	if cfg.IsSlowScanner("code-quality") {
+		t.Error("expected code-quality to NOT be a slow scanner")
 	}
 }
 

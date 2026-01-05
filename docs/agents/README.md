@@ -22,8 +22,8 @@ Zero's specialist agents are AI personas that analyze repositories from differen
 │   ACID (Frontend)          DADE (Backend)           PLAGUE (DevOps)         │
 │   └── React, TypeScript    └── APIs, databases      └── K8s, infrastructure │
 │                                                                              │
-│   JOEY (Build)             GIBSON (Metrics)                                  │
-│   └── CI/CD, caching       └── DORA, team health                            │
+│   JOEY (Build)             GIBSON (Metrics)         TURING (AI/ML)          │
+│   └── CI/CD, caching       └── DORA, team health    └── ML security, LLMs   │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -32,18 +32,19 @@ Zero's specialist agents are AI personas that analyze repositories from differen
 
 | Agent | Character | Expertise | Required Data |
 |-------|-----------|-----------|---------------|
-| `zero` | Zero Cool | Orchestration, delegation | All data |
-| `cereal` | Cereal Killer | Supply chain, CVEs, malware | package-sbom, package-vulns, package-health, package-malcontent, licenses |
-| `razor` | Razor | Code security, SAST, secrets | code-vulns, code-secrets, tech-discovery |
-| `gill` | Gill Bates | Cryptography, TLS, keys | code-crypto (ciphers), code-crypto (keys), code-crypto (random), code-crypto (tls) |
-| `blade` | Blade | Compliance, SOC 2, ISO 27001 | code-vulns, licenses, iac-security |
-| `phreak` | Phantom Phreak | Legal, licenses, privacy | licenses, package-sbom |
-| `acid` | Acid Burn | Frontend, React, TypeScript | tech-discovery, code-vulns |
-| `dade` | Dade Murphy | Backend, APIs, databases | tech-discovery, code-vulns |
-| `nikon` | Lord Nikon | Architecture, system design | tech-discovery, package-sbom |
-| `joey` | Joey | CI/CD, build optimization | tech-discovery, dora |
-| `plague` | The Plague | DevOps, Kubernetes, IaC | iac-security, container-security |
-| `gibson` | The Gibson | DORA metrics, team health | dora, code-ownership, git |
+| `zero` | Zero Cool | Orchestration, delegation | All scanner data |
+| `cereal` | Cereal Killer | Supply chain, CVEs, malware | code-packages.json |
+| `razor` | Razor | Code security, SAST, secrets | code-security.json |
+| `gill` | Gill Bates | Cryptography, TLS, keys | code-security.json (crypto features) |
+| `blade` | Blade | Compliance, SOC 2, ISO 27001 | code-security.json, code-packages.json, devops.json |
+| `phreak` | Phantom Phreak | Legal, licenses, privacy | code-packages.json (licenses) |
+| `acid` | Acid Burn | Frontend, React, TypeScript | technology-identification.json, code-security.json |
+| `dade` | Dade Murphy | Backend, APIs, databases | technology-identification.json, code-security.json |
+| `nikon` | Lord Nikon | Architecture, system design | technology-identification.json, code-packages.json |
+| `joey` | Joey | CI/CD, build optimization | devops.json (github_actions) |
+| `plague` | The Plague | DevOps, Kubernetes, IaC | devops.json (iac, containers) |
+| `gibson` | The Gibson | DORA metrics, team health | devops.json (dora, git), code-ownership.json |
+| `turing` | Alan Turing | AI/ML security, ML-BOM | technology-identification.json (ai_security) |
 
 ## Invoking Agents
 

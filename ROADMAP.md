@@ -16,10 +16,10 @@ Zero is the free, open-source component of the Crash Override platform. It provi
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| **Scanners** | Alpha | 9 super scanners with 45+ features, changing fast |
-| **AI Agents** | Alpha | 13 specialist agents for deep analysis |
+| **Scanners** | Alpha | 7 super scanners with 45+ features, changing fast |
+| **AI Agents** | Alpha | 12 specialist agents for deep analysis |
 | **CLI** | Alpha | Core commands working, APIs may change |
-| **Reports** | Experimental | HTML reports via Evidence.dev, expect breaking changes |
+| **Web UI** | Experimental | Next.js dashboard, expect breaking changes |
 
 ---
 
@@ -140,7 +140,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
 
-*Last Updated: 2025-12-24*
-*Version: 3.7.0*
+*Last Updated: 2026-01-05*
+*Version: 4.1.0*
 
 *"Hack the planet!"*

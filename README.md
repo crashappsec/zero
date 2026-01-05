@@ -478,8 +478,8 @@ Zero is maintained by the open source community and sponsored by [Crash Override
 
 ---
 
-**Status**: Alpha (Reports: Experimental)
-**Version**: 4.0.0 (Super Scanner Architecture)
-**Last Updated**: 2026-01-04
+**Status**: Alpha (Web UI: Experimental)
+**Version**: 4.1.0 (Super Scanner Architecture)
+**Last Updated**: 2026-01-05
 
 *"Hack the planet!"*

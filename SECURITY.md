@@ -87,25 +87,25 @@ When contributing to this repository:
 
 ### For Users
 
-When using skills and prompts from this repository:
+When using Zero:
 
-1. **Review First**: Always review skills and prompts before using them
+1. **Review First**: Understand what scanners will do before running them
 2. **Test Safely**: Test in a safe environment before production use
-3. **Understand Scope**: Know what permissions and access each skill requires
+3. **Protect Credentials**: Use fine-grained GitHub tokens with minimal scope
 4. **Stay Updated**: Keep your local copy updated with security fixes
 5. **Report Issues**: If you find something concerning, report it
 
 ## Known Security Considerations
 
-### Skill Execution
+### Scanner Execution
 
-Skills in this repository may:
-- Execute commands on your system
-- Access local files and directories
-- Make network requests
-- Process sensitive data
+Scanners in Zero may:
+- Execute external tools (semgrep, trivy, etc.) on your system
+- Access local files and directories for analysis
+- Make network requests to vulnerability databases (OSV.dev)
+- Process sensitive code and configuration data
 
-**Always review skills before executing them and understand what they do.**
+**Always understand what external tools scanners invoke.**
 
 ### Prompt Injection
 
@@ -147,9 +147,10 @@ We follow coordinated disclosure:
 
 ### In Scope
 
-- Skills in the `skills/` directory
-- Prompts in the `prompts/` directory
-- Tools in the `tools/` directory
+- Scanner implementations in `pkg/scanner/`
+- Agent definitions in `agents/`
+- Core packages in `pkg/core/`
+- API server and web UI
 - Documentation that could lead to security issues
 - Dependencies with known vulnerabilities
 

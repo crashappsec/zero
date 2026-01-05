@@ -66,11 +66,11 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 ### Contributing Code
 
-1. **Skills** - New skills or improvements to existing skills
-2. **Prompts** - Tested prompt templates for common use cases
-3. **Tools** - Utilities that enhance the workflow
+1. **Scanners** - New scanners or improvements to existing ones (`pkg/scanner/`)
+2. **Agents** - AI agent definitions and knowledge bases (`agents/`)
+3. **Core** - Core packages and utilities (`pkg/core/`)
 4. **Documentation** - Guides, examples, and references
-5. **Tests** - Validation scripts and test cases
+5. **Tests** - Go tests and validation scripts
 
 ## Development Process
 
@@ -110,8 +110,8 @@ go build -o zero ./cmd/zero
 # Test with the security profile
 ./zero hydrate phantom-tests/juice-shop code-security
 
-# Generate a report
-./zero report phantom-tests/juice-shop
+# View results in web UI
+./zero serve
 ```
 
 This ensures:
@@ -153,69 +153,40 @@ Implements comprehensive DNS record analysis including:
 Closes #42
 ```
 
-## Skill Guidelines
+## Scanner Guidelines
 
-### Skill Structure
+### Scanner Structure
 
-Each skill must follow this structure:
+Each scanner follows this structure:
 
 ```
-skills/skill-name/
-├── skill-name.skill          # The skill implementation
-├── README.md                 # Documentation
-├── CHANGELOG.md              # Version history
-└── examples/                 # Usage examples
-    └── example-1.md
+pkg/scanner/<scanner-name>/
+├── scanner.go           # Main scanner implementation
+├── config.go            # Configuration types
+├── types.go             # Output types
+├── <feature>.go         # Feature implementations
+└── scanner_test.go      # Tests
 ```
 
-### Skill Requirements
+### Scanner Requirements
 
-1. **Clear Purpose**: The skill should solve a specific, well-defined problem
-2. **Documentation**: Comprehensive README with:
-   - Purpose and use cases
-   - Prerequisites
-   - Usage instructions
-   - Examples
-   - Troubleshooting
-3. **Examples**: At least one working example in the `examples/` directory
-4. **CHANGELOG**: Track all versions and changes
-5. **Testing**: Verify the skill works as expected
+1. **Implement Interface**: Must implement `scanner.Scanner` interface
+2. **Feature Flags**: Support enabling/disabling features via config
+3. **JSON Output**: Produce structured JSON output
+4. **Tests**: Include unit tests
+5. **Documentation**: Update CLAUDE.md with scanner details
 
-### Skill README Template
+### Agent Structure
 
-```markdown
-# Skill Name
+Agent definitions live in `agents/<agent-name>/`:
 
-Brief description of what the skill does.
-
-## Purpose
-
-Detailed explanation of the problem this skill solves.
-
-## Prerequisites
-
-- Required tools or access
-- Knowledge requirements
-
-## Usage
-
-Step-by-step instructions for using the skill.
-
-## Examples
-
-Link to examples in the examples/ directory.
-
-## Troubleshooting
-
-Common issues and solutions.
-
-## Contributing
-
-How to contribute improvements to this skill.
-
-## License
-
-Reference to repository license.
+```
+agents/<agent-name>/
+├── agent.md                 # Agent definition and persona
+├── knowledge/               # Domain knowledge
+│   ├── guidance/            # How-to guides
+│   └── patterns/            # Detection patterns (JSON)
+└── prompts/                 # Output templates
 ```
 
 ## Prompt Guidelines

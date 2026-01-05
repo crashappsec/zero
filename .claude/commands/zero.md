@@ -149,7 +149,7 @@ security findings, vulnerability status, and code security scan results.")
                   ├─► devops.json                # IaC, containers, DORA
                   ├─► technology-identification.json  # ML-BOM
                   ├─► code-ownership.json        # Contributors, bus factor
-                  └─► devx.json                  # Developer experience
+                  └─► developer-experience.json   # Developer experience
 
 /agent
          │

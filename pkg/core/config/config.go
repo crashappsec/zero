@@ -45,6 +45,36 @@ type Profile struct {
 	FeatureOverrides map[string]map[string]interface{} `json:"feature_overrides,omitempty"`
 }
 
+// DefaultConfig returns a Config with default values (no file loading)
+// Useful for testing and when config files are not available
+func DefaultConfig() *Config {
+	cfg := &Config{
+		Version: "1.0",
+		Settings: Settings{
+			DefaultProfile:        "standard",
+			StoragePath:           ".zero",
+			ParallelRepos:         1,
+			ParallelScanners:      4,
+			ScannerTimeoutSeconds: 300,
+			CacheTTLHours:         24,
+		},
+		Profiles: map[string]Profile{
+			"packages": {
+				Name:        "Packages",
+				Description: "Package analysis profile",
+				Scanners:    []string{"code-packages", "code-security", "code-quality"},
+			},
+			"standard": {
+				Name:        "Standard",
+				Description: "Standard scan profile",
+				Scanners:    []string{"code-packages", "code-security", "code-quality", "devops"},
+			},
+		},
+		Scanners: make(map[string]Scanner),
+	}
+	return cfg
+}
+
 // Load reads configuration from multiple sources and merges them
 // Priority: defaults < main config < user config (~/.zero/config.json)
 func Load() (*Config, error) {
