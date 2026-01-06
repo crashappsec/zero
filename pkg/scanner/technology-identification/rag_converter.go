@@ -197,14 +197,30 @@ type ConversionResult struct {
 	TotalRules    int
 }
 
-// findPatternFiles recursively finds all patterns.md files
+// findPatternFiles recursively finds all RAG pattern markdown files
+// Pattern files are named after their parent directory (e.g., weak-ciphers/weak-ciphers.md)
 func findPatternFiles(dir string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil // Skip errors
 		}
-		if !info.IsDir() && info.Name() == "patterns.md" {
+		if info.IsDir() {
+			return nil
+		}
+		// Must be a .md file
+		if !strings.HasSuffix(info.Name(), ".md") {
+			return nil
+		}
+		// Skip README files
+		if strings.EqualFold(info.Name(), "readme.md") {
+			return nil
+		}
+		// Pattern files are named after their parent directory
+		// e.g., weak-ciphers/weak-ciphers.md, stripe/stripe.md
+		parentDir := filepath.Base(filepath.Dir(path))
+		expectedName := parentDir + ".md"
+		if info.Name() == expectedName {
 			files = append(files, path)
 		}
 		return nil
@@ -555,11 +571,13 @@ func categoryToToolType(category string) string {
 
 // pathToID converts a file path to a rule ID component
 func pathToID(path string) string {
-	// Remove patterns.md and file extension
-	path = strings.TrimSuffix(path, "/patterns.md")
-	path = strings.TrimPrefix(path, "technology-identification/")
+	// Remove the filename (e.g., weak-ciphers.md)
+	dir := filepath.Dir(path)
+	// Remove technology-identification prefix if present
+	dir = strings.TrimPrefix(dir, "technology-identification/")
+	dir = strings.TrimPrefix(dir, "technology-identification\\")
 	// Replace path separators with dots
-	id := strings.ReplaceAll(path, "/", ".")
+	id := strings.ReplaceAll(dir, "/", ".")
 	id = strings.ReplaceAll(id, "\\", ".")
 	// Sanitize
 	id = regexp.MustCompile(`[^a-z0-9.-]`).ReplaceAllString(strings.ToLower(id), "-")
@@ -654,9 +672,11 @@ func regexToSemgrep(regex, language string) string {
 
 	switch language {
 	case "python":
-		// `^import openai` -> `import openai`
+		// `^import openai$` -> `import openai`
 		if strings.HasPrefix(pattern, "^import ") {
-			return strings.TrimPrefix(pattern, "^")
+			result := strings.TrimPrefix(pattern, "^")
+			result = strings.TrimSuffix(result, "$")
+			return result
 		}
 		// `^from openai import` -> `from openai import $X`
 		if strings.HasPrefix(pattern, "^from ") && strings.Contains(pattern, " import") {
