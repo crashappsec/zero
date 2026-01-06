@@ -61,7 +61,44 @@ go build -o zero ./cmd/zero
 
 ---
 
-## Scene 3: Prerequisites (20 seconds)
+## Scene 3: Configure Credentials (20 seconds)
+
+**SAY:**
+> "Zero needs a GitHub token to clone repos and an Anthropic key for AI agents. The config command makes this easy."
+
+**TYPE:**
+```bash
+./zero config
+```
+
+**[Shows current credential status - likely empty]**
+
+**SAY:**
+> "Let's add a GitHub token. Use a fine-grained token scoped to the repos you want to analyze."
+
+**TYPE:**
+```bash
+./zero config set github_token
+```
+
+**[Prompts for token, enter it - shown masked]**
+
+**SAY:**
+> "And the Anthropic key for AI agent features."
+
+**TYPE:**
+```bash
+./zero config set anthropic_key
+```
+
+**[Prompts for key, enter it - shown masked]**
+
+**SAY:**
+> "Credentials are stored securely in ~/.zero/credentials.json with restricted permissions. You can also use environment variables GITHUB_TOKEN and ANTHROPIC_API_KEY instead."
+
+---
+
+## Scene 4: Check Prerequisites (20 seconds)
 
 **SAY:**
 > "Zero needs a few external tools. The checkup command tells you exactly what's configured and what's missing."
@@ -87,7 +124,7 @@ go build -o zero ./cmd/zero
 
 ---
 
-## Scene 4: Quick Codebase Tour (50 seconds)
+## Scene 5: Quick Codebase Tour (50 seconds)
 
 **[Show editor or terminal with tree view]**
 
@@ -136,7 +173,7 @@ ls -la agents/
 
 ---
 
-## Scene 5: Hydrate an Organization (30 seconds)
+## Scene 6: Hydrate an Organization (30 seconds)
 
 **SAY:**
 > "Let's analyze an entire GitHub organization. One command scans every repo."
@@ -155,7 +192,7 @@ ls -la agents/
 
 ---
 
-## Scene 6: View Results (45 seconds)
+## Scene 7: View Results (45 seconds)
 
 **SAY:**
 > "Now let's explore what we found."
@@ -196,7 +233,7 @@ ls -la agents/
 
 ---
 
-## Scene 7: Agent Mode (30 seconds)
+## Scene 8: Agent Mode (30 seconds)
 
 **SAY:**
 > "But here's where it gets powerful. Zero has AI agents for deeper analysis."
@@ -224,7 +261,7 @@ Which repos in zero-test-org have the worst bus factor?
 
 ---
 
-## Scene 8: Wrap Up (10 seconds)
+## Scene 9: Wrap Up (10 seconds)
 
 **SAY:**
 > "That's Zero - engineering intelligence from your terminal. Clone, scan, understand. Check out the GitHub repo to get started."

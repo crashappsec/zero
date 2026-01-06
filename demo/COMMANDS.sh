@@ -22,27 +22,30 @@ cd zero
 go build -o zero ./cmd/zero
 ./zero --help
 
-# Scene 3: Prerequisites
+# Scene 3: Configure credentials
+./zero config
+./zero config set github_token
+./zero config set anthropic_key
+
+# Scene 4: Check prerequisites
 ./zero checkup
 ./zero checkup --fix  # Optional: install missing tools
 
-# Scene 4: Codebase tour
+# Scene 5: Codebase tour
 ls -la pkg/scanner/
 cat config/zero.config.json
 ls -la rag/
 cat rag/technology-identification/web-frameworks/frontend/react/patterns.md | head -30
 ls -la agents/
 
-# Scene 5: Hydrate entire org (will use cache if already done)
+# Scene 6: Hydrate entire org (will use cache if already done)
 ./zero hydrate zero-test-org all-quick
 
-# Scene 6: Check status across all repos
+# Scene 7: View results
 ./zero status
+./zero serve  # Ctrl+C to stop server when done
 
-# Scene 6: Start web UI (Ctrl+C to stop server when done)
-./zero serve
-
-# Scene 7: Agent mode (in Claude Code)
+# Scene 8: Agent mode (in Claude Code)
 # Type: /agent
 # Then ask:
 #   "Which repos in zero-test-org have the worst bus factor?"
