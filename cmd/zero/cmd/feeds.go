@@ -293,6 +293,26 @@ func runFeedsRag(cmd *cobra.Command, args []string) error {
 			term.Color(terminal.Green, "✓"),
 			len(result.ConfigFiles.Rules))
 	}
+	if len(result.Cryptography.Rules) > 0 {
+		term.Success("  %s cryptography.yaml (%d rules)",
+			term.Color(terminal.Green, "✓"),
+			len(result.Cryptography.Rules))
+	}
+	if len(result.DevOps.Rules) > 0 {
+		term.Success("  %s devops.yaml (%d rules)",
+			term.Color(terminal.Green, "✓"),
+			len(result.DevOps.Rules))
+	}
+	if len(result.CodeSecurity.Rules) > 0 {
+		term.Success("  %s code-security.yaml (%d rules)",
+			term.Color(terminal.Green, "✓"),
+			len(result.CodeSecurity.Rules))
+	}
+	if len(result.SupplyChain.Rules) > 0 {
+		term.Success("  %s supply-chain.yaml (%d rules)",
+			term.Color(terminal.Green, "✓"),
+			len(result.SupplyChain.Rules))
+	}
 
 	term.Divider()
 	term.Success("Generated %d rules in %s", result.TotalRules, formatDuration(duration))

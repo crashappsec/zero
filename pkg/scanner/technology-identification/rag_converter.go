@@ -71,31 +71,57 @@ func ConvertRAGToSemgrep(ragDir, outputDir string) (*ConversionResult, error) {
 		Secrets:       SemgrepRules{Rules: []SemgrepRule{}},
 		AIML:          SemgrepRules{Rules: []SemgrepRule{}},
 		ConfigFiles:   SemgrepRules{Rules: []SemgrepRule{}},
+		Cryptography:  SemgrepRules{Rules: []SemgrepRule{}},
+		DevOps:        SemgrepRules{Rules: []SemgrepRule{}},
+		CodeSecurity:  SemgrepRules{Rules: []SemgrepRule{}},
+		SupplyChain:   SemgrepRules{Rules: []SemgrepRule{}},
 	}
 
-	// Find all patterns.md files in technology-identification
-	techIDDir := filepath.Join(ragDir, "technology-identification")
-	patternFiles, err := findPatternFiles(techIDDir)
-	if err != nil {
-		return nil, fmt.Errorf("failed to find pattern files: %w", err)
+	// RAG directories to process
+	ragDirs := []string{
+		"technology-identification",
+		"cryptography",
+		"devops",
+		"code-security",
+		"code-quality",
+		"supply-chain",
+		"api-security",
 	}
 
-	for _, pf := range patternFiles {
-		pattern, err := parsePatternFile(pf)
+	for _, dir := range ragDirs {
+		dirPath := filepath.Join(ragDir, dir)
+		patternFiles, err := findPatternFiles(dirPath)
 		if err != nil {
-			continue // Skip files that fail to parse
+			continue // Skip directories that don't exist
 		}
 
-		rules := convertPatternToRules(pattern, pf, ragDir)
-		for _, rule := range rules {
-			if strings.Contains(rule.ID, ".secret.") {
-				result.Secrets.Rules = append(result.Secrets.Rules, rule)
-			} else if strings.HasSuffix(rule.ID, ".config") {
-				result.ConfigFiles.Rules = append(result.ConfigFiles.Rules, rule)
-			} else if strings.Contains(pattern.Category, "ai-ml") {
-				result.AIML.Rules = append(result.AIML.Rules, rule)
-			} else {
-				result.TechDiscovery.Rules = append(result.TechDiscovery.Rules, rule)
+		for _, pf := range patternFiles {
+			pattern, err := parsePatternFile(pf)
+			if err != nil {
+				continue // Skip files that fail to parse
+			}
+
+			rules := convertPatternToRules(pattern, pf, ragDir)
+			for _, rule := range rules {
+				// Categorize rules based on source directory and content
+				switch {
+				case strings.Contains(rule.ID, ".secret."):
+					result.Secrets.Rules = append(result.Secrets.Rules, rule)
+				case strings.HasSuffix(rule.ID, ".config"):
+					result.ConfigFiles.Rules = append(result.ConfigFiles.Rules, rule)
+				case strings.Contains(pattern.Category, "ai-ml"):
+					result.AIML.Rules = append(result.AIML.Rules, rule)
+				case strings.HasPrefix(pattern.Category, "cryptography"):
+					result.Cryptography.Rules = append(result.Cryptography.Rules, rule)
+				case strings.HasPrefix(pattern.Category, "devops"):
+					result.DevOps.Rules = append(result.DevOps.Rules, rule)
+				case strings.HasPrefix(pattern.Category, "code-security") || strings.HasPrefix(pattern.Category, "api-security"):
+					result.CodeSecurity.Rules = append(result.CodeSecurity.Rules, rule)
+				case strings.HasPrefix(pattern.Category, "supply-chain"):
+					result.SupplyChain.Rules = append(result.SupplyChain.Rules, rule)
+				default:
+					result.TechDiscovery.Rules = append(result.TechDiscovery.Rules, rule)
+				}
 			}
 		}
 	}
@@ -129,7 +155,32 @@ func ConvertRAGToSemgrep(ragDir, outputDir string) (*ConversionResult, error) {
 		}
 	}
 
-	result.TotalRules = len(result.TechDiscovery.Rules) + len(result.Secrets.Rules) + len(result.AIML.Rules) + len(result.ConfigFiles.Rules)
+	if len(result.Cryptography.Rules) > 0 {
+		if err := writeYAML(filepath.Join(outputDir, "cryptography.yaml"), result.Cryptography); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(result.DevOps.Rules) > 0 {
+		if err := writeYAML(filepath.Join(outputDir, "devops.yaml"), result.DevOps); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(result.CodeSecurity.Rules) > 0 {
+		if err := writeYAML(filepath.Join(outputDir, "code-security.yaml"), result.CodeSecurity); err != nil {
+			return nil, err
+		}
+	}
+
+	if len(result.SupplyChain.Rules) > 0 {
+		if err := writeYAML(filepath.Join(outputDir, "supply-chain.yaml"), result.SupplyChain); err != nil {
+			return nil, err
+		}
+	}
+
+	result.TotalRules = len(result.TechDiscovery.Rules) + len(result.Secrets.Rules) + len(result.AIML.Rules) + len(result.ConfigFiles.Rules) +
+		len(result.Cryptography.Rules) + len(result.DevOps.Rules) + len(result.CodeSecurity.Rules) + len(result.SupplyChain.Rules)
 	return result, nil
 }
 
@@ -139,6 +190,10 @@ type ConversionResult struct {
 	Secrets       SemgrepRules
 	AIML          SemgrepRules
 	ConfigFiles   SemgrepRules
+	Cryptography  SemgrepRules
+	DevOps        SemgrepRules
+	CodeSecurity  SemgrepRules
+	SupplyChain   SemgrepRules
 	TotalRules    int
 }
 
@@ -313,41 +368,69 @@ func convertPatternToRules(pattern *RAGPattern, filePath, ragDir string) []Semgr
 			continue
 		}
 
-		var patterns []string
+		// Separate patterns into those that convert to semgrep patterns vs regex
+		var semgrepPatterns []string
+		var regexPatterns []string
+
 		for _, imp := range imports {
 			converted := regexToSemgrep(imp.Pattern, lang)
 			if converted != "" {
-				patterns = append(patterns, converted)
+				semgrepPatterns = append(semgrepPatterns, converted)
+			} else {
+				// Use pattern-regex for patterns that can't be converted
+				// Clean up the regex pattern for semgrep
+				cleanedRegex := cleanRegexForSemgrep(imp.Pattern)
+				if cleanedRegex != "" {
+					regexPatterns = append(regexPatterns, cleanedRegex)
+				}
 			}
 		}
 
-		if len(patterns) == 0 {
-			continue
-		}
-
-		ruleID := fmt.Sprintf("zero.%s.import.%s", baseID, semgrepLang)
-		rule := SemgrepRule{
-			ID:        ruleID,
-			Message:   fmt.Sprintf("%s library import detected", pattern.Name),
-			Severity:  "INFO",
-			Languages: []string{semgrepLang},
-			Metadata: map[string]interface{}{
-				"technology":     pattern.Name,
-				"category":       pattern.Category,
-				"detection_type": "import",
-				"confidence":     getConfidence(pattern, "import"),
-			},
-		}
-
-		if len(patterns) == 1 {
-			rule.Pattern = patterns[0]
-		} else {
-			for _, p := range patterns {
-				rule.PatternEither = append(rule.PatternEither, PatternItem{Pattern: p})
+		// Create rule with semgrep patterns if any
+		if len(semgrepPatterns) > 0 {
+			ruleID := fmt.Sprintf("zero.%s.import.%s", baseID, semgrepLang)
+			rule := SemgrepRule{
+				ID:        ruleID,
+				Message:   fmt.Sprintf("%s library import detected", pattern.Name),
+				Severity:  "INFO",
+				Languages: []string{semgrepLang},
+				Metadata: map[string]interface{}{
+					"technology":     pattern.Name,
+					"category":       pattern.Category,
+					"detection_type": "import",
+					"confidence":     getConfidence(pattern, "import"),
+				},
 			}
+
+			if len(semgrepPatterns) == 1 {
+				rule.Pattern = semgrepPatterns[0]
+			} else {
+				for _, p := range semgrepPatterns {
+					rule.PatternEither = append(rule.PatternEither, PatternItem{Pattern: p})
+				}
+			}
+
+			rules = append(rules, rule)
 		}
 
-		rules = append(rules, rule)
+		// Create separate rules for regex patterns (usage patterns)
+		for i, regexPat := range regexPatterns {
+			ruleID := fmt.Sprintf("zero.%s.usage.%s.%d", baseID, semgrepLang, i+1)
+			rule := SemgrepRule{
+				ID:        ruleID,
+				Message:   fmt.Sprintf("%s usage detected", pattern.Name),
+				Severity:  "INFO",
+				Languages: []string{semgrepLang},
+				Metadata: map[string]interface{}{
+					"technology":     pattern.Name,
+					"category":       pattern.Category,
+					"detection_type": "usage",
+					"confidence":     getConfidence(pattern, "usage"),
+				},
+				PatternRegex: regexPat,
+			}
+			rules = append(rules, rule)
+		}
 	}
 
 	// Create secret detection rules
@@ -504,6 +587,13 @@ func mapLanguage(lang string) string {
 		"csharp":     "csharp",
 		"c#":         "csharp",
 		"rust":       "rust",
+		"c":          "c",
+		"c++":        "cpp",
+		"cpp":        "cpp",
+		"c/c++":      "c", // Use C for combined patterns
+		"kotlin":     "kotlin",
+		"scala":      "scala",
+		"swift":      "swift",
 	}
 	return mapping[lang]
 }
@@ -529,6 +619,33 @@ func getConfidence(pattern *RAGPattern, detType string) int {
 		return conf
 	}
 	return 85 // Default
+}
+
+// cleanRegexForSemgrep cleans up a regex pattern for use with semgrep pattern-regex
+func cleanRegexForSemgrep(regex string) string {
+	if regex == "" {
+		return ""
+	}
+
+	pattern := regex
+
+	// Remove start-of-line anchor (semgrep handles this)
+	pattern = strings.TrimPrefix(pattern, "^")
+
+	// Remove end-of-line anchor
+	pattern = strings.TrimSuffix(pattern, "$")
+
+	// Skip patterns that are too generic or would cause too many false positives
+	if len(pattern) < 4 {
+		return ""
+	}
+
+	// Skip patterns that are just word boundaries or too simple
+	if pattern == `\b` || pattern == `\s+` || pattern == `.*` {
+		return ""
+	}
+
+	return pattern
 }
 
 // regexToSemgrep converts a regex pattern to semgrep pattern syntax
