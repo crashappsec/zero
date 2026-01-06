@@ -130,15 +130,22 @@ Zero uses two sources of Semgrep rules:
 
 ## Quick Start
 
-### Analyze a Repository
+### Analyze a Repository or Organization
 
 ```bash
-# Clone and scan a repository (uses default profile from config)
+# Single repository
 ./zero hydrate expressjs/express
 
-# With a specific profile (profile is a positional argument)
+# Entire organization (scans all public repos)
+./zero hydrate zero-test-org
+
+# With a specific profile
 ./zero hydrate expressjs/express code-security
-./zero hydrate expressjs/express code-packages
+./zero hydrate zero-test-org code-packages
+
+# Organization with options
+./zero hydrate zero-test-org --limit 10        # Limit to 10 repos
+./zero hydrate zero-test-org --demo            # Skip repos > 50MB
 ```
 
 ### Available Profiles
@@ -169,10 +176,10 @@ Hydrated Projects
   expressjs/express
     Path: .zero/repos/expressjs/express
     Last scanned: 2025-12-13 10:30:00
-    Scanners: 12 completed
+    Scanners: 7 completed
 
-  strapi/strapi
-    Path: .zero/repos/strapi/strapi
+  zero-test-org/sample-app
+    Path: .zero/repos/zero-test-org/sample-app
     Last scanned: 2025-12-13 09:15:00
     Scanners: 7 completed
 ```
@@ -187,31 +194,22 @@ Start the web UI to view interactive reports:
 
 Then open http://localhost:3000 in your browser.
 
-## Scanning an Organization
+## Organization Scanning Options
 
-Scan all repositories in a GitHub organization (target without `/` is treated as org):
+When scanning an organization, these flags control behavior:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--limit N` | 25 | Maximum repos to process |
+| `--demo` | false | Skip repos > 50MB, fetch replacements to maintain count |
 
 ```bash
-# Scan all public repos (default limit: 25, uses default profile)
-./zero hydrate myorganization
-
-# With a specific profile
-./zero hydrate myorganization security
-./zero hydrate myorganization quick
-
-# Limit number of repos
-./zero hydrate myorganization --limit 10
-
-# Demo mode: skip repos > 50MB, fetch replacements automatically
-./zero hydrate myorganization --demo
-
-# Skip slow scanners for faster org scans
-./zero hydrate myorganization quick --skip-slow
+# Examples
+./zero hydrate zero-test-org                    # All public repos (up to 25)
+./zero hydrate zero-test-org --limit 5          # Only 5 repos
+./zero hydrate zero-test-org --demo             # Demo mode for presentations
+./zero hydrate zero-test-org code-security      # Security profile on all repos
 ```
-
-**Organization Flags:**
-- `--limit N` - Maximum repos to process (default: 25)
-- `--demo` - Demo mode: skip repositories larger than 50MB, automatically fetch replacement repos to maintain the requested count
 
 ## List Available Scanners
 
@@ -257,7 +255,7 @@ cat .zero/repos/owner/repo/analysis/code-security.json | jq '.summary'
 
 ```bash
 # Scan all repos with security profile
-./zero hydrate myorg security
+./zero hydrate zero-test-org code-security
 
 # Check status
 ./zero status
