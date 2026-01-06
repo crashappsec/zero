@@ -444,13 +444,13 @@ go test ./pkg/scanner/code-packages/...
    ```
 4. Import in `pkg/scanner/all.go`
 
-## Test Organization
+## Test Repositories
 
-We maintain [phantom-tests](https://github.com/phantom-tests) for safe testing:
+Use public repositories for testing:
 
 ```bash
-./zero hydrate phantom-tests/express
-./zero hydrate phantom-tests/platform
+./zero hydrate strapi/strapi
+./zero hydrate zero-test-org
 ```
 
 ## Contributing

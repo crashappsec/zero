@@ -59,10 +59,10 @@ go build -o zero ./cmd/zero
 
 ```bash
 # Scan all repos in an organization
-./zero hydrate phantom-tests
+./zero hydrate zero-test-org
 
-# Limit to 5 repos with code-security profile
-./zero hydrate phantom-tests code-security --limit 5
+# Limit to 5 repos with all-quick profile
+./zero hydrate zero-test-org all-quick --limit 5
 ```
 
 ### Enter Agent Mode (Claude Code)

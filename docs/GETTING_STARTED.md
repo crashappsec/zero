@@ -156,10 +156,10 @@ Hydrated Projects
     Last scanned: 2025-12-13 10:30:00
     Scanners: 12 completed
 
-  phantom-tests/platform
-    Path: .zero/repos/phantom-tests/platform
+  strapi/strapi
+    Path: .zero/repos/strapi/strapi
     Last scanned: 2025-12-13 09:15:00
-    Scanners: 8 completed
+    Scanners: 7 completed
 ```
 
 ### View Reports

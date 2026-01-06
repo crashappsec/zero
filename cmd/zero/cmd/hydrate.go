@@ -26,18 +26,18 @@ var hydrateCmd = &cobra.Command{
 	Long: `Clone a repository or organization and run security scanners.
 
 Target can be:
-  - owner/repo    Single repository (e.g., expressjs/express)
-  - org-name      GitHub organization (e.g., phantom-tests)
+  - owner/repo    Single repository (e.g., strapi/strapi)
+  - org-name      GitHub organization (e.g., zero-test-org)
 
 The profile argument specifies which scanners to run. Profiles are defined
 in the config file (config/zero.config.json).
 
 Examples:
-  zero hydrate expressjs/express          Clone and scan a single repo
-  zero hydrate expressjs/express security Clone with security profile
-  zero hydrate phantom-tests              Clone and scan all org repos
-  zero hydrate phantom-tests quick        Clone org with quick profile
-  zero hydrate phantom-tests --limit 10   Limit to first 10 repos`,
+  zero hydrate strapi/strapi              Clone and scan a single repo
+  zero hydrate strapi/strapi all-quick    Clone with all-quick profile
+  zero hydrate zero-test-org              Clone and scan all org repos
+  zero hydrate zero-test-org all-quick    Clone org with quick profile
+  zero hydrate zero-test-org --limit 10   Limit to first 10 repos`,
 	Args: cobra.RangeArgs(1, 2),
 	RunE: runHydrate,
 }

@@ -26,17 +26,17 @@ var scanCmd = &cobra.Command{
 	Long: `Run analysis scanners on repositories that have already been cloned.
 
 Target can be:
-  - owner/repo    Single repository (e.g., expressjs/express)
-  - org-name      GitHub organization (e.g., phantom-tests)
+  - owner/repo    Single repository (e.g., strapi/strapi)
+  - org-name      GitHub organization (e.g., zero-test-org)
 
 The profile argument specifies which scanners to run. Profiles are defined
 in the config file (config/zero.config.json).
 
 Examples:
-  zero scan expressjs/express          Scan single repo with default profile
-  zero scan expressjs/express security Scan with security profile
-  zero scan phantom-tests              Scan all repos in org
-  zero scan phantom-tests quick        Scan org with quick profile
+  zero scan strapi/strapi              Scan single repo with default profile
+  zero scan strapi/strapi all-quick    Scan with all-quick profile
+  zero scan zero-test-org              Scan all repos in org
+  zero scan zero-test-org all-quick    Scan org with quick profile
   zero scan owner/repo --force         Re-scan even if results exist`,
 	Args: cobra.RangeArgs(1, 2),
 	RunE: runScan,
