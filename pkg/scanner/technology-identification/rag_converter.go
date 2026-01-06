@@ -37,16 +37,26 @@ type SemgrepRules struct {
 
 // RAGPattern holds parsed pattern data from markdown
 type RAGPattern struct {
-	Name         string
-	Category     string
-	Description  string
-	Homepage     string
-	Packages     map[string][]string         // ecosystem -> package names
-	Imports      map[string][]ImportPattern  // language -> patterns
-	ConfigFiles  []string                    // configuration file names
-	EnvVars      []string
-	Secrets      []SecretPattern
-	Confidence   map[string]int
+	Name            string
+	Category        string
+	Description     string
+	Homepage        string
+	Packages        map[string][]string         // ecosystem -> package names
+	Imports         map[string][]ImportPattern  // language -> patterns
+	ConfigFiles     []string                    // configuration file names
+	EnvVars         []string
+	Secrets         []SecretPattern
+	SecurityPatterns []SecurityPattern          // regex patterns for security issues
+	Confidence      map[string]int
+}
+
+// SecurityPattern represents a security detection pattern (regex-based)
+type SecurityPattern struct {
+	Name        string
+	Pattern     string
+	Severity    string
+	Type        string // "regex", "semgrep", etc.
+	Description string
 }
 
 // ImportPattern represents an import detection pattern
@@ -77,7 +87,7 @@ func ConvertRAGToSemgrep(ragDir, outputDir string) (*ConversionResult, error) {
 		SupplyChain:   SemgrepRules{Rules: []SemgrepRule{}},
 	}
 
-	// RAG directories to process
+	// RAG directories to process - all directories containing pattern files
 	ragDirs := []string{
 		"technology-identification",
 		"cryptography",
@@ -86,6 +96,15 @@ func ConvertRAGToSemgrep(ragDir, outputDir string) (*ConversionResult, error) {
 		"code-quality",
 		"supply-chain",
 		"api-security",
+		"certificate-analysis",
+		"code-ownership",
+		"dora-metrics",
+		"domains",
+		"architecture",
+		"legal-review",
+		"ai-ml",
+		"ai-adoption",
+		"tech-debt",
 	}
 
 	for _, dir := range ragDirs {
@@ -198,7 +217,7 @@ type ConversionResult struct {
 }
 
 // findPatternFiles recursively finds all RAG pattern markdown files
-// Pattern files are named after their parent directory (e.g., weak-ciphers/weak-ciphers.md)
+// Finds all .md files except README files
 func findPatternFiles(dir string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -216,13 +235,7 @@ func findPatternFiles(dir string) ([]string, error) {
 		if strings.EqualFold(info.Name(), "readme.md") {
 			return nil
 		}
-		// Pattern files are named after their parent directory
-		// e.g., weak-ciphers/weak-ciphers.md, stripe/stripe.md
-		parentDir := filepath.Base(filepath.Dir(path))
-		expectedName := parentDir + ".md"
-		if info.Name() == expectedName {
-			files = append(files, path)
-		}
+		files = append(files, path)
 		return nil
 	})
 	return files, err
@@ -261,7 +274,9 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 
 	var inSecretsSection bool
 	var inConfigFilesSection bool
+	var inSecurityPatternsSection bool
 	var currentSecret *SecretPattern
+	var currentSecurityPattern *SecurityPattern
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -297,13 +312,26 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 		if strings.HasPrefix(trimmed, "## ") {
 			currentSection = strings.TrimPrefix(trimmed, "## ")
 			currentSubsection = ""
-			inSecretsSection = strings.Contains(currentSection, "Secrets")
+			inSecretsSection = strings.Contains(currentSection, "Secrets") && !strings.Contains(currentSection, "Security")
 			inConfigFilesSection = strings.Contains(currentSection, "Configuration Files")
+			// Match various pattern section headers
+			inSecurityPatternsSection = strings.Contains(currentSection, "Security Patterns") ||
+				strings.Contains(currentSection, "Detection Patterns") ||
+				strings.Contains(currentSection, "Detection") ||
+				strings.Contains(currentSection, "Patterns") ||
+				strings.Contains(currentSection, "gRPC") ||
+				strings.Contains(currentSection, "HTTP") ||
+				strings.Contains(currentSection, "Proto")
 			continue
 		}
 
 		if strings.HasPrefix(trimmed, "### ") {
 			currentSubsection = strings.TrimPrefix(trimmed, "### ")
+			// In Security Patterns section, ### starts a new pattern
+			if inSecurityPatternsSection {
+				currentSecurityPattern = &SecurityPattern{Name: currentSubsection}
+				pattern.SecurityPatterns = append(pattern.SecurityPatterns, *currentSecurityPattern)
+			}
 			continue
 		}
 
@@ -313,6 +341,22 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 			currentSecret = &SecretPattern{Name: secretName}
 			pattern.Secrets = append(pattern.Secrets, *currentSecret)
 			continue
+		}
+
+		// Parse security patterns (used in devops files like docker.md)
+		if inSecurityPatternsSection && len(pattern.SecurityPatterns) > 0 {
+			lastIdx := len(pattern.SecurityPatterns) - 1
+			if m := patternRe.FindStringSubmatch(trimmed); m != nil {
+				pattern.SecurityPatterns[lastIdx].Pattern = m[1]
+			}
+			if m := severityRe.FindStringSubmatch(trimmed); m != nil {
+				pattern.SecurityPatterns[lastIdx].Severity = m[1]
+			}
+			// Parse **Type**: regex
+			typeRe := regexp.MustCompile(`\*\*Type\*\*:\s*(\w+)`)
+			if m := typeRe.FindStringSubmatch(trimmed); m != nil {
+				pattern.SecurityPatterns[lastIdx].Type = m[1]
+			}
 		}
 
 		// Parse configuration files
@@ -514,6 +558,41 @@ func convertPatternToRules(pattern *RAGPattern, filePath, ragDir string) []Semgr
 			rule.PatternRegex = "(" + strings.Join(filePatterns, "|") + ")"
 		}
 
+		rules = append(rules, rule)
+	}
+
+	// Create security pattern rules (used in devops files like docker.md)
+	for i, secPat := range pattern.SecurityPatterns {
+		if secPat.Pattern == "" {
+			continue
+		}
+
+		ruleID := fmt.Sprintf("zero.%s.security.%d", baseID, i+1)
+
+		// Determine language based on category
+		language := "generic"
+		if strings.Contains(pattern.Category, "docker") {
+			language = "dockerfile"
+		} else if strings.Contains(pattern.Category, "terraform") {
+			language = "hcl"
+		} else if strings.Contains(pattern.Category, "yaml") || strings.Contains(pattern.Category, "kubernetes") {
+			language = "yaml"
+		}
+
+		rule := SemgrepRule{
+			ID:        ruleID,
+			Message:   fmt.Sprintf("%s: %s", pattern.Name, secPat.Name),
+			Severity:  mapSeverity(secPat.Severity),
+			Languages: []string{language},
+			Metadata: map[string]interface{}{
+				"technology":     pattern.Name,
+				"category":       pattern.Category,
+				"detection_type": "security",
+				"pattern_name":   secPat.Name,
+				"confidence":     90,
+			},
+			PatternRegex: secPat.Pattern,
+		}
 		rules = append(rules, rule)
 	}
 
