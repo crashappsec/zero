@@ -27,6 +27,7 @@ type Options struct {
 	Org   string // GitHub organization
 	Repo  string // Single repo (owner/repo)
 	Limit int    // Max repos in org mode
+	Demo  bool   // Demo mode: skip repos > 50MB, fetch replacements
 
 	// Clone options
 	Branch    string // Clone specific branch
@@ -160,14 +161,47 @@ func (h *Hydrate) Run(ctx context.Context) ([]string, error) {
 		targetName = h.opts.Org
 		h.term.Info("Fetching repositories for %s...", h.term.Color(terminal.Cyan, h.opts.Org))
 
+		// In demo mode, fetch extra repos to have replacements for oversized ones
+		fetchLimit := h.opts.Limit
+		if h.opts.Demo {
+			fetchLimit = h.opts.Limit * 3 // Fetch 3x to have plenty of replacements
+		}
+
 		var err error
-		repos, err = h.gh.ListOrgRepos(h.opts.Org, h.opts.Limit)
+		allRepos, err := h.gh.ListOrgRepos(h.opts.Org, fetchLimit)
 		if err != nil {
 			return nil, fmt.Errorf("listing repos: %w", err)
 		}
 
-		if len(repos) == 0 {
+		if len(allRepos) == 0 {
 			return nil, fmt.Errorf("no repositories found for org: %s", h.opts.Org)
+		}
+
+		// In demo mode, filter out repos > 50MB and select up to limit
+		if h.opts.Demo {
+			const maxSizeKB = 50 * 1024 // 50MB in KB
+			var skipped []string
+			for _, r := range allRepos {
+				if r.Size > maxSizeKB {
+					skipped = append(skipped, fmt.Sprintf("%s (%dMB)", r.Name, r.Size/1024))
+				} else if len(repos) < h.opts.Limit {
+					repos = append(repos, r)
+				}
+			}
+			if len(skipped) > 0 {
+				h.term.Info("Demo mode: skipped %d repos > 50MB: %s",
+					len(skipped), strings.Join(skipped, ", "))
+			}
+			if len(repos) < h.opts.Limit {
+				h.term.Warning("Demo mode: only %d repos under 50MB available (requested %d)",
+					len(repos), h.opts.Limit)
+			}
+		} else {
+			repos = allRepos
+		}
+
+		if len(repos) == 0 {
+			return nil, fmt.Errorf("no repositories found for org: %s (all repos exceed 50MB size limit in demo mode)", h.opts.Org)
 		}
 	}
 

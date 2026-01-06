@@ -69,7 +69,7 @@ func (c *Client) ListOrgRepos(org string, limit int) ([]Repository, error) {
 	// Use gh CLI for simplicity and auth handling
 	args := []string{
 		"repo", "list", org,
-		"--json", "name,nameWithOwner,sshUrl,defaultBranchRef,isPrivate,isArchived,isFork",
+		"--json", "name,nameWithOwner,sshUrl,defaultBranchRef,isPrivate,isArchived,isFork,diskUsage",
 		"--limit", fmt.Sprintf("%d", limit),
 	}
 
@@ -87,6 +87,7 @@ func (c *Client) ListOrgRepos(org string, limit int) ([]Repository, error) {
 		Name             string `json:"name"`
 		NameWithOwner    string `json:"nameWithOwner"`
 		SSHURL           string `json:"sshUrl"`
+		DiskUsage        int    `json:"diskUsage"` // Size in KB
 		DefaultBranchRef struct {
 			Name string `json:"name"`
 		} `json:"defaultBranchRef"`
@@ -118,6 +119,7 @@ func (c *Client) ListOrgRepos(org string, limit int) ([]Repository, error) {
 			NameWithOwner: r.NameWithOwner,
 			Owner:         owner,
 			SSHURL:        r.SSHURL,
+			Size:          r.DiskUsage,
 			DefaultBranch: defaultBranch,
 			Private:       r.IsPrivate,
 			Archived:      r.IsArchived,

@@ -192,6 +192,22 @@ Key commands:
 - `./zero status` - Show hydrated projects with freshness indicators
 - `./zero report <repo>` - Generate analysis reports
 
+#### zero hydrate
+
+Clone and scan repositories:
+
+```bash
+zero hydrate strapi/strapi              # Single repo
+zero hydrate strapi/strapi all-quick    # With profile
+zero hydrate zero-test-org              # All org repos (default limit: 25)
+zero hydrate zero-test-org --limit 10   # Limit to 10 repos
+zero hydrate zero-test-org --demo       # Demo mode: skip repos > 50MB
+```
+
+**Flags:**
+- `--limit N` - Maximum repos to process in org mode (default: 25)
+- `--demo` - Demo mode: skip repositories larger than 50MB, automatically fetch replacement repos to maintain the requested count
+
 ### Automation Commands
 
 Zero includes automation features to keep scan data fresh:

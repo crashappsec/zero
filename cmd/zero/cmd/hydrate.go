@@ -37,7 +37,8 @@ Examples:
   zero hydrate strapi/strapi all-quick    Clone with all-quick profile
   zero hydrate zero-test-org              Clone and scan all org repos
   zero hydrate zero-test-org all-quick    Clone org with quick profile
-  zero hydrate zero-test-org --limit 10   Limit to first 10 repos`,
+  zero hydrate zero-test-org --limit 10   Limit to first 10 repos
+  zero hydrate zero-test-org --demo       Demo mode: skip repos > 50MB`,
 	Args: cobra.RangeArgs(1, 2),
 	RunE: runHydrate,
 }
@@ -46,7 +47,8 @@ func init() {
 	rootCmd.AddCommand(hydrateCmd)
 
 	// Org options
-	hydrateCmd.Flags().IntVar(&hydrateOpts.Limit, "limit", 100, "Maximum repos to process (org mode)")
+	hydrateCmd.Flags().IntVar(&hydrateOpts.Limit, "limit", 25, "Maximum repos to process (org mode)")
+	hydrateCmd.Flags().BoolVar(&hydrateOpts.Demo, "demo", false, "Demo mode: skip repos > 50MB, fetch replacements")
 
 	// Clone options
 	hydrateCmd.Flags().StringVar(&hydrateOpts.Branch, "branch", "", "Clone specific branch")
