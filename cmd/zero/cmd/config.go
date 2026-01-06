@@ -30,7 +30,7 @@ Examples:
 }
 
 var configSetCmd = &cobra.Command{
-	Use:   "set <key>",
+	Use:   "set <key> [value]",
 	Short: "Set a configuration value",
 	Long: `Set a configuration value.
 
@@ -39,9 +39,10 @@ Available keys:
   anthropic_key   Anthropic API key
 
 Examples:
-  zero config set github_token    # Prompts for token securely
-  zero config set anthropic_key   # Prompts for key securely`,
-	Args: cobra.ExactArgs(1),
+  zero config set github_token              # Prompts for token securely
+  zero config set github_token <token>      # Set directly (use with caution)
+  zero config set anthropic_key             # Prompts for key securely`,
+	Args: cobra.RangeArgs(1, 2),
 	RunE: runConfigSet,
 }
 
@@ -133,12 +134,21 @@ func runConfigSet(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unknown key: %s (use 'github_token' or 'anthropic_key')", key)
 	}
 
-	// Read value securely (hidden input)
-	fmt.Printf("Enter %s: ", prompt)
+	var value string
+	var err error
 
-	value, err := readSecureInput()
-	if err != nil {
-		return fmt.Errorf("reading input: %w", err)
+	// Check if value was provided as argument
+	if len(args) > 1 {
+		value = args[1]
+		term.Warn("Token provided on command line - consider using interactive mode for security")
+	} else {
+		// Read value securely (hidden input)
+		fmt.Printf("Enter %s: ", prompt)
+
+		value, err = readSecureInput()
+		if err != nil {
+			return fmt.Errorf("reading input: %w", err)
+		}
 	}
 
 	value = strings.TrimSpace(value)
