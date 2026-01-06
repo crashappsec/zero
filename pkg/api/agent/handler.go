@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/crashappsec/zero/pkg/agent"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -30,19 +31,25 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-// Handler manages agent chat functionality
+// Handler manages agent chat functionality using the new runtime
 type Handler struct {
+	runtime  *agent.Runtime
 	sessions *SessionManager
-	claude   *ClaudeClient
-	zeroHome string
 }
 
-// NewHandler creates a new agent handler
+// NewHandler creates a new agent handler with the runtime
 func NewHandler(zeroHome string) *Handler {
+	runtime, err := agent.NewRuntime(&agent.RuntimeOptions{
+		ZeroHome: zeroHome,
+	})
+	if err != nil {
+		log.Printf("Warning: Failed to create agent runtime: %v", err)
+		// Still create handler - will return errors when used
+	}
+
 	return &Handler{
+		runtime:  runtime,
 		sessions: NewSessionManager(),
-		claude:   NewClaudeClient(zeroHome),
-		zeroHome: zeroHome,
 	}
 }
 
@@ -60,6 +67,12 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 		agentID = "zero"
 	}
 
+	// Get voice mode
+	voiceMode := r.URL.Query().Get("voice")
+	if voiceMode == "" {
+		voiceMode = "full"
+	}
+
 	// Get or create session
 	session := h.sessions.GetOrCreate(sessionID, agentID)
 
@@ -71,20 +84,27 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 	defer conn.Close()
 
-	// Create client
-	client := &wsClient{
-		handler: h,
-		session: session,
-		conn:    conn,
-		send:    make(chan []byte, 256),
+	// Get agent info
+	agentName, _, _, _ := h.runtime.GetAgentInfo(agentID)
+	if agentName == "" {
+		agentName = agentID
 	}
 
-	// Send connection confirmation (use session's agentID in case it already existed)
+	// Create client
+	client := &wsClient{
+		handler:   h,
+		session:   session,
+		conn:      conn,
+		send:      make(chan []byte, 256),
+		voiceMode: voiceMode,
+	}
+
+	// Send connection confirmation
 	client.sendJSON(map[string]interface{}{
 		"type":       "connected",
 		"session_id": session.ID,
 		"agent_id":   session.AgentID,
-		"agent_name": GetAgentInfo(session.AgentID).Name,
+		"agent_name": agentName,
 	})
 
 	// Start read/write pumps
@@ -138,8 +158,8 @@ func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 		session.SetProject(req.ProjectID)
 	}
 
-	// Check if Claude is available
-	if !h.claude.IsAvailable() {
+	// Check if runtime is available
+	if h.runtime == nil || !h.runtime.IsAvailable() {
 		writeError(w, http.StatusServiceUnavailable, "ANTHROPIC_API_KEY not configured", nil)
 		return
 	}
@@ -147,25 +167,47 @@ func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 	// Add user message to session
 	session.AddMessage(RoleUser, req.Message)
 
-	// Get response from Claude
-	response, err := h.claude.Chat(r.Context(), session, req.Message)
+	// Get response from runtime with tool use
+	var fullResponse string
+	var toolCalls []map[string]interface{}
+
+	chatReq := &agent.ChatRequest{
+		AgentID:   agentID,
+		ProjectID: session.ProjectID,
+		VoiceMode: req.VoiceMode,
+		Message:   req.Message,
+	}
+
+	err := h.runtime.Chat(r.Context(), chatReq, func(event agent.ChatEvent) {
+		switch event.Type {
+		case "text":
+			fullResponse += event.Text
+		case "tool_call":
+			toolCalls = append(toolCalls, map[string]interface{}{
+				"name":  event.ToolCall.Name,
+				"input": json.RawMessage(event.ToolCall.Input),
+			})
+		}
+	})
+
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "chat failed", err)
 		return
 	}
 
 	// Add assistant response to session
-	session.AddMessage(RoleAssistant, response)
+	session.AddMessage(RoleAssistant, fullResponse)
 
-	writeJSON(w, http.StatusOK, ChatResponse{
-		SessionID: sessionID,
-		AgentID:   agentID,
-		Response:  response,
-		Done:      true,
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"session_id": sessionID,
+		"agent_id":   agentID,
+		"response":   fullResponse,
+		"tool_calls": toolCalls,
+		"done":       true,
 	})
 }
 
-// HandleChatStream handles SSE streaming chat
+// HandleChatStream handles SSE streaming chat with tool use
 func (h *Handler) HandleChatStream(w http.ResponseWriter, r *http.Request) {
 	var req ChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -195,7 +237,7 @@ func (h *Handler) HandleChatStream(w http.ResponseWriter, r *http.Request) {
 		session.SetProject(req.ProjectID)
 	}
 
-	if !h.claude.IsAvailable() {
+	if h.runtime == nil || !h.runtime.IsAvailable() {
 		writeError(w, http.StatusServiceUnavailable, "ANTHROPIC_API_KEY not configured", nil)
 		return
 	}
@@ -215,28 +257,70 @@ func (h *Handler) HandleChatStream(w http.ResponseWriter, r *http.Request) {
 	// Add user message
 	session.AddMessage(RoleUser, req.Message)
 
-	// Stream response
-	var fullResponse string
-	err := h.claude.ChatStream(r.Context(), session, req.Message, func(chunk StreamChunk) {
-		data, _ := json.Marshal(chunk)
-		fmt.Fprintf(w, "data: %s\n\n", data)
-		flusher.Flush()
+	// Send start event
+	sendSSE(w, flusher, StreamChunk{
+		Type:      "start",
+		SessionID: sessionID,
+		AgentID:   agentID,
+	})
 
-		if chunk.Type == "done" {
-			fullResponse = chunk.Content
+	// Stream response with tool use events
+	var fullResponse string
+	chatReq := &agent.ChatRequest{
+		AgentID:   agentID,
+		ProjectID: session.ProjectID,
+		VoiceMode: req.VoiceMode,
+		Message:   req.Message,
+	}
+
+	err := h.runtime.Chat(r.Context(), chatReq, func(event agent.ChatEvent) {
+		switch event.Type {
+		case "text":
+			fullResponse += event.Text
+			sendSSE(w, flusher, StreamChunk{
+				Type:      "delta",
+				SessionID: sessionID,
+				AgentID:   agentID,
+				Content:   event.Text,
+			})
+
+		case "tool_call":
+			sendSSE(w, flusher, map[string]interface{}{
+				"type":       "tool_call",
+				"session_id": sessionID,
+				"agent_id":   agentID,
+				"tool_name":  event.ToolCall.Name,
+				"tool_input": json.RawMessage(event.ToolCall.Input),
+			})
+
+		case "tool_result":
+			sendSSE(w, flusher, map[string]interface{}{
+				"type":       "tool_result",
+				"session_id": sessionID,
+				"agent_id":   agentID,
+				"is_error":   event.ToolResult.IsError,
+			})
+
+		case "error":
+			sendSSE(w, flusher, StreamChunk{
+				Type:      "error",
+				SessionID: sessionID,
+				AgentID:   agentID,
+				Error:     event.Error,
+			})
+
+		case "done":
+			// Token usage could be included here
 		}
 	})
 
 	if err != nil {
-		errChunk := StreamChunk{
+		sendSSE(w, flusher, StreamChunk{
 			Type:      "error",
 			SessionID: sessionID,
 			AgentID:   agentID,
 			Error:     err.Error(),
-		}
-		data, _ := json.Marshal(errChunk)
-		fmt.Fprintf(w, "data: %s\n\n", data)
-		flusher.Flush()
+		})
 		return
 	}
 
@@ -244,6 +328,14 @@ func (h *Handler) HandleChatStream(w http.ResponseWriter, r *http.Request) {
 	if fullResponse != "" {
 		session.AddMessage(RoleAssistant, fullResponse)
 	}
+
+	// Send done event
+	sendSSE(w, flusher, StreamChunk{
+		Type:      "done",
+		SessionID: sessionID,
+		AgentID:   agentID,
+		Content:   fullResponse,
+	})
 }
 
 // HandleGetSession returns session details
@@ -294,12 +386,37 @@ func (h *Handler) HandleDeleteSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// HandleListAgents returns available agents
+func (h *Handler) HandleListAgents(w http.ResponseWriter, r *http.Request) {
+	agents := []map[string]interface{}{
+		{"id": "zero", "name": "Zero", "persona": "Zero Cool", "description": "Master orchestrator"},
+		{"id": "cereal", "name": "Cereal", "persona": "Cereal Killer", "description": "Supply chain security"},
+		{"id": "razor", "name": "Razor", "persona": "Razor", "description": "Code security, SAST, secrets"},
+		{"id": "blade", "name": "Blade", "persona": "Blade", "description": "Compliance, SOC 2, ISO 27001"},
+		{"id": "phreak", "name": "Phreak", "persona": "Phantom Phreak", "description": "Legal, licenses, privacy"},
+		{"id": "acid", "name": "Acid", "persona": "Acid Burn", "description": "Frontend, React, TypeScript"},
+		{"id": "dade", "name": "Dade", "persona": "Dade Murphy", "description": "Backend, APIs, databases"},
+		{"id": "nikon", "name": "Nikon", "persona": "Lord Nikon", "description": "Architecture, system design"},
+		{"id": "joey", "name": "Joey", "persona": "Joey", "description": "CI/CD, build optimization"},
+		{"id": "plague", "name": "Plague", "persona": "The Plague", "description": "DevOps, IaC, Kubernetes"},
+		{"id": "gibson", "name": "Gibson", "persona": "The Gibson", "description": "DORA metrics, team health"},
+		{"id": "gill", "name": "Gill", "persona": "Gill Bates", "description": "Cryptography specialist"},
+		{"id": "turing", "name": "Turing", "persona": "Alan Turing", "description": "AI/ML security"},
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"data":  agents,
+		"total": len(agents),
+	})
+}
+
 // wsClient represents a WebSocket client for agent chat
 type wsClient struct {
-	handler *Handler
-	session *Session
-	conn    *websocket.Conn
-	send    chan []byte
+	handler   *Handler
+	session   *Session
+	conn      *websocket.Conn
+	send      chan []byte
+	voiceMode string
 }
 
 func (c *wsClient) sendJSON(v interface{}) error {
@@ -373,8 +490,8 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 		c.session.SetProject(req.ProjectID)
 	}
 
-	// Check Claude availability
-	if !c.handler.claude.IsAvailable() {
+	// Check runtime availability
+	if c.handler.runtime == nil || !c.handler.runtime.IsAvailable() {
 		c.sendJSON(StreamChunk{
 			Type:      "error",
 			SessionID: c.session.ID,
@@ -387,12 +504,57 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 	// Add user message
 	c.session.AddMessage(RoleUser, req.Message)
 
-	// Stream response
+	// Send start event
+	c.sendJSON(StreamChunk{
+		Type:      "start",
+		SessionID: c.session.ID,
+		AgentID:   c.session.AgentID,
+	})
+
+	// Stream response with tool use
 	var fullResponse string
-	err := c.handler.claude.ChatStream(ctx, c.session, req.Message, func(chunk StreamChunk) {
-		c.sendJSON(chunk)
-		if chunk.Type == "done" {
-			fullResponse = chunk.Content
+	chatReq := &agent.ChatRequest{
+		AgentID:   c.session.AgentID,
+		ProjectID: c.session.ProjectID,
+		VoiceMode: c.voiceMode,
+		Message:   req.Message,
+	}
+
+	err := c.handler.runtime.Chat(ctx, chatReq, func(event agent.ChatEvent) {
+		switch event.Type {
+		case "text":
+			fullResponse += event.Text
+			c.sendJSON(StreamChunk{
+				Type:      "delta",
+				SessionID: c.session.ID,
+				AgentID:   c.session.AgentID,
+				Content:   event.Text,
+			})
+
+		case "tool_call":
+			c.sendJSON(map[string]interface{}{
+				"type":       "tool_call",
+				"session_id": c.session.ID,
+				"agent_id":   c.session.AgentID,
+				"tool_name":  event.ToolCall.Name,
+				"tool_input": json.RawMessage(event.ToolCall.Input),
+			})
+
+		case "tool_result":
+			c.sendJSON(map[string]interface{}{
+				"type":       "tool_result",
+				"session_id": c.session.ID,
+				"agent_id":   c.session.AgentID,
+				"is_error":   event.ToolResult.IsError,
+			})
+
+		case "error":
+			c.sendJSON(StreamChunk{
+				Type:      "error",
+				SessionID: c.session.ID,
+				AgentID:   c.session.AgentID,
+				Error:     event.Error,
+			})
 		}
 	})
 
@@ -410,6 +572,14 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 	if fullResponse != "" {
 		c.session.AddMessage(RoleAssistant, fullResponse)
 	}
+
+	// Send done event
+	c.sendJSON(StreamChunk{
+		Type:      "done",
+		SessionID: c.session.ID,
+		AgentID:   c.session.AgentID,
+		Content:   fullResponse,
+	})
 }
 
 func (c *wsClient) writePump(ctx context.Context) {
@@ -463,4 +633,10 @@ func writeError(w http.ResponseWriter, status int, message string, err error) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(resp)
+}
+
+func sendSSE(w http.ResponseWriter, flusher http.Flusher, data interface{}) {
+	jsonData, _ := json.Marshal(data)
+	fmt.Fprintf(w, "data: %s\n\n", jsonData)
+	flusher.Flush()
 }

@@ -186,6 +186,7 @@ type ChatRequest struct {
 	SessionID string `json:"session_id,omitempty"` // Optional - creates new if empty
 	AgentID   string `json:"agent_id,omitempty"`   // Agent to chat with (default: zero)
 	ProjectID string `json:"project_id,omitempty"` // Optional project context
+	VoiceMode string `json:"voice_mode,omitempty"` // Voice mode: full, minimal, neutral
 	Message   string `json:"message"`              // User message
 }
 
