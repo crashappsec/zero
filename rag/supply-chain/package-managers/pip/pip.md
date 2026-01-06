@@ -254,7 +254,122 @@ pip cache purge
 
 ---
 
-## Best Practices
+## Best Practices Detection
+
+Patterns to detect good dependency management practices in CI/CD, Makefiles, and scripts.
+
+### pip-compile
+**Pattern**: `pip-compile`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Using pip-tools for dependency resolution
+- Creates reproducible requirements.txt
+
+### pip-compile with hashes
+**Pattern**: `pip-compile\s+--generate-hashes`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Generating hash-locked requirements
+- Ensures integrity verification
+
+### pip install with hashes
+**Pattern**: `pip\s+install\s+.*--require-hashes`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Installing with hash verification
+- Supply chain integrity check
+
+### pip-audit
+**Pattern**: `pip-audit`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Vulnerability scanning for Python dependencies
+- Should run in CI/CD pipelines
+
+### pip check
+**Pattern**: `pip\s+check`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Checking for dependency conflicts
+- Ensures package compatibility
+
+### safety check
+**Pattern**: `safety\s+check`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Alternative vulnerability scanner for Python
+- Checks against safety database
+
+### pipdeptree
+**Pattern**: `pipdeptree`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Dependency tree visualization
+- Helps identify conflicts
+
+### Virtual environment creation
+**Pattern**: `python\s+-m\s+venv|virtualenv`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Creating isolated environments
+- Best practice for dependency isolation
+
+---
+
+## Anti-Patterns Detection
+
+Patterns that indicate potential issues.
+
+### requirements.txt in gitignore
+**Pattern**: `requirements\.txt` in `.gitignore`
+**Type**: regex
+**Severity**: high
+**Context**: .gitignore
+- requirements.txt should be committed for reproducible builds
+
+### pip install without version
+**Pattern**: `pip\s+install\s+[a-zA-Z][a-zA-Z0-9_-]+\s*$`
+**Type**: regex
+**Severity**: medium
+**Context**: CI/CD, Dockerfile, scripts
+- Installing without version pinning
+- Non-reproducible builds
+
+### Untrusted hosts
+**Pattern**: `--trusted-host`
+**Type**: regex
+**Severity**: medium
+**Context**: pip.conf, CI/CD, scripts
+- Disabling TLS verification for package index
+- Security risk for supply chain
+
+### Disabling pip cache
+**Pattern**: `--no-cache-dir`
+**Type**: regex
+**Severity**: low
+**Context**: Dockerfile, CI/CD
+- May indicate security concern or just optimization
+- Note: Common in Dockerfiles to reduce image size
+
+### Using test.pypi.org
+**Pattern**: `test\.pypi\.org`
+**Type**: regex
+**Severity**: medium
+**Context**: pip.conf, CI/CD, scripts
+- Test PyPI should not be in production
+- May contain unstable or malicious packages
+
+---
+
+## Best Practices Summary
 
 1. **Pin all versions** in requirements.txt for reproducibility
 2. **Use hashes** (`--require-hashes`) for integrity verification

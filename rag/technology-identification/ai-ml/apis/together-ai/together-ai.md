@@ -32,13 +32,13 @@
 
 ### Python
 
-**Pattern**: `from\s+together\s+import`
+**Pattern**: `^from together import`
 - Type: python_import
 
-**Pattern**: `import\s+together`
+**Pattern**: `^import together$`
 - Type: python_import
 
-**Pattern**: `from\s+together\.client`
+**Pattern**: `^from together.client import`
 - Type: python_import
 
 ## Environment Variables

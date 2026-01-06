@@ -416,6 +416,104 @@ dotnet CycloneDX src/Project1/Project1.csproj -o project1-sbom.json
 
 ---
 
+## Best Practices Detection
+
+### NuGet Lock File Present
+**Pattern**: `packages\.lock\.json`
+**Type**: regex
+**Severity**: info
+**Languages**: [json]
+**Context**: lock file
+- Lock file ensures reproducible builds
+- Enables deterministic restore
+
+### Central Package Management
+**Pattern**: `Directory\.Packages\.props`
+**Type**: regex
+**Severity**: info
+**Languages**: [xml]
+**Context**: solution root
+- Centralized version management
+- Modern .NET best practice
+
+### Target Framework Specified
+**Pattern**: `<TargetFramework>net[0-9]+\.[0-9]+</TargetFramework>`
+**Type**: regex
+**Severity**: info
+**Languages**: [xml]
+**Context**: .csproj
+- Target framework explicitly set
+- Best practice for compatibility
+
+### RestorePackagesWithLockFile Enabled
+**Pattern**: `<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>`
+**Type**: regex
+**Severity**: info
+**Languages**: [xml]
+**Context**: .csproj
+- Lock file generation enabled
+- Reproducible builds
+
+---
+
+## Anti-Patterns Detection
+
+### HTTP Package Source
+**Pattern**: `<add\s+key=['\"][^'\"]+['\"]\s+value=['\"]http://(?!localhost)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [xml]
+**Context**: nuget.config
+- Non-HTTPS package source
+- CWE-319: Cleartext Transmission
+
+### Floating Version (Asterisk)
+**Pattern**: `Version=['\"][0-9]*\.\*['\"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [xml]
+**Context**: .csproj
+- Floating version constraint
+- CWE-829: Non-deterministic dependency
+
+### Latest Version Reference
+**Pattern**: `Version=['\"]latest['\"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [xml]
+**Context**: .csproj
+- Latest version reference
+- CWE-829: Unpinned dependency
+
+### Legacy packages.config
+**Pattern**: `packages\.config`
+**Type**: regex
+**Severity**: medium
+**Languages**: [xml]
+**Context**: project directory
+- Legacy package reference format
+- Should migrate to PackageReference
+
+### Missing Package Version
+**Pattern**: `<PackageReference\s+Include=['\"][^'\"]+['\"]\s*/>`
+**Type**: regex
+**Severity**: medium
+**Languages**: [xml]
+**Context**: .csproj
+- PackageReference without version
+- CWE-829: Version not specified
+
+### Disabled Package Restore
+**Pattern**: `<RestorePackages>false</RestorePackages>`
+**Type**: regex
+**Severity**: medium
+**Languages**: [xml]
+**Context**: .csproj
+- Package restore disabled
+- May cause build inconsistencies
+
+---
+
 ## References
 
 - [NuGet Documentation](https://docs.microsoft.com/nuget/)

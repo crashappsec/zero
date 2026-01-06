@@ -401,6 +401,86 @@ Composer plugins can affect SBOM:
 
 ---
 
+## Best Practices Detection
+
+### Composer Lock File Present
+**Pattern**: `composer\.lock`
+**Type**: regex
+**Severity**: info
+**Languages**: [json]
+**Context**: lock file
+- Lock file ensures reproducible builds
+- Required for deterministic installs
+
+### PHP Version Constraint
+**Pattern**: `['\"]php['\"]\s*:\s*['\"][^'\"]+['\"]`
+**Type**: regex
+**Severity**: info
+**Languages**: [json]
+**Context**: composer.json
+- PHP version specified
+- Best practice for compatibility
+
+### Composer Audit Integration
+**Pattern**: `composer audit|composer-audit`
+**Type**: regex
+**Severity**: info
+**Languages**: [yaml, json]
+**Context**: CI/CD
+- Security scanning enabled
+- Vulnerability detection integrated
+
+---
+
+## Anti-Patterns Detection
+
+### HTTP Repository (Insecure)
+**Pattern**: `['\"]url['\"]\s*:\s*['\"]http://(?!localhost)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [json]
+**Context**: composer.json
+- Non-HTTPS package repository
+- CWE-319: Cleartext Transmission
+
+### VCS Dependency Without Reference
+**Pattern**: `['\"]type['\"]\s*:\s*['\"]vcs['\"](?![\s\S]*['\"]reference['\"])`
+**Type**: regex
+**Severity**: medium
+**Languages**: [json]
+**Context**: composer.json
+- VCS dependency without pinned reference
+- CWE-829: Unpinned dependency
+
+### Dev Branch Dependency
+**Pattern**: `['\"]dev-master['\"]|['\"]dev-main['\"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [json]
+**Context**: composer.json
+- Development branch as dependency
+- CWE-829: Unstable dependency version
+
+### Wildcard Version
+**Pattern**: `['\"]\\*['\"]|['\"]:?\\*['\"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [json]
+**Context**: composer.json
+- Wildcard version constraint
+- CWE-829: Dependency version not pinned
+
+### Unsafe Plugin Allowlist
+**Pattern**: `['\"]allow-plugins['\"]\s*:\s*true`
+**Type**: regex
+**Severity**: medium
+**Languages**: [json]
+**Context**: composer.json
+- All plugins allowed without restriction
+- CWE-829: Unrestricted plugin execution
+
+---
+
 ## References
 
 - [Composer Documentation](https://getcomposer.org/doc/)

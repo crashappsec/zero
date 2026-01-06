@@ -1,195 +1,200 @@
 # API Injection Vulnerabilities
 
-Detection patterns for injection vulnerabilities in API endpoints.
+**Category**: api-security/injection
+**Description**: Detection patterns for injection vulnerabilities in API endpoints
+**CWE**: CWE-89, CWE-78, CWE-90, CWE-643, CWE-113, CWE-117, CWE-1336, CWE-943
+
+---
 
 ## OWASP API Security Top 10
 
 - **API8:2023** - Security Misconfiguration (includes injection via misconfigured parsers)
 - **API10:2023** - Unsafe Consumption of APIs
 
-## Patterns
+---
 
-### SQL Injection in APIs
+## SQL Injection in APIs
 
-CATEGORY: api-injection
-SEVERITY: critical
-CONFIDENCE: 95
-CWE: CWE-89
-OWASP: A03:2021
+### SQL String Concatenation
+**Pattern**: `(execute|query|raw)\s*\([^)]*(\+|\.format\(|%s|%d|\$\{).*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python]
+- String concatenation in SQL with request params
+- CWE-89: SQL Injection
 
-String concatenation in SQL with request params:
-```
-PATTERN: (execute|query|raw)\s*\([^)]*(\+|`\$\{|\.format\(|%s|%d).*req\.(body|params|query)
-LANGUAGES: javascript, typescript, python
-```
+### SQL Template Literals
+**Pattern**: `(execute|query|raw)\s*\([^)]*\$\{.*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Template literals in SQL queries
+- CWE-89: SQL Injection
 
-Template literals in SQL:
-```
-PATTERN: (execute|query|raw)\s*\(`[^`]*\$\{.*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### Python f-string SQL
+**Pattern**: `(execute|cursor\.execute)\s*\(\s*f['"][^'"]*\{.*request\.(args|form|json)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Python f-string in SQL queries
+- CWE-89: SQL Injection
 
-Python f-string SQL:
-```
-PATTERN: (execute|cursor\.execute)\s*\(\s*f['"][^'"]*\{.*request\.(args|form|json)
-LANGUAGES: python
-```
+---
 
-### NoSQL Injection
+## NoSQL Injection
 
-CATEGORY: api-injection
-SEVERITY: critical
-CONFIDENCE: 90
-CWE: CWE-943
-OWASP: A03:2021
+### MongoDB Query Injection
+**Pattern**: `\.(find|findOne|findOneAndUpdate|updateOne|deleteOne)\s*\(\s*\{[^}]*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- MongoDB query with unsanitized input
+- CWE-943: NoSQL Injection
 
-MongoDB query with unsanitized input:
-```
-PATTERN: \.(find|findOne|findOneAndUpdate|updateOne|deleteOne)\s*\(\s*\{[^}]*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### MongoDB $where Injection
+**Pattern**: `\$where\s*[=:]\s*.*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- MongoDB $where with user input
+- CWE-943: NoSQL Injection
 
-MongoDB $where with user input:
-```
-PATTERN: \$where\s*[=:]\s*.*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### PyMongo Injection
+**Pattern**: `(find|find_one|update_one|delete_one)\s*\(\s*\{.*request\.(args|form|json)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- PyMongo with unsanitized user input
+- CWE-943: NoSQL Injection
 
-PyMongo with user input:
-```
-PATTERN: (find|find_one|update_one|delete_one)\s*\(\s*\{.*request\.(args|form|json)
-LANGUAGES: python
-```
+---
 
-### Command Injection in APIs
+## Command Injection in APIs
 
-CATEGORY: api-injection
-SEVERITY: critical
-CONFIDENCE: 95
-CWE: CWE-78
-OWASP: A03:2021
+### Shell Execution with Request Data
+**Pattern**: `(exec|spawn|execSync|execFile|system|popen|subprocess)\s*\([^)]*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python]
+- Shell execution with request data
+- CWE-78: OS Command Injection
 
-Shell execution with request data:
-```
-PATTERN: (exec|spawn|execSync|execFile|system|popen|subprocess)\s*\([^)]*req\.(body|params|query)
-LANGUAGES: javascript, typescript, python
-```
+### Template Command Injection
+**Pattern**: `\$\{.*req\.(body|params|query).*\}`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Template with user input in command
+- CWE-78: OS Command Injection
 
-Backtick command with user input:
-```
-PATTERN: `[^`]*\$\{.*req\.(body|params|query).*\}[^`]*`
-LANGUAGES: javascript, typescript
-```
+---
 
-### LDAP Injection
+## LDAP Injection
 
-CATEGORY: api-injection
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-90
-OWASP: A03:2021
+### LDAP Filter Injection
+**Pattern**: `(search|bind)\s*\([^)]*(\+|\.format\(|%s|\$\{).*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript, python]
+- LDAP filter with user input
+- CWE-90: LDAP Injection
 
-LDAP filter with user input:
-```
-PATTERN: (search|bind)\s*\([^)]*(\+|`\$\{|\.format\(|%s).*req\.(body|params|query)
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### XPath Injection
+## XPath Injection
 
-CATEGORY: api-injection
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-643
-OWASP: A03:2021
+### XPath Query Injection
+**Pattern**: `(xpath|evaluate|selectNodes)\s*\([^)]*(\+|\.format\(|\$\{).*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript, python]
+- XPath query with concatenation
+- CWE-643: XPath Injection
 
-XPath query with concatenation:
-```
-PATTERN: (xpath|evaluate|selectNodes)\s*\([^)]*(\+|`\$\{|\.format\().*req\.(body|params|query)
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### Header Injection
+## Header Injection
 
-CATEGORY: api-injection
-SEVERITY: high
-CONFIDENCE: 90
-CWE: CWE-113
-OWASP: A03:2021
+### Response Header Injection
+**Pattern**: `(setHeader|set|header)\s*\([^,]+,\s*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Response header with user input
+- CWE-113: HTTP Response Splitting
 
-Response header with user input:
-```
-PATTERN: (setHeader|set|header)\s*\([^,]+,\s*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Log Injection
+## Log Injection
 
-CATEGORY: api-injection
-SEVERITY: medium
-CONFIDENCE: 80
-CWE: CWE-117
-OWASP: A09:2021
+### Unsanitized Log Input
+**Pattern**: `(logger\.|console\.|log\.)(info|warn|error|debug)\s*\([^)]*req\.(body|params|query)\.[^)]*\)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, python]
+- Unsanitized user input in logs
+- CWE-117: Log Injection
 
-Unsanitized user input in logs:
-```
-PATTERN: (logger\.|console\.|log\.)(info|warn|error|debug)\s*\([^)]*req\.(body|params|query)\.[^)]*\)
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### Template Injection (SSTI)
+## Template Injection (SSTI)
 
-CATEGORY: api-injection
-SEVERITY: critical
-CONFIDENCE: 90
-CWE: CWE-1336
-OWASP: A03:2021
+### Server-Side Template Injection
+**Pattern**: `(render_template_string|Template|render_string)\s*\([^)]*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Server-side template with user input
+- CWE-1336: Server-Side Template Injection
 
-Server-side template with user input:
-```
-PATTERN: (render_template_string|Template|render_string)\s*\([^)]*req\.(body|params|query)
-LANGUAGES: python
-```
+### Jinja2 Autoescape Disabled
+**Pattern**: `Environment\s*\([^)]*autoescape\s*=\s*False`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Jinja2 with autoescape disabled
+- CWE-1336: Server-Side Template Injection
 
-Jinja2 with autoescape disabled:
-```
-PATTERN: Environment\s*\([^)]*autoescape\s*=\s*False
-LANGUAGES: python
-```
+---
 
-### GraphQL Injection
+## GraphQL Injection
 
-CATEGORY: api-injection
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-89
-OWASP: A03:2021
+### GraphQL String Concatenation
+**Pattern**: `(graphql|query)\s*[=:]\s*['\"].*\$\{.*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- GraphQL query string concatenation
+- CWE-89: Injection
 
-GraphQL query string concatenation:
-```
-PATTERN: (graphql|query)\s*[=:]\s*[`'"].*\$\{.*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+---
 
-### ORM Injection
+## ORM Injection
 
-CATEGORY: api-injection
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-89
-OWASP: A03:2021
+### Sequelize Literal Injection
+**Pattern**: `Sequelize\.literal\s*\([^)]*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Sequelize literal with user input
+- CWE-89: SQL Injection via ORM
 
-Sequelize literal with user input:
-```
-PATTERN: Sequelize\.literal\s*\([^)]*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### SQLAlchemy Text Injection
+**Pattern**: `(text|literal_column)\s*\([^)]*request\.(args|form|json)`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- SQLAlchemy text with user input
+- CWE-89: SQL Injection via ORM
 
-SQLAlchemy text with user input:
-```
-PATTERN: (text|literal_column)\s*\([^)]*request\.(args|form|json)
-LANGUAGES: python
-```
+---
+
+## Detection Confidence
+
+**Regex Detection**: 90%
+**Security Pattern Detection**: 85%
+
+---
 
 ## References
 

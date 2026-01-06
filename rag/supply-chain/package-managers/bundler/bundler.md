@@ -336,6 +336,95 @@ bundle audit check --update
 
 ---
 
+## Best Practices Detection
+
+### Gemfile.lock Present
+**Pattern**: `Gemfile\.lock`
+**Type**: regex
+**Severity**: info
+**Languages**: [ruby]
+**Context**: lock file
+- Lock file ensures reproducible builds
+- Recommended for all Bundler projects
+
+### Ruby Version Specified
+**Pattern**: `ruby\s+['\"][0-9]+\.[0-9]+`
+**Type**: regex
+**Severity**: info
+**Languages**: [ruby]
+**Context**: Gemfile
+- Ruby version pinned in Gemfile
+- Best practice for environment consistency
+
+### HTTPS Source
+**Pattern**: `source\s+['\"]https://rubygems\.org['\"]`
+**Type**: regex
+**Severity**: info
+**Languages**: [ruby]
+**Context**: Gemfile
+- Using HTTPS for RubyGems source
+- Secure registry connection
+
+### Bundle Audit Integration
+**Pattern**: `bundler-audit|bundle audit`
+**Type**: regex
+**Severity**: info
+**Languages**: [ruby, yaml]
+**Context**: CI/CD
+- Security scanning integrated
+- Vulnerability detection enabled
+
+---
+
+## Anti-Patterns Detection
+
+### HTTP Source (Insecure)
+**Pattern**: `source\s+['\"]http://(?!localhost)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [ruby]
+**Context**: Gemfile
+- Non-HTTPS gem source
+- CWE-319: Cleartext Transmission
+
+### Git Dependency Without Tag/Ref
+**Pattern**: `git:\s*['\"][^'\"]+['\"](?!.*tag:|ref:|branch:.*v[0-9])`
+**Type**: regex
+**Severity**: medium
+**Languages**: [ruby]
+**Context**: Gemfile
+- Git dependency without pinned version
+- CWE-829: Unpinned git dependency
+
+### Path Dependency
+**Pattern**: `path:\s*['\"][^'\"]+['\"]`
+**Type**: regex
+**Severity**: medium
+**Languages**: [ruby]
+**Context**: Gemfile
+- Local path dependency (not portable)
+- May cause reproducibility issues
+
+### Missing Ruby Version
+**Pattern**: `^source.*rubygems(?![\s\S]*^ruby\s)`
+**Type**: regex
+**Severity**: low
+**Languages**: [ruby]
+**Context**: Gemfile
+- No Ruby version specified
+- May cause version mismatch issues
+
+### Wildcard Version
+**Pattern**: `gem\s+['\"][^'\"]+['\"]\s*$`
+**Type**: regex
+**Severity**: medium
+**Languages**: [ruby]
+**Context**: Gemfile
+- Gem without version constraint
+- CWE-829: Dependency version not pinned
+
+---
+
 ## References
 
 - [Bundler Documentation](https://bundler.io/)

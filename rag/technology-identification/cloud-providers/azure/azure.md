@@ -49,19 +49,25 @@
 
 ### Python
 
-**Pattern**: `from\s+azure\.`
+**Pattern**: `^from azure import`
 - Type: python_import
 
-**Pattern**: `import\s+azure\.`
+**Pattern**: `^import azure`
+- Type: python_import
+
+**Pattern**: `^from azure.storage import`
+- Type: python_import
+
+**Pattern**: `^from azure.identity import`
 - Type: python_import
 
 ### Csharp
 
-**Pattern**: `using\s+Azure\.`
-- Type: csharp_using
+**Pattern**: `using Azure\.`
+- Type: regex
 
-**Pattern**: `using\s+Microsoft\.Azure\.`
-- Type: csharp_using
+**Pattern**: `using Microsoft\.Azure\.`
+- Type: regex
 
 ## Environment Variables
 

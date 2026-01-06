@@ -213,7 +213,85 @@ go mod download
 
 ---
 
-## Best Practices
+## Best Practices Detection
+
+Patterns to detect good dependency management practices in CI/CD, Makefiles, and scripts.
+
+### go mod tidy
+**Pattern**: `go\s+mod\s+tidy`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Cleans up unused dependencies and adds missing ones
+- Should run in CI to ensure go.mod/go.sum are in sync
+
+### go mod verify
+**Pattern**: `go\s+mod\s+verify`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Verifies dependencies match go.sum checksums
+- Critical for supply chain security
+
+### go mod vendor
+**Pattern**: `go\s+mod\s+vendor`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Vendors dependencies for reproducible/air-gapped builds
+
+### go mod download
+**Pattern**: `go\s+mod\s+download`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Pre-downloads dependencies (useful for caching)
+
+### govulncheck
+**Pattern**: `govulncheck`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Go's official vulnerability scanner
+- Checks for reachable vulnerabilities
+
+### Build with vendor flag
+**Pattern**: `-mod=vendor`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Building with vendored dependencies
+
+---
+
+## Anti-Patterns Detection
+
+Patterns that indicate potential issues.
+
+### Missing go.sum in git
+**Pattern**: `go\.sum` in `.gitignore`
+**Type**: regex
+**Severity**: high
+**Context**: .gitignore
+- go.sum should be committed for reproducible builds
+
+### Skipping checksum verification
+**Pattern**: `GONOSUMDB=\*|GOSUMDB=off`
+**Type**: regex
+**Severity**: medium
+**Context**: CI/CD, environment
+- Disabling checksum verification weakens supply chain security
+
+### Using replace with local path
+**Pattern**: `replace\s+.+\s+=>\s+\./`
+**Type**: regex
+**Severity**: low
+**Context**: go.mod
+- Local replacements may indicate development state left in production
+
+---
+
+## Best Practices Summary
 
 1. **Always commit go.sum** for reproducible builds
 2. **Use `go mod tidy`** to clean up unused dependencies
@@ -221,6 +299,7 @@ go mod download
 4. **Use `go mod verify`** to verify checksums
 5. **Pin versions explicitly** in go.mod
 6. **Use Go workspaces** for multi-module projects
+7. **Run govulncheck** in CI/CD for vulnerability detection
 
 ### Vendoring for Air-Gapped Builds
 

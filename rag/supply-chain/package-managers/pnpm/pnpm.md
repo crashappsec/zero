@@ -300,6 +300,77 @@ pnpm -r cyclonedx-pnpm
 
 ---
 
+## Best Practices Detection
+
+### pnpm Lock File Present
+**Pattern**: `pnpm-lock\.yaml`
+**Type**: regex
+**Severity**: info
+**Languages**: [yaml]
+**Context**: lock file
+- Lock file ensures reproducible builds
+- Required for deterministic installs
+
+### Strict Engine Mode
+**Pattern**: `engine-strict\s*=\s*true`
+**Type**: regex
+**Severity**: info
+**Languages**: [ini]
+**Context**: .npmrc
+- Node.js version enforcement
+- Prevents version mismatch issues
+
+### Workspace Configuration
+**Pattern**: `pnpm-workspace\.yaml`
+**Type**: regex
+**Severity**: info
+**Languages**: [yaml]
+**Context**: project root
+- Monorepo properly configured
+- Workspace packages defined
+
+---
+
+## Anti-Patterns Detection
+
+### HTTP Registry (Insecure)
+**Pattern**: `registry\s*=\s*['\"]?http://(?!localhost)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [ini]
+**Context**: .npmrc
+- Non-HTTPS npm registry
+- CWE-319: Cleartext Transmission
+
+### Git Dependency Without Commit
+**Pattern**: `['\"]git\+[^#]+['\"](?!#[a-f0-9]{40}|#semver:)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [json]
+**Context**: package.json
+- Git dependency without pinned commit
+- CWE-829: Unpinned git dependency
+
+### Version Wildcard
+**Pattern**: `['\"]\\*['\"]|['\"]:?\\*['\"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [json]
+**Context**: package.json
+- Wildcard version allows any version
+- CWE-829: Dependency version not pinned
+
+### Missing Lock File
+**Pattern**: `package\.json(?![\s\S]*pnpm-lock\.yaml)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [json]
+**Context**: package.json
+- No pnpm-lock.yaml found
+- CWE-829: Non-reproducible builds
+
+---
+
 ## References
 
 - [pnpm Documentation](https://pnpm.io/)

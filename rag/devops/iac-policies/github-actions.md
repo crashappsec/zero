@@ -107,7 +107,7 @@
 ### Script Injection via Branch Name
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)\$\{\{\s*github\.(?:head_ref|ref_name)\s*\}\}(?:\s|"|'|`)`
+**Pattern**: `(?i)\$\{\{\s*github\.(?:head_ref|ref_name)\s*\}\}`
 - Branch names can contain shell metacharacters
 - Example: `${{ github.head_ref }}`
 - Remediation: Sanitize or use environment variable

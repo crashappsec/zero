@@ -111,7 +111,7 @@ Extensions: `.py`
 
 ### Task Definition Extraction
 
-**Pattern**: `(?:taskDefinition|task[_-]?definition|ECS_TASK_DEFINITION)\s*[=:]\s*['"]?([a-zA-Z0-9_-:]+)['"]?`
+**Pattern**: `(?:taskDefinition|task[_-]?definition|ECS_TASK_DEFINITION)\s*[=:]\s*['"]?([a-zA-Z0-9_:-]+)['"]?`
 - Task definition name/ARN
 - Extracts: `task_definition`
 - Example: `taskDefinition: my-task:1`

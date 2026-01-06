@@ -406,6 +406,113 @@ include("module-a", "module-b", "module-c")
 
 ---
 
+## Best Practices Detection
+
+### Gradle Lock File Present
+**Pattern**: `gradle\.lockfile`
+**Type**: regex
+**Severity**: info
+**Languages**: [groovy, kotlin]
+**Context**: lock file
+- Dependency locking enabled
+- Reproducible builds
+
+### Dependency Locking Enabled
+**Pattern**: `dependencyLocking\s*\{[\s\S]*lockAllConfigurations`
+**Type**: regex
+**Severity**: info
+**Languages**: [groovy, kotlin]
+**Context**: build.gradle
+- Lock all configurations
+- Best practice for reproducibility
+
+### Gradle Wrapper Present
+**Pattern**: `gradlew|gradle-wrapper\.jar`
+**Type**: regex
+**Severity**: info
+**Languages**: [shell]
+**Context**: project root
+- Using Gradle wrapper
+- Consistent Gradle versions
+
+### Version Catalog Usage
+**Pattern**: `libs\.versions\.toml`
+**Type**: regex
+**Severity**: info
+**Languages**: [toml]
+**Context**: gradle directory
+- Centralized version management
+- Modern Gradle 7+ practice
+
+### Dependency Verification
+**Pattern**: `verification-metadata\.xml`
+**Type**: regex
+**Severity**: info
+**Languages**: [xml]
+**Context**: gradle directory
+- Checksum verification enabled
+- Supply chain security
+
+---
+
+## Anti-Patterns Detection
+
+### Dynamic Version (Plus)
+**Pattern**: `['\"][^'\"]+:[^'\"]+:\+['\"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [groovy, kotlin]
+**Context**: build.gradle
+- Dynamic version with + notation
+- CWE-829: Non-deterministic dependency
+
+### Range Version (Latest)
+**Pattern**: `['\"][^'\"]+:[^'\"]+:latest\.[^'\"]*['\"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [groovy, kotlin]
+**Context**: build.gradle
+- latest.release or latest.integration
+- CWE-829: Unpinned dependency
+
+### Insecure Repository
+**Pattern**: `url\s*[=:]\s*['\"]http://(?!localhost)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [groovy, kotlin]
+**Context**: build.gradle
+- Non-HTTPS repository
+- CWE-319: Cleartext Transmission
+
+### Credentials in Build File
+**Pattern**: `(password|username)\s*[=:]\s*['\"][^'\"]{4,}['\"]`
+**Type**: regex
+**Severity**: critical
+**Languages**: [groovy, kotlin]
+**Context**: build.gradle
+- Hardcoded credentials
+- CWE-798: Hardcoded Credentials
+
+### JCenter Repository (Deprecated)
+**Pattern**: `jcenter\(\)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [groovy, kotlin]
+**Context**: build.gradle
+- JCenter is deprecated/sunset
+- Should migrate to Maven Central
+
+### Missing Dependency Locking
+**Pattern**: `dependencies\s*\{(?![\s\S]*dependencyLocking)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [groovy, kotlin]
+**Context**: build.gradle
+- No dependency locking enabled
+- CWE-829: Non-reproducible builds
+
+---
+
 ## References
 
 - [Gradle Documentation](https://docs.gradle.org/)

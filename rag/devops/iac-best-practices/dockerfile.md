@@ -50,7 +50,7 @@
 **Type**: regex
 **Severity**: low
 **Category**: best-practice
-**Pattern**: `RUN\s+apt-get\s+install[^&]+(?<!rm\s+-rf\s+/var/lib/apt/lists/\*)`
+**Pattern**: `RUN\s+apt-get\s+install\s+[^&\n]+$`
 - Clean package manager cache in same layer
 - Remediation: End with `&& rm -rf /var/lib/apt/lists/*`
 

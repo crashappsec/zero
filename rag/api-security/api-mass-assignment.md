@@ -1,249 +1,224 @@
 # API Mass Assignment
 
-Detection patterns for mass assignment and parameter pollution vulnerabilities.
+**Category**: api-security/mass-assignment
+**Description**: Detection patterns for mass assignment and parameter pollution vulnerabilities
+**CWE**: CWE-915, CWE-1321, CWE-235, CWE-20
+
+---
 
 ## OWASP API Security Top 10
 
 - **API3:2023** - Broken Object Property Level Authorization
 - **API6:2023** - Unrestricted Access to Sensitive Business Flows
 
-## Patterns
+---
 
-### Direct Request Body Assignment
+## Direct Request Body Assignment
 
-CATEGORY: api-mass-assignment
-SEVERITY: high
-CONFIDENCE: 90
-CWE: CWE-915
-OWASP: API3:2023
+### Direct Body to Create/Update
+**Pattern**: `\.(create|update|updateOne|findOneAndUpdate|save)\s*\(\s*req\.body\s*\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Direct body to create/update
+- CWE-915: Mass Assignment
 
-Direct body to create/update (JavaScript/TypeScript):
-```
-PATTERN: \.(create|update|updateOne|findOneAndUpdate|save)\s*\(\s*req\.body\s*\)
-LANGUAGES: javascript, typescript
-```
+### Spread Operator With Body
+**Pattern**: `\{\s*\.\.\.req\.body\s*[,}]`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Spread operator with request body
+- CWE-915: Mass Assignment
 
-Spread operator with request body:
-```
-PATTERN: \{\s*\.\.\.req\.body\s*[,}]
-LANGUAGES: javascript, typescript
-```
+### Object.assign With Body
+**Pattern**: `Object\.assign\s*\([^,]+,\s*req\.body`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Object.assign with request body
+- CWE-915: Mass Assignment
 
-Object.assign with request body:
-```
-PATTERN: Object\.assign\s*\([^,]+,\s*req\.body
-LANGUAGES: javascript, typescript
-```
+---
 
-### Python Mass Assignment
+## Python Mass Assignment
 
-CATEGORY: api-mass-assignment
-SEVERITY: high
-CONFIDENCE: 90
-CWE: CWE-915
-OWASP: API3:2023
+### SQLAlchemy Update
+**Pattern**: `\.(update|filter)\s*\([^)]*\)\.(update|values)\s*\(\s*\*\*request\.(json|form)`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- SQLAlchemy update with request data
+- CWE-915: Mass Assignment
 
-SQLAlchemy update with request data:
-```
-PATTERN: \.(update|filter)\s*\([^)]*\)\.(update|values)\s*\(\s*\*\*request\.(json|form)
-LANGUAGES: python
-```
+### Django Update
+**Pattern**: `\.(create|update|update_or_create)\s*\(\s*\*\*request\.(POST|data|json)`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- Django update with request data
+- CWE-915: Mass Assignment
 
-Django update with request data:
-```
-PATTERN: \.(create|update|update_or_create)\s*\(\s*\*\*request\.(POST|data|json)
-LANGUAGES: python
-```
+### Pydantic Without Validation
+**Pattern**: `\w+Model\s*\(\s*\*\*request\.(json|data)\s*\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- Pydantic model from request without validation
+- CWE-915: Mass Assignment
 
-Pydantic model from request without validation:
-```
-PATTERN: \w+Model\s*\(\s*\*\*request\.(json|data)\s*\)
-LANGUAGES: python
-```
+---
 
-### Mongoose Mass Assignment
+## Mongoose Mass Assignment
 
-CATEGORY: api-mass-assignment
-SEVERITY: high
-CONFIDENCE: 90
-CWE: CWE-915
-OWASP: API3:2023
+### Mongoose Update Without Restriction
+**Pattern**: `(findByIdAndUpdate|findOneAndUpdate|updateOne|updateMany)\s*\([^,]+,\s*req\.body`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Mongoose update without field restriction
+- CWE-915: Mass Assignment
 
-Mongoose update without field restriction:
-```
-PATTERN: (findByIdAndUpdate|findOneAndUpdate|updateOne|updateMany)\s*\([^,]+,\s*req\.body
-LANGUAGES: javascript, typescript
-```
+### New Model From Body
+**Pattern**: `new\s+\w+Model\s*\(\s*req\.body\s*\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- New model from request body
+- CWE-915: Mass Assignment
 
-New model from request body:
-```
-PATTERN: new\s+\w+Model\s*\(\s*req\.body\s*\)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Sequelize Mass Assignment
+## Sequelize Mass Assignment
 
-CATEGORY: api-mass-assignment
-SEVERITY: high
-CONFIDENCE: 90
-CWE: CWE-915
-OWASP: API3:2023
+### Sequelize Create From Body
+**Pattern**: `\w+\.(create|update|bulkCreate)\s*\(\s*req\.body`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Sequelize create/update from body
+- CWE-915: Mass Assignment
 
-Sequelize create/update from body:
-```
-PATTERN: \w+\.(create|update|bulkCreate)\s*\(\s*req\.body
-LANGUAGES: javascript, typescript
-```
+---
 
-### Prisma Mass Assignment
+## Prisma Mass Assignment
 
-CATEGORY: api-mass-assignment
-SEVERITY: high
-CONFIDENCE: 90
-CWE: CWE-915
-OWASP: API3:2023
+### Prisma Create From Body
+**Pattern**: `prisma\.\w+\.(create|update|upsert)\s*\(\s*\{\s*data\s*:\s*req\.body`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Prisma create/update from body
+- CWE-915: Mass Assignment
 
-Prisma create/update from body:
-```
-PATTERN: prisma\.\w+\.(create|update|upsert)\s*\(\s*\{\s*data\s*:\s*req\.body
-LANGUAGES: javascript, typescript
-```
+---
 
-### Ruby on Rails Mass Assignment
+## Ruby on Rails Mass Assignment
 
-CATEGORY: api-mass-assignment
-SEVERITY: high
-CONFIDENCE: 90
-CWE: CWE-915
-OWASP: API3:2023
+### Unpermitted Params
+**Pattern**: `\.(create|update|new)\s*\(\s*params(?!\.(permit|require))`
+**Type**: regex
+**Severity**: high
+**Languages**: [ruby]
+- Unpermitted params to create/update
+- CWE-915: Mass Assignment
 
-Unpermitted params to create/update:
-```
-PATTERN: \.(create|update|new)\s*\(\s*params(?!\.(permit|require))
-LANGUAGES: ruby
-```
+---
 
-### Sensitive Field Modification
+## Sensitive Field Modification
 
-CATEGORY: api-mass-assignment
-SEVERITY: critical
-CONFIDENCE: 85
-CWE: CWE-915
-OWASP: API3:2023
+### Role/Permission Modification
+**Pattern**: `(role|isAdmin|is_admin|admin|permission|permissions|privilege)\s*[=:]\s*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python]
+- Role/permission fields in request
+- CWE-915: Mass Assignment
 
-Role/permission fields in request:
-```
-PATTERN: (role|isAdmin|is_admin|admin|permission|permissions|privilege)\s*[=:]\s*req\.(body|params|query)
-LANGUAGES: javascript, typescript, python
-```
+### Account Status Modification
+**Pattern**: `(status|active|verified|approved|enabled)\s*[=:]\s*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python]
+- Account status modification via request
+- CWE-915: Mass Assignment
 
-Account status modification:
-```
-PATTERN: (status|active|verified|approved|enabled)\s*[=:]\s*req\.(body|params|query)
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### HTTP Parameter Pollution
+## HTTP Parameter Pollution
 
-CATEGORY: api-mass-assignment
-SEVERITY: medium
-CONFIDENCE: 80
-CWE: CWE-235
-OWASP: API3:2023
+### Array Params Without Validation
+**Pattern**: `req\.(query|params)\[['"][^'"]+['"]\]\s*(?!\.filter|\.map|\.every|\.some)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Array parameters without validation
+- CWE-235: HTTP Parameter Pollution
 
-Array parameters without validation:
-```
-PATTERN: req\.(query|params)\[['"][^'"]+['"]\]\s*(?!\.filter|\.map|\.every|\.some)
-LANGUAGES: javascript, typescript
-```
+---
 
-### GraphQL Mass Assignment
+## GraphQL Mass Assignment
 
-CATEGORY: api-mass-assignment
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-915
-OWASP: API3:2023
+### GraphQL Input to Database
+**Pattern**: `(args|input)\s*=>\s*\w+\.(create|update)\s*\(\s*(args|input)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- GraphQL input directly to database
+- CWE-915: Mass Assignment
 
-GraphQL input directly to database:
-```
-PATTERN: (args|input)\s*=>\s*\w+\.(create|update)\s*\(\s*(args|input)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Prototype Pollution
+## Prototype Pollution
 
-CATEGORY: api-mass-assignment
-SEVERITY: critical
-CONFIDENCE: 90
-CWE: CWE-1321
-OWASP: API3:2023
+### Object Merge With Input
+**Pattern**: `(merge|extend|assign|defaults)\s*\([^,]+,\s*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Object merge with user input
+- CWE-1321: Prototype Pollution
 
-Object merge with user input:
-```
-PATTERN: (merge|extend|assign|defaults)\s*\([^,]+,\s*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### Lodash Merge Vulnerability
+**Pattern**: `_\.(merge|defaultsDeep|set)\s*\([^,]+,\s*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Lodash merge vulnerability
+- CWE-1321: Prototype Pollution
 
-Lodash merge vulnerability:
-```
-PATTERN: _\.(merge|defaultsDeep|set)\s*\([^,]+,\s*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Field Blacklist vs Whitelist
+## Field Blacklist (Weak)
 
-CATEGORY: api-mass-assignment
-SEVERITY: medium
-CONFIDENCE: 75
-CWE: CWE-915
-OWASP: API3:2023
+### Delete Sensitive Fields
+**Pattern**: `delete\s+req\.body\.(password|role|admin|isAdmin)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Blacklist approach (weaker than whitelist)
+- CWE-915: Mass Assignment
 
-Blacklist approach (weaker):
-```
-PATTERN: delete\s+req\.body\.(password|role|admin|isAdmin)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Missing Input Validation Schema
+## Missing Input Validation
 
-CATEGORY: api-mass-assignment
-SEVERITY: medium
-CONFIDENCE: 70
-CWE: CWE-20
-OWASP: API3:2023
+### Route Without Validation
+**Pattern**: `app\.(post|put|patch)\s*\([^)]+,\s*(?!.*validate|validator|schema|joi|yup|zod).*\(req`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Route without validation middleware
+- CWE-20: Improper Input Validation
 
-Route without validation middleware:
-```
-PATTERN: app\.(post|put|patch)\s*\([^)]+,\s*(?!.*validate|validator|schema|joi|yup|zod).*\(req
-LANGUAGES: javascript, typescript
-```
+---
 
-## Remediation Examples
+## Detection Confidence
 
-### Safe Patterns
+**Regex Detection**: 85%
+**Security Pattern Detection**: 80%
 
-Allow-list specific fields (JavaScript):
-```javascript
-// SAFE: Only allow specific fields
-const { name, email, bio } = req.body;
-await User.update({ name, email, bio }, { where: { id: req.params.id } });
-```
-
-Use DTOs/Validation (TypeScript):
-```typescript
-// SAFE: Use class-validator/class-transformer
-@Post()
-async create(@Body() createUserDto: CreateUserDto) {
-  return this.userService.create(createUserDto);
-}
-```
-
-Mongoose strict schemas:
-```javascript
-// SAFE: Enable strict mode
-const userSchema = new Schema({ name: String }, { strict: true });
-```
+---
 
 ## References
 

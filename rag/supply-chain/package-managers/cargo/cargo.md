@@ -210,7 +210,128 @@ echo $CARGO_HOME || echo ~/.cargo
 
 ---
 
-## Best Practices
+## Best Practices Detection
+
+Patterns to detect good dependency management practices in CI/CD, Makefiles, and scripts.
+
+### cargo build --locked
+**Pattern**: `cargo\s+(build|test|run)\s+.*--locked`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Enforces exact versions from Cargo.lock
+- Ensures reproducible builds
+
+### cargo audit
+**Pattern**: `cargo\s+audit`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Vulnerability scanning for Rust dependencies
+- Uses RustSec advisory database
+
+### cargo deny
+**Pattern**: `cargo\s+deny`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Comprehensive dependency checking
+- Licenses, bans, advisories, sources
+
+### cargo vet
+**Pattern**: `cargo\s+vet`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Supply chain security verification
+- Third-party crate auditing
+
+### cargo vendor
+**Pattern**: `cargo\s+vendor`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Vendoring dependencies for air-gapped builds
+- Reproducible offline builds
+
+### cargo generate-lockfile
+**Pattern**: `cargo\s+generate-lockfile`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Generating lock file explicitly
+
+### cargo update dry-run
+**Pattern**: `cargo\s+update\s+--dry-run`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Checking for available updates without applying
+
+### cargo clippy
+**Pattern**: `cargo\s+clippy`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Linting Rust code for common mistakes
+- Security-relevant lint checks
+
+### cargo fmt check
+**Pattern**: `cargo\s+fmt\s+.*--check`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Enforcing code formatting in CI
+
+---
+
+## Anti-Patterns Detection
+
+Patterns that indicate potential issues.
+
+### Cargo.lock in gitignore for binaries
+**Pattern**: `Cargo\.lock` in `.gitignore`
+**Type**: regex
+**Severity**: medium
+**Context**: .gitignore
+- Cargo.lock should be committed for applications/binaries
+- Note: OK for libraries
+
+### Wildcard dependencies
+**Pattern**: `=\s*"\*"`
+**Type**: regex
+**Severity**: high
+**Context**: Cargo.toml
+- Using wildcard versions is dangerous
+- Non-reproducible dependency resolution
+
+### Git dependencies without rev
+**Pattern**: `git\s*=\s*"[^"]+"\s*(?!.*rev)`
+**Type**: regex
+**Severity**: medium
+**Context**: Cargo.toml
+- Git dependencies without pinned revision
+- May pull unexpected changes
+
+### Insecure git over HTTP
+**Pattern**: `git\s*=\s*"http://`
+**Type**: regex
+**Severity**: high
+**Context**: Cargo.toml
+- Using HTTP for git dependencies
+- Vulnerable to MITM attacks
+
+### Skip verification
+**Pattern**: `CARGO_NET_GIT_FETCH_WITH_CLI.*=.*true`
+**Type**: regex
+**Severity**: low
+**Context**: CI/CD, environment
+- May bypass Cargo's built-in security checks
+- Can be legitimate for private repos
+
+---
+
+## Best Practices Summary
 
 1. **Always commit Cargo.lock** for applications (not libraries)
 2. **Use `--locked` flag** in CI/CD to enforce lock file

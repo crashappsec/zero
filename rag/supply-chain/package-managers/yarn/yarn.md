@@ -230,7 +230,114 @@ yarn config get cacheFolder  # Berry
 
 ---
 
-## Best Practices
+## Best Practices Detection
+
+Patterns to detect good dependency management practices in CI/CD, Makefiles, and scripts.
+
+### yarn install --frozen-lockfile
+**Pattern**: `yarn\s+install\s+--frozen-lockfile|yarn\s+--frozen-lockfile`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Ensures reproducible builds from lock file
+- Fails if lock file needs updating
+
+### yarn install --immutable
+**Pattern**: `yarn\s+install\s+--immutable`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Yarn Berry equivalent of frozen-lockfile
+- Strict lock file enforcement
+
+### yarn audit
+**Pattern**: `yarn\s+audit`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Vulnerability scanning
+- Should run in CI/CD pipelines
+
+### yarn dedupe
+**Pattern**: `yarn\s+dedupe`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Deduplicating dependencies
+- Reduces bundle size and potential conflicts
+
+### yarn dlx
+**Pattern**: `yarn\s+dlx`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, scripts
+- Running packages without installing (Yarn Berry)
+- npx equivalent for Yarn
+
+### enableImmutableInstalls
+**Pattern**: `enableImmutableInstalls:\s*true`
+**Type**: regex
+**Severity**: info
+**Context**: .yarnrc.yml
+- Yarn Berry strict mode
+- Prevents unintended lock file changes
+
+### checksumBehavior throw
+**Pattern**: `checksumBehavior:\s*(throw|update)`
+**Type**: regex
+**Severity**: info
+**Context**: .yarnrc.yml
+- Strict checksum verification
+- Supply chain integrity
+
+---
+
+## Anti-Patterns Detection
+
+Patterns that indicate potential issues.
+
+### yarn.lock in gitignore
+**Pattern**: `yarn\.lock` in `.gitignore`
+**Type**: regex
+**Severity**: high
+**Context**: .gitignore
+- yarn.lock should be committed for reproducible builds
+
+### HTTP registry
+**Pattern**: `npmRegistryServer:\s*["']?http://`
+**Type**: regex
+**Severity**: high
+**Context**: .yarnrc.yml, .yarnrc
+- Using HTTP for registry URLs
+- Vulnerable to MITM attacks
+
+### Unsafe HTTP allowed
+**Pattern**: `unsafeHttpWhitelist:`
+**Type**: regex
+**Severity**: high
+**Context**: .yarnrc.yml
+- Allowing HTTP connections
+- Security risk for supply chain
+
+### No integrity check
+**Pattern**: `checksumBehavior:\s*ignore`
+**Type**: regex
+**Severity**: high
+**Context**: .yarnrc.yml
+- Disabling checksum verification
+- Supply chain security risk
+
+### Resolutions overrides
+**Pattern**: `"resolutions":\s*\{`
+**Type**: regex
+**Severity**: low
+**Context**: package.json
+- Manual version overrides
+- May hide dependency issues (note: can be legitimate)
+
+---
+
+## Best Practices Summary
 
 1. **Always commit yarn.lock** for reproducible builds
 2. **Use `yarn install --frozen-lockfile`** in CI/CD

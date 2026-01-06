@@ -1,226 +1,235 @@
 # API Rate Limiting & Resource Exhaustion
 
-Detection patterns for missing rate limiting and resource exhaustion vulnerabilities.
+**Category**: api-security/rate-limiting
+**Description**: Detection patterns for missing rate limiting and resource exhaustion vulnerabilities
+**CWE**: CWE-770, CWE-400, CWE-1333
+
+---
 
 ## OWASP API Security Top 10
 
 - **API4:2023** - Unrestricted Resource Consumption
 
-## Patterns
+---
 
-### Missing Rate Limiting
+## Missing Rate Limiting
 
-CATEGORY: api-rate-limiting
-SEVERITY: medium
-CONFIDENCE: 75
-CWE: CWE-770
-OWASP: API4:2023
+### Express Without Rate Limiter
+**Pattern**: `const\s+app\s*=\s*express\s*\(\)(?![\s\S]*rate-limit|rateLimit|rateLimiter)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Express app without rate limiter
+- CWE-770: Allocation Without Limits
 
-Express app without rate limiter:
-```
-PATTERN: const\s+app\s*=\s*express\s*\(\)(?![\s\S]*rate-limit|rateLimit|rateLimiter)
-LANGUAGES: javascript, typescript
-```
+### Login Without Rate Limit
+**Pattern**: `(\/login|\/signin|\/auth|\/authenticate).*app\.(post|get)(?!.*rateLimit|rateLimiter)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Login endpoint without rate limiting
+- CWE-770: Allocation Without Limits
 
-Login endpoint without rate limiting:
-```
-PATTERN: (\/login|\/signin|\/auth|\/authenticate).*app\.(post|get)(?!.*rateLimit|rateLimiter)
-LANGUAGES: javascript, typescript
-```
+### Password Reset Without Rate Limit
+**Pattern**: `(\/reset-password|\/forgot-password|\/password-reset).*app\.(post|get)(?!.*rateLimit)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Password reset without rate limiting
+- CWE-770: Allocation Without Limits
 
-Password reset without rate limiting:
-```
-PATTERN: (\/reset-password|\/forgot-password|\/password-reset).*app\.(post|get)(?!.*rateLimit)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Missing Request Size Limits
+## Missing Request Size Limits
 
-CATEGORY: api-rate-limiting
-SEVERITY: medium
-CONFIDENCE: 80
-CWE: CWE-770
-OWASP: API4:2023
+### Body Parser Without Limit
+**Pattern**: `(bodyParser|express)\.(json|urlencoded)\s*\(\s*\)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Body parser without size limit
+- CWE-770: Allocation Without Limits
 
-Body parser without size limit:
-```
-PATTERN: (bodyParser|express)\.(json|urlencoded)\s*\(\s*\)
-LANGUAGES: javascript, typescript
-```
+### Multer Without Size Limit
+**Pattern**: `multer\s*\(\s*\{(?!.*limits)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Multer without file size limit
+- CWE-770: Allocation Without Limits
 
-Multer without file size limit:
-```
-PATTERN: multer\s*\(\s*\{(?!.*limits)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Missing Pagination
+## Missing Pagination
 
-CATEGORY: api-rate-limiting
-SEVERITY: medium
-CONFIDENCE: 70
-CWE: CWE-770
-OWASP: API4:2023
+### Find All Without Limit
+**Pattern**: `\.(find|findAll|findMany)\s*\(\s*\{(?!.*limit|take|first)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Find all without limit
+- CWE-770: Allocation Without Limits
 
-Find all without limit:
-```
-PATTERN: \.(find|findAll|findMany)\s*\(\s*\{(?!.*limit|take|first)
-LANGUAGES: javascript, typescript
-```
+### Query Without Pagination
+**Pattern**: `(SELECT|select)(?!.*LIMIT|limit).*FROM.*res\.(json|send)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, python]
+- Database query without pagination
+- CWE-770: Allocation Without Limits
 
-Database query without pagination:
-```
-PATTERN: (SELECT|select)(?!.*LIMIT|limit).*FROM.*res\.(json|send)
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### GraphQL Complexity Limits
+## GraphQL Complexity Limits
 
-CATEGORY: api-rate-limiting
-SEVERITY: medium
-CONFIDENCE: 80
-CWE: CWE-770
-OWASP: API4:2023
+### GraphQL Without Depth Limit
+**Pattern**: `(ApolloServer|GraphQLServer)\s*\(\s*\{(?!.*depthLimit|queryComplexity|maxDepth)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- GraphQL without depth limiting
+- CWE-770: Allocation Without Limits
 
-GraphQL without depth limiting:
-```
-PATTERN: (ApolloServer|GraphQLServer)\s*\(\s*\{(?!.*depthLimit|queryComplexity|maxDepth)
-LANGUAGES: javascript, typescript
-```
+### GraphQL Without Complexity
+**Pattern**: `(ApolloServer|GraphQLServer)\s*\(\s*\{(?!.*complexity|costAnalysis)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- GraphQL without query complexity
+- CWE-770: Allocation Without Limits
 
-GraphQL without query complexity:
-```
-PATTERN: (ApolloServer|GraphQLServer)\s*\(\s*\{(?!.*complexity|costAnalysis)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Unrestricted File Upload
+## Unrestricted File Upload
 
-CATEGORY: api-rate-limiting
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-400
-OWASP: API4:2023
+### Upload Without Size Limit
+**Pattern**: `(upload|multer|formidable|busboy)(?!.*fileSize|maxFileSize|limits)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- File upload without size validation
+- CWE-400: Uncontrolled Resource Consumption
 
-File upload without size validation:
-```
-PATTERN: (upload|multer|formidable|busboy)(?!.*fileSize|maxFileSize|limits)
-LANGUAGES: javascript, typescript
-```
+### No File Count Limit
+**Pattern**: `(\.array|\.fields)\s*\([^)]*\)(?!.*maxCount|limits)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- No file count limit
+- CWE-400: Uncontrolled Resource Consumption
 
-No file count limit:
-```
-PATTERN: (\.array|\.fields)\s*\([^)]*\)(?!.*maxCount|limits)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Regex DoS (ReDoS)
+## Regex DoS (ReDoS)
 
-CATEGORY: api-rate-limiting
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-1333
-OWASP: API4:2023
+### Dynamic Regex
+**Pattern**: `new\s+RegExp\s*\(\s*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Dangerous regex patterns from user input
+- CWE-1333: ReDoS
 
-Dangerous regex patterns:
-```
-PATTERN: new\s+RegExp\s*\(\s*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### Nested Quantifiers
+**Pattern**: `\/\([^)]*[\*\+]\)[^\/]*[\*\+]\/`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Nested quantifiers (potential ReDoS)
+- CWE-1333: ReDoS
 
-Nested quantifiers (potential ReDoS):
-```
-PATTERN: \/\([^)]*[\*\+]\)[^\/]*[\*\+]\/
-LANGUAGES: javascript, typescript
-```
+---
 
-### Missing Timeout
+## Missing Timeout
 
-CATEGORY: api-rate-limiting
-SEVERITY: medium
-CONFIDENCE: 75
-CWE: CWE-400
-OWASP: API4:2023
+### HTTP Request Without Timeout
+**Pattern**: `(axios|fetch|request|got)\s*\(\s*[^)]*\)(?!.*timeout)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- HTTP request without timeout
+- CWE-400: Uncontrolled Resource Consumption
 
-HTTP request without timeout:
-```
-PATTERN: (axios|fetch|request|got)\s*\(\s*[^)]*\)(?!.*timeout)
-LANGUAGES: javascript, typescript
-```
+### Query Without Timeout
+**Pattern**: `(query|execute)\s*\(\s*[^)]*\)(?!.*timeout|maxTimeMS)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, python]
+- Database query without timeout
+- CWE-400: Uncontrolled Resource Consumption
 
-Database query without timeout:
-```
-PATTERN: (query|execute)\s*\(\s*[^)]*\)(?!.*timeout|maxTimeMS)
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### Memory Exhaustion
+## Memory Exhaustion
 
-CATEGORY: api-rate-limiting
-SEVERITY: high
-CONFIDENCE: 80
-CWE: CWE-400
-OWASP: API4:2023
+### Unbounded Array Growth
+**Pattern**: `\[\s*\]\.push\s*\([^)]*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Unbounded array growth
+- CWE-400: Uncontrolled Resource Consumption
 
-Unbounded array growth:
-```
-PATTERN: \[\s*\]\.push\s*\([^)]*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### Read File From Request
+**Pattern**: `(readFileSync|readFile)\s*\([^)]*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Reading entire file into memory from user input
+- CWE-400: Uncontrolled Resource Consumption
 
-Reading entire file into memory:
-```
-PATTERN: (readFileSync|readFile)\s*\([^)]*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Connection Pool Exhaustion
+## Connection Pool Exhaustion
 
-CATEGORY: api-rate-limiting
-SEVERITY: medium
-CONFIDENCE: 75
-CWE: CWE-400
-OWASP: API4:2023
+### DB Without Pooling
+**Pattern**: `(createConnection|connect)\s*\([^)]*\)(?!.*pool|poolSize|connectionLimit)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Database connection without pooling
+- CWE-400: Uncontrolled Resource Consumption
 
-Database connection without pooling:
-```
-PATTERN: (createConnection|connect)\s*\([^)]*\)(?!.*pool|poolSize|connectionLimit)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Batch Operation Limits
+## Batch Operation Limits
 
-CATEGORY: api-rate-limiting
-SEVERITY: medium
-CONFIDENCE: 70
-CWE: CWE-770
-OWASP: API4:2023
+### Bulk Ops Without Limit
+**Pattern**: `(bulkCreate|insertMany|bulkWrite)\s*\(\s*req\.body(?!.*limit)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Bulk operations without limits
+- CWE-770: Allocation Without Limits
 
-Bulk operations without limits:
-```
-PATTERN: (bulkCreate|insertMany|bulkWrite)\s*\(\s*req\.body(?!.*limit)
-LANGUAGES: javascript, typescript
-```
+---
 
-### CPU-Intensive Operations
+## CPU-Intensive Operations
 
-CATEGORY: api-rate-limiting
-SEVERITY: medium
-CONFIDENCE: 75
-CWE: CWE-400
-OWASP: API4:2023
+### Sync Crypto In Handler
+**Pattern**: `(pbkdf2Sync|scryptSync|hashSync)\s*\([^)]*req\.(body|params|query)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Synchronous crypto in request handler
+- CWE-400: Uncontrolled Resource Consumption
 
-Synchronous crypto in request handler:
-```
-PATTERN: (pbkdf2Sync|scryptSync|hashSync)\s*\([^)]*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### JSON Parse From Request
+**Pattern**: `JSON\.parse\s*\(\s*req\.(body|params|query)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- JSON parsing of large input
+- CWE-400: Uncontrolled Resource Consumption
 
-JSON parsing of large input:
-```
-PATTERN: JSON\.parse\s*\(\s*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+---
+
+## Detection Confidence
+
+**Regex Detection**: 75%
+**Security Pattern Detection**: 70%
+
+---
 
 ## References
 

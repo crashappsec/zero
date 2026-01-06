@@ -1,288 +1,243 @@
 # API Server-Side Request Forgery (SSRF)
 
-Detection patterns for SSRF vulnerabilities in API endpoints.
+**Category**: api-security/ssrf
+**Description**: Detection patterns for SSRF vulnerabilities in API endpoints
+**CWE**: CWE-918, CWE-611
+
+---
 
 ## OWASP API Security Top 10
 
 - **API7:2023** - Server Side Request Forgery
 
-## Patterns
+---
 
-### Direct URL from Request
+## Direct URL from Request
 
-CATEGORY: api-ssrf
-SEVERITY: critical
-CONFIDENCE: 95
-CWE: CWE-918
-OWASP: API7:2023
+### Fetch With User URL
+**Pattern**: `(fetch|axios|got|request|http\.get|https\.get)\s*\(\s*req\.(body|params|query)\.(url|uri|href|link|target|redirect)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Fetch/axios with user-provided URL
+- CWE-918: SSRF
 
-Fetch/axios with user-provided URL:
-```
-PATTERN: (fetch|axios|got|request|http\.get|https\.get)\s*\(\s*req\.(body|params|query)\.(url|uri|href|link|target|redirect)
-LANGUAGES: javascript, typescript
-```
+### Python Requests With User URL
+**Pattern**: `requests\.(get|post|put|delete|head|patch)\s*\(\s*request\.(args|form|json)\.(url|uri|href|link|target)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Python requests with user URL
+- CWE-918: SSRF
 
-Python requests with user URL:
-```
-PATTERN: requests\.(get|post|put|delete|head|patch)\s*\(\s*request\.(args|form|json)\.(url|uri|href|link|target)
-LANGUAGES: python
-```
+---
 
-### URL Construction from User Input
+## URL Construction from User Input
 
-CATEGORY: api-ssrf
-SEVERITY: critical
-CONFIDENCE: 90
-CWE: CWE-918
-OWASP: API7:2023
+### URL Concatenation
+**Pattern**: `(http|https):\/\/.*(\+|\$\{).*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- URL concatenation with user input
+- CWE-918: SSRF
 
-URL concatenation with user input:
-```
-PATTERN: (http|https):\/\/.*(\+|`\$\{).*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### Template Literal URL
+**Pattern**: `(http|https):\/\/.*\$\{.*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Template literal URL with user input
+- CWE-918: SSRF
 
-Template literal URL:
-```
-PATTERN: `(http|https):\/\/\$\{.*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### Python f-string URL
+**Pattern**: `f['"](http|https):\/\/.*\{.*request\.(args|form|json)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Python f-string URL construction
+- CWE-918: SSRF
 
-Python f-string URL:
-```
-PATTERN: f['"](http|https):\/\/.*\{.*request\.(args|form|json)
-LANGUAGES: python
-```
+---
 
-### Image/File URL Fetch
+## Image/File URL Fetch
 
-CATEGORY: api-ssrf
-SEVERITY: high
-CONFIDENCE: 90
-CWE: CWE-918
-OWASP: API7:2023
+### Image URL From Request
+**Pattern**: `(imageUrl|image_url|avatarUrl|avatar_url|fileUrl|file_url|pictureUrl)\s*=\s*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript, python]
+- Image download from user URL
+- CWE-918: SSRF
 
-Image download from user URL:
-```
-PATTERN: (imageUrl|image_url|avatarUrl|avatar_url|fileUrl|file_url|pictureUrl)\s*=\s*req\.(body|params|query)
-LANGUAGES: javascript, typescript, python
-```
+### File Download From Request
+**Pattern**: `(download|fetch|get).*\(\s*req\.(body|params|query)\.(url|path|file|image)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Fetch for file download from user input
+- CWE-918: SSRF
 
-Fetch for file download:
-```
-PATTERN: (download|fetch|get).*\(\s*req\.(body|params|query)\.(url|path|file|image)
-LANGUAGES: javascript, typescript
-```
+---
 
-### Webhook URL
+## Webhook URL
 
-CATEGORY: api-ssrf
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-918
-OWASP: API7:2023
+### Webhook From User Input
+**Pattern**: `(webhook|callback|notify|endpoint).*=\s*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript, python]
+- Webhook endpoint from user input
+- CWE-918: SSRF
 
-Webhook endpoint from user input:
-```
-PATTERN: (webhook|callback|notify|endpoint).*=\s*req\.(body|params|query)
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### XML External Entity (XXE)
+## XML External Entity (XXE)
 
-CATEGORY: api-ssrf
-SEVERITY: critical
-CONFIDENCE: 90
-CWE: CWE-611
-OWASP: API7:2023
+### XML Parsing Without Protection
+**Pattern**: `(DOMParser|xml2js|xmldom|libxmljs|etree\.parse|lxml\.etree)(?!.*resolveExternals\s*[=:]\s*false|noent\s*[=:]\s*false)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python]
+- XML parsing without disabling external entities
+- CWE-611: XXE
 
-XML parsing without disabling external entities:
-```
-PATTERN: (DOMParser|xml2js|xmldom|libxmljs|etree\.parse|lxml\.etree)(?!.*resolveExternals\s*[=:]\s*false|noent\s*[=:]\s*false)
-LANGUAGES: javascript, typescript, python
-```
+### Dangerous XML Parser Options
+**Pattern**: `(parseXML|parse).*\{[^}]*(resolveExternals|expandEntities|loadExternalDTD)\s*[=:]\s*true`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Dangerous XML parser options enabled
+- CWE-611: XXE
 
-Dangerous XML parser options:
-```
-PATTERN: (parseXML|parse).*\{[^}]*(resolveExternals|expandEntities|loadExternalDTD)\s*[=:]\s*true
-LANGUAGES: javascript, typescript
-```
+---
 
-### PDF Generation SSRF
+## PDF/HTML Generation SSRF
 
-CATEGORY: api-ssrf
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-918
-OWASP: API7:2023
+### PDF From User URL
+**Pattern**: `(puppeteer|playwright|pdf|wkhtmltopdf|phantom).*(goto|navigate|url|create)\s*\([^)]*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- PDF generation from user-controlled URL
+- CWE-918: SSRF
 
-PDF from URL with user input:
-```
-PATTERN: (puppeteer|playwright|pdf|wkhtmltopdf|phantom).*(goto|navigate|url|create)\s*\([^)]*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### Browser Automation With User URL
+**Pattern**: `(page\.goto|page\.navigate|browser\.newPage).*req\.(body|params|query)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Browser automation with user URL
+- CWE-918: SSRF
 
-### HTML Rendering SSRF
+---
 
-CATEGORY: api-ssrf
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-918
-OWASP: API7:2023
+## Cloud Metadata Access
 
-Browser automation with user URL:
-```
-PATTERN: (page\.goto|page\.navigate|browser\.newPage).*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+### AWS Metadata Endpoint
+**Pattern**: `169\.254\.169\.254`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python, java, go]
+- AWS metadata endpoint access pattern
+- CWE-918: SSRF to Cloud Metadata
 
-### Cloud Metadata Access
+### GCP Metadata Endpoint
+**Pattern**: `metadata\.google\.internal`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python, java, go]
+- GCP metadata endpoint access
+- CWE-918: SSRF to Cloud Metadata
 
-CATEGORY: api-ssrf
-SEVERITY: critical
-CONFIDENCE: 95
-CWE: CWE-918
-OWASP: API7:2023
+### Azure Metadata Endpoint
+**Pattern**: `169\.254\.169\.254.*metadata`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python, java, go]
+- Azure metadata endpoint access
+- CWE-918: SSRF to Cloud Metadata
 
-AWS metadata endpoint access pattern:
-```
-PATTERN: 169\.254\.169\.254
-LANGUAGES: javascript, typescript, python, java, go
-```
+---
 
-GCP metadata endpoint:
-```
-PATTERN: metadata\.google\.internal
-LANGUAGES: javascript, typescript, python, java, go
-```
+## Internal Network Access
 
-Azure metadata endpoint:
-```
-PATTERN: 169\.254\.169\.254.*metadata
-LANGUAGES: javascript, typescript, python, java, go
-```
+### Localhost/Internal IP
+**Pattern**: `(127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|localhost|0\.0\.0\.0)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript, python]
+- Localhost or internal IP patterns
+- CWE-918: SSRF
 
-### DNS Rebinding Vulnerability
+---
 
-CATEGORY: api-ssrf
-SEVERITY: high
-CONFIDENCE: 80
-CWE: CWE-918
-OWASP: API7:2023
+## Redirect Following
 
-URL validation then fetch (TOCTOU):
-```
-PATTERN: (isValid|validate|check).*url.*\n.*fetch\s*\(\s*\1
-LANGUAGES: javascript, typescript
-```
+### Following Redirects
+**Pattern**: `(followRedirects?|maxRedirects|redirect)\s*[=:]\s*(true|[1-9])`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Following redirects without validation
+- CWE-918: SSRF via Redirect
 
-### Internal Network Access
+---
 
-CATEGORY: api-ssrf
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-918
-OWASP: API7:2023
+## Dynamic Import SSRF
 
-Localhost/internal IP patterns:
-```
-PATTERN: (127\.|10\.|172\.(1[6-9]|2[0-9]|3[01])\.|192\.168\.|localhost|0\.0\.0\.0)
-LANGUAGES: javascript, typescript, python
-```
+### Dynamic Import From Request
+**Pattern**: `import\s*\(\s*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Dynamic import from user URL
+- CWE-918: SSRF
 
-### Redirect Following
+### Require From Request
+**Pattern**: `require\s*\(\s*req\.(body|params|query)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Require from user input
+- CWE-918: SSRF
 
-CATEGORY: api-ssrf
-SEVERITY: medium
-CONFIDENCE: 80
-CWE: CWE-918
-OWASP: API7:2023
+---
 
-Following redirects without validation:
-```
-PATTERN: (followRedirects?|maxRedirects|redirect)\s*[=:]\s*(true|[1-9])
-LANGUAGES: javascript, typescript
-```
+## Protocol Handler SSRF
 
-### GraphQL SSRF
+### File Protocol
+**Pattern**: `file:\/\/`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript, python]
+- File protocol in URL
+- CWE-918: SSRF
 
-CATEGORY: api-ssrf
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-918
-OWASP: API7:2023
+### Gopher Protocol
+**Pattern**: `gopher:\/\/`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript, python]
+- Gopher protocol in URL
+- CWE-918: SSRF
 
-GraphQL with URL fields:
-```
-PATTERN: (imageUrl|profileUrl|webhookUrl|callbackUrl)\s*:\s*String
-LANGUAGES: graphql, javascript, typescript
-```
+### Dict Protocol
+**Pattern**: `dict:\/\/`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript, python]
+- Dict protocol in URL
+- CWE-918: SSRF
 
-### Import from URL
+---
 
-CATEGORY: api-ssrf
-SEVERITY: critical
-CONFIDENCE: 90
-CWE: CWE-918
-OWASP: API7:2023
+## Detection Confidence
 
-Dynamic import from user URL:
-```
-PATTERN: import\s*\(\s*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
+**Regex Detection**: 90%
+**Security Pattern Detection**: 85%
 
-Require from user input:
-```
-PATTERN: require\s*\(\s*req\.(body|params|query)
-LANGUAGES: javascript, typescript
-```
-
-### Protocol Handler SSRF
-
-CATEGORY: api-ssrf
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-918
-OWASP: API7:2023
-
-File protocol in URL:
-```
-PATTERN: file:\/\/
-LANGUAGES: javascript, typescript, python
-```
-
-Gopher protocol:
-```
-PATTERN: gopher:\/\/
-LANGUAGES: javascript, typescript, python
-```
-
-Dict protocol:
-```
-PATTERN: dict:\/\/
-LANGUAGES: javascript, typescript, python
-```
-
-## Remediation Examples
-
-### Safe Patterns
-
-URL allowlist validation:
-```javascript
-// SAFE: Validate against allowlist
-const ALLOWED_DOMAINS = ['api.example.com', 'cdn.example.com'];
-const url = new URL(req.body.url);
-if (!ALLOWED_DOMAINS.includes(url.hostname)) {
-  throw new Error('Domain not allowed');
-}
-```
-
-Disable redirects:
-```javascript
-// SAFE: Don't follow redirects
-const response = await fetch(url, { redirect: 'error' });
-```
+---
 
 ## References
 

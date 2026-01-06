@@ -181,7 +181,102 @@ cyclonedx-npm --output-format json --spec-version 1.5
 
 ---
 
-## Best Practices
+## Best Practices Detection
+
+Patterns to detect good dependency management practices in CI/CD, Makefiles, and scripts.
+
+### npm ci
+**Pattern**: `npm\s+ci`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Clean install from lock file
+- Ensures reproducible builds in CI/CD
+
+### npm audit
+**Pattern**: `npm\s+audit`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Vulnerability scanning
+- Should run in CI/CD pipelines
+
+### npm audit with enforcement
+**Pattern**: `npm\s+audit\s+--audit-level`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Enforcing audit results in CI/CD
+- Fails build on specified severity level
+
+### package-lock-only
+**Pattern**: `--package-lock-only`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Generate lock file without node_modules
+- Useful for SBOM generation
+
+### npm sbom generation
+**Pattern**: `npm\s+sbom`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Native SBOM generation (npm 9+)
+- Supply chain transparency
+
+### npm prune production
+**Pattern**: `npm\s+prune\s+--production|npm\s+prune\s+--omit=dev`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Removing dev dependencies before deployment
+- Reduces attack surface
+
+---
+
+## Anti-Patterns Detection
+
+Patterns that indicate potential issues.
+
+### Missing package-lock in git
+**Pattern**: `package-lock\.json` in `.gitignore`
+**Type**: regex
+**Severity**: high
+**Context**: .gitignore
+- package-lock.json should be committed for reproducible builds
+
+### Ignoring scripts globally
+**Pattern**: `ignore-scripts\s*=\s*true`
+**Type**: regex
+**Severity**: medium
+**Context**: .npmrc
+- Disabling scripts globally may indicate security concern but breaks legitimate scripts
+
+### Wildcard versions
+**Pattern**: `"[^"]+"\s*:\s*"\*"`
+**Type**: regex
+**Severity**: high
+**Context**: package.json
+- Using `*` versions is dangerous for supply chain security
+
+### Latest tag in dependencies
+**Pattern**: `"[^"]+"\s*:\s*"latest"`
+**Type**: regex
+**Severity**: medium
+**Context**: package.json
+- Using `latest` tag prevents reproducible builds
+
+### Skipping npm audit in CI
+**Pattern**: `npm\s+audit\s+--audit-level=none`
+**Type**: regex
+**Severity**: medium
+**Context**: CI/CD
+- Disabling audit checks weakens supply chain security
+
+---
+
+## Best Practices Summary
 
 1. **Always commit package-lock.json** for reproducible builds
 2. **Use `npm ci`** in CI/CD for clean installs from lock file

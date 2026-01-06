@@ -266,7 +266,115 @@ mvn dependency:go-offline
 
 ---
 
-## Best Practices
+## Best Practices Detection
+
+Patterns to detect good dependency management practices in CI/CD, Makefiles, and scripts.
+
+### mvn dependency:tree
+**Pattern**: `mvn\s+.*dependency:tree`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Visualizing dependency tree
+- Helps identify conflicts and transitive dependencies
+
+### mvn dependency:analyze
+**Pattern**: `mvn\s+.*dependency:analyze`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Finding unused and undeclared dependencies
+- Code hygiene check
+
+### mvn verify
+**Pattern**: `mvn\s+(verify|clean\s+verify)`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Running all checks including tests
+- Full build verification
+
+### mvn dependency:go-offline
+**Pattern**: `mvn\s+.*dependency:go-offline`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Downloading dependencies for offline use
+- Useful for air-gapped builds
+
+### OWASP dependency check
+**Pattern**: `org\.owasp:dependency-check-maven|dependency-check:check`
+**Type**: regex
+**Severity**: info
+**Context**: pom.xml, CI/CD
+- Vulnerability scanning with OWASP
+- Supply chain security
+
+### versions:display-dependency-updates
+**Pattern**: `versions:display-dependency-updates`
+**Type**: regex
+**Severity**: info
+**Context**: CI/CD, Makefile, scripts
+- Checking for available updates
+- Staying current with dependencies
+
+### CycloneDX plugin
+**Pattern**: `cyclonedx-maven-plugin|cyclonedx:make`
+**Type**: regex
+**Severity**: info
+**Context**: pom.xml, CI/CD
+- SBOM generation
+- Supply chain transparency
+
+---
+
+## Anti-Patterns Detection
+
+Patterns that indicate potential issues.
+
+### SNAPSHOT in release builds
+**Pattern**: `<version>.*-SNAPSHOT</version>`
+**Type**: regex
+**Severity**: medium
+**Context**: pom.xml
+- SNAPSHOT versions are mutable
+- Should not be in production releases
+
+### HTTP repositories
+**Pattern**: `<url>http://[^<]+</url>`
+**Type**: regex
+**Severity**: high
+**Context**: pom.xml, settings.xml
+- Using HTTP for repository URLs
+- Vulnerable to MITM attacks
+
+### System scope dependencies
+**Pattern**: `<scope>system</scope>`
+**Type**: regex
+**Severity**: medium
+**Context**: pom.xml
+- System scope dependencies are deprecated
+- Not portable across environments
+
+### Skipping tests in CI
+**Pattern**: `-DskipTests|-Dmaven\.test\.skip=true`
+**Type**: regex
+**Severity**: medium
+**Context**: CI/CD
+- Skipping tests in CI pipeline
+- May hide security issues
+
+### Version ranges
+**Pattern**: `<version>\[[^\]]+\]</version>|<version>\([^\)]+\)</version>`
+**Type**: regex
+**Severity**: medium
+**Context**: pom.xml
+- Version ranges are non-deterministic
+- Can break builds unexpectedly
+
+---
+
+## Best Practices Summary
 
 1. **Use dependency management** in parent POM for version control
 2. **Lock versions** with `<dependencyManagement>` section

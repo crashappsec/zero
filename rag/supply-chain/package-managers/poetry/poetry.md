@@ -260,6 +260,77 @@ poetry config http-basic.private username password
 
 ---
 
+## Best Practices Detection
+
+### Poetry Lock File Present
+**Pattern**: `poetry\.lock`
+**Type**: regex
+**Severity**: info
+**Languages**: [toml]
+**Context**: lock file
+- Lock file ensures reproducible builds
+- Recommended for all Poetry projects
+
+### Poetry Python Version Pinned
+**Pattern**: `\[tool\.poetry\.dependencies\][^[]*python\s*=\s*['\"][\^~]?[0-9]+\.[0-9]+`
+**Type**: regex
+**Severity**: info
+**Languages**: [toml]
+**Context**: pyproject.toml
+- Python version specified in dependencies
+- Best practice for reproducibility
+
+### Poetry Group Dependencies
+**Pattern**: `\[tool\.poetry\.group\.\w+\.dependencies\]`
+**Type**: regex
+**Severity**: info
+**Languages**: [toml]
+**Context**: pyproject.toml
+- Using Poetry groups for organization
+- Separates dev/test dependencies properly
+
+---
+
+## Anti-Patterns Detection
+
+### Missing Poetry Lock File
+**Pattern**: `\[tool\.poetry\](?![\s\S]*poetry\.lock)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [toml]
+**Context**: pyproject.toml
+- pyproject.toml without accompanying lock file
+- CWE-829: Inclusion of Functionality from Untrusted Source
+
+### Unpinned Dependency (Wildcard)
+**Pattern**: `['\"][a-zA-Z][a-zA-Z0-9_-]*['\"]s*=\s*['\"][*]['\"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [toml]
+**Context**: pyproject.toml
+- Wildcard version allows any version
+- CWE-829: Dependency version not pinned
+
+### Git Dependency Without Tag
+**Pattern**: `git\s*=\s*['\"][^'\"]+['\"](?!.*tag|rev)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [toml]
+**Context**: pyproject.toml
+- Git dependency without tag or revision
+- CWE-829: Unpinned git dependency
+
+### Private Registry Without HTTPS
+**Pattern**: `url\s*=\s*['\"]http://(?!localhost)`
+**Type**: regex
+**Severity**: high
+**Languages**: [toml]
+**Context**: pyproject.toml
+- Non-HTTPS registry URL
+- CWE-319: Cleartext Transmission
+
+---
+
 ## References
 
 - [Poetry Documentation](https://python-poetry.org/docs/)

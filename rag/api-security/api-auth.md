@@ -1,6 +1,10 @@
 # API Authentication & Authorization
 
-Detection patterns for API authentication and authorization vulnerabilities.
+**Category**: api-security/auth
+**Description**: Detection patterns for API authentication and authorization vulnerabilities
+**CWE**: CWE-306, CWE-639, CWE-287, CWE-798, CWE-384, CWE-942, CWE-285, CWE-598
+
+---
 
 ## OWASP API Security Top 10
 
@@ -8,149 +12,150 @@ Detection patterns for API authentication and authorization vulnerabilities.
 - **API2:2023** - Broken Authentication
 - **API5:2023** - Broken Function Level Authorization
 
-## Patterns
+---
 
-### Missing Authentication Middleware
+## Missing Authentication Middleware
 
-CATEGORY: api-auth
-SEVERITY: critical
-CONFIDENCE: 90
-CWE: CWE-306
-OWASP: API2:2023
+### Express Routes Without Auth
+**Pattern**: `app\.(get|post|put|delete|patch)\s*\(\s*['"][^'"]+['"]\s*,\s*(?!.*(?:auth|authenticate|isAuthenticated|requireAuth|verifyToken|passport|jwt|session)).*\(\s*req\s*,\s*res`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Express.js routes without authentication middleware
+- CWE-306: Missing Authentication
 
-Express.js routes without authentication:
-```
-PATTERN: app\.(get|post|put|delete|patch)\s*\(\s*['"][^'"]+['"]\s*,\s*(?!.*(?:auth|authenticate|isAuthenticated|requireAuth|verifyToken|passport|jwt|session)).*\(\s*req\s*,\s*res
-LANGUAGES: javascript, typescript
-```
+### FastAPI Without Dependencies
+**Pattern**: `@app\.(get|post|put|delete|patch)\s*\([^)]*\)\s*\n(?:async\s+)?def\s+\w+\s*\([^)]*\)(?!.*Depends)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- FastAPI endpoints without security dependencies
+- CWE-306: Missing Authentication
 
-FastAPI endpoints without dependencies:
-```
-PATTERN: @app\.(get|post|put|delete|patch)\s*\([^)]*\)\s*\n(?:async\s+)?def\s+\w+\s*\([^)]*\)(?!.*Depends)
-LANGUAGES: python
-```
+### Flask Without Login Required
+**Pattern**: `@app\.route\s*\([^)]+\)\s*\ndef\s+\w+\s*\((?!.*login_required|auth_required)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Flask routes without login_required decorator
+- CWE-306: Missing Authentication
 
-Flask routes without login_required:
-```
-PATTERN: @app\.route\s*\([^)]+\)\s*\ndef\s+\w+\s*\((?!.*login_required|auth_required)
-LANGUAGES: python
-```
+---
 
-### Broken Object Level Authorization (BOLA)
+## Broken Object Level Authorization (BOLA)
 
-CATEGORY: api-auth
-SEVERITY: critical
-CONFIDENCE: 85
-CWE: CWE-639
-OWASP: API1:2023
+### Direct Object Reference
+**Pattern**: `\.(findById|findOne|findByPk|get)\s*\(\s*(req\.params\.|req\.query\.|request\.args)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python]
+- Direct object reference without ownership check
+- CWE-639: IDOR / BOLA
 
-Direct object reference without ownership check:
-```
-PATTERN: \.(findById|findOne|findByPk|get)\s*\(\s*(req\.params\.|req\.query\.|request\.args)
-LANGUAGES: javascript, typescript, python
-```
+### User ID From Request
+**Pattern**: `(user_id|userId|user\.id)\s*=\s*(req\.params|req\.query|request\.args|request\.form)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python]
+- User ID from request used directly in query
+- CWE-639: IDOR / BOLA
 
-User ID from request used directly in query:
-```
-PATTERN: (user_id|userId|user\.id)\s*=\s*(req\.params|req\.query|request\.args|request\.form)
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### Missing JWT Validation
+## JWT Validation Issues
 
-CATEGORY: api-auth
-SEVERITY: high
-CONFIDENCE: 90
-CWE: CWE-287
-OWASP: API2:2023
+### JWT Decode Without Verify
+**Pattern**: `jwt\.decode\s*\([^)]*verify\s*=\s*False`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- JWT decode without verification
+- CWE-287: Improper Authentication
 
-JWT decode without verification:
-```
-PATTERN: jwt\.decode\s*\([^)]*verify\s*=\s*False
-LANGUAGES: python
-```
+### JWT Without Algorithm
+**Pattern**: `jwt\.(sign|verify)\s*\([^)]*\)(?!.*algorithm)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- JWT without algorithm specification
+- CWE-287: Improper Authentication
 
-JWT without algorithm specification:
-```
-PATTERN: jwt\.(sign|verify)\s*\([^)]*\)(?!.*algorithm)
-LANGUAGES: javascript, typescript
-```
+### JWT None Algorithm
+**Pattern**: `algorithms?\s*[=:]\s*\[.*['"]none['"]`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python]
+- Accepting 'none' algorithm
+- CWE-287: Improper Authentication
 
-Accepting 'none' algorithm:
-```
-PATTERN: algorithms?\s*[=:]\s*\[.*['"]none['"]
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### Hardcoded JWT Secrets
+## Hardcoded Secrets
 
-CATEGORY: api-auth
-SEVERITY: critical
-CONFIDENCE: 95
-CWE: CWE-798
-OWASP: API2:2023
+### Hardcoded JWT Secret
+**Pattern**: `(jwt_secret|JWT_SECRET|secret_key|SECRET_KEY)\s*[=:]\s*['"][^'"]{8,}['"]`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, python]
+- JWT secret hardcoded in source code
+- CWE-798: Hardcoded Credentials
 
-JWT secret in code:
-```
-PATTERN: (jwt_secret|JWT_SECRET|secret_key|SECRET_KEY)\s*[=:]\s*['"][^'"]{8,}['"]
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### Session Fixation
+## Session Security
 
-CATEGORY: api-auth
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-384
-OWASP: API2:2023
+### Session Not Regenerated
+**Pattern**: `(login|authenticate|signin).*\{[^}]*(?!regenerate|destroy|create).*session`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Session not regenerated after login
+- CWE-384: Session Fixation
 
-Session not regenerated after login:
-```
-PATTERN: (login|authenticate|signin).*\{[^}]*(?!regenerate|destroy|create).*session
-LANGUAGES: javascript, typescript
-```
+---
 
-### Missing CORS Authentication
+## CORS Issues
 
-CATEGORY: api-auth
-SEVERITY: medium
-CONFIDENCE: 80
-CWE: CWE-942
-OWASP: API2:2023
+### CORS Credentials With Wildcard
+**Pattern**: `(credentials|withCredentials)\s*[=:]\s*true.*origin\s*[=:]\s*['"]\*['"]`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, python]
+- CORS with credentials but wildcard origin
+- CWE-942: Overly Permissive Cross-domain Whitelist
 
-CORS with credentials but wildcard origin:
-```
-PATTERN: (credentials|withCredentials)\s*[=:]\s*true.*origin\s*[=:]\s*['"]\*['"]
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### Broken Function Level Authorization
+## Function Level Authorization
 
-CATEGORY: api-auth
-SEVERITY: high
-CONFIDENCE: 85
-CWE: CWE-285
-OWASP: API5:2023
+### Admin Endpoints Without Role Check
+**Pattern**: `(\/admin|\/manage|\/internal|\/system).*(?!role|permission|isAdmin|authorize)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript, python]
+- Admin endpoints without role check
+- CWE-285: Improper Authorization
 
-Admin endpoints without role check:
-```
-PATTERN: (\/admin|\/manage|\/internal|\/system).*(?!role|permission|isAdmin|authorize)
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### API Key in URL
+## API Key Security
 
-CATEGORY: api-auth
-SEVERITY: medium
-CONFIDENCE: 90
-CWE: CWE-598
-OWASP: API2:2023
+### API Key In Query String
+**Pattern**: `(api_key|apikey|api-key|access_token)\s*=\s*(req\.query|request\.args|params\[)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, python]
+- API key passed in query string (logged in URLs)
+- CWE-598: Use of GET Request Method With Sensitive Query Strings
 
-API key passed in query string:
-```
-PATTERN: (api_key|apikey|api-key|access_token)\s*=\s*(req\.query|request\.args|params\[)
-LANGUAGES: javascript, typescript, python
-```
+---
+
+## Detection Confidence
+
+**Regex Detection**: 90%
+**Security Pattern Detection**: 85%
+
+---
 
 ## References
 
