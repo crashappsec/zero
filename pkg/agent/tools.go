@@ -9,6 +9,7 @@ func BuiltinTools() []ToolDefinition {
 		BashTool(),
 		ListProjectsTool(),
 		GetAnalysisTool(),
+		HydrateProjectTool(),
 		WebSearchTool(),
 		WebFetchTool(),
 		DelegateAgentTool(),
@@ -170,6 +171,32 @@ func GetAnalysisTool() ToolDefinition {
 	}
 }
 
+// HydrateProjectTool defines the tool to hydrate (clone and scan) repositories
+func HydrateProjectTool() ToolDefinition {
+	return ToolDefinition{
+		Name:        "HydrateProject",
+		Description: "Clone and scan a repository or organization. This runs security scanners and generates analysis data. Use for 'owner/repo' format for single repos or 'orgname' for all repos in an org.",
+		InputSchema: InputSchema{
+			Type: "object",
+			Properties: map[string]Property{
+				"target": {
+					Type:        "string",
+					Description: "Repository (owner/repo) or organization name to hydrate",
+				},
+				"profile": {
+					Type:        "string",
+					Description: "Scan profile to use. Options: all-quick (default), all-complete, code-packages, code-security, code-quality, devops",
+				},
+				"limit": {
+					Type:        "integer",
+					Description: "Maximum number of repos to hydrate when targeting an org (default: 25)",
+				},
+			},
+			Required: []string{"target"},
+		},
+	}
+}
+
 // WebSearchTool defines the web search tool
 func WebSearchTool() ToolDefinition {
 	return ToolDefinition{
@@ -269,10 +296,10 @@ func GetToolsForAgent(agentID string) []ToolDefinition {
 	// Add web tools for investigation
 	tools = append(tools, WebSearchTool(), WebFetchTool())
 
-	// Add bash for certain agents
+	// Add bash and hydrate for certain agents
 	switch agentID {
 	case "zero", "plague", "joey", "dade":
-		tools = append(tools, BashTool())
+		tools = append(tools, BashTool(), HydrateProjectTool())
 	}
 
 	// Add delegation for orchestrator and specialists

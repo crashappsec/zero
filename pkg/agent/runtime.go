@@ -198,6 +198,8 @@ func (r *Runtime) createToolExecutor(session *Session) ToolExecutor {
 			return r.executeListProjects(ctx, session, call)
 		case "GetAnalysis":
 			return r.executeGetAnalysis(ctx, session, call)
+		case "HydrateProject":
+			return r.executeHydrateProject(ctx, session, call)
 		case "WebSearch":
 			return r.executeWebSearch(ctx, session, call)
 		case "WebFetch":
@@ -473,6 +475,85 @@ func (r *Runtime) executeGetAnalysis(ctx context.Context, session *Session, call
 	}
 
 	return &ToolResult{ToolCallID: call.ID, Content: string(content)}, nil
+}
+
+// executeHydrateProject executes the HydrateProject tool
+func (r *Runtime) executeHydrateProject(ctx context.Context, session *Session, call *ToolCall) (*ToolResult, error) {
+	var input struct {
+		Target  string `json:"target"`
+		Profile string `json:"profile"`
+		Limit   int    `json:"limit"`
+	}
+	if err := json.Unmarshal(call.Input, &input); err != nil {
+		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Invalid input: %s", err), IsError: true}, nil
+	}
+
+	if input.Target == "" {
+		return &ToolResult{ToolCallID: call.ID, Content: "Target is required (owner/repo or org name)", IsError: true}, nil
+	}
+
+	// Build the hydrate command
+	args := []string{"hydrate", input.Target}
+
+	if input.Profile != "" {
+		args = append(args, input.Profile)
+	}
+
+	if input.Limit > 0 {
+		args = append(args, "--limit", fmt.Sprintf("%d", input.Limit))
+	}
+
+	// Find the zero binary - try current directory first, then PATH
+	zeroBin := "./zero"
+	if _, err := os.Stat(zeroBin); os.IsNotExist(err) {
+		// Try to find in PATH
+		if path, err := exec.LookPath("zero"); err == nil {
+			zeroBin = path
+		} else {
+			return &ToolResult{
+				ToolCallID: call.ID,
+				Content:    "Could not find zero binary. Make sure ./zero exists or zero is in PATH.",
+				IsError:    true,
+			}, nil
+		}
+	}
+
+	// Set a longer timeout for hydration (can take several minutes)
+	cmdCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
+	defer cancel()
+
+	cmd := exec.CommandContext(cmdCtx, zeroBin, args...)
+
+	// Set ZERO_HOME if we have it
+	cmd.Env = os.Environ()
+	if r.zeroHome != "" {
+		cmd.Env = append(cmd.Env, fmt.Sprintf("ZERO_HOME=%s", r.zeroHome))
+	}
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Check if it was a timeout
+		if cmdCtx.Err() == context.DeadlineExceeded {
+			return &ToolResult{
+				ToolCallID: call.ID,
+				Content:    fmt.Sprintf("Hydration timed out after 30 minutes. Partial output:\n%s", string(output)),
+				IsError:    true,
+			}, nil
+		}
+		return &ToolResult{
+			ToolCallID: call.ID,
+			Content:    fmt.Sprintf("Hydration failed: %s\nOutput: %s", err, string(output)),
+			IsError:    true,
+		}, nil
+	}
+
+	// Truncate output if too long
+	result := string(output)
+	if len(result) > 10000 {
+		result = result[:10000] + "\n\n[Output truncated...]"
+	}
+
+	return &ToolResult{ToolCallID: call.ID, Content: result}, nil
 }
 
 // executeWebSearch executes the WebSearch tool
