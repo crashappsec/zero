@@ -34,8 +34,6 @@ go build -o zero ./cmd/zero
 # Scene 5: Codebase tour
 ls -la pkg/scanner/
 cat config/zero.config.json
-ls -la rag/
-cat rag/technology-identification/web-frameworks/frontend/react/patterns.md | head -30
 ls -la agents/
 
 # Scene 6: Hydrate entire org (will use cache if already done)

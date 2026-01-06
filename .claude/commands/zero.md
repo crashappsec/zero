@@ -67,7 +67,7 @@ Clone a repository locally and run all analyzers, storing results for agent quer
 **Examples:**
 ```bash
 ./zero hydrate strapi/strapi
-./zero hydrate strapi/strapi code-security
+./zero hydrate strapi/strapi all-quick
 ./zero hydrate zero-test-org --limit 5
 ```
 

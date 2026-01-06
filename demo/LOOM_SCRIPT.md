@@ -127,12 +127,12 @@ go build -o zero ./cmd/zero
 
 ---
 
-## Scene 5: Quick Codebase Tour (50 seconds)
+## Scene 5: Quick Codebase Tour (30 seconds)
 
 **[Show editor or terminal with tree view]**
 
 **SAY:**
-> "Zero is organized around scanners, profiles, agents, and a RAG knowledge base. Let me show you."
+> "Zero is organized around scanners, profiles, and AI agents."
 
 **TYPE:**
 ```bash
@@ -148,23 +148,7 @@ cat config/zero.config.json
 ```
 
 **SAY:**
-> "Profiles control which scanners run and how. 'all-quick' runs everything with fast defaults. 'all-complete' enables every feature. You can create custom profiles for your workflow."
-
-**TYPE:**
-```bash
-ls -la rag/
-```
-
-**SAY:**
-> "The RAG directory is the brain. It contains structured knowledge that powers everything - technology detection patterns, supply chain specs, DORA metrics definitions, and more."
-
-**TYPE:**
-```bash
-cat rag/technology-identification/web-frameworks/frontend/react/patterns.md | head -30
-```
-
-**SAY:**
-> "Here's a React detection pattern. These get converted to Semgrep rules at runtime - so adding new technology detection is just adding a markdown file."
+> "Profiles control which scanners run. 'all-quick' runs everything with fast defaults. You can create custom profiles for your workflow."
 
 **TYPE:**
 ```bash
@@ -172,7 +156,7 @@ ls -la agents/
 ```
 
 **SAY:**
-> "Specialist AI agents - each named after characters from Hackers. They use the RAG knowledge to provide deep domain expertise."
+> "Specialist AI agents - each named after characters from Hackers. They provide deep domain expertise for security, supply chain, compliance, and more."
 
 ---
 
@@ -288,12 +272,11 @@ Which repos in zero-test-org have the worst bus factor?
 1. **Speed up** hydrate if needed (2x-4x)
 2. **Cut** loading spinners > 3 seconds
 3. Add **callouts** pointing to:
-   - RAG pattern structure (tiered detection)
-   - "Converted to Semgrep rules" moment
    - Bus factor indicator
    - Package health scores
    - SBOM/license distribution
    - Contributor breakdown
+   - Security findings
 
 ---
 
@@ -301,12 +284,12 @@ Which repos in zero-test-org have the worst bus factor?
 
 | Topic | What to Highlight |
 |-------|-------------------|
-| **RAG Knowledge** | Structured patterns, converted to Semgrep rules, easy to extend |
 | **Ownership** | Bus factor, CODEOWNERS, contributor distribution |
 | **Package Health** | Dependency freshness, maintenance status, health scores |
 | **SBOM** | Complete inventory, license distribution |
-| **Security** | Vulnerabilities, secrets (mention but don't dwell) |
-| **Agents** | Domain specialists, powered by RAG knowledge |
+| **Security** | Vulnerabilities, secrets, code scanning |
+| **DevOps** | DORA metrics, IaC scanning, container security |
+| **Agents** | Domain specialists with deep expertise |
 
 ---
 

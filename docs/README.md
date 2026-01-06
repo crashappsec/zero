@@ -36,7 +36,7 @@ go build -o zero ./cmd/zero
 ./zero hydrate strapi/strapi
 
 # Scan with a specific profile
-./zero hydrate strapi/strapi code-security
+./zero hydrate strapi/strapi all-quick
 
 # Check scan status
 ./zero status

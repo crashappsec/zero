@@ -104,11 +104,11 @@ Use public repositories like `strapi/strapi` for testing your changes.
 # Build the CLI first
 go build -o zero ./cmd/zero
 
-# Test hydration with quick profile
+# Test hydration with all-quick profile (runs all scanners)
 ./zero hydrate strapi/strapi all-quick
 
-# Test with the security profile
-./zero hydrate strapi/strapi code-security
+# Test with a specific scanner profile
+./zero hydrate strapi/strapi code-packages
 
 # View results in web UI
 ./zero serve
