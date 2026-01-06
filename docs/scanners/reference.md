@@ -63,7 +63,7 @@ Static analysis, secret detection, and cryptographic security (consolidated from
 
 **Key Features:**
 - Vulnerability detection (Semgrep)
-- Secret detection with redaction
+- Secret detection via RAG-generated Semgrep rules (240+ patterns)
 - API security analysis (OWASP API Top 10)
 - Weak cipher detection (DES, MD5, SHA-1)
 - Hardcoded key detection
@@ -207,8 +207,7 @@ See `config/zero.config.json` for all profile definitions.
 | cdxgen | code-packages | SBOM generation | `npm i -g @cyclonedx/cdxgen` |
 | osv-scanner | code-packages | Vulnerability scanning | `go install github.com/google/osv-scanner/...` |
 | malcontent | code-packages | Behavioral analysis | `brew install malcontent` |
-| semgrep | code-security, code-quality | Pattern analysis | `pip install semgrep` |
-| trufflehog | code-security | Secret detection | `brew install trufflehog` |
+| semgrep | code-security, code-quality | SAST, secrets (RAG patterns), quality | `pip install semgrep` |
 | checkov | devops | IaC scanning | `pip install checkov` |
 | trivy | devops | Container/IaC scanning | `brew install trivy` |
 

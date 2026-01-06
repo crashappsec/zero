@@ -22,8 +22,7 @@ npm install -g @cyclonedx/cdxgen    # CycloneDX generator - complete dependency 
 go install github.com/google/osv-scanner/cmd/osv-scanner@latest
 
 # Code security (highly recommended)
-brew install semgrep                 # SAST, secrets, API security
-brew install trufflehog              # Secrets detection
+brew install semgrep                 # SAST, secrets (via RAG patterns), API security
 
 # Supply chain security
 go install github.com/chainguard-dev/malcontent/cmd/mal@latest
@@ -95,7 +94,6 @@ External Tools
   ✓ cdxgen
   ✓ osv-scanner
   ✓ semgrep
-  ✓ trufflehog
   ✗ malcontent (not installed)
 
 Scanner Compatibility
