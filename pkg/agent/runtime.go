@@ -441,13 +441,13 @@ func (r *Runtime) executeGetAnalysis(ctx context.Context, session *Session, call
 		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error reading analysis: %s", err), IsError: true}, nil
 	}
 
+	var data map[string]interface{}
+	if err := json.Unmarshal(content, &data); err != nil {
+		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error parsing JSON: %s", err), IsError: true}, nil
+	}
+
 	// If section specified, extract just that section
 	if input.Section != "" {
-		var data map[string]interface{}
-		if err := json.Unmarshal(content, &data); err != nil {
-			return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error parsing JSON: %s", err), IsError: true}, nil
-		}
-
 		// Navigate to section (supports dot notation like "findings.vulnerabilities")
 		parts := strings.Split(input.Section, ".")
 		var current interface{} = data
@@ -463,18 +463,52 @@ func (r *Runtime) executeGetAnalysis(ctx context.Context, session *Session, call
 		if err != nil {
 			return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error formatting section: %s", err), IsError: true}, nil
 		}
-		return &ToolResult{ToolCallID: call.ID, Content: string(sectionJSON)}, nil
+
+		// Truncate section output if too large
+		result := string(sectionJSON)
+		if len(result) > 30000 {
+			result = result[:30000] + "\n\n[Section truncated - try a more specific section path]"
+		}
+		return &ToolResult{ToolCallID: call.ID, Content: result}, nil
 	}
 
-	// Return full content (may be truncated if too large)
-	if len(content) > 50000 {
-		return &ToolResult{
-			ToolCallID: call.ID,
-			Content:    string(content[:50000]) + "\n\n[Truncated - use 'section' parameter to get specific parts]",
-		}, nil
+	// No section specified - return summary with available sections
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("Analysis: %s for %s\n", input.Scanner, input.ProjectID))
+	summary.WriteString(fmt.Sprintf("File size: %d bytes\n\n", len(content)))
+	summary.WriteString("Available sections:\n")
+
+	for key, value := range data {
+		switch v := value.(type) {
+		case map[string]interface{}:
+			summary.WriteString(fmt.Sprintf("  - %s (object with %d keys)\n", key, len(v)))
+			// Show sub-keys for important sections
+			if key == "summary" || key == "findings" || key == "results" {
+				for subKey := range v {
+					summary.WriteString(fmt.Sprintf("      .%s\n", subKey))
+				}
+			}
+		case []interface{}:
+			summary.WriteString(fmt.Sprintf("  - %s (array with %d items)\n", key, len(v)))
+		default:
+			summary.WriteString(fmt.Sprintf("  - %s\n", key))
+		}
 	}
 
-	return &ToolResult{ToolCallID: call.ID, Content: string(content)}, nil
+	summary.WriteString("\nUse 'section' parameter to get specific data, e.g.:\n")
+	summary.WriteString("  section: \"summary\"\n")
+	summary.WriteString("  section: \"findings.secrets\"\n")
+
+	// Also include summary section if it exists and is small enough
+	if summaryData, ok := data["summary"]; ok {
+		summaryJSON, err := json.MarshalIndent(summaryData, "", "  ")
+		if err == nil && len(summaryJSON) < 5000 {
+			summary.WriteString("\n--- Summary Section ---\n")
+			summary.WriteString(string(summaryJSON))
+		}
+	}
+
+	return &ToolResult{ToolCallID: call.ID, Content: summary.String()}, nil
 }
 
 // executeHydrateProject executes the HydrateProject tool
