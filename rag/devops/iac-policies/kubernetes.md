@@ -1,111 +1,112 @@
 # Kubernetes Security Patterns
 
-**Category**: devops/iac-policies
+**Category**: devops/iac-policies/kubernetes
 **Description**: Kubernetes manifest security and organizational policy patterns
-**CWE**: CWE-250 (Execution with Unnecessary Privileges), CWE-732 (Incorrect Permission Assignment)
+**CWE**: CWE-250, CWE-732
 
 ---
 
 ## Container Security Patterns
 
 ### Container Running as Root
+**Pattern**: `(?i)runAsUser:\s*0\b`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)runAsUser:\s*0\b`
+**Languages**: [yaml, kubernetes]
 - Containers should not run as root user
-- Example: `runAsUser: 0`
 - Remediation: Set `runAsUser` to a non-root UID (e.g., 1000)
+- CWE-250: Execution with Unnecessary Privileges
 
 ### Privileged Container
+**Pattern**: `(?i)privileged:\s*true`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)privileged:\s*true`
+**Languages**: [yaml, kubernetes]
 - Containers should not run in privileged mode
-- Example: `privileged: true`
-- Remediation: Set `privileged: false` and use specific capabilities instead
+- Remediation: Set `privileged: false` and use specific capabilities
 
 ### Allow Privilege Escalation
+**Pattern**: `(?i)allowPrivilegeEscalation:\s*true`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)allowPrivilegeEscalation:\s*true`
+**Languages**: [yaml, kubernetes]
 - Containers should not allow privilege escalation
-- Example: `allowPrivilegeEscalation: true`
 - Remediation: Set `allowPrivilegeEscalation: false`
 
 ### Host Network Namespace
+**Pattern**: `(?i)hostNetwork:\s*true`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)hostNetwork:\s*true`
+**Languages**: [yaml, kubernetes]
 - Pods should not use the host network namespace
-- Example: `hostNetwork: true`
 - Remediation: Set `hostNetwork: false` and use NetworkPolicies
 
 ### Host PID Namespace
+**Pattern**: `(?i)hostPID:\s*true`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)hostPID:\s*true`
+**Languages**: [yaml, kubernetes]
 - Pods should not use the host PID namespace
-- Example: `hostPID: true`
 - Remediation: Set `hostPID: false`
 
 ### Host IPC Namespace
+**Pattern**: `(?i)hostIPC:\s*true`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)hostIPC:\s*true`
+**Languages**: [yaml, kubernetes]
 - Pods should not use the host IPC namespace
-- Example: `hostIPC: true`
 - Remediation: Set `hostIPC: false`
 
 ### All Capabilities Added
+**Pattern**: `(?i)capabilities:[\s\S]*?add:\s*\[\s*["']?ALL["']?\s*\]`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)capabilities:[\s\S]*?add:\s*\[\s*["']?ALL["']?\s*\]`
+**Languages**: [yaml, kubernetes]
 - Containers should not have all Linux capabilities
-- Example: `add: ["ALL"]`
 - Remediation: Add only specific required capabilities
 
 ### SYS_ADMIN Capability
+**Pattern**: `(?i)capabilities:[\s\S]*?add:[\s\S]*?["']?SYS_ADMIN["']?`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)capabilities:[\s\S]*?add:[\s\S]*?["']?SYS_ADMIN["']?`
+**Languages**: [yaml, kubernetes]
 - SYS_ADMIN capability is dangerous and rarely needed
-- Example: `add: ["SYS_ADMIN"]`
 - Remediation: Remove SYS_ADMIN and use more specific capabilities
 
 ### Writable Root Filesystem
+**Pattern**: `(?i)readOnlyRootFilesystem:\s*false`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)readOnlyRootFilesystem:\s*false`
+**Languages**: [yaml, kubernetes]
 - Container root filesystem should be read-only
-- Example: `readOnlyRootFilesystem: false`
-- Remediation: Set `readOnlyRootFilesystem: true` and use volumes for writable paths
+- Remediation: Set `readOnlyRootFilesystem: true`
 
 ---
 
 ## Resource Management Patterns
 
 ### Missing Resource Limits
+**Pattern**: `(?i)containers:[\s\S]*?name:\s*[^\n]+(?:(?!resources:).)*$`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)containers:[\s\S]*?name:\s*[^\n]+(?:(?!resources:).)*$`
+**Languages**: [yaml, kubernetes]
 - Containers should have resource limits defined
-- Example: Container without `resources` block
 - Remediation: Add `resources.limits` for CPU and memory
 
 ### Missing Memory Limit
+**Pattern**: `(?i)resources:[\s\S]*?limits:(?:(?!memory:).)*$`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)resources:[\s\S]*?limits:(?:(?!memory:).)*$`
-- Containers should have memory limits to prevent OOM issues
-- Example: Missing `memory` in limits
+**Languages**: [yaml, kubernetes]
+- Containers should have memory limits to prevent OOM
 - Remediation: Add `limits.memory` (e.g., "512Mi")
 
 ### Missing CPU Limit
+**Pattern**: `(?i)resources:[\s\S]*?limits:(?:(?!cpu:).)*$`
 **Type**: regex
 **Severity**: low
-**Pattern**: `(?i)resources:[\s\S]*?limits:(?:(?!cpu:).)*$`
+**Languages**: [yaml, kubernetes]
 - Containers should have CPU limits for fair scheduling
-- Example: Missing `cpu` in limits
 - Remediation: Add `limits.cpu` (e.g., "500m")
 
 ---
@@ -113,27 +114,19 @@
 ## Network Security Patterns
 
 ### Service Exposed via NodePort
+**Pattern**: `(?i)type:\s*NodePort`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)type:\s*NodePort`
+**Languages**: [yaml, kubernetes]
 - NodePort exposes service on all cluster nodes
-- Example: `type: NodePort`
 - Remediation: Use LoadBalancer or ClusterIP with Ingress
 
-### Service Exposed via LoadBalancer Without Annotation
-**Type**: regex
-**Severity**: medium
-**Pattern**: `(?i)type:\s*LoadBalancer(?:(?!annotations:).)*$`
-- LoadBalancer services should have annotations for security
-- Example: LoadBalancer without internal annotation
-- Remediation: Add cloud provider annotations for internal load balancer if needed
-
 ### Missing NetworkPolicy
+**Pattern**: `kind:\s*Deployment`
 **Type**: structural
 **Severity**: medium
-**Pattern**: `NetworkPolicy`
+**Languages**: [yaml, kubernetes]
 - Namespaces should have NetworkPolicies for traffic control
-- Example: Namespace without NetworkPolicy
 - Remediation: Create NetworkPolicy to restrict pod communication
 
 ---
@@ -141,35 +134,36 @@
 ## RBAC Patterns
 
 ### ClusterRoleBinding to cluster-admin
+**Pattern**: `(?i)roleRef:[\s\S]*?name:\s*["']?cluster-admin["']?`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)roleRef:[\s\S]*?name:\s*["']?cluster-admin["']?`
+**Languages**: [yaml, kubernetes]
 - Binding to cluster-admin grants full cluster access
-- Example: `name: cluster-admin`
 - Remediation: Create custom ClusterRole with minimal permissions
+- CWE-732: Incorrect Permission Assignment
 
 ### Wildcard Verb in Role
+**Pattern**: `(?i)verbs:\s*\[\s*["']?\*["']?\s*\]`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)verbs:\s*\[\s*["']?\*["']?\s*\]`
+**Languages**: [yaml, kubernetes]
 - Roles should not grant wildcard verb permissions
-- Example: `verbs: ["*"]`
-- Remediation: Specify explicit verbs (get, list, watch, create, etc.)
+- Remediation: Specify explicit verbs
 
 ### Wildcard Resource in Role
+**Pattern**: `(?i)resources:\s*\[\s*["']?\*["']?\s*\]`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)resources:\s*\[\s*["']?\*["']?\s*\]`
+**Languages**: [yaml, kubernetes]
 - Roles should not grant access to all resources
-- Example: `resources: ["*"]`
 - Remediation: Specify explicit resource types
 
 ### Secrets Access in Role
+**Pattern**: `(?i)resources:[\s\S]*?["']?secrets["']?[\s\S]*?verbs:\s*\[[\s\S]*?(?:get|list|\*)[\s\S]*?\]`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)resources:[\s\S]*?["']?secrets["']?[\s\S]*?verbs:\s*\[[\s\S]*?(?:get|list|\*)[\s\S]*?\]`
+**Languages**: [yaml, kubernetes]
 - Access to secrets should be carefully controlled
-- Example: Role granting secrets access
 - Remediation: Ensure secrets access is necessary and audited
 
 ---
@@ -177,105 +171,70 @@
 ## Pod Security Patterns
 
 ### Missing SecurityContext
+**Pattern**: `(?i)spec:[\s\S]*?containers:(?:(?!securityContext:).)*$`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)spec:[\s\S]*?containers:(?:(?!securityContext:).)*$`
+**Languages**: [yaml, kubernetes]
 - Pods should have securityContext defined
-- Example: Pod without securityContext
-- Remediation: Add securityContext with runAsNonRoot, capabilities, etc.
+- Remediation: Add securityContext with runAsNonRoot, capabilities
 
 ### Missing RunAsNonRoot
+**Pattern**: `(?i)securityContext:(?:(?!runAsNonRoot).)*$`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)securityContext:(?:(?!runAsNonRoot).)*$`
+**Languages**: [yaml, kubernetes]
 - Pods should enforce non-root execution
-- Example: Missing runAsNonRoot in securityContext
 - Remediation: Add `runAsNonRoot: true`
 
 ### Default Service Account
+**Pattern**: `(?i)serviceAccountName:\s*["']?default["']?`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)serviceAccountName:\s*["']?default["']?`
+**Languages**: [yaml, kubernetes]
 - Pods should not use the default service account
-- Example: `serviceAccountName: default`
 - Remediation: Create and use dedicated service account
 
-### Missing ServiceAccount Token Mount
+### Automount Service Account Token
+**Pattern**: `(?i)automountServiceAccountToken:\s*true`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)automountServiceAccountToken:\s*true`
+**Languages**: [yaml, kubernetes]
 - Service account tokens should not be auto-mounted unless needed
-- Example: `automountServiceAccountToken: true`
-- Remediation: Set `automountServiceAccountToken: false` unless required
+- Remediation: Set `automountServiceAccountToken: false`
 
 ---
 
 ## Image Security Patterns
 
 ### Image with Latest Tag
+**Pattern**: `(?i)image:\s*[^\s:]+:latest`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)image:\s*[^\s:]+:latest`
+**Languages**: [yaml, kubernetes]
 - Images should not use the :latest tag
-- Example: `image: nginx:latest`
 - Remediation: Use specific version tags (e.g., nginx:1.25.0)
 
 ### Image without Tag
+**Pattern**: `(?i)image:\s*[^\s:]+\s*$`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)image:\s*[^\s:]+\s*$`
+**Languages**: [yaml, kubernetes]
 - Images should have explicit tags
-- Example: `image: nginx`
-- Remediation: Specify version tag (e.g., nginx:1.25.0)
+- Remediation: Specify version tag
 
 ### Image Pull Policy Always
-**Type**: regex
-**Severity**: low
 **Pattern**: `(?i)imagePullPolicy:\s*Always`
+**Type**: regex
+**Severity**: low
+**Languages**: [yaml, kubernetes]
 - Always pulling images may slow deployments
-- Example: `imagePullPolicy: Always`
 - Remediation: Consider IfNotPresent for production
-
----
-
-## Organizational Policies
-
-### Missing Labels
-**Type**: regex
-**Severity**: low
-**Pattern**: `(?i)metadata:(?:(?!labels:).)*$`
-- Resources should have labels for organization
-- Example: Resource without labels
-- Remediation: Add labels including app, environment, version, owner
-
-### Missing Namespace
-**Type**: regex
-**Severity**: low
-**Pattern**: `(?i)metadata:(?:(?!namespace:).)*kind:`
-- Resources should specify namespace explicitly
-- Example: Resource without namespace
-- Remediation: Specify namespace or use kustomize/helm for namespace management
-
-### Missing PodDisruptionBudget
-**Type**: structural
-**Severity**: low
-**Pattern**: `PodDisruptionBudget`
-- Deployments should have PodDisruptionBudget for availability
-- Example: Deployment without PDB
-- Remediation: Create PodDisruptionBudget with minAvailable
-
----
-
-## Detection Confidence
-
-**Regex Detection**: 85%
-**Policy Compliance**: 90%
 
 ---
 
 ## References
 
-- CIS Kubernetes Benchmark
-- NSA/CISA Kubernetes Hardening Guide
-- Pod Security Standards
-- Kubernetes Security Best Practices
+- [CWE-250: Execution with Unnecessary Privileges](https://cwe.mitre.org/data/definitions/250.html)
+- [CWE-732: Incorrect Permission Assignment](https://cwe.mitre.org/data/definitions/732.html)
+- [CIS Kubernetes Benchmark](https://www.cisecurity.org/benchmark/kubernetes)
+- [NSA/CISA Kubernetes Hardening Guide](https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF)

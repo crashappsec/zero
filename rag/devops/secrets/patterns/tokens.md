@@ -1,188 +1,208 @@
 # Authentication Tokens
 
+**Category**: devops/secrets/tokens
+**Description**: Detection patterns for authentication tokens and session credentials
+**CWE**: CWE-798, CWE-312, CWE-522
+
+---
+
 ## JWT (JSON Web Tokens)
 
-### Structure
-```
-Pattern: eyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*
-Example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U
-Severity: high
-```
+### JWT Token
+**Pattern**: `eyJ[A-Za-z0-9_-]*\.eyJ[A-Za-z0-9_-]*\.[A-Za-z0-9_-]*`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- JWTs have three base64url-encoded parts separated by dots
+- Header and payload both start with `eyJ`
+- CWE-312: Cleartext Storage of Sensitive Information
 
-JWTs have three base64url-encoded parts separated by dots:
-1. Header (starts with `eyJ`)
-2. Payload (starts with `eyJ`)
-3. Signature
-
-### Security Concerns
-- Exposed JWTs can be replayed until expiration
-- May contain sensitive claims (email, roles, permissions)
-- Weak secrets allow token forgery
-
-### JWT Secrets
-```
-Pattern: JWT_SECRET|jwt[_-]?secret
-Context: Environment variables, config files
-Severity: critical
-```
-
-The signing secret is more dangerous than individual tokens.
+### JWT Secret Key
+**Pattern**: `JWT_SECRET|jwt[_-]?secret`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- JWT signing secrets are more dangerous than individual tokens
+- Context: Environment variables, config files
 
 ---
 
 ## OAuth Tokens
 
-### OAuth 2.0 Access Tokens
-```
-Pattern: ya29\.[A-Za-z0-9_-]+ (Google)
-Pattern: [A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,} (Generic)
-Severity: high
-```
+### Google OAuth Access Token
+**Pattern**: `ya29\.[A-Za-z0-9_-]+`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Google OAuth 2.0 access tokens start with `ya29.`
 
-### OAuth Refresh Tokens
-```
-Pattern: 1//[A-Za-z0-9_-]+ (Google)
-Severity: critical
-```
+### Google OAuth Refresh Token
+**Pattern**: `1//[A-Za-z0-9_-]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Google refresh tokens are long-lived and more sensitive
 
-Refresh tokens are more sensitive as they're long-lived.
-
-### OAuth Client Secrets
-```
-Pattern: client_secret['":\s]+['"]?[A-Za-z0-9_-]{24,}['"]?
-Severity: critical
-```
+### OAuth Client Secret
+**Pattern**: `client_secret['":\s]+['"]?[A-Za-z0-9_-]{24,}['"]?`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- OAuth client secrets enable impersonation
 
 ---
 
 ## Session Tokens
 
-### Express/Connect Sessions
-```
-Pattern: s:[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+
-Context: connect.sid cookie
-Severity: high
-```
+### Express/Connect Session
+**Pattern**: `s:[A-Za-z0-9+/=]+\.[A-Za-z0-9+/=]+`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Connect.sid cookie format
 
-### PHP Sessions
-```
-Pattern: PHPSESSID=[a-z0-9]{26,32}
-Severity: high
-```
+### PHP Session ID
+**Pattern**: `PHPSESSID=[a-z0-9]{26,32}`
+**Type**: regex
+**Severity**: high
+**Languages**: [php]
+- PHP session identifiers
 
-### Django Sessions
-```
-Pattern: sessionid=[a-z0-9]{32}
-Severity: high
-```
+### Django Session ID
+**Pattern**: `sessionid=[a-z0-9]{32}`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- Django session identifiers
 
-### ASP.NET Sessions
-```
-Pattern: ASP\.NET_SessionId=[a-z0-9]{24}
-Severity: high
-```
+### ASP.NET Session ID
+**Pattern**: `ASP\.NET_SessionId=[a-z0-9]{24}`
+**Type**: regex
+**Severity**: high
+**Languages**: [csharp]
+- ASP.NET session identifiers
 
 ---
 
 ## API Bearer Tokens
 
-### Generic Bearer
-```
-Pattern: [Bb]earer\s+[A-Za-z0-9_\-.~+/]+=*
-Context: Authorization headers
-Severity: high
-```
+### Bearer Token
+**Pattern**: `[Bb]earer\s+[A-Za-z0-9_\-.~+/]+=*`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Authorization header bearer tokens
 
-### Basic Auth (encoded)
-```
-Pattern: [Bb]asic\s+[A-Za-z0-9+/]+=*
-Context: Authorization headers
-Severity: high
-```
-
-Can be decoded to reveal username:password.
+### Basic Auth Encoded
+**Pattern**: `[Bb]asic\s+[A-Za-z0-9+/]+=*`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Can be decoded to reveal username:password
+- CWE-522: Insufficiently Protected Credentials
 
 ---
 
 ## Service-Specific Tokens
 
-### Auth0
-```
-Pattern: [A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+
-Context: AUTH0_CLIENT_SECRET, auth0.com domains
-Severity: high
-```
+### Auth0 Token
+**Pattern**: `[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Context: AUTH0_CLIENT_SECRET, auth0.com domains
 
-### Firebase
-```
-Pattern: [0-9]+:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+
-Context: Firebase config, FCM tokens
-Severity: medium
-```
+### Firebase Token
+**Pattern**: `[0-9]+:[A-Za-z0-9_-]+:[A-Za-z0-9_-]+`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Firebase config and FCM tokens
 
-### Supabase
-```
-Pattern: eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+
-Context: SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY
-Severity: high (service role), medium (anon)
-```
+### Supabase Service Role Key
+**Pattern**: `eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Supabase service role key bypasses Row Level Security
+- Context: SUPABASE_SERVICE_ROLE_KEY
 
-The service role key bypasses Row Level Security.
+### Supabase Anon Key
+**Pattern**: `eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Supabase anonymous key
+- Context: SUPABASE_ANON_KEY
 
-### Okta
-```
-Pattern: 00[A-Za-z0-9_-]{40}
-Context: OKTA_API_TOKEN
-Severity: high
-```
+### Okta API Token
+**Pattern**: `00[A-Za-z0-9_-]{40}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Okta API tokens start with `00`
+- Context: OKTA_API_TOKEN
 
-### Clerk
-```
-Pattern: sk_live_[A-Za-z0-9]{40,}
-Pattern: sk_test_[A-Za-z0-9]{40,}
-Severity: high (live), low (test)
-```
+### Clerk Live Secret Key
+**Pattern**: `sk_live_[A-Za-z0-9]{40,}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Clerk production secret keys
+
+### Clerk Test Secret Key
+**Pattern**: `sk_test_[A-Za-z0-9]{40,}`
+**Type**: regex
+**Severity**: low
+**Languages**: [all]
+- Clerk test environment keys
 
 ---
 
 ## CSRF Tokens
 
-### General Pattern
-```
-Pattern: csrf[_-]?token['":\s]+['"]?[A-Za-z0-9_-]{32,}['"]?
-Severity: medium
-```
-
-CSRF tokens are session-specific but shouldn't be logged.
+### CSRF Token
+**Pattern**: `csrf[_-]?token['":\s]+['"]?[A-Za-z0-9_-]{32,}['"]?`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- CSRF tokens are session-specific but shouldn't be logged
 
 ---
 
 ## Password Reset Tokens
 
-### General Pattern
-```
-Pattern: reset[_-]?token['":\s]+['"]?[A-Za-z0-9_-]{32,}['"]?
-Severity: high
-```
-
-These allow account takeover if exposed.
+### Password Reset Token
+**Pattern**: `reset[_-]?token['":\s]+['"]?[A-Za-z0-9_-]{32,}['"]?`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Password reset tokens allow account takeover if exposed
 
 ---
 
 ## Verification Tokens
 
-### Email Verification
-```
-Pattern: verify[_-]?token['":\s]+['"]?[A-Za-z0-9_-]{32,}['"]?
-Severity: medium
-```
+### Email Verification Token
+**Pattern**: `verify[_-]?token['":\s]+['"]?[A-Za-z0-9_-]{32,}['"]?`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Email verification tokens
 
-### Magic Links
-```
-Pattern: /auth/magic/[A-Za-z0-9_-]{32,}
-Pattern: /login/[A-Za-z0-9_-]{64,}
-Severity: high
-```
+### Magic Link Token
+**Pattern**: `/auth/magic/[A-Za-z0-9_-]{32,}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Magic link authentication URLs
+
+### Login Link Token
+**Pattern**: `/login/[A-Za-z0-9_-]{64,}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Passwordless login URLs
 
 ---
 
@@ -209,3 +229,11 @@ Severity: high
 - **Refresh tokens > Access tokens**: Longer validity
 - **Admin tokens > User tokens**: Higher privilege
 - **Production > Development**: Real data access
+
+---
+
+## References
+
+- [CWE-798: Use of Hard-coded Credentials](https://cwe.mitre.org/data/definitions/798.html)
+- [CWE-312: Cleartext Storage of Sensitive Information](https://cwe.mitre.org/data/definitions/312.html)
+- [CWE-522: Insufficiently Protected Credentials](https://cwe.mitre.org/data/definitions/522.html)

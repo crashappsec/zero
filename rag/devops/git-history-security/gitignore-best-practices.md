@@ -12,28 +12,28 @@ When found in git history, these indicate potential data leaks or poor repositor
 ## Environment Files
 
 ### Environment Configuration Files
+**Pattern**: `\.env$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `\.env$`
+**Languages**: [all]
 - Environment files typically contain secrets, API keys, and database credentials
 - These should NEVER be committed to version control
 - Remediation: Add `.env` to .gitignore, use `.env.example` for templates
 
 ### Environment Variants
+**Pattern**: `\.env\.(local|dev|development|prod|production|staging|test|ci)$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `\.env\.(local|dev|development|prod|production|staging|test|ci)$`
+**Languages**: [all]
 - Environment-specific configuration files
 - Often contain environment-specific secrets
 - Remediation: Gitignore all `.env.*` files except templates
 
 ### Dotenv Backup Files
+**Pattern**: `\.env\.bak$|\.env\.backup$|\.env\.old$`
 **Type**: filepath
 **Severity**: high
-**Category**: credentials
-**Pattern**: `\.env\.bak$|\.env\.backup$|\.env\.old$`
+**Languages**: [all]
 - Backup copies of environment files
 - May contain outdated but still valid credentials
 - Remediation: Remove and add to .gitignore
@@ -43,37 +43,37 @@ When found in git history, these indicate potential data leaks or poor repositor
 ## IDE and Editor Files
 
 ### JetBrains IDE Directory
+**Pattern**: `\.idea/`
 **Type**: filepath
 **Severity**: low
-**Category**: ide
-**Pattern**: `\.idea/`
+**Languages**: [all]
 - JetBrains IDE configuration directory
 - May contain project-specific settings or credentials
 - Remediation: Add `.idea/` to .gitignore
 
 ### VS Code Directory
+**Pattern**: `\.vscode/`
 **Type**: filepath
 **Severity**: low
-**Category**: ide
-**Pattern**: `\.vscode/`
+**Languages**: [all]
 - Visual Studio Code settings directory
 - May contain local workspace settings
 - Remediation: Add `.vscode/` to .gitignore (or be selective about what to commit)
 
 ### Vim Swap Files
-**Type**: filepath
-**Severity**: info
-**Category**: ide
 **Pattern**: `.*\.swp$|.*\.swo$`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [all]
 - Vim editor swap files
 - May contain partial file contents
 - Remediation: Add `*.swp` and `*.swo` to .gitignore
 
 ### Sublime Text Files
-**Type**: filepath
-**Severity**: info
-**Category**: ide
 **Pattern**: `\.sublime-workspace$|\.sublime-project$`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [all]
 - Sublime Text project files
 - May contain local paths
 - Remediation: Add `.sublime-*` to .gitignore
@@ -83,28 +83,28 @@ When found in git history, these indicate potential data leaks or poor repositor
 ## Operating System Files
 
 ### macOS Metadata
-**Type**: filepath
-**Severity**: info
-**Category**: os
 **Pattern**: `\.DS_Store$`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [all]
 - macOS Finder metadata files
 - Contains folder settings, no security risk but clutters history
 - Remediation: Add `.DS_Store` to global gitignore
 
 ### Windows Thumbnails
-**Type**: filepath
-**Severity**: info
-**Category**: os
 **Pattern**: `Thumbs\.db$|ehthumbs\.db$`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [all]
 - Windows Explorer thumbnail cache
 - Contains image previews
 - Remediation: Add `Thumbs.db` to global gitignore
 
 ### Windows Desktop Config
-**Type**: filepath
-**Severity**: info
-**Category**: os
 **Pattern**: `[Dd]esktop\.ini$`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [all]
 - Windows folder configuration
 - Remediation: Add `Desktop.ini` to .gitignore
 
@@ -113,62 +113,62 @@ When found in git history, these indicate potential data leaks or poor repositor
 ## Build Artifacts
 
 ### Node.js Dependencies
+**Pattern**: `node_modules/`
 **Type**: filepath
 **Severity**: medium
-**Category**: dependencies
-**Pattern**: `node_modules/`
+**Languages**: [javascript, typescript]
 - Node.js dependency directory
 - Large, reproducible from package.json
 - Remediation: Add `node_modules/` to .gitignore
 
 ### Python Virtual Environments
+**Pattern**: `venv/|\.venv/|env/|\.env/|virtualenv/`
 **Type**: filepath
 **Severity**: medium
-**Category**: dependencies
-**Pattern**: `venv/|\.venv/|env/|\.env/|virtualenv/`
+**Languages**: [python]
 - Python virtual environment directories
 - Large, reproducible from requirements.txt
 - Remediation: Add `venv/` and `.venv/` to .gitignore
 
 ### Python Cache
-**Type**: filepath
-**Severity**: info
-**Category**: build
 **Pattern**: `__pycache__/|\.pyc$|\.pyo$`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [python]
 - Python bytecode and cache files
 - Automatically generated
 - Remediation: Add `__pycache__/` and `*.pyc` to .gitignore
 
 ### Go Vendor Directory
+**Pattern**: `vendor/`
 **Type**: filepath
 **Severity**: medium
-**Category**: dependencies
-**Pattern**: `vendor/`
+**Languages**: [go]
 - Go vendor directory (unless using vendor mode)
 - Remediation: Add `vendor/` to .gitignore if not vendoring
 
 ### Java Build Output
-**Type**: filepath
-**Severity**: info
-**Category**: build
 **Pattern**: `target/|\.class$`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [java]
 - Maven/Gradle build output
 - Remediation: Add `target/` to .gitignore
 
 ### Rust Build Output
-**Type**: filepath
-**Severity**: info
-**Category**: build
 **Pattern**: `target/|Cargo\.lock$`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [rust]
 - Rust cargo build output
 - Note: Cargo.lock should be committed for binaries, ignored for libraries
 - Remediation: Add `target/` to .gitignore
 
 ### General Build Directories
+**Pattern**: `dist/|build/|out/|\.build/`
 **Type**: filepath
 **Severity**: low
-**Category**: build
-**Pattern**: `dist/|build/|out/|\.build/`
+**Languages**: [all]
 - Common build output directories
 - Generated from source code
 - Remediation: Add `dist/`, `build/` to .gitignore
@@ -178,28 +178,28 @@ When found in git history, these indicate potential data leaks or poor repositor
 ## Log Files
 
 ### General Log Files
+**Pattern**: `.*\.log$`
 **Type**: filepath
 **Severity**: medium
-**Category**: logs
-**Pattern**: `.*\.log$`
+**Languages**: [all]
 - Log files may contain sensitive runtime data
 - Example: Database queries, user data, stack traces
 - Remediation: Add `*.log` to .gitignore
 
 ### npm Debug Logs
+**Pattern**: `npm-debug\.log.*`
 **Type**: filepath
 **Severity**: low
-**Category**: logs
-**Pattern**: `npm-debug\.log.*`
+**Languages**: [javascript, typescript]
 - npm error and debug output
 - May contain system paths
 - Remediation: Add `npm-debug.log*` to .gitignore
 
 ### Yarn Logs
+**Pattern**: `yarn-error\.log$|yarn-debug\.log$`
 **Type**: filepath
 **Severity**: low
-**Category**: logs
-**Pattern**: `yarn-error\.log$|yarn-debug\.log$`
+**Languages**: [javascript, typescript]
 - Yarn package manager logs
 - Remediation: Add `yarn-*.log` to .gitignore
 
@@ -208,27 +208,27 @@ When found in git history, these indicate potential data leaks or poor repositor
 ## Coverage and Test Reports
 
 ### Code Coverage Reports
+**Pattern**: `coverage/|\.coverage$|htmlcov/`
 **Type**: filepath
 **Severity**: low
-**Category**: test
-**Pattern**: `coverage/|\.coverage$|htmlcov/`
+**Languages**: [all]
 - Test coverage report directories
 - Generated from test runs
 - Remediation: Add `coverage/` to .gitignore
 
 ### Jest Cache
+**Pattern**: `\.jest/`
 **Type**: filepath
 **Severity**: low
-**Category**: test
-**Pattern**: `\.jest/`
+**Languages**: [javascript, typescript]
 - Jest test framework cache
 - Remediation: Add `.jest/` to .gitignore
 
 ### pytest Cache
+**Pattern**: `\.pytest_cache/`
 **Type**: filepath
 **Severity**: low
-**Category**: test
-**Pattern**: `\.pytest_cache/`
+**Languages**: [python]
 - pytest cache directory
 - Remediation: Add `.pytest_cache/` to .gitignore
 
@@ -237,19 +237,19 @@ When found in git history, these indicate potential data leaks or poor repositor
 ## Package Manager Lock Files (Contextual)
 
 ### Composer Lock
-**Type**: filepath
-**Severity**: info
-**Category**: dependencies
 **Pattern**: `composer\.lock$`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [php]
 - PHP dependency lock file
 - Should be committed for applications, often ignored for libraries
 - Note: Context-dependent
 
 ### Gemfile Lock
-**Type**: filepath
-**Severity**: info
-**Category**: dependencies
 **Pattern**: `Gemfile\.lock$`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [ruby]
 - Ruby dependency lock file
 - Should be committed for applications
 - Note: Context-dependent
@@ -259,18 +259,18 @@ When found in git history, these indicate potential data leaks or poor repositor
 ## Temporary and Cache Files
 
 ### Temporary Files
-**Type**: filepath
-**Severity**: info
-**Category**: temporary
 **Pattern**: `.*\.tmp$|.*\.temp$|tmp/|temp/`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [all]
 - Temporary files and directories
 - Should never be committed
 - Remediation: Add `*.tmp`, `*.temp`, `tmp/` to .gitignore
 
 ### Cache Directories
-**Type**: filepath
-**Severity**: info
-**Category**: temporary
 **Pattern**: `\.cache/|cache/`
+**Type**: filepath
+**Severity**: informational
+**Languages**: [all]
 - Cache directories
 - Remediation: Add `.cache/` to .gitignore

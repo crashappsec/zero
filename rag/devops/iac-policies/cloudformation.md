@@ -1,35 +1,37 @@
 # CloudFormation Security Patterns
 
-**Category**: devops/iac-policies
+**Category**: devops/iac-policies/cloudformation
 **Description**: AWS CloudFormation security and organizational policy patterns
-**CWE**: CWE-732 (Incorrect Permission Assignment), CWE-311 (Missing Encryption)
+**CWE**: CWE-732, CWE-311
 
 ---
 
 ## S3 Bucket Patterns
 
 ### Public S3 Bucket ACL
+**Pattern**: `(?i)AccessControl:\s*(?:PublicRead|PublicReadWrite)`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)AccessControl:\s*(?:PublicRead|PublicReadWrite)`
+**Languages**: [yaml, cloudformation]
 - S3 buckets should not have public ACLs
-- Example: `AccessControl: PublicRead`
 - Remediation: Use `AccessControl: Private` and bucket policies
+- CWE-732: Incorrect Permission Assignment
 
 ### S3 Bucket Without Encryption
+**Pattern**: `(?i)Type:\s*AWS::S3::Bucket(?:(?!BucketEncryption).)*$`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)Type:\s*AWS::S3::Bucket(?:(?!BucketEncryption).)*$`
+**Languages**: [yaml, cloudformation]
 - S3 buckets should have encryption enabled
-- Example: S3 bucket without BucketEncryption property
 - Remediation: Add BucketEncryption with AES256 or aws:kms
+- CWE-311: Missing Encryption of Sensitive Data
 
 ### S3 Public Access Not Blocked
+**Pattern**: `(?i)BlockPublicAcls:\s*false`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)BlockPublicAcls:\s*false`
+**Languages**: [yaml, cloudformation]
 - S3 buckets should block public access
-- Example: `BlockPublicAcls: false`
 - Remediation: Set all PublicAccessBlockConfiguration options to true
 
 ---
@@ -37,27 +39,27 @@
 ## Security Group Patterns
 
 ### Security Group Open to Internet
+**Pattern**: `(?i)CidrIp:\s*0\.0\.0\.0/0`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)CidrIp:\s*0\.0\.0\.0/0`
+**Languages**: [yaml, cloudformation]
 - Security groups should not allow unrestricted access
-- Example: `CidrIp: 0.0.0.0/0`
 - Remediation: Restrict to specific CIDR ranges
 
 ### SSH Open to Internet
+**Pattern**: `(?i)FromPort:\s*22[\s\S]*?CidrIp:\s*0\.0\.0\.0/0`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)FromPort:\s*22[\s\S]*?CidrIp:\s*0\.0\.0\.0/0`
+**Languages**: [yaml, cloudformation]
 - SSH should not be open to the internet
-- Example: Port 22 with unrestricted CIDR
 - Remediation: Use bastion hosts or VPN
 
 ### RDP Open to Internet
+**Pattern**: `(?i)FromPort:\s*3389[\s\S]*?CidrIp:\s*0\.0\.0\.0/0`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)FromPort:\s*3389[\s\S]*?CidrIp:\s*0\.0\.0\.0/0`
+**Languages**: [yaml, cloudformation]
 - RDP should not be open to the internet
-- Example: Port 3389 with unrestricted CIDR
 - Remediation: Use bastion hosts or VPN
 
 ---
@@ -65,27 +67,27 @@
 ## RDS Patterns
 
 ### RDS Publicly Accessible
+**Pattern**: `(?i)PubliclyAccessible:\s*(?:true|'true'|"true")`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)PubliclyAccessible:\s*(?:true|'true'|"true")`
+**Languages**: [yaml, cloudformation]
 - RDS instances should not be publicly accessible
-- Example: `PubliclyAccessible: true`
 - Remediation: Set `PubliclyAccessible: false`
 
 ### RDS Without Encryption
+**Pattern**: `(?i)Type:\s*AWS::RDS::DBInstance(?:(?!StorageEncrypted).)*$`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)Type:\s*AWS::RDS::DBInstance(?:(?!StorageEncrypted).)*$`
+**Languages**: [yaml, cloudformation]
 - RDS instances should have storage encryption
-- Example: RDS instance without StorageEncrypted
 - Remediation: Add `StorageEncrypted: true`
 
 ### RDS Without Multi-AZ
+**Pattern**: `(?i)MultiAZ:\s*(?:false|'false'|"false")`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)MultiAZ:\s*(?:false|'false'|"false")`
+**Languages**: [yaml, cloudformation]
 - Production RDS instances should use Multi-AZ
-- Example: `MultiAZ: false`
 - Remediation: Set `MultiAZ: true` for high availability
 
 ---
@@ -93,27 +95,27 @@
 ## IAM Patterns
 
 ### Wildcard IAM Action
+**Pattern**: `(?i)Action:\s*\*`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)Action:\s*\*`
+**Languages**: [yaml, cloudformation]
 - IAM policies should not use wildcard actions
-- Example: `Action: "*"`
 - Remediation: Specify explicit actions
 
 ### Wildcard IAM Resource
+**Pattern**: `(?i)Resource:\s*\*`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)Resource:\s*\*`
+**Languages**: [yaml, cloudformation]
 - IAM policies should not grant access to all resources
-- Example: `Resource: "*"`
 - Remediation: Specify resource ARNs
 
 ### IAM User With Console Access
+**Pattern**: `(?i)Type:\s*AWS::IAM::User[\s\S]*?LoginProfile:`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)Type:\s*AWS::IAM::User[\s\S]*?LoginProfile:`
+**Languages**: [yaml, cloudformation]
 - IAM users with console access should use SSO instead
-- Example: IAM User with LoginProfile
 - Remediation: Use AWS SSO or federated access
 
 ---
@@ -121,19 +123,19 @@
 ## EC2 Patterns
 
 ### EC2 Without IMDSv2
+**Pattern**: `(?i)HttpTokens:\s*optional`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)HttpTokens:\s*optional`
+**Languages**: [yaml, cloudformation]
 - EC2 instances should require IMDSv2
-- Example: `HttpTokens: optional`
 - Remediation: Set `HttpTokens: required`
 
 ### Unencrypted EBS Volume
+**Pattern**: `(?i)Encrypted:\s*(?:false|'false'|"false")`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)Encrypted:\s*(?:false|'false'|"false")`
+**Languages**: [yaml, cloudformation]
 - EBS volumes should be encrypted
-- Example: `Encrypted: false`
 - Remediation: Set `Encrypted: true`
 
 ---
@@ -141,19 +143,19 @@
 ## Lambda Patterns
 
 ### Lambda Without VPC
+**Pattern**: `(?i)Type:\s*AWS::Lambda::Function(?:(?!VpcConfig).)*$`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)Type:\s*AWS::Lambda::Function(?:(?!VpcConfig).)*$`
+**Languages**: [yaml, cloudformation]
 - Lambda functions accessing private resources should be in VPC
-- Example: Lambda without VpcConfig
 - Remediation: Add VpcConfig with appropriate subnets
 
 ### Lambda Timeout Too High
+**Pattern**: `(?i)Timeout:\s*(?:[6-9][0-9]{2}|[1-9][0-9]{3,})`
 **Type**: regex
 **Severity**: low
-**Pattern**: `(?i)Timeout:\s*(?:[6-9][0-9]{2}|[1-9][0-9]{3,})`
+**Languages**: [yaml, cloudformation]
 - Lambda timeout should be appropriate for the function
-- Example: `Timeout: 900`
 - Remediation: Set reasonable timeout based on function needs
 
 ---
@@ -161,19 +163,19 @@
 ## Logging and Monitoring
 
 ### CloudTrail Not Enabled
+**Pattern**: `(?i)IsLogging:\s*(?:false|'false'|"false")`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)IsLogging:\s*(?:false|'false'|"false")`
+**Languages**: [yaml, cloudformation]
 - CloudTrail should be enabled
-- Example: `IsLogging: false`
 - Remediation: Set `IsLogging: true`
 
 ### CloudWatch Logs Not Encrypted
+**Pattern**: `(?i)Type:\s*AWS::Logs::LogGroup(?:(?!KmsKeyId).)*$`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)Type:\s*AWS::Logs::LogGroup(?:(?!KmsKeyId).)*$`
+**Languages**: [yaml, cloudformation]
 - CloudWatch Logs should be encrypted with KMS
-- Example: LogGroup without KmsKeyId
 - Remediation: Add KmsKeyId property
 
 ---
@@ -181,40 +183,33 @@
 ## Organizational Policies
 
 ### Missing DeletionPolicy
+**Pattern**: `(?i)Type:\s*AWS::(?:RDS::DBInstance|S3::Bucket)(?:(?!DeletionPolicy).)*$`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)Type:\s*AWS::(?:RDS::DBInstance|S3::Bucket)(?:(?!DeletionPolicy).)*$`
+**Languages**: [yaml, cloudformation]
 - Critical resources should have DeletionPolicy
-- Example: RDS or S3 without DeletionPolicy
 - Remediation: Add `DeletionPolicy: Retain` or `Snapshot`
 
 ### Missing Tags
+**Pattern**: `(?i)Type:\s*AWS::(?:(?!Tags).)*$`
 **Type**: regex
 **Severity**: low
-**Pattern**: `(?i)Type:\s*AWS::(?:(?!Tags).)*$`
+**Languages**: [yaml, cloudformation]
 - Resources should be tagged for management
-- Example: Resource without Tags property
 - Remediation: Add Tags including Environment, Owner, Project
 
 ### Using Default KMS Key
+**Pattern**: `(?i)KmsKeyId:\s*(?:alias/aws/|aws/)`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)KmsKeyId:\s*(?:alias/aws/|aws/)`
+**Languages**: [yaml, cloudformation]
 - Use customer-managed KMS keys for better control
-- Example: `KmsKeyId: alias/aws/s3`
 - Remediation: Create and use customer-managed KMS key
-
----
-
-## Detection Confidence
-
-**Regex Detection**: 85%
-**Policy Compliance**: 90%
 
 ---
 
 ## References
 
-- CIS AWS Foundations Benchmark
-- AWS Well-Architected Framework
-- CloudFormation Security Best Practices
+- [CWE-732: Incorrect Permission Assignment](https://cwe.mitre.org/data/definitions/732.html)
+- [CWE-311: Missing Encryption of Sensitive Data](https://cwe.mitre.org/data/definitions/311.html)
+- [CIS AWS Foundations Benchmark](https://www.cisecurity.org/benchmark/amazon_web_services)

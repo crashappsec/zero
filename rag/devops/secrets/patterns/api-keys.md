@@ -1,232 +1,285 @@
 # API Keys
 
+**Category**: devops/secrets/api-keys
+**Description**: Detection patterns for API keys and service credentials
+**CWE**: CWE-798, CWE-312
+
+---
+
 ## AI/ML Services
 
-### OpenAI
-```
-Pattern: sk-[A-Za-z0-9]{48}
-Pattern (project): sk-proj-[A-Za-z0-9]{48}
-Example: sk-abc123...
-Severity: high
-```
+### OpenAI API Key
+**Pattern**: `sk-[A-Za-z0-9]{48}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- OpenAI API keys start with `sk-` followed by 48 alphanumeric characters
 
-OpenAI API keys start with `sk-` followed by 48 alphanumeric characters.
+### OpenAI Project API Key
+**Pattern**: `sk-proj-[A-Za-z0-9]{48}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- OpenAI project-scoped API keys
 
-### Anthropic
-```
-Pattern: sk-ant-[A-Za-z0-9_-]{90,}
-Example: sk-ant-api03-...
-Severity: high
-```
+### Anthropic API Key
+**Pattern**: `sk-ant-[A-Za-z0-9_-]{90,}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Anthropic API keys start with `sk-ant-` followed by ~95 characters
 
-Anthropic API keys start with `sk-ant-` followed by ~95 characters.
-
-### Cohere
-```
-Pattern: [A-Za-z0-9]{40}
-Context: COHERE_API_KEY or near "cohere" imports
-Severity: high
-```
-
-40-character alphanumeric strings.
-
-### Hugging Face
-```
-Pattern: hf_[A-Za-z0-9]{34}
-Example: hf_abc123...
-Severity: medium
-```
-
-Hugging Face tokens start with `hf_`.
+### Hugging Face Token
+**Pattern**: `hf_[A-Za-z0-9]{34}`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Hugging Face tokens start with `hf_`
 
 ---
 
 ## Payment Services
 
-### Stripe
-```
-Pattern (Live): sk_live_[0-9a-zA-Z]{24,}
-Pattern (Test): sk_test_[0-9a-zA-Z]{24,}
-Pattern (Restricted): rk_live_[0-9a-zA-Z]{24,}
-Severity: critical (live), low (test)
-```
+### Stripe Live Secret Key
+**Pattern**: `sk_live_[0-9a-zA-Z]{24,}`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Stripe live secret keys - critical as they access real payment data
 
-Stripe secret keys. Live keys (`sk_live_`) are critical; test keys are low severity.
+### Stripe Test Secret Key
+**Pattern**: `sk_test_[0-9a-zA-Z]{24,}`
+**Type**: regex
+**Severity**: low
+**Languages**: [all]
+- Stripe test keys - lower severity, no real payment access
 
-### PayPal
-```
-Pattern: access_token\$[a-zA-Z0-9]{32}\$[a-zA-Z0-9]{64}
-Pattern (Client ID): A[a-zA-Z0-9_-]{79}
-Severity: critical
-```
+### Stripe Restricted Key
+**Pattern**: `rk_live_[0-9a-zA-Z]{24,}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Stripe restricted API keys
 
-PayPal OAuth tokens and client credentials.
+### PayPal Access Token
+**Pattern**: `access_token\$[a-zA-Z0-9]{32}\$[a-zA-Z0-9]{64}`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- PayPal OAuth access tokens
 
-### Square
-```
-Pattern: sq0[a-z]{3}-[A-Za-z0-9_-]{22}
-Pattern (Sandbox): sandbox-sq0[a-z]{3}-[A-Za-z0-9_-]{22}
-Severity: critical (production), low (sandbox)
-```
+### PayPal Client ID
+**Pattern**: `A[a-zA-Z0-9_-]{79}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- PayPal client ID credentials
 
-Square API credentials.
+### Square Access Token
+**Pattern**: `sq0[a-z]{3}-[A-Za-z0-9_-]{22}`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Square API access tokens
+
+### Square Sandbox Token
+**Pattern**: `sandbox-sq0[a-z]{3}-[A-Za-z0-9_-]{22}`
+**Type**: regex
+**Severity**: low
+**Languages**: [all]
+- Square sandbox tokens
 
 ---
 
 ## Communication Services
 
-### Twilio
-```
-Pattern (Account SID): AC[a-f0-9]{32}
-Pattern (Auth Token): [a-f0-9]{32}
-Context: Near TWILIO_ environment variables
-Severity: high
-```
+### Twilio Account SID
+**Pattern**: `AC[a-f0-9]{32}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Twilio Account SID identifier
 
-Twilio credentials come in pairs.
+### Twilio Auth Token
+**Pattern**: `[a-f0-9]{32}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Twilio auth token (requires context: TWILIO_ env vars)
+- CWE-798: Use of Hard-coded Credentials
 
-### SendGrid
-```
-Pattern: SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}
-Example: SG.abc123...xyz789
-Severity: medium
-```
+### SendGrid API Key
+**Pattern**: `SG\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{43}`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- SendGrid API keys with distinctive dot-separated format
 
-SendGrid API keys have a distinctive dot-separated format.
+### Mailgun API Key
+**Pattern**: `key-[a-f0-9]{32}`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Mailgun API keys start with `key-`
 
-### Mailgun
-```
-Pattern: key-[a-f0-9]{32}
-Example: key-abc123...
-Severity: medium
-```
-
-Mailgun API keys start with `key-`.
-
-### Mailchimp
-```
-Pattern: [a-f0-9]{32}-us[0-9]{1,2}
-Example: abc123...-us14
-Severity: low
-```
-
-Mailchimp API keys include datacenter suffix.
+### Mailchimp API Key
+**Pattern**: `[a-f0-9]{32}-us[0-9]{1,2}`
+**Type**: regex
+**Severity**: low
+**Languages**: [all]
+- Mailchimp API keys include datacenter suffix
 
 ---
 
 ## Developer Platforms
 
-### GitHub
-```
-Pattern (Classic): ghp_[A-Za-z0-9_]{36,}
-Pattern (Fine-grained): github_pat_[A-Za-z0-9_]{22,}
-Pattern (OAuth): gho_[A-Za-z0-9_]{36,}
-Pattern (App): ghs_[A-Za-z0-9_]{36,}
-Pattern (Refresh): ghr_[A-Za-z0-9_]{36,}
-Severity: high
-```
+### GitHub Classic PAT
+**Pattern**: `ghp_[A-Za-z0-9_]{36,}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- GitHub personal access tokens (classic)
 
-GitHub tokens use prefixes to indicate type:
-- `ghp_` - Personal access tokens
-- `github_pat_` - Fine-grained PATs
-- `gho_` - OAuth tokens
-- `ghs_` - App installation tokens
-- `ghr_` - Refresh tokens
+### GitHub Fine-grained PAT
+**Pattern**: `github_pat_[A-Za-z0-9_]{22,}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- GitHub fine-grained personal access tokens
 
-### GitLab
-```
-Pattern: glpat-[A-Za-z0-9-]{20,}
-Pattern (Runner): GR1348941[A-Za-z0-9_-]{20}
-Severity: high
-```
+### GitHub OAuth Token
+**Pattern**: `gho_[A-Za-z0-9_]{36,}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- GitHub OAuth access tokens
 
-GitLab personal access tokens and runner tokens.
+### GitHub App Token
+**Pattern**: `ghs_[A-Za-z0-9_]{36,}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- GitHub App installation access tokens
 
-### NPM
-```
-Pattern: npm_[A-Za-z0-9]{36}
-Severity: high
-```
+### GitHub Refresh Token
+**Pattern**: `ghr_[A-Za-z0-9_]{36,}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- GitHub refresh tokens
 
-NPM automation tokens.
+### GitLab PAT
+**Pattern**: `glpat-[A-Za-z0-9-]{20,}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- GitLab personal access tokens
 
-### PyPI
-```
-Pattern: pypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]+
-Severity: high
-```
+### GitLab Runner Token
+**Pattern**: `GR1348941[A-Za-z0-9_-]{20}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- GitLab CI runner registration tokens
 
-PyPI API tokens (base64-encoded).
+### NPM Token
+**Pattern**: `npm_[A-Za-z0-9]{36}`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- NPM automation tokens for package publishing
+
+### PyPI Token
+**Pattern**: `pypi-AgEIcHlwaS5vcmc[A-Za-z0-9_-]+`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- PyPI API tokens (base64-encoded)
 
 ---
 
 ## Monitoring & Analytics
 
-### Datadog
-```
-Pattern: [a-f0-9]{32}
-Context: DD_API_KEY, DD_APP_KEY
-Severity: medium
-```
+### Datadog API Key
+**Pattern**: `[a-f0-9]{32}`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Datadog API key (requires context: DD_API_KEY, DD_APP_KEY)
 
-32-character hex strings.
+### Sentry DSN Key
+**Pattern**: `[a-f0-9]{32}`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Sentry DSN key component (requires context: SENTRY_DSN, sentry.io URLs)
 
-### Sentry
-```
-Pattern: [a-f0-9]{32}
-Context: SENTRY_DSN, sentry.io URLs
-Severity: medium
-```
+### New Relic API Key
+**Pattern**: `NRAK-[A-Z0-9]{27}`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- New Relic REST API keys
 
-Part of Sentry DSN URLs.
-
-### New Relic
-```
-Pattern: NRAK-[A-Z0-9]{27}
-Pattern (License): [a-f0-9]{40}NRAL
-Severity: medium
-```
-
-New Relic API and license keys.
-
-### Segment
-```
-Pattern: [A-Za-z0-9]{32}
-Context: analytics.identify, SEGMENT_WRITE_KEY
-Severity: medium
-```
+### New Relic License Key
+**Pattern**: `[a-f0-9]{40}NRAL`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- New Relic license keys
 
 ---
 
 ## Social Platforms
 
-### Slack
-```
-Pattern (Bot): xoxb-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*
-Pattern (User): xoxp-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*
-Pattern (App): xoxa-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*
-Pattern (Webhook): https://hooks\.slack\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[A-Za-z0-9]+
-Severity: medium
-```
+### Slack Bot Token
+**Pattern**: `xoxb-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Slack bot tokens
 
-Slack tokens use `xox` prefix variants.
+### Slack User Token
+**Pattern**: `xoxp-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Slack user tokens
 
-### Discord
-```
-Pattern (Bot): [MN][A-Za-z0-9_-]{23,}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27}
-Pattern (Webhook): https://discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+
-Severity: medium
-```
+### Slack App Token
+**Pattern**: `xoxa-[0-9]{10,13}-[0-9]{10,13}[a-zA-Z0-9-]*`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Slack app-level tokens
 
-Discord bot tokens and webhook URLs.
+### Slack Webhook URL
+**Pattern**: `https://hooks\.slack\.com/services/T[A-Z0-9]+/B[A-Z0-9]+/[A-Za-z0-9]+`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Slack incoming webhook URLs
 
-### Twitter/X
-```
-Pattern (API Key): [A-Za-z0-9]{25}
-Pattern (Bearer): AAAAAAAAAAAAA[A-Za-z0-9%]+
-Context: TWITTER_API_KEY, TWITTER_BEARER_TOKEN
-Severity: medium
-```
+### Discord Bot Token
+**Pattern**: `[MN][A-Za-z0-9_-]{23,}\.[A-Za-z0-9_-]{6}\.[A-Za-z0-9_-]{27}`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Discord bot tokens
+
+### Discord Webhook URL
+**Pattern**: `https://discord(app)?\.com/api/webhooks/[0-9]+/[A-Za-z0-9_-]+`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Discord webhook URLs
+
+### Twitter Bearer Token
+**Pattern**: `AAAAAAAAAAAAA[A-Za-z0-9%]+`
+**Type**: regex
+**Severity**: medium
+**Languages**: [all]
+- Twitter/X API bearer tokens
 
 ---
 
@@ -248,3 +301,10 @@ Severity: medium
 - **Production vs Test**: Test keys are lower severity
 - **Scope**: Keys with broad permissions are higher severity
 - **Exposure**: Public repos vs private repos
+
+---
+
+## References
+
+- [CWE-798: Use of Hard-coded Credentials](https://cwe.mitre.org/data/definitions/798.html)
+- [CWE-312: Cleartext Storage of Sensitive Information](https://cwe.mitre.org/data/definitions/312.html)

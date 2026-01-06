@@ -1,181 +1,246 @@
 # Database Credentials
 
+**Category**: devops/secrets/database
+**Description**: Detection patterns for database connection strings and credentials
+**CWE**: CWE-798, CWE-312, CWE-259
+
+---
+
 ## Connection Strings
 
-### PostgreSQL
-```
-Pattern: postgres(ql)?://[^:]+:[^@]+@[^/]+/[^\s]+
-Pattern: postgresql://[^:]+:[^@]+@[^/]+/[^\s]+
-Example: postgresql://user:password@localhost:5432/mydb
-Severity: critical
-```
+### PostgreSQL Connection String
+**Pattern**: `postgres(ql)?://[^:]+:[^@]+@[^/]+/[^\s]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- PostgreSQL connection strings with embedded credentials
+- CWE-798: Use of Hard-coded Credentials
 
-Components:
-- Protocol: `postgresql://` or `postgres://`
-- Username: before first `:`
-- Password: between `:` and `@`
-- Host: after `@`, before `/`
-- Database: after `/`
+### PostgreSQL URL
+**Pattern**: `postgresql://[^:]+:[^@]+@[^/]+/[^\s]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Alternative PostgreSQL URL format
 
-### MySQL
-```
-Pattern: mysql://[^:]+:[^@]+@[^/]+/[^\s]+
-Pattern: mysql\+pymysql://[^:]+:[^@]+@[^/]+/[^\s]+
-Example: mysql://root:secret@localhost:3306/mydb
-Severity: critical
-```
+### MySQL Connection String
+**Pattern**: `mysql://[^:]+:[^@]+@[^/]+/[^\s]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- MySQL connection strings with embedded credentials
 
-### MongoDB
-```
-Pattern: mongodb(\+srv)?://[^:]+:[^@]+@[^\s]+
-Example: mongodb+srv://user:pass@cluster.mongodb.net/db
-Severity: critical
-```
+### MySQL PyMySQL Connection
+**Pattern**: `mysql\+pymysql://[^:]+:[^@]+@[^/]+/[^\s]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- SQLAlchemy MySQL connection with PyMySQL driver
 
-MongoDB Atlas uses `mongodb+srv://` protocol.
+### MongoDB Connection String
+**Pattern**: `mongodb(\+srv)?://[^:]+:[^@]+@[^\s]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- MongoDB connection strings (including Atlas srv format)
 
-### Redis
-```
-Pattern: redis://[^:]*:[^@]+@[^/]+
-Pattern: rediss://[^:]*:[^@]+@[^/]+ (TLS)
-Example: redis://:password@localhost:6379
-Severity: high
-```
+### Redis Connection String
+**Pattern**: `redis://[^:]*:[^@]+@[^/]+`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Redis URLs may omit username (empty before first `:`)
 
-Redis URLs may omit username (empty before first `:`).
+### Redis TLS Connection String
+**Pattern**: `rediss://[^:]*:[^@]+@[^/]+`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Redis with TLS connection strings
 
-### SQL Server
-```
-Pattern: Server=[^;]+;.*Password=[^;]+
-Pattern: Data Source=[^;]+;.*Password=[^;]+
-Example: Server=myserver;Database=mydb;User Id=sa;Password=secret;
-Severity: critical
-```
+### SQL Server Connection String
+**Pattern**: `Server=[^;]+;.*Password=[^;]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- ADO.NET SQL Server connection strings
 
-ADO.NET connection string format.
+### SQL Server Data Source
+**Pattern**: `Data Source=[^;]+;.*Password=[^;]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Alternative SQL Server connection format
 
-### Oracle
-```
-Pattern: [^/]+/[^@]+@[^\s]+
-Context: Oracle TNS connections
-Pattern: jdbc:oracle:[^:]+:@[^:]+:[^:]+:[^\s]+
-Severity: critical
-```
+### Oracle Connection String
+**Pattern**: `jdbc:oracle:[^:]+:@[^:]+:[^:]+:[^\s]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java]
+- Oracle JDBC connection strings
 
 ---
 
 ## Environment Variables
 
-### Common Patterns
-```
-DATABASE_URL=
-DB_PASSWORD=
-DB_PASS=
-POSTGRES_PASSWORD=
-MYSQL_PASSWORD=
-MYSQL_ROOT_PASSWORD=
-MONGO_PASSWORD=
-REDIS_PASSWORD=
-```
+### Database URL Variable
+**Pattern**: `DATABASE_URL\s*[=:]\s*['"]?[^\s'"]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- DATABASE_URL environment variable with value
 
-Severity: critical when values are present.
+### Database Password Variable
+**Pattern**: `DB_PASSWORD\s*[=:]\s*['"]?[^\s'"]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- DB_PASSWORD environment variable
+
+### PostgreSQL Password Variable
+**Pattern**: `POSTGRES_PASSWORD\s*[=:]\s*['"]?[^\s'"]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- PostgreSQL container password
+
+### MySQL Password Variable
+**Pattern**: `MYSQL_PASSWORD\s*[=:]\s*['"]?[^\s'"]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- MySQL container password
+
+### MySQL Root Password Variable
+**Pattern**: `MYSQL_ROOT_PASSWORD\s*[=:]\s*['"]?[^\s'"]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- MySQL root password (highest privilege)
+
+### MongoDB Password Variable
+**Pattern**: `MONGO_PASSWORD\s*[=:]\s*['"]?[^\s'"]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- MongoDB password environment variable
+
+### Redis Password Variable
+**Pattern**: `REDIS_PASSWORD\s*[=:]\s*['"]?[^\s'"]+`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Redis password environment variable
 
 ---
 
 ## Configuration Files
 
-### Django (settings.py)
-```python
-DATABASES = {
-    'default': {
-        'PASSWORD': 'exposed_password',
-    }
-}
-```
+### Django Database Password
+**Pattern**: `['"]PASSWORD['"]\s*:\s*['"][^'"]+['"]`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Django settings.py database password
 
-### Rails (database.yml)
-```yaml
-production:
-  password: exposed_password
-```
+### Rails Database Password
+**Pattern**: `password:\s*[^\s#]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [ruby]
+- Rails database.yml password field
 
-### Node.js (common patterns)
-```javascript
-password: process.env.DB_PASSWORD || 'fallback_password'
-```
+### Node.js Fallback Password
+**Pattern**: `password:\s*process\.env\.[A-Z_]+\s*\|\|\s*['"][^'"]+['"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Fallback passwords in Node.js configs
 
-The fallback is the vulnerability.
+### PHP Database Password
+**Pattern**: `\$db_password\s*=\s*['"][^'"]+['"]`
+**Type**: regex
+**Severity**: critical
+**Languages**: [php]
+- PHP database password variables
 
-### PHP (config files)
-```php
-$db_password = 'exposed_password';
-define('DB_PASSWORD', 'exposed_password');
-```
+### PHP Define Password
+**Pattern**: `define\(['"]DB_PASSWORD['"]\s*,\s*['"][^'"]+['"]\)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [php]
+- PHP constant database password
 
 ---
 
 ## ORM Configuration
 
-### Prisma
-```
-DATABASE_URL="postgresql://user:password@host:5432/db"
-```
+### Prisma Database URL
+**Pattern**: `DATABASE_URL\s*=\s*["']postgresql://[^:]+:[^@]+@[^/]+`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Prisma schema database URL
 
-### TypeORM
-```typescript
-{
-  password: "exposed_password"
-}
-```
+### TypeORM Password
+**Pattern**: `password:\s*["'][^"']+["']`
+**Type**: regex
+**Severity**: critical
+**Languages**: [typescript, javascript]
+- TypeORM configuration password
 
-### Sequelize
-```javascript
-new Sequelize('database', 'username', 'password', {})
-```
+### Sequelize Connection
+**Pattern**: `new Sequelize\(['"][^'"]+['"]\s*,\s*['"][^'"]+['"]\s*,\s*['"][^'"]+['"]`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Sequelize constructor with inline credentials
 
-### SQLAlchemy
-```python
-engine = create_engine('postgresql://user:pass@host/db')
-```
+### SQLAlchemy Engine
+**Pattern**: `create_engine\(['"]postgresql://[^:]+:[^@]+@`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- SQLAlchemy engine with embedded credentials
 
 ---
 
 ## Cloud Database Services
 
-### AWS RDS
-```
-Pattern: [a-z]+-[a-z0-9]+\.[a-z0-9]+\.[a-z]+-[a-z]+-[0-9]\.rds\.amazonaws\.com
-Context: Combined with credentials
-Severity: informational (hostname only), critical (with credentials)
-```
+### AWS RDS Hostname
+**Pattern**: `[a-z]+-[a-z0-9]+\.[a-z0-9]+\.[a-z]+-[a-z]+-[0-9]\.rds\.amazonaws\.com`
+**Type**: regex
+**Severity**: informational
+**Languages**: [all]
+- AWS RDS hostname (not secret itself, indicates DB location)
 
-### Supabase
-```
-Pattern: db\.[a-z]+\.supabase\.co
-Pattern: postgresql://postgres:[^@]+@db\.[a-z]+\.supabase\.co
-Severity: critical
-```
+### Supabase Database URL
+**Pattern**: `postgresql://postgres:[^@]+@db\.[a-z]+\.supabase\.co`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Supabase database connection string
 
-### PlanetScale
-```
-Pattern: aws\.connect\.psdb\.cloud
-Pattern: mysql://[^:]+:[^@]+@[^/]+\.psdb\.cloud
-Severity: critical
-```
+### PlanetScale Connection
+**Pattern**: `mysql://[^:]+:[^@]+@[^/]+\.psdb\.cloud`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- PlanetScale database connection
 
-### MongoDB Atlas
-```
-Pattern: \.mongodb\.net
-Pattern: mongodb\+srv://[^:]+:[^@]+@[^/]+\.mongodb\.net
-Severity: critical
-```
+### MongoDB Atlas Connection
+**Pattern**: `mongodb\+srv://[^:]+:[^@]+@[^/]+\.mongodb\.net`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- MongoDB Atlas connection string
 
-### Neon
-```
-Pattern: [a-z]+-[a-z]+-[0-9]+\.neon\.tech
-Pattern: postgresql://[^:]+:[^@]+@[^/]+\.neon\.tech
-Severity: critical
-```
+### Neon Database Connection
+**Pattern**: `postgresql://[^:]+:[^@]+@[^/]+\.neon\.tech`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Neon database connection string
 
 ---
 
@@ -195,13 +260,22 @@ Severity: critical
 - Placeholder values (`your_password_here`)
 - Test database URLs
 
-### Password Patterns in Connection Strings
-```
-Pattern: ://[^:]+:([^@]+)@
-```
-Captures password between `:` and `@`.
+### Password in Connection String
+**Pattern**: `://[^:]+:([^@]+)@`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Generic pattern capturing password between `:` and `@`
 
 ### Security Considerations
 - Connection strings expose host, potentially allowing network mapping
 - Credentials should use secret management
 - Rotate credentials if exposed in git history
+
+---
+
+## References
+
+- [CWE-798: Use of Hard-coded Credentials](https://cwe.mitre.org/data/definitions/798.html)
+- [CWE-312: Cleartext Storage of Sensitive Information](https://cwe.mitre.org/data/definitions/312.html)
+- [CWE-259: Use of Hard-coded Password](https://cwe.mitre.org/data/definitions/259.html)

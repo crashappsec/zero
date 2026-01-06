@@ -2,255 +2,458 @@
 
 **Category**: cryptography/insecure-random
 **Description**: Detection of non-cryptographic RNG used for security purposes
-**CWE**: CWE-330 (Use of Insufficiently Random Values), CWE-338 (Use of Cryptographically Weak PRNG)
+**CWE**: CWE-330, CWE-338
 
 ---
 
-## Import Detection
+## Python Weak Random
 
-### Python
+### Python Random Import
 **Pattern**: `^import random$`
-- Non-cryptographic random module (Python's random uses Mersenne Twister)
-- Example: `import random`
-
-**Pattern**: `from random import`
-- Importing from non-secure random module
-- Example: `from random import randint, choice`
-
-**Pattern**: `random\.randint\(`
-- Predictable random integer
-- Example: `random.randint(0, 100)`
-
-**Pattern**: `random\.randrange\(`
-- Predictable random range
-- Example: `random.randrange(0, 100)`
-
-**Pattern**: `random\.choice\(`
-- Predictable random selection
-- Example: `token = ''.join(random.choice(charset) for _ in range(32))`
-
-**Pattern**: `random\.choices\(`
-- Predictable random choices
-- Example: `random.choices(charset, k=32)`
-
-**Pattern**: `random\.random\(\)`
-- Predictable random float [0.0, 1.0)
-- Example: `random.random()`
-
-**Pattern**: `random\.uniform\(`
-- Predictable random float in range
-- Example: `random.uniform(0, 100)`
-
-**Pattern**: `random\.shuffle\(`
-- Predictable shuffle
-- Example: `random.shuffle(deck)`
-
-**Pattern**: `random\.sample\(`
-- Predictable sample selection
-- Example: `random.sample(population, k=5)`
-
-**Pattern**: `random\.getrandbits\(`
-- Predictable random bits
-- Example: `random.getrandbits(128)`
-
-### Javascript
-**Pattern**: `Math\.random\(\)`
-- JavaScript's predictable Math.random (uses xorshift128+)
-- Example: `Math.random()`
-
-**Pattern**: `Math\.floor\(Math\.random\(\)`
-- Common pattern for random integers
-- Example: `Math.floor(Math.random() * 100)`
-
-**Pattern**: `Math\.round\(Math\.random\(\)`
-- Random with rounding
-- Example: `Math.round(Math.random() * 100)`
-
-**Pattern**: `\*\s*Math\.random\(\)`
-- Multiplication with Math.random
-- Example: `array[Math.floor(array.length * Math.random())]`
-
-### Java
-**Pattern**: `new Random\(\)`
-- Non-secure Java Random (uses LCG)
-- Example: `Random rand = new Random()`
-
-**Pattern**: `Random\(\)\.next`
-- Random instance method call
-- Example: `new Random().nextInt()`
-
-**Pattern**: `Random\(System\.currentTimeMillis\(\)\)`
-- Time-seeded random (predictable seed)
-- Example: `new Random(System.currentTimeMillis())`
-
-**Pattern**: `\.nextInt\(`
-- Random nextInt call
-- Example: `rand.nextInt(100)`
-
-**Pattern**: `\.nextLong\(`
-- Random nextLong call
-- Example: `rand.nextLong()`
-
-**Pattern**: `\.nextBytes\(`
-- Random nextBytes (not java.security.SecureRandom)
-- Example: `rand.nextBytes(bytes)`
-
-**Pattern**: `java\.util\.Random`
-- Import of non-secure Random
-- Example: `import java.util.Random`
-
-### Go
-**Pattern**: `rand\.Seed\(`
-- math/rand seeding (not crypto-safe)
-- Example: `rand.Seed(time.Now().UnixNano())`
-
-**Pattern**: `rand\.Int\(`
-- math/rand Int
-- Example: `rand.Int()`
-
-**Pattern**: `rand\.Intn\(`
-- math/rand bounded int
-- Example: `rand.Intn(100)`
-
-**Pattern**: `rand\.Int63\(`
-- math/rand 63-bit int
-- Example: `rand.Int63()`
-
-**Pattern**: `rand\.Float64\(`
-- math/rand float
-- Example: `rand.Float64()`
-
-**Pattern**: `rand\.Perm\(`
-- math/rand permutation
-- Example: `rand.Perm(10)`
-
-**Pattern**: `rand\.Shuffle\(`
-- math/rand shuffle
-- Example: `rand.Shuffle(len(slice), func(i, j int) { ... })`
-
-**Pattern**: `rand\.Read\(`
-- math/rand Read (looks like crypto/rand but isn't)
-- Example: `rand.Read(buf)`
-
-**Pattern**: `"math/rand"`
-- Import of math/rand package
-- Example: `import "math/rand"`
-
-### Ruby
-**Pattern**: `rand\(`
-- Ruby's predictable rand (uses Mersenne Twister)
-- Example: `rand(100)`
-
-**Pattern**: `Random\.new`
-- Ruby Random class (non-cryptographic)
-- Example: `Random.new.rand(100)`
-
-**Pattern**: `\.rand\(`
-- Random instance method
-- Example: `rng.rand(100)`
-
-**Pattern**: `\.bytes\(`
-- Random bytes (non-secure)
-- Example: `Random.new.bytes(32)`
-
-**Pattern**: `Kernel\.rand`
-- Kernel rand method
-- Example: `Kernel.rand(100)`
-
-**Pattern**: `Array#sample.*random:`
-- Non-secure array sampling
-- Example: `array.sample(random: Random.new)`
-
-### PHP
-**Pattern**: `rand\(`
-- PHP's predictable rand function (uses libc rand)
-- Example: `rand(0, 100)`
-
-**Pattern**: `mt_rand\(`
-- Mersenne Twister rand (better but not crypto-safe)
-- Example: `mt_rand(0, 100)`
-
-**Pattern**: `array_rand\(`
-- Non-secure array random selection
-- Example: `array_rand($array)`
-
-**Pattern**: `shuffle\(`
-- Non-secure shuffle
-- Example: `shuffle($array)`
-
-**Pattern**: `str_shuffle\(`
-- Non-secure string shuffle
-- Example: `str_shuffle($string)`
-
-### C/C++
-**Pattern**: `\brand\(`
-- C standard library rand (very weak)
-- Example: `rand() % 100`
-
-**Pattern**: `srand\(`
-- Seeding weak rand
-- Example: `srand(time(NULL))`
-
-**Pattern**: `random\(`
-- BSD random function
-- Example: `random()`
-
-**Pattern**: `srandom\(`
-- Seeding BSD random
-- Example: `srandom(time(NULL))`
-
-**Pattern**: `drand48\(`
-- 48-bit random (weak)
-- Example: `drand48()`
-
-**Pattern**: `lrand48\(`
-- 48-bit random long
-- Example: `lrand48()`
-
-**Pattern**: `mrand48\(`
-- 48-bit random signed
-- Example: `mrand48()`
-
-### C#
-**Pattern**: `new Random\(`
-- .NET Random (not cryptographically secure)
-- Example: `var rand = new Random()`
-
-**Pattern**: `Random\.Next\(`
-- Random.Next method
-- Example: `random.Next(100)`
-
-**Pattern**: `Random\.NextDouble\(`
-- Random.NextDouble method
-- Example: `random.NextDouble()`
-
-**Pattern**: `Random\.NextBytes\(`
-- Random.NextBytes (not secure)
-- Example: `random.NextBytes(buffer)`
-
----
-
-## Secrets Detection
-
-#### Hardcoded Random Seed
-**Pattern**: `(?:seed|Seed|SEED)\s*[=:(]\s*(\d{1,10})\s*[);]?`
-**Severity**: high
-**Description**: Hardcoded seed value makes random output predictable
-
-#### Time-Based Seed
-**Pattern**: `(?:seed|Seed)\s*[=:(].*(?:time|Time|Now|now|currentTimeMillis|UnixNano)`
+**Type**: regex
 **Severity**: medium
-**Description**: Time-based seed is predictable if attacker knows approximate time
+**Languages**: [python]
+- Non-cryptographic random module (Mersenne Twister)
+- CWE-330: Use of Insufficiently Random Values
 
-#### Constant Seed Assignment
-**Pattern**: `\bseed\s*=\s*[0-9]+\b`
+### Python Random From Import
+**Pattern**: `from random import`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
+- Importing from non-secure random module
+
+### Python Random Randint
+**Pattern**: `random\.randint\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
+- Predictable random integer generation
+
+### Python Random Randrange
+**Pattern**: `random\.randrange\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
+- Predictable random range generation
+
+### Python Random Choice
+**Pattern**: `random\.choice\(`
+**Type**: regex
 **Severity**: high
-**Description**: Constant seed makes all random values predictable
+**Languages**: [python]
+- Predictable random selection (dangerous for token generation)
+
+### Python Random Choices
+**Pattern**: `random\.choices\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- Predictable random choices (dangerous for token generation)
+
+### Python Random Float
+**Pattern**: `random\.random\(\)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
+- Predictable random float [0.0, 1.0)
+
+### Python Random Uniform
+**Pattern**: `random\.uniform\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
+- Predictable random float in range
+
+### Python Random Shuffle
+**Pattern**: `random\.shuffle\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
+- Predictable shuffle operation
+
+### Python Random Sample
+**Pattern**: `random\.sample\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
+- Predictable sample selection
+
+### Python Random Getrandbits
+**Pattern**: `random\.getrandbits\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- Predictable random bits (dangerous for crypto)
 
 ---
 
-## Detection Confidence
+## JavaScript Weak Random
 
-**Import Detection**: 95%
-**Usage Pattern Detection**: 90%
-**Seed Pattern Detection**: 85%
+### JavaScript Math.random
+**Pattern**: `Math\.random\(\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- JavaScript's predictable Math.random (xorshift128+)
+- CWE-338: Use of Cryptographically Weak PRNG
+
+### JavaScript Random Integer Floor
+**Pattern**: `Math\.floor\(Math\.random\(\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Common pattern for random integers
+
+### JavaScript Random Integer Round
+**Pattern**: `Math\.round\(Math\.random\(\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Random with rounding
+
+### JavaScript Random Multiplication
+**Pattern**: `\*\s*Math\.random\(\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Multiplication with Math.random
+
+---
+
+## Java Weak Random
+
+### Java Random Constructor
+**Pattern**: `new Random\(\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [java, kotlin]
+- Non-secure Java Random (uses LCG)
+- CWE-338: Use of Cryptographically Weak PRNG
+
+### Java Random Instance Call
+**Pattern**: `Random\(\)\.next`
+**Type**: regex
+**Severity**: high
+**Languages**: [java, kotlin]
+- Random instance method call
+
+### Java Time-Seeded Random
+**Pattern**: `Random\(System\.currentTimeMillis\(\)\)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java, kotlin]
+- Time-seeded random (predictable seed)
+
+### Java Random NextInt
+**Pattern**: `\.nextInt\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [java, kotlin]
+- Random nextInt call (context-dependent)
+
+### Java Random NextLong
+**Pattern**: `\.nextLong\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [java, kotlin]
+- Random nextLong call (context-dependent)
+
+### Java Random NextBytes
+**Pattern**: `\.nextBytes\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [java, kotlin]
+- Random nextBytes (not SecureRandom)
+
+### Java Util Random Import
+**Pattern**: `java\.util\.Random`
+**Type**: regex
+**Severity**: medium
+**Languages**: [java, kotlin]
+- Import of non-secure Random class
+
+---
+
+## Go Weak Random
+
+### Go Math/Rand Seed
+**Pattern**: `rand\.Seed\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [go]
+- math/rand seeding (not crypto-safe)
+- CWE-338: Use of Cryptographically Weak PRNG
+
+### Go Math/Rand Int
+**Pattern**: `rand\.Int\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [go]
+- math/rand Int function
+
+### Go Math/Rand Intn
+**Pattern**: `rand\.Intn\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [go]
+- math/rand bounded int
+
+### Go Math/Rand Int63
+**Pattern**: `rand\.Int63\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [go]
+- math/rand 63-bit int
+
+### Go Math/Rand Float64
+**Pattern**: `rand\.Float64\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [go]
+- math/rand float
+
+### Go Math/Rand Perm
+**Pattern**: `rand\.Perm\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [go]
+- math/rand permutation
+
+### Go Math/Rand Shuffle
+**Pattern**: `rand\.Shuffle\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [go]
+- math/rand shuffle
+
+### Go Math/Rand Read
+**Pattern**: `rand\.Read\(`
+**Type**: regex
+**Severity**: critical
+**Languages**: [go]
+- math/rand Read (looks like crypto/rand but isn't)
+
+### Go Math/Rand Import
+**Pattern**: `"math/rand"`
+**Type**: regex
+**Severity**: medium
+**Languages**: [go]
+- Import of math/rand package
+
+---
+
+## Ruby Weak Random
+
+### Ruby Rand Function
+**Pattern**: `rand\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [ruby]
+- Ruby's predictable rand (Mersenne Twister)
+- CWE-338: Use of Cryptographically Weak PRNG
+
+### Ruby Random New
+**Pattern**: `Random\.new`
+**Type**: regex
+**Severity**: high
+**Languages**: [ruby]
+- Ruby Random class (non-cryptographic)
+
+### Ruby Random Instance
+**Pattern**: `\.rand\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [ruby]
+- Random instance method
+
+### Ruby Random Bytes
+**Pattern**: `\.bytes\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [ruby]
+- Random bytes (non-secure)
+
+### Ruby Kernel Rand
+**Pattern**: `Kernel\.rand`
+**Type**: regex
+**Severity**: high
+**Languages**: [ruby]
+- Kernel rand method
+
+---
+
+## PHP Weak Random
+
+### PHP Rand Function
+**Pattern**: `\brand\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [php]
+- PHP's predictable rand function (libc rand)
+- CWE-338: Use of Cryptographically Weak PRNG
+
+### PHP Mt_rand Function
+**Pattern**: `mt_rand\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [php]
+- Mersenne Twister rand (not crypto-safe)
+
+### PHP Array_rand Function
+**Pattern**: `array_rand\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [php]
+- Non-secure array random selection
+
+### PHP Shuffle Function
+**Pattern**: `shuffle\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [php]
+- Non-secure shuffle
+
+### PHP Str_shuffle Function
+**Pattern**: `str_shuffle\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [php]
+- Non-secure string shuffle
+
+---
+
+## C/C++ Weak Random
+
+### C Rand Function
+**Pattern**: `\brand\(`
+**Type**: regex
+**Severity**: critical
+**Languages**: [c, cpp]
+- C standard library rand (very weak)
+- CWE-338: Use of Cryptographically Weak PRNG
+
+### C Srand Function
+**Pattern**: `srand\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [c, cpp]
+- Seeding weak rand
+
+### C Random Function
+**Pattern**: `\brandom\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [c, cpp]
+- BSD random function
+
+### C Srandom Function
+**Pattern**: `srandom\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [c, cpp]
+- Seeding BSD random
+
+### C Drand48 Function
+**Pattern**: `drand48\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [c, cpp]
+- 48-bit random (weak)
+
+### C Lrand48 Function
+**Pattern**: `lrand48\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [c, cpp]
+- 48-bit random long
+
+### C Mrand48 Function
+**Pattern**: `mrand48\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [c, cpp]
+- 48-bit random signed
+
+---
+
+## C# Weak Random
+
+### CSharp Random Constructor
+**Pattern**: `new Random\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [csharp]
+- .NET Random (not cryptographically secure)
+- CWE-338: Use of Cryptographically Weak PRNG
+
+### CSharp Random Next
+**Pattern**: `Random\.Next\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [csharp]
+- Random.Next method
+
+### CSharp Random NextDouble
+**Pattern**: `Random\.NextDouble\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [csharp]
+- Random.NextDouble method
+
+### CSharp Random NextBytes
+**Pattern**: `Random\.NextBytes\(`
+**Type**: regex
+**Severity**: critical
+**Languages**: [csharp]
+- Random.NextBytes (not secure)
+
+---
+
+## Seed Vulnerabilities
+
+### Hardcoded Random Seed
+**Pattern**: `(?:seed|Seed|SEED)\s*[=:(]\s*(\d{1,10})\s*[);]?`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Hardcoded seed value makes random output predictable
+- CWE-330: Use of Insufficiently Random Values
+
+### Time-Based Seed
+**Pattern**: `(?:seed|Seed)\s*[=:(].*(?:time|Time|Now|now|currentTimeMillis|UnixNano)`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Time-based seed is predictable if attacker knows approximate time
+
+### Constant Seed Assignment
+**Pattern**: `\bseed\s*=\s*[0-9]+\b`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Constant seed makes all random values predictable
+
+---
+
+## Best Practices
+
+### Secure Alternatives by Language
+
+| Language | Weak | Secure Alternative |
+|----------|------|-------------------|
+| Python | `random` | `secrets`, `os.urandom()` |
+| JavaScript | `Math.random()` | `crypto.randomBytes()`, `crypto.getRandomValues()` |
+| Java | `java.util.Random` | `java.security.SecureRandom` |
+| Go | `math/rand` | `crypto/rand` |
+| Ruby | `rand`, `Random` | `SecureRandom` |
+| PHP | `rand()`, `mt_rand()` | `random_bytes()`, `random_int()` |
+| C/C++ | `rand()` | `getrandom()`, `/dev/urandom`, OpenSSL RAND |
+| C# | `System.Random` | `System.Security.Cryptography.RandomNumberGenerator` |
+
+---
+
+## References
+
+- [CWE-330: Use of Insufficiently Random Values](https://cwe.mitre.org/data/definitions/330.html)
+- [CWE-338: Use of Cryptographically Weak PRNG](https://cwe.mitre.org/data/definitions/338.html)

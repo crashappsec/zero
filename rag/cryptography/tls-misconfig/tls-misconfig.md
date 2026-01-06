@@ -2,271 +2,493 @@
 
 **Category**: cryptography/tls-misconfig
 **Description**: Detection of insecure TLS/SSL configurations
-**CWE**: CWE-295 (Improper Certificate Validation), CWE-757 (Selection of Less-Secure Algorithm)
+**CWE**: CWE-295, CWE-757
 
 ---
 
-## Import Detection
+## Python TLS Issues
 
-### Python
+### Python Unverified SSL Context
 **Pattern**: `ssl\._create_unverified_context`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
 - Disabled certificate verification
-- Example: `ssl._create_unverified_context()`
+- CWE-295: Improper Certificate Validation
 
+### Python Verify False
 **Pattern**: `verify\s*=\s*False`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
 - Requests/urllib3 cert verification disabled
-- Example: `requests.get(url, verify=False)`
 
+### Python CERT_NONE
 **Pattern**: `CERT_NONE`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
 - SSL context with no cert verification
-- Example: `context.verify_mode = ssl.CERT_NONE`
 
+### Python Check Hostname False
 **Pattern**: `check_hostname\s*=\s*False`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
 - Hostname verification disabled
-- Example: `context.check_hostname = False`
 
+### Python Verify Mode CERT_NONE
 **Pattern**: `verify_mode\s*=\s*ssl\.CERT_NONE`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
 - Explicit CERT_NONE assignment
-- Example: `ctx.verify_mode = ssl.CERT_NONE`
 
+### Python SSLv2 Protocol
 **Pattern**: `ssl\.PROTOCOL_SSLv2`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
 - SSLv2 protocol (broken)
-- Example: `ssl.wrap_socket(sock, ssl_version=ssl.PROTOCOL_SSLv2)`
+- CWE-757: Selection of Less-Secure Algorithm
 
+### Python SSLv3 Protocol
 **Pattern**: `ssl\.PROTOCOL_SSLv3`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
 - SSLv3 protocol (broken - POODLE)
-- Example: `ssl.wrap_socket(sock, ssl_version=ssl.PROTOCOL_SSLv3)`
 
+### Python TLSv1.0 Protocol
 **Pattern**: `ssl\.PROTOCOL_TLSv1\b`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
 - TLS 1.0 protocol (deprecated)
-- Example: `ssl.wrap_socket(sock, ssl_version=ssl.PROTOCOL_TLSv1)`
 
+### Python TLSv1.1 Protocol
 **Pattern**: `ssl\.PROTOCOL_TLSv1_1`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
 - TLS 1.1 protocol (deprecated)
-- Example: `ssl.wrap_socket(sock, ssl_version=ssl.PROTOCOL_TLSv1_1)`
 
+### Python Disable SSL Warnings
 **Pattern**: `urllib3\.disable_warnings`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
 - Disabling SSL warnings
-- Example: `urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)`
-
-### Javascript
-**Pattern**: `rejectUnauthorized\s*:\s*false`
-- Node.js TLS cert verification disabled
-- Example: `{ rejectUnauthorized: false }`
-
-**Pattern**: `NODE_TLS_REJECT_UNAUTHORIZED.*['"]?0['"]?`
-- Environment variable disabling TLS verification
-- Example: `process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0'`
-
-**Pattern**: `agent:\s*new https\.Agent\(.*rejectUnauthorized`
-- Custom agent with disabled verification
-- Example: `agent: new https.Agent({ rejectUnauthorized: false })`
-
-**Pattern**: `minVersion\s*:\s*['"]TLSv1['"]`
-- Deprecated TLS 1.0 as minimum
-- Example: `{ minVersion: 'TLSv1' }`
-
-**Pattern**: `minVersion\s*:\s*['"]TLSv1\.1['"]`
-- Deprecated TLS 1.1 as minimum
-- Example: `{ minVersion: 'TLSv1.1' }`
-
-**Pattern**: `secureProtocol\s*:\s*['"]SSLv3`
-- Broken SSLv3 protocol
-- Example: `{ secureProtocol: 'SSLv3_method' }`
-
-**Pattern**: `secureProtocol\s*:\s*['"]SSLv2`
-- Broken SSLv2 protocol
-- Example: `{ secureProtocol: 'SSLv2_method' }`
-
-**Pattern**: `secureProtocol\s*:\s*['"]TLSv1_method`
-- Deprecated TLS 1.0
-- Example: `{ secureProtocol: 'TLSv1_method' }`
-
-**Pattern**: `checkServerIdentity:\s*\(\)\s*=>`
-- Empty hostname verification callback
-- Example: `checkServerIdentity: () => undefined`
-
-### Java
-**Pattern**: `setHostnameVerifier\(.*ALLOW_ALL`
-- Hostname verification disabled (Apache HttpClient)
-- Example: `setHostnameVerifier(SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER)`
-
-**Pattern**: `setHostnameVerifier\(.*NoopHostnameVerifier`
-- Noop hostname verifier
-- Example: `setHostnameVerifier(NoopHostnameVerifier.INSTANCE)`
-
-**Pattern**: `TrustManager.*X509Certificate.*return`
-- Custom trust manager accepting all certs
-- Example: `public X509Certificate[] getAcceptedIssuers() { return new X509Certificate[0]; }`
-
-**Pattern**: `checkServerTrusted.*\{\s*\}`
-- Empty trust check implementation
-- Example: `public void checkServerTrusted(X509Certificate[] chain, String authType) { }`
-
-**Pattern**: `checkClientTrusted.*\{\s*\}`
-- Empty client trust check
-- Example: `public void checkClientTrusted(X509Certificate[] chain, String authType) { }`
-
-**Pattern**: `SSLContext\.getInstance\(["']SSL["']\)`
-- Generic SSL protocol (may use SSLv3)
-- Example: `SSLContext.getInstance("SSL")`
-
-**Pattern**: `SSLContext\.getInstance\(["']SSLv3["']\)`
-- Broken SSLv3
-- Example: `SSLContext.getInstance("SSLv3")`
-
-**Pattern**: `SSLContext\.getInstance\(["']TLSv1["']\)`
-- Deprecated TLS 1.0
-- Example: `SSLContext.getInstance("TLSv1")`
-
-**Pattern**: `SSLContext\.getInstance\(["']TLSv1\.1["']\)`
-- Deprecated TLS 1.1
-- Example: `SSLContext.getInstance("TLSv1.1")`
-
-**Pattern**: `setEnabledProtocols.*SSLv3`
-- Enabling SSLv3
-- Example: `socket.setEnabledProtocols(new String[] { "SSLv3" })`
-
-**Pattern**: `setEnabledProtocols.*TLSv1[^.]`
-- Enabling TLS 1.0
-- Example: `socket.setEnabledProtocols(new String[] { "TLSv1" })`
-
-### Go
-**Pattern**: `InsecureSkipVerify\s*:\s*true`
-- Go TLS skip certificate verification
-- Example: `InsecureSkipVerify: true`
-
-**Pattern**: `MinVersion\s*:\s*tls\.VersionSSL30`
-- Broken SSL 3.0 in Go
-- Example: `MinVersion: tls.VersionSSL30`
-
-**Pattern**: `MinVersion\s*:\s*tls\.VersionTLS10`
-- Deprecated TLS 1.0 in Go
-- Example: `MinVersion: tls.VersionTLS10`
-
-**Pattern**: `MinVersion\s*:\s*tls\.VersionTLS11`
-- Deprecated TLS 1.1 in Go
-- Example: `MinVersion: tls.VersionTLS11`
-
-**Pattern**: `MaxVersion\s*:\s*tls\.VersionTLS10`
-- Maximum TLS 1.0 (should support higher)
-- Example: `MaxVersion: tls.VersionTLS10`
-
-**Pattern**: `VerifyPeerCertificate:\s*func.*nil`
-- Empty certificate verification function
-- Example: `VerifyPeerCertificate: func([][]byte, [][]*x509.Certificate) error { return nil }`
-
-**Pattern**: `ServerName:\s*["']["']`
-- Empty server name (disables SNI verification)
-- Example: `ServerName: ""`
-
-### Ruby
-**Pattern**: `verify_mode\s*=\s*OpenSSL::SSL::VERIFY_NONE`
-- Certificate verification disabled
-- Example: `http.verify_mode = OpenSSL::SSL::VERIFY_NONE`
-
-**Pattern**: `VERIFY_NONE`
-- VERIFY_NONE constant usage
-- Example: `ssl_context.verify_mode = OpenSSL::SSL::VERIFY_NONE`
-
-**Pattern**: `ssl_version\s*=\s*['":]*SSLv3`
-- SSLv3 in Ruby
-- Example: `http.ssl_version = :SSLv3`
-
-**Pattern**: `ssl_version\s*=\s*['":]*TLSv1\b`
-- TLS 1.0 in Ruby
-- Example: `http.ssl_version = :TLSv1`
-
-### PHP
-**Pattern**: `CURLOPT_SSL_VERIFYPEER.*false`
-- cURL SSL verification disabled
-- Example: `curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false)`
-
-**Pattern**: `CURLOPT_SSL_VERIFYHOST.*0`
-- cURL hostname verification disabled
-- Example: `curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0)`
-
-**Pattern**: `verify_peer.*false`
-- Stream context SSL verification disabled
-- Example: `'verify_peer' => false`
-
-**Pattern**: `verify_peer_name.*false`
-- Stream context peer name verification disabled
-- Example: `'verify_peer_name' => false`
-
-**Pattern**: `allow_self_signed.*true`
-- Allowing self-signed certificates
-- Example: `'allow_self_signed' => true`
-
-### C/C++
-**Pattern**: `SSL_CTX_set_verify.*SSL_VERIFY_NONE`
-- OpenSSL verification disabled
-- Example: `SSL_CTX_set_verify(ctx, SSL_VERIFY_NONE, NULL)`
-
-**Pattern**: `SSL_set_verify.*SSL_VERIFY_NONE`
-- SSL connection verification disabled
-- Example: `SSL_set_verify(ssl, SSL_VERIFY_NONE, NULL)`
-
-**Pattern**: `SSL_CTX_set_min_proto_version.*SSL3_VERSION`
-- SSLv3 minimum version
-- Example: `SSL_CTX_set_min_proto_version(ctx, SSL3_VERSION)`
-
-**Pattern**: `SSL_CTX_set_min_proto_version.*TLS1_VERSION\b`
-- TLS 1.0 minimum version
-- Example: `SSL_CTX_set_min_proto_version(ctx, TLS1_VERSION)`
-
-### C#
-**Pattern**: `ServicePointManager\.ServerCertificateValidationCallback.*true`
-- Certificate validation callback always returns true
-- Example: `ServicePointManager.ServerCertificateValidationCallback = (s, c, ch, e) => true`
-
-**Pattern**: `ServerCertificateCustomValidationCallback.*true`
-- HttpClient certificate validation disabled
-- Example: `ServerCertificateCustomValidationCallback = (msg, cert, chain, errors) => true`
-
-**Pattern**: `SecurityProtocolType\.Ssl3`
-- SSLv3 in .NET
-- Example: `ServicePointManager.SecurityProtocol = SecurityProtocolType.Ssl3`
-
-**Pattern**: `SecurityProtocolType\.Tls\b`
-- TLS 1.0 only in .NET
-- Example: `ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls`
 
 ---
 
-## Secrets Detection
+## JavaScript/Node.js TLS Issues
 
-#### Self-Signed Certificate Bypass
+### Node.js RejectUnauthorized False
+**Pattern**: `rejectUnauthorized\s*:\s*false`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Node.js TLS cert verification disabled
+- CWE-295: Improper Certificate Validation
+
+### Node.js TLS Reject Unauthorized Env
+**Pattern**: `NODE_TLS_REJECT_UNAUTHORIZED.*['"]?0['"]?`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Environment variable disabling TLS verification
+
+### Node.js Custom Agent Insecure
+**Pattern**: `agent:\s*new https\.Agent\(.*rejectUnauthorized`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Custom agent with disabled verification
+
+### Node.js TLSv1.0 Minimum
+**Pattern**: `minVersion\s*:\s*['"]TLSv1['"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Deprecated TLS 1.0 as minimum
+- CWE-757: Selection of Less-Secure Algorithm
+
+### Node.js TLSv1.1 Minimum
+**Pattern**: `minVersion\s*:\s*['"]TLSv1\.1['"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Deprecated TLS 1.1 as minimum
+
+### Node.js SSLv3 Protocol
+**Pattern**: `secureProtocol\s*:\s*['"]SSLv3`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Broken SSLv3 protocol
+
+### Node.js SSLv2 Protocol
+**Pattern**: `secureProtocol\s*:\s*['"]SSLv2`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Broken SSLv2 protocol
+
+### Node.js TLSv1 Method
+**Pattern**: `secureProtocol\s*:\s*['"]TLSv1_method`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Deprecated TLS 1.0
+
+### Node.js Empty Hostname Check
+**Pattern**: `checkServerIdentity:\s*\(\)\s*=>`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Empty hostname verification callback
+
+---
+
+## Java TLS Issues
+
+### Java Allow All Hostname Verifier
+**Pattern**: `setHostnameVerifier\(.*ALLOW_ALL`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java, kotlin]
+- Hostname verification disabled (Apache HttpClient)
+- CWE-295: Improper Certificate Validation
+
+### Java Noop Hostname Verifier
+**Pattern**: `setHostnameVerifier\(.*NoopHostnameVerifier`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java, kotlin]
+- Noop hostname verifier
+
+### Java Trust All Certificates
+**Pattern**: `TrustManager.*X509Certificate.*return`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java, kotlin]
+- Custom trust manager accepting all certs
+
+### Java Empty Server Trust Check
+**Pattern**: `checkServerTrusted.*\{\s*\}`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java, kotlin]
+- Empty trust check implementation
+
+### Java Empty Client Trust Check
+**Pattern**: `checkClientTrusted.*\{\s*\}`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java, kotlin]
+- Empty client trust check
+
+### Java Generic SSL Context
+**Pattern**: `SSLContext\.getInstance\(["']SSL["']\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [java, kotlin]
+- Generic SSL protocol (may use SSLv3)
+
+### Java SSLv3 Context
+**Pattern**: `SSLContext\.getInstance\(["']SSLv3["']\)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java, kotlin]
+- Broken SSLv3
+- CWE-757: Selection of Less-Secure Algorithm
+
+### Java TLSv1.0 Context
+**Pattern**: `SSLContext\.getInstance\(["']TLSv1["']\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [java, kotlin]
+- Deprecated TLS 1.0
+
+### Java TLSv1.1 Context
+**Pattern**: `SSLContext\.getInstance\(["']TLSv1\.1["']\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [java, kotlin]
+- Deprecated TLS 1.1
+
+### Java Enable SSLv3 Protocol
+**Pattern**: `setEnabledProtocols.*SSLv3`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java, kotlin]
+- Enabling SSLv3
+
+### Java Enable TLSv1.0 Protocol
+**Pattern**: `setEnabledProtocols.*TLSv1[^.]`
+**Type**: regex
+**Severity**: high
+**Languages**: [java, kotlin]
+- Enabling TLS 1.0
+
+---
+
+## Go TLS Issues
+
+### Go InsecureSkipVerify
+**Pattern**: `InsecureSkipVerify\s*:\s*true`
+**Type**: regex
+**Severity**: critical
+**Languages**: [go]
+- Go TLS skip certificate verification
+- CWE-295: Improper Certificate Validation
+
+### Go SSL 3.0 MinVersion
+**Pattern**: `MinVersion\s*:\s*tls\.VersionSSL30`
+**Type**: regex
+**Severity**: critical
+**Languages**: [go]
+- Broken SSL 3.0 in Go
+- CWE-757: Selection of Less-Secure Algorithm
+
+### Go TLS 1.0 MinVersion
+**Pattern**: `MinVersion\s*:\s*tls\.VersionTLS10`
+**Type**: regex
+**Severity**: high
+**Languages**: [go]
+- Deprecated TLS 1.0 in Go
+
+### Go TLS 1.1 MinVersion
+**Pattern**: `MinVersion\s*:\s*tls\.VersionTLS11`
+**Type**: regex
+**Severity**: high
+**Languages**: [go]
+- Deprecated TLS 1.1 in Go
+
+### Go TLS 1.0 MaxVersion
+**Pattern**: `MaxVersion\s*:\s*tls\.VersionTLS10`
+**Type**: regex
+**Severity**: high
+**Languages**: [go]
+- Maximum TLS 1.0 (should support higher)
+
+### Go Empty Verify Callback
+**Pattern**: `VerifyPeerCertificate:\s*func.*nil`
+**Type**: regex
+**Severity**: critical
+**Languages**: [go]
+- Empty certificate verification function
+
+### Go Empty ServerName
+**Pattern**: `ServerName:\s*["']["']`
+**Type**: regex
+**Severity**: high
+**Languages**: [go]
+- Empty server name (disables SNI verification)
+
+---
+
+## Ruby TLS Issues
+
+### Ruby VERIFY_NONE
+**Pattern**: `verify_mode\s*=\s*OpenSSL::SSL::VERIFY_NONE`
+**Type**: regex
+**Severity**: critical
+**Languages**: [ruby]
+- Certificate verification disabled
+- CWE-295: Improper Certificate Validation
+
+### Ruby VERIFY_NONE Constant
+**Pattern**: `VERIFY_NONE`
+**Type**: regex
+**Severity**: critical
+**Languages**: [ruby]
+- VERIFY_NONE constant usage
+
+### Ruby SSLv3 Version
+**Pattern**: `ssl_version\s*=\s*['":]*SSLv3`
+**Type**: regex
+**Severity**: critical
+**Languages**: [ruby]
+- SSLv3 in Ruby
+- CWE-757: Selection of Less-Secure Algorithm
+
+### Ruby TLSv1.0 Version
+**Pattern**: `ssl_version\s*=\s*['":]*TLSv1\b`
+**Type**: regex
+**Severity**: high
+**Languages**: [ruby]
+- TLS 1.0 in Ruby
+
+---
+
+## PHP TLS Issues
+
+### PHP cURL Verify Peer Disabled
+**Pattern**: `CURLOPT_SSL_VERIFYPEER.*false`
+**Type**: regex
+**Severity**: critical
+**Languages**: [php]
+- cURL SSL verification disabled
+- CWE-295: Improper Certificate Validation
+
+### PHP cURL Verify Host Disabled
+**Pattern**: `CURLOPT_SSL_VERIFYHOST.*0`
+**Type**: regex
+**Severity**: critical
+**Languages**: [php]
+- cURL hostname verification disabled
+
+### PHP Stream Verify Peer Disabled
+**Pattern**: `verify_peer.*false`
+**Type**: regex
+**Severity**: critical
+**Languages**: [php]
+- Stream context SSL verification disabled
+
+### PHP Stream Verify Peer Name Disabled
+**Pattern**: `verify_peer_name.*false`
+**Type**: regex
+**Severity**: critical
+**Languages**: [php]
+- Stream context peer name verification disabled
+
+### PHP Allow Self-Signed
+**Pattern**: `allow_self_signed.*true`
+**Type**: regex
+**Severity**: high
+**Languages**: [php]
+- Allowing self-signed certificates
+
+---
+
+## C/C++ TLS Issues
+
+### OpenSSL SSL_VERIFY_NONE Context
+**Pattern**: `SSL_CTX_set_verify.*SSL_VERIFY_NONE`
+**Type**: regex
+**Severity**: critical
+**Languages**: [c, cpp]
+- OpenSSL verification disabled
+- CWE-295: Improper Certificate Validation
+
+### OpenSSL SSL_VERIFY_NONE Connection
+**Pattern**: `SSL_set_verify.*SSL_VERIFY_NONE`
+**Type**: regex
+**Severity**: critical
+**Languages**: [c, cpp]
+- SSL connection verification disabled
+
+### OpenSSL SSLv3 MinVersion
+**Pattern**: `SSL_CTX_set_min_proto_version.*SSL3_VERSION`
+**Type**: regex
+**Severity**: critical
+**Languages**: [c, cpp]
+- SSLv3 minimum version
+- CWE-757: Selection of Less-Secure Algorithm
+
+### OpenSSL TLSv1.0 MinVersion
+**Pattern**: `SSL_CTX_set_min_proto_version.*TLS1_VERSION\b`
+**Type**: regex
+**Severity**: high
+**Languages**: [c, cpp]
+- TLS 1.0 minimum version
+
+---
+
+## C# TLS Issues
+
+### CSharp Certificate Callback True
+**Pattern**: `ServicePointManager\.ServerCertificateValidationCallback.*true`
+**Type**: regex
+**Severity**: critical
+**Languages**: [csharp]
+- Certificate validation callback always returns true
+- CWE-295: Improper Certificate Validation
+
+### CSharp HttpClient Cert Validation Disabled
+**Pattern**: `ServerCertificateCustomValidationCallback.*true`
+**Type**: regex
+**Severity**: critical
+**Languages**: [csharp]
+- HttpClient certificate validation disabled
+
+### CSharp SSLv3 Protocol
+**Pattern**: `SecurityProtocolType\.Ssl3`
+**Type**: regex
+**Severity**: critical
+**Languages**: [csharp]
+- SSLv3 in .NET
+- CWE-757: Selection of Less-Secure Algorithm
+
+### CSharp TLS 1.0 Only
+**Pattern**: `SecurityProtocolType\.Tls\b`
+**Type**: regex
+**Severity**: high
+**Languages**: [csharp]
+- TLS 1.0 only in .NET
+
+---
+
+## Configuration Patterns
+
+### Self-Signed Certificate Bypass
 **Pattern**: `(?:self.signed|selfsigned|self_signed)\s*[=:]\s*(?:true|True|1)`
+**Type**: regex
 **Severity**: high
-**Description**: Explicitly allowing self-signed certificates
+**Languages**: [all]
+- Explicitly allowing self-signed certificates
 
-#### Certificate Pinning Disabled
+### Certificate Pinning Disabled
 **Pattern**: `(?:pinning|PINNING|pin)\s*[=:]\s*(?:false|False|0|disabled|none)`
+**Type**: regex
 **Severity**: medium
-**Description**: Certificate pinning explicitly disabled
+**Languages**: [all]
+- Certificate pinning explicitly disabled
 
-#### Trust All Certificates Comment
+### Trust All Certificates Comment
 **Pattern**: `(?:trust|accept)\s*all\s*(?:cert|certificate)`
+**Type**: regex
 **Severity**: high
-**Description**: Code comment indicating trust-all behavior
+**Languages**: [all]
+- Code comment indicating trust-all behavior
 
 ---
 
 ## Environment Variables
 
-- `SSL_CERT_FILE`
-- `SSL_CERT_DIR`
-- `REQUESTS_CA_BUNDLE`
-- `CURL_CA_BUNDLE`
-- `NODE_TLS_REJECT_UNAUTHORIZED`
-- `NODE_EXTRA_CA_CERTS`
-- `PYTHONHTTPSVERIFY`
+Insecure environment variables to detect:
+
+| Variable | Risk |
+|----------|------|
+| `NODE_TLS_REJECT_UNAUTHORIZED=0` | Disables all TLS verification in Node.js |
+| `PYTHONHTTPSVERIFY=0` | Disables HTTPS verification in Python |
+| `CURL_CA_BUNDLE=""` | Empty CA bundle in cURL |
+| `REQUESTS_CA_BUNDLE=""` | Empty CA bundle in requests |
 
 ---
 
-## Detection Confidence
+## Best Practices
 
-**Certificate Validation Bypass**: 98%
-**Protocol Version Detection**: 95%
-**Hostname Verification Bypass**: 95%
+### Minimum TLS Version
+- Use TLS 1.2 minimum, TLS 1.3 preferred
+- Disable SSLv2, SSLv3, TLS 1.0, TLS 1.1
+
+### Certificate Validation
+- Always verify server certificates
+- Always verify hostnames
+- Use system CA store or explicit trusted CAs
+- Consider certificate pinning for sensitive applications
+
+### Cipher Suites
+- Use strong cipher suites (AEAD modes)
+- Disable weak ciphers (RC4, DES, 3DES, export ciphers)
+
+---
+
+## References
+
+- [CWE-295: Improper Certificate Validation](https://cwe.mitre.org/data/definitions/295.html)
+- [CWE-757: Selection of Less-Secure Algorithm](https://cwe.mitre.org/data/definitions/757.html)
+- [SSL Labs Best Practices](https://github.com/ssllabs/research/wiki/SSL-and-TLS-Deployment-Best-Practices)

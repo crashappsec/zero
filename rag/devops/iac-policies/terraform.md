@@ -1,87 +1,89 @@
 # Terraform Security Patterns
 
-**Category**: devops/iac-policies
+**Category**: devops/iac-policies/terraform
 **Description**: Terraform security and organizational policy patterns
-**CWE**: CWE-732 (Incorrect Permission Assignment), CWE-311 (Missing Encryption)
+**CWE**: CWE-732, CWE-311
 
 ---
 
 ## Access Control Patterns
 
 ### Public S3 Bucket ACL
+**Pattern**: `(?i)acl\s*=\s*["'](?:public-read|public-read-write)["']`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)acl\s*=\s*["'](?:public-read|public-read-write)["']`
+**Languages**: [terraform]
 - S3 buckets should not have public ACLs
-- Example: `acl = "public-read"`
-- Remediation: Use `acl = "private"` and configure bucket policies for specific access
+- Remediation: Use `acl = "private"` and configure bucket policies
+- CWE-732: Incorrect Permission Assignment
 
 ### S3 Bucket Without Encryption
+**Pattern**: `(?i)resource\s*"aws_s3_bucket"\s*"[^"]+"\s*\{(?:(?!server_side_encryption_configuration).)*\}`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)resource\s*"aws_s3_bucket"\s*"[^"]+"\s*\{(?:(?!server_side_encryption_configuration).)*\}`
+**Languages**: [terraform]
 - S3 buckets should have server-side encryption enabled
-- Example: Missing `server_side_encryption_configuration` block
 - Remediation: Add encryption configuration with AES-256 or AWS KMS
+- CWE-311: Missing Encryption of Sensitive Data
 
 ### Public Security Group Ingress
+**Pattern**: `(?i)cidr_blocks\s*=\s*\[\s*["']0\.0\.0\.0/0["']`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)cidr_blocks\s*=\s*\[\s*["']0\.0\.0\.0/0["']`
-- Security groups should not allow unrestricted ingress from the internet
-- Example: `cidr_blocks = ["0.0.0.0/0"]`
-- Remediation: Restrict CIDR blocks to specific IP ranges or VPCs
+**Languages**: [terraform]
+- Security groups should not allow unrestricted ingress
+- Remediation: Restrict CIDR blocks to specific IP ranges
 
 ### Open SSH Port to World
+**Pattern**: `(?i)from_port\s*=\s*22[^0-9].*?cidr_blocks\s*=\s*\[\s*["']0\.0\.0\.0/0["']`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)from_port\s*=\s*22[^0-9].*?cidr_blocks\s*=\s*\[\s*["']0\.0\.0\.0/0["']`
+**Languages**: [terraform]
 - SSH access should not be open to the entire internet
-- Example: Port 22 with `cidr_blocks = ["0.0.0.0/0"]`
-- Remediation: Restrict SSH access to known IP ranges or use bastion hosts
+- Remediation: Restrict SSH access or use bastion hosts
 
 ### Open RDP Port to World
+**Pattern**: `(?i)from_port\s*=\s*3389[^0-9].*?cidr_blocks\s*=\s*\[\s*["']0\.0\.0\.0/0["']`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)from_port\s*=\s*3389[^0-9].*?cidr_blocks\s*=\s*\[\s*["']0\.0\.0\.0/0["']`
+**Languages**: [terraform]
 - RDP access should not be open to the entire internet
-- Example: Port 3389 with `cidr_blocks = ["0.0.0.0/0"]`
-- Remediation: Restrict RDP access to known IP ranges or use VPN
+- Remediation: Restrict RDP access or use VPN
 
 ---
 
 ## Encryption Patterns
 
 ### Unencrypted EBS Volume
+**Pattern**: `(?i)resource\s*"aws_ebs_volume".*?encrypted\s*=\s*false`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)resource\s*"aws_ebs_volume".*?encrypted\s*=\s*false`
+**Languages**: [terraform]
 - EBS volumes should be encrypted at rest
-- Example: `encrypted = false`
 - Remediation: Set `encrypted = true` and configure KMS key
 
 ### RDS Without Encryption
+**Pattern**: `(?i)resource\s*"aws_db_instance".*?storage_encrypted\s*=\s*false`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)resource\s*"aws_db_instance".*?storage_encrypted\s*=\s*false`
+**Languages**: [terraform]
 - RDS instances should have storage encryption enabled
-- Example: `storage_encrypted = false`
 - Remediation: Set `storage_encrypted = true`
 
 ### RDS Public Access
+**Pattern**: `(?i)publicly_accessible\s*=\s*true`
 **Type**: regex
 **Severity**: critical
-**Pattern**: `(?i)publicly_accessible\s*=\s*true`
+**Languages**: [terraform]
 - Database instances should not be publicly accessible
-- Example: `publicly_accessible = true`
-- Remediation: Set `publicly_accessible = false` and use VPC endpoints
+- Remediation: Set `publicly_accessible = false`
 
 ### ELB Without SSL
+**Pattern**: `(?i)resource\s*"aws_elb".*?listener\s*\{[^}]*lb_protocol\s*=\s*["']HTTP["']`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)resource\s*"aws_elb".*?listener\s*\{[^}]*lb_protocol\s*=\s*["']HTTP["']`
-- Load balancers should use HTTPS for secure communication
-- Example: `lb_protocol = "HTTP"`
+**Languages**: [terraform]
+- Load balancers should use HTTPS
 - Remediation: Configure `lb_protocol = "HTTPS"` with SSL certificate
 
 ---
@@ -89,27 +91,27 @@
 ## Logging and Monitoring Patterns
 
 ### CloudTrail Not Enabled
+**Pattern**: `(?i)enable_logging\s*=\s*false`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)enable_logging\s*=\s*false`
+**Languages**: [terraform]
 - CloudTrail logging should be enabled for audit purposes
-- Example: `enable_logging = false`
 - Remediation: Set `enable_logging = true`
 
 ### VPC Flow Logs Disabled
+**Pattern**: `(?i)resource\s*"aws_vpc"(?:(?!aws_flow_log).)*$`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)resource\s*"aws_vpc"(?:(?!aws_flow_log).)*$`
+**Languages**: [terraform]
 - VPCs should have flow logs enabled for network monitoring
-- Example: VPC without associated flow log resource
 - Remediation: Create `aws_flow_log` resource for the VPC
 
 ### S3 Access Logging Disabled
+**Pattern**: `(?i)resource\s*"aws_s3_bucket"\s*"[^"]+"\s*\{(?:(?!logging).)*\}`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)resource\s*"aws_s3_bucket"\s*"[^"]+"\s*\{(?:(?!logging).)*\}`
+**Languages**: [terraform]
 - S3 buckets should have access logging enabled
-- Example: Missing `logging` block
 - Remediation: Add `logging` block with target bucket
 
 ---
@@ -117,47 +119,47 @@
 ## IAM Patterns
 
 ### Wildcard IAM Action
+**Pattern**: `(?i)"Action"\s*:\s*\[\s*["']\*["']`
 **Type**: regex
 **Severity**: high
-**Pattern**: `(?i)"Action"\s*:\s*\[\s*["']\*["']`
+**Languages**: [terraform]
 - IAM policies should not grant wildcard actions
-- Example: `"Action": ["*"]`
 - Remediation: Specify required actions explicitly
 
 ### Wildcard IAM Resource
+**Pattern**: `(?i)"Resource"\s*:\s*\[\s*["']\*["']`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)"Resource"\s*:\s*\[\s*["']\*["']`
+**Languages**: [terraform]
 - IAM policies should not grant access to all resources
-- Example: `"Resource": ["*"]`
 - Remediation: Specify specific resource ARNs
 
 ### Assume Role Without Condition
+**Pattern**: `(?i)"Effect"\s*:\s*["']Allow["'].*?"Action"\s*:\s*\[\s*["']sts:AssumeRole["'](?:(?!"Condition").)*$`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)"Effect"\s*:\s*["']Allow["'].*?"Action"\s*:\s*\[\s*["']sts:AssumeRole["'](?:(?!"Condition").)*$`
-- AssumeRole policies should have conditions for security
-- Example: Allow AssumeRole without conditions
-- Remediation: Add conditions like external ID or MFA requirement
+**Languages**: [terraform]
+- AssumeRole policies should have conditions
+- Remediation: Add external ID or MFA requirement
 
 ---
 
 ## Network Patterns
 
-### Missing VPC
+### Missing VPC Security Groups
+**Pattern**: `(?i)resource\s*"aws_instance"(?:(?!vpc_security_group_ids).)*\}`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)resource\s*"aws_instance"(?:(?!vpc_security_group_ids).)*\}`
-- EC2 instances should be deployed in a VPC with proper security groups
-- Example: Instance without VPC security group configuration
+**Languages**: [terraform]
+- EC2 instances should be deployed in VPC with security groups
 - Remediation: Deploy in VPC with appropriate security groups
 
 ### Default Security Group Used
+**Pattern**: `(?i)security_groups\s*=\s*\[\s*["']default["']`
 **Type**: regex
 **Severity**: medium
-**Pattern**: `(?i)security_groups\s*=\s*\[\s*["']default["']`
+**Languages**: [terraform]
 - Default security groups should not be used
-- Example: `security_groups = ["default"]`
 - Remediation: Create and use custom security groups
 
 ---
@@ -165,32 +167,25 @@
 ## Organizational Policies
 
 ### Missing Tags
+**Pattern**: `(?i)resource\s*"aws_[^"]+"\s*"[^"]+"\s*\{(?:(?!tags).)*\}`
 **Type**: regex
 **Severity**: low
-**Pattern**: `(?i)resource\s*"aws_[^"]+"\s*"[^"]+"\s*\{(?:(?!tags).)*\}`
-- Resources should be tagged for cost allocation and management
-- Example: Resource without `tags` block
+**Languages**: [terraform]
+- Resources should be tagged for cost allocation
 - Remediation: Add tags including Owner, Environment, Project
 
-### Resource Without Provider Region
+### Missing Provider Region
+**Pattern**: `(?i)provider\s*"aws"\s*\{(?:(?!region).)*\}`
 **Type**: regex
 **Severity**: low
-**Pattern**: `(?i)provider\s*"aws"\s*\{(?:(?!region).)*\}`
+**Languages**: [terraform]
 - AWS provider should have explicit region configuration
-- Example: Provider without region
 - Remediation: Specify `region` in provider block
-
----
-
-## Detection Confidence
-
-**Regex Detection**: 85%
-**Policy Compliance**: 90%
 
 ---
 
 ## References
 
-- CIS AWS Foundations Benchmark
-- AWS Well-Architected Framework
-- Terraform Security Best Practices
+- [CWE-732: Incorrect Permission Assignment](https://cwe.mitre.org/data/definitions/732.html)
+- [CWE-311: Missing Encryption of Sensitive Data](https://cwe.mitre.org/data/definitions/311.html)
+- [CIS AWS Foundations Benchmark](https://www.cisecurity.org/benchmark/amazon_web_services)

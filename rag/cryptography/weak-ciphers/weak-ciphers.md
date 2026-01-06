@@ -2,250 +2,468 @@
 
 **Category**: cryptography/weak-ciphers
 **Description**: Detection of weak, deprecated, or broken cryptographic algorithms
-**CWE**: CWE-327 (Use of a Broken or Risky Cryptographic Algorithm)
+**CWE**: CWE-327, CWE-328
 
 ---
 
-## Import Detection
+## Python Weak Ciphers
 
-### Python
+### Python DES Import
 **Pattern**: `from Crypto\.Cipher import DES`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
 - DES cipher import (broken - 56-bit key)
-- Example: `from Crypto.Cipher import DES`
+- CWE-327: Use of a Broken or Risky Cryptographic Algorithm
 
+### Python Blowfish Import
 **Pattern**: `from Crypto\.Cipher import Blowfish`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
 - Blowfish cipher import (deprecated)
-- Example: `from Crypto.Cipher import Blowfish`
 
+### Python RC4 Import
 **Pattern**: `from Crypto\.Cipher import ARC4`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
 - RC4 cipher import (broken)
-- Example: `from Crypto.Cipher import ARC4`
 
+### Python MD5 Hash
 **Pattern**: `hashlib\.md5\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
 - MD5 hash usage (broken for security)
-- Example: `hashlib.md5(password.encode())`
+- CWE-328: Use of Weak Hash
 
+### Python SHA1 Hash
 **Pattern**: `hashlib\.sha1\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
 - SHA1 hash usage (deprecated for security)
-- Example: `hashlib.sha1(data.encode())`
 
+### Python AES ECB Mode
 **Pattern**: `AES\.MODE_ECB`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
 - ECB mode usage (insecure - no IV, patterns visible)
-- Example: `AES.new(key, AES.MODE_ECB)`
 
+### Python DES3 ECB Mode
 **Pattern**: `DES3\.MODE_ECB`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
 - Triple DES with ECB mode
-- Example: `DES3.new(key, DES3.MODE_ECB)`
 
-### Javascript
+---
+
+## JavaScript Weak Ciphers
+
+### Node.js DES Cipher
 **Pattern**: `crypto\.createCipher\(['"]des`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
 - DES cipher in Node.js
-- Example: `crypto.createCipher('des', key)`
+- CWE-327: Use of a Broken or Risky Cryptographic Algorithm
 
+### Node.js DES CipherIV
 **Pattern**: `crypto\.createCipheriv\(['"]des`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
 - DES cipher with IV in Node.js
-- Example: `crypto.createCipheriv('des-cbc', key, iv)`
 
+### Node.js MD5 Hash
 **Pattern**: `crypto\.createHash\(['"]md5`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
 - MD5 hash in Node.js
-- Example: `crypto.createHash('md5')`
+- CWE-328: Use of Weak Hash
 
+### Node.js SHA1 Hash
 **Pattern**: `crypto\.createHash\(['"]sha1`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
 - SHA1 hash in Node.js
-- Example: `crypto.createHash('sha1')`
 
+### CryptoJS DES
 **Pattern**: `CryptoJS\.DES`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
 - DES in CryptoJS library
-- Example: `CryptoJS.DES.encrypt(message, key)`
 
+### CryptoJS RC4
 **Pattern**: `CryptoJS\.RC4`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
 - RC4 in CryptoJS (broken)
-- Example: `CryptoJS.RC4.encrypt(message, key)`
 
+### CryptoJS TripleDES
 **Pattern**: `CryptoJS\.TripleDES`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
 - Triple DES (deprecated)
-- Example: `CryptoJS.TripleDES.encrypt(message, key)`
 
+### CryptoJS MD5
 **Pattern**: `CryptoJS\.MD5`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
 - MD5 in CryptoJS
-- Example: `CryptoJS.MD5(message)`
 
+### CryptoJS SHA1
 **Pattern**: `CryptoJS\.SHA1`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
 - SHA1 in CryptoJS
-- Example: `CryptoJS.SHA1(message)`
 
+### CryptoJS ECB Mode
 **Pattern**: `mode:\s*CryptoJS\.mode\.ECB`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
 - ECB mode in CryptoJS
-- Example: `{ mode: CryptoJS.mode.ECB }`
 
-### Java
+---
+
+## Java Weak Ciphers
+
+### Java DES Cipher
 **Pattern**: `Cipher\.getInstance\(["']DES`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java, kotlin]
 - DES cipher in Java
-- Example: `Cipher.getInstance("DES")`
+- CWE-327: Use of a Broken or Risky Cryptographic Algorithm
 
+### Java DESede Cipher
 **Pattern**: `Cipher\.getInstance\(["']DESede`
+**Type**: regex
+**Severity**: high
+**Languages**: [java, kotlin]
 - Triple DES in Java (deprecated)
-- Example: `Cipher.getInstance("DESede")`
 
+### Java ECB Mode
 **Pattern**: `Cipher\.getInstance\(["'].*ECB`
+**Type**: regex
+**Severity**: high
+**Languages**: [java, kotlin]
 - ECB mode in Java
-- Example: `Cipher.getInstance("AES/ECB/PKCS5Padding")`
 
+### Java RC4 Cipher
 **Pattern**: `Cipher\.getInstance\(["']RC4`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java, kotlin]
 - RC4 cipher in Java
-- Example: `Cipher.getInstance("RC4")`
 
+### Java ARCFOUR Cipher
 **Pattern**: `Cipher\.getInstance\(["']ARCFOUR`
+**Type**: regex
+**Severity**: critical
+**Languages**: [java, kotlin]
 - ARCFOUR (RC4) in Java
-- Example: `Cipher.getInstance("ARCFOUR")`
 
+### Java Blowfish Cipher
 **Pattern**: `Cipher\.getInstance\(["']Blowfish`
+**Type**: regex
+**Severity**: high
+**Languages**: [java, kotlin]
 - Blowfish in Java
-- Example: `Cipher.getInstance("Blowfish")`
 
+### Java MD5 Hash
 **Pattern**: `MessageDigest\.getInstance\(["']MD5`
+**Type**: regex
+**Severity**: high
+**Languages**: [java, kotlin]
 - MD5 in Java
-- Example: `MessageDigest.getInstance("MD5")`
+- CWE-328: Use of Weak Hash
 
+### Java SHA-1 Hash
 **Pattern**: `MessageDigest\.getInstance\(["']SHA-1`
+**Type**: regex
+**Severity**: medium
+**Languages**: [java, kotlin]
 - SHA1 in Java
-- Example: `MessageDigest.getInstance("SHA-1")`
 
+### Java SHA1 Hash Alt
 **Pattern**: `MessageDigest\.getInstance\(["']SHA1`
+**Type**: regex
+**Severity**: medium
+**Languages**: [java, kotlin]
 - SHA1 in Java (alternate form)
-- Example: `MessageDigest.getInstance("SHA1")`
 
-### Go
+---
+
+## Go Weak Ciphers
+
+### Go DES Cipher
 **Pattern**: `des\.NewCipher`
+**Type**: regex
+**Severity**: critical
+**Languages**: [go]
 - DES cipher in Go
-- Example: `des.NewCipher(key)`
+- CWE-327: Use of a Broken or Risky Cryptographic Algorithm
 
+### Go Triple DES Cipher
 **Pattern**: `des\.NewTripleDESCipher`
+**Type**: regex
+**Severity**: high
+**Languages**: [go]
 - Triple DES in Go
-- Example: `des.NewTripleDESCipher(key)`
 
+### Go MD5 New
 **Pattern**: `md5\.New\(\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [go]
 - MD5 in Go
-- Example: `h := md5.New()`
+- CWE-328: Use of Weak Hash
 
+### Go MD5 Sum
 **Pattern**: `md5\.Sum\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [go]
 - MD5 sum in Go
-- Example: `md5.Sum(data)`
 
+### Go SHA1 New
 **Pattern**: `sha1\.New\(\)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [go]
 - SHA1 in Go
-- Example: `h := sha1.New()`
 
+### Go SHA1 Sum
 **Pattern**: `sha1\.Sum\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [go]
 - SHA1 sum in Go
-- Example: `sha1.Sum(data)`
 
+### Go RC4 Cipher
 **Pattern**: `rc4\.NewCipher`
+**Type**: regex
+**Severity**: critical
+**Languages**: [go]
 - RC4 in Go (broken)
-- Example: `rc4.NewCipher(key)`
 
+### Go DES with CBC
 **Pattern**: `cipher\.NewCBCEncrypter.*des`
+**Type**: regex
+**Severity**: critical
+**Languages**: [go]
 - DES with CBC in Go
-- Example: `cipher.NewCBCEncrypter(block, iv)`
 
-### Ruby
+---
+
+## Ruby Weak Ciphers
+
+### Ruby DES Cipher
 **Pattern**: `OpenSSL::Cipher\.new\(['"]des`
+**Type**: regex
+**Severity**: critical
+**Languages**: [ruby]
 - DES cipher in Ruby
-- Example: `OpenSSL::Cipher.new('des-cbc')`
+- CWE-327: Use of a Broken or Risky Cryptographic Algorithm
 
+### Ruby RC4 Cipher
 **Pattern**: `OpenSSL::Cipher\.new\(['"]rc4`
+**Type**: regex
+**Severity**: critical
+**Languages**: [ruby]
 - RC4 cipher in Ruby
-- Example: `OpenSSL::Cipher.new('rc4')`
 
+### Ruby MD5 Hash
 **Pattern**: `Digest::MD5`
+**Type**: regex
+**Severity**: high
+**Languages**: [ruby]
 - MD5 in Ruby
-- Example: `Digest::MD5.hexdigest(data)`
+- CWE-328: Use of Weak Hash
 
+### Ruby SHA1 Hash
 **Pattern**: `Digest::SHA1`
+**Type**: regex
+**Severity**: medium
+**Languages**: [ruby]
 - SHA1 in Ruby
-- Example: `Digest::SHA1.hexdigest(data)`
 
-### PHP
+---
+
+## PHP Weak Ciphers
+
+### PHP mcrypt DES
 **Pattern**: `mcrypt_encrypt\(.*MCRYPT_DES`
+**Type**: regex
+**Severity**: critical
+**Languages**: [php]
 - DES in PHP mcrypt (deprecated API)
-- Example: `mcrypt_encrypt(MCRYPT_DES, $key, $data, MCRYPT_MODE_CBC)`
+- CWE-327: Use of a Broken or Risky Cryptographic Algorithm
 
+### PHP OpenSSL DES
 **Pattern**: `openssl_encrypt\(.*['"]des`
+**Type**: regex
+**Severity**: critical
+**Languages**: [php]
 - DES in PHP OpenSSL
-- Example: `openssl_encrypt($data, 'des-cbc', $key)`
 
+### PHP OpenSSL RC4
 **Pattern**: `openssl_encrypt\(.*['"]rc4`
+**Type**: regex
+**Severity**: critical
+**Languages**: [php]
 - RC4 in PHP
-- Example: `openssl_encrypt($data, 'rc4', $key)`
 
-**Pattern**: `md5\(`
+### PHP MD5 Function
+**Pattern**: `\bmd5\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [php]
 - MD5 function in PHP
-- Example: `md5($password)`
+- CWE-328: Use of Weak Hash
 
-**Pattern**: `sha1\(`
+### PHP SHA1 Function
+**Pattern**: `\bsha1\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [php]
 - SHA1 function in PHP
-- Example: `sha1($data)`
 
+### PHP ECB Mode
 **Pattern**: `MCRYPT_MODE_ECB`
+**Type**: regex
+**Severity**: high
+**Languages**: [php]
 - ECB mode in PHP
-- Example: `mcrypt_encrypt($cipher, $key, $data, MCRYPT_MODE_ECB)`
 
-### C/C++
+---
+
+## C/C++ Weak Ciphers
+
+### OpenSSL DES Set Key
 **Pattern**: `DES_set_key`
+**Type**: regex
+**Severity**: critical
+**Languages**: [c, cpp]
 - DES in OpenSSL C API
-- Example: `DES_set_key(&key, &schedule)`
+- CWE-327: Use of a Broken or Risky Cryptographic Algorithm
 
+### OpenSSL DES ECB
 **Pattern**: `DES_ecb_encrypt`
+**Type**: regex
+**Severity**: critical
+**Languages**: [c, cpp]
 - DES ECB in OpenSSL
-- Example: `DES_ecb_encrypt(&input, &output, &schedule, DES_ENCRYPT)`
 
+### OpenSSL MD5 Init
 **Pattern**: `MD5_Init`
+**Type**: regex
+**Severity**: high
+**Languages**: [c, cpp]
 - MD5 in OpenSSL C API
-- Example: `MD5_Init(&ctx)`
+- CWE-328: Use of Weak Hash
 
+### OpenSSL SHA1 Init
 **Pattern**: `SHA1_Init`
+**Type**: regex
+**Severity**: medium
+**Languages**: [c, cpp]
 - SHA1 in OpenSSL C API
-- Example: `SHA1_Init(&ctx)`
 
+### OpenSSL EVP DES
 **Pattern**: `EVP_des_`
+**Type**: regex
+**Severity**: critical
+**Languages**: [c, cpp]
 - DES EVP functions
-- Example: `EVP_des_cbc()`
 
+### OpenSSL EVP RC4
 **Pattern**: `EVP_rc4`
+**Type**: regex
+**Severity**: critical
+**Languages**: [c, cpp]
 - RC4 EVP function
-- Example: `EVP_rc4()`
 
+### OpenSSL EVP MD5
 **Pattern**: `EVP_md5`
+**Type**: regex
+**Severity**: high
+**Languages**: [c, cpp]
 - MD5 EVP function
-- Example: `EVP_md5()`
 
+### OpenSSL EVP SHA1
 **Pattern**: `EVP_sha1`
+**Type**: regex
+**Severity**: medium
+**Languages**: [c, cpp]
 - SHA1 EVP function
-- Example: `EVP_sha1()`
 
 ---
 
-## Secrets Detection
+## Hardcoded Keys Detection
 
-#### Hardcoded DES Key
+### Hardcoded DES Key
 **Pattern**: `DES\.new\(['"bx][0-9a-fA-F]{16}['"]`
+**Type**: regex
 **Severity**: critical
-**Description**: Hardcoded DES key in source code
+**Languages**: [python]
+- Hardcoded DES key in source code
 
-#### Hardcoded RC4 Key
+### Hardcoded RC4 Key
 **Pattern**: `[Rr][Cc]4.*key\s*[=:]\s*['"][^'"]{8,}['"]`
+**Type**: regex
 **Severity**: critical
-**Description**: Hardcoded RC4 key in source code
+**Languages**: [all]
+- Hardcoded RC4 key in source code
 
-#### Hardcoded 3DES Key
+### Hardcoded 3DES Key
 **Pattern**: `DES3\.new\(['"bx][0-9a-fA-F]{32,48}['"]`
+**Type**: regex
 **Severity**: critical
-**Description**: Hardcoded Triple DES key in source code
+**Languages**: [python]
+- Hardcoded Triple DES key in source code
 
 ---
 
-## Detection Confidence
+## Algorithm Recommendations
 
-**Import Detection**: 95%
-**Code Pattern Detection**: 90%
-**Configuration Detection**: 85%
+### Encryption Algorithms
+| Weak/Deprecated | Recommended |
+|-----------------|-------------|
+| DES | AES-256 |
+| 3DES/DESede | AES-256 |
+| RC4 | AES-GCM, ChaCha20-Poly1305 |
+| Blowfish | AES-256 |
+| RC2 | AES-256 |
+
+### Hash Algorithms
+| Weak/Deprecated | Recommended |
+|-----------------|-------------|
+| MD5 | SHA-256, SHA-3, BLAKE2 |
+| SHA1 | SHA-256, SHA-3, BLAKE2 |
+| MD4 | SHA-256, SHA-3 |
+
+### Block Cipher Modes
+| Weak | Recommended |
+|------|-------------|
+| ECB | GCM, CTR, CBC with HMAC |
+
+---
+
+## References
+
+- [CWE-327: Use of a Broken or Risky Cryptographic Algorithm](https://cwe.mitre.org/data/definitions/327.html)
+- [CWE-328: Use of Weak Hash](https://cwe.mitre.org/data/definitions/328.html)
+- [NIST SP 800-131A: Transitioning Cryptographic Algorithms](https://csrc.nist.gov/publications/detail/sp/800-131a/rev-2/final)

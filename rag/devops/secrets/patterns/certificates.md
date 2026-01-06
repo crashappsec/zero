@@ -1,217 +1,221 @@
 # Private Keys and Certificates
 
+**Category**: devops/secrets/certificates
+**Description**: Detection patterns for private keys, certificates, and keystores
+**CWE**: CWE-798, CWE-321, CWE-312
+
+---
+
 ## Private Keys
 
-### RSA Private Keys
-```
-Pattern: -----BEGIN RSA PRIVATE KEY-----
-End: -----END RSA PRIVATE KEY-----
-Severity: critical
-```
+### RSA Private Key
+**Pattern**: `-----BEGIN RSA PRIVATE KEY-----`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Traditional RSA private key format (PKCS#1)
+- CWE-321: Use of Hard-coded Cryptographic Key
 
-Traditional RSA private key format (PKCS#1).
+### Generic Private Key (PKCS#8)
+**Pattern**: `-----BEGIN PRIVATE KEY-----`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- PKCS#8 format (can contain RSA, EC, or other key types)
 
-### Generic Private Keys
-```
-Pattern: -----BEGIN PRIVATE KEY-----
-End: -----END PRIVATE KEY-----
-Severity: critical
-```
+### EC Private Key
+**Pattern**: `-----BEGIN EC PRIVATE KEY-----`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Elliptic Curve private keys
 
-PKCS#8 format, can contain RSA, EC, or other key types.
+### DSA Private Key
+**Pattern**: `-----BEGIN DSA PRIVATE KEY-----`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- DSA private keys
 
-### EC Private Keys
-```
-Pattern: -----BEGIN EC PRIVATE KEY-----
-End: -----END EC PRIVATE KEY-----
-Severity: critical
-```
+### OpenSSH Private Key
+**Pattern**: `-----BEGIN OPENSSH PRIVATE KEY-----`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Modern OpenSSH format (since OpenSSH 7.8)
 
-Elliptic Curve private keys.
+### Encrypted Private Key
+**Pattern**: `-----BEGIN ENCRYPTED PRIVATE KEY-----`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Password-protected private keys (still sensitive)
 
-### DSA Private Keys
-```
-Pattern: -----BEGIN DSA PRIVATE KEY-----
-End: -----END DSA PRIVATE KEY-----
-Severity: critical
-```
-
-### OpenSSH Private Keys
-```
-Pattern: -----BEGIN OPENSSH PRIVATE KEY-----
-End: -----END OPENSSH PRIVATE KEY-----
-Severity: critical
-```
-
-Modern OpenSSH format (since OpenSSH 7.8).
-
-### Encrypted Private Keys
-```
-Pattern: -----BEGIN ENCRYPTED PRIVATE KEY-----
-End: -----END ENCRYPTED PRIVATE KEY-----
-Severity: high
-```
-
-Encrypted keys are lower severity but still sensitive.
-
-### PuTTY Private Keys
-```
-Pattern: PuTTY-User-Key-File-[0-9]+:
-Severity: critical
-```
-
-PuTTY PPK format.
+### PuTTY Private Key
+**Pattern**: `PuTTY-User-Key-File-[0-9]+:`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- PuTTY PPK format private keys
 
 ---
 
 ## PGP/GPG Keys
 
 ### PGP Private Key Block
-```
-Pattern: -----BEGIN PGP PRIVATE KEY BLOCK-----
-End: -----END PGP PRIVATE KEY BLOCK-----
-Severity: critical
-```
+**Pattern**: `-----BEGIN PGP PRIVATE KEY BLOCK-----`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- PGP private key blocks
 
-### PGP Secret Key
-```
-Pattern: -----BEGIN PGP SECRET KEY BLOCK-----
-Severity: critical
-```
-
-Older format name.
+### PGP Secret Key Block
+**Pattern**: `-----BEGIN PGP SECRET KEY BLOCK-----`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Older PGP format name for private keys
 
 ---
 
 ## Certificates (Lower Severity)
 
-### X.509 Certificates
-```
-Pattern: -----BEGIN CERTIFICATE-----
-End: -----END CERTIFICATE-----
-Severity: informational
-```
+### X.509 Certificate
+**Pattern**: `-----BEGIN CERTIFICATE-----`
+**Type**: regex
+**Severity**: informational
+**Languages**: [all]
+- Public certificates are not secrets
+- May indicate private key nearby
 
-Public certificates are not secrets, but may indicate key presence nearby.
-
-### Certificate Requests
-```
-Pattern: -----BEGIN CERTIFICATE REQUEST-----
-End: -----END CERTIFICATE REQUEST-----
-Severity: informational
-```
-
-CSRs are not secret.
+### Certificate Request
+**Pattern**: `-----BEGIN CERTIFICATE REQUEST-----`
+**Type**: regex
+**Severity**: informational
+**Languages**: [all]
+- Certificate signing requests are not secrets
 
 ---
 
 ## PKCS#12 / PFX Files
 
-### File Extensions
-```
-Pattern: \.p12$|\.pfx$
-Severity: high
-```
-
-Binary format containing private key and certificate chain. Password-protected but often with weak passwords.
+### P12/PFX File Extension
+**Pattern**: `\.p12$|\.pfx$`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Binary format containing private key and certificate chain
+- Often password-protected with weak passwords
 
 ---
 
 ## SSH Keys
 
-### Common File Names
-```
-id_rsa
-id_dsa
-id_ecdsa
-id_ed25519
-*.pem (may contain keys)
-```
+### SSH Private Key Files
+**Pattern**: `id_rsa|id_dsa|id_ecdsa|id_ed25519`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Common SSH private key filenames
 
-### SSH Public Keys (informational)
-```
-Pattern: ssh-(rsa|dsa|ecdsa|ed25519) AAAA[A-Za-z0-9+/]+
-Severity: informational
-```
-
-Public keys are not secrets but may indicate private key presence.
+### SSH Public Key
+**Pattern**: `ssh-(rsa|dsa|ecdsa|ed25519) AAAA[A-Za-z0-9+/]+`
+**Type**: regex
+**Severity**: informational
+**Languages**: [all]
+- Public keys are not secrets but may indicate private key presence
 
 ---
 
 ## SSL/TLS Related
 
-### Key Files
-```
-Pattern: \.key$ (file extension)
-Context: Often contains private keys
-Severity: high (investigate content)
-```
+### Key File Extension
+**Pattern**: `\.key$`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Files often containing private keys
+- Investigate content
 
-### Combined Key+Cert Files
-```
-Pattern: \.pem$ (file extension)
-Context: May contain private key and certificate
-Severity: high (investigate content)
-```
+### PEM File Extension
+**Pattern**: `\.pem$`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- May contain private key and certificate
+- Investigate content
 
-### JKS Keystores
-```
-Pattern: \.jks$ (file extension)
-Context: Java KeyStore, password-protected
-Severity: high
-```
+### JKS Keystore Extension
+**Pattern**: `\.jks$`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Java KeyStore files (password-protected)
 
-### Keystore Passwords
-```
-Pattern: storepass[=:]["']?[^\s"']+
-Pattern: keypass[=:]["']?[^\s"']+
-Severity: high
-```
+### Keystore Password
+**Pattern**: `storepass[=:]["']?[^\s"']+`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Java keystore password in command or config
+
+### Key Password
+**Pattern**: `keypass[=:]["']?[^\s"']+`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- Java key password in command or config
 
 ---
 
 ## Code Signing
 
-### Apple Certificates
-```
-Pattern: \.p12$|\.mobileprovision$
-Context: iOS/macOS code signing
-Severity: critical
-```
+### Apple P12 Certificate
+**Pattern**: `\.p12$`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- iOS/macOS code signing certificates
+- Context: Apple development
 
-### Android Keystores
-```
-Pattern: \.keystore$|\.jks$
-Context: Android app signing
-Severity: critical
-```
+### Mobile Provisioning Profile
+**Pattern**: `\.mobileprovision$`
+**Type**: regex
+**Severity**: high
+**Languages**: [all]
+- iOS provisioning profiles
 
-### Signing Key Passwords
-```
-Pattern: ANDROID_KEY_PASSWORD|KEYSTORE_PASSWORD
-Context: CI/CD environment variables
-Severity: critical
-```
+### Android Keystore
+**Pattern**: `\.keystore$`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Android app signing keystores
+
+### Android Key Password Env
+**Pattern**: `ANDROID_KEY_PASSWORD|KEYSTORE_PASSWORD`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Android signing key passwords in CI/CD
 
 ---
 
-## AWS/Cloud Certificates
+## Cloud Certificates
 
-### AWS Certificate Manager
-```
-Pattern: arn:aws:acm:[a-z0-9-]+:[0-9]+:certificate/[a-f0-9-]+
-Severity: informational
-```
+### AWS ACM Certificate ARN
+**Pattern**: `arn:aws:acm:[a-z0-9-]+:[0-9]+:certificate/[a-f0-9-]+`
+**Type**: regex
+**Severity**: informational
+**Languages**: [all]
+- Reference to ACM certificate, not the cert itself
 
-Reference to ACM cert, not the cert itself.
-
-### Let's Encrypt
-```
-Pattern: /etc/letsencrypt/live/[^/]+/privkey\.pem
-Severity: critical
-```
-
-Path to Let's Encrypt private key.
+### Let's Encrypt Private Key Path
+**Pattern**: `/etc/letsencrypt/live/[^/]+/privkey\.pem`
+**Type**: regex
+**Severity**: critical
+**Languages**: [all]
+- Path to Let's Encrypt private keys
 
 ---
 
@@ -240,3 +244,11 @@ Path to Let's Encrypt private key.
 2. **Check git history** - key may be in old commits
 3. **Update certificates** that used exposed keys
 4. **Add to .gitignore** to prevent future commits
+
+---
+
+## References
+
+- [CWE-798: Use of Hard-coded Credentials](https://cwe.mitre.org/data/definitions/798.html)
+- [CWE-321: Use of Hard-coded Cryptographic Key](https://cwe.mitre.org/data/definitions/321.html)
+- [CWE-312: Cleartext Storage of Sensitive Information](https://cwe.mitre.org/data/definitions/312.html)

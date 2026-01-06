@@ -12,28 +12,28 @@ When found in git history, these indicate potential credential leaks requiring i
 ## Environment Files
 
 ### Environment Configuration
+**Pattern**: `\.env$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `\.env$`
+**Languages**: [all]
 - Environment files contain secrets, API keys, and database credentials
 - NEVER commit to version control
 - Remediation: Rotate all secrets in the file, use secret manager
 
 ### Environment File Variants
+**Pattern**: `\.env\.(local|dev|development|prod|production|staging|test|ci)$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `\.env\.(local|dev|development|prod|production|staging|test|ci)$`
+**Languages**: [all]
 - Environment-specific configuration files
 - Often contain environment-specific secrets
 - Remediation: Rotate all secrets, add to .gitignore
 
 ### Environment Backup Files
+**Pattern**: `\.env\.bak$|\.env\.backup$|\.env\.old$`
 **Type**: filepath
 **Severity**: high
-**Category**: credentials
-**Pattern**: `\.env\.bak$|\.env\.backup$|\.env\.old$`
+**Languages**: [all]
 - Backup copies of environment files
 - May contain outdated but still valid credentials
 - Remediation: Rotate credentials, remove from history
@@ -43,45 +43,45 @@ When found in git history, these indicate potential credential leaks requiring i
 ## Cloud Provider Credentials
 
 ### AWS Credentials File
+**Pattern**: `\.aws/credentials$|aws_credentials$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `\.aws/credentials$|aws_credentials$`
+**Languages**: [all]
 - AWS access keys and secret keys
 - Full account access if leaked
 - Remediation: Rotate keys immediately, use IAM roles instead
 
 ### AWS Config File
+**Pattern**: `\.aws/config$`
 **Type**: filepath
 **Severity**: high
-**Category**: credentials
-**Pattern**: `\.aws/config$`
+**Languages**: [all]
 - AWS profile configuration
 - May contain account IDs and regions
 - Remediation: Remove from history, avoid committing
 
 ### GCP Service Account Key
+**Pattern**: `.*service[-_]?account.*\.json$|gcloud.*\.json$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `.*service[-_]?account.*\.json$|gcloud.*\.json$`
+**Languages**: [all]
 - Google Cloud Platform service account credentials
 - Provides programmatic access to GCP resources
 - Remediation: Delete key in GCP Console, create new one
 
 ### GCP Credentials
+**Pattern**: `\.gcp[-_]?credentials.*\.json$|application_default_credentials\.json$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `\.gcp[-_]?credentials.*\.json$|application_default_credentials\.json$`
+**Languages**: [all]
 - GCP application default credentials
 - Remediation: Revoke and regenerate credentials
 
 ### Azure Credentials
+**Pattern**: `\.azure/credentials$|azure_credentials\.json$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `\.azure/credentials$|azure_credentials\.json$`
+**Languages**: [all]
 - Azure service principal credentials
 - Remediation: Rotate service principal secret
 
@@ -90,52 +90,52 @@ When found in git history, these indicate potential credential leaks requiring i
 ## SSH and SSL Keys
 
 ### SSH Private Keys
+**Pattern**: `id_rsa$|id_dsa$|id_ecdsa$|id_ed25519$`
 **Type**: filepath
 **Severity**: critical
-**Category**: keys
-**Pattern**: `id_rsa$|id_dsa$|id_ecdsa$|id_ed25519$`
+**Languages**: [all]
 - SSH private keys for authentication
 - Can be used to access servers and repositories
 - Remediation: Revoke key, generate new keypair
 
 ### SSH Private Key (Generic)
+**Pattern**: `.*_rsa$|.*_dsa$|.*_ecdsa$|.*_ed25519$`
 **Type**: filepath
 **Severity**: critical
-**Category**: keys
-**Pattern**: `.*_rsa$|.*_dsa$|.*_ecdsa$|.*_ed25519$`
+**Languages**: [all]
 - Custom-named SSH private keys
 - Remediation: Revoke and regenerate
 
 ### PEM Files
+**Pattern**: `.*\.pem$`
 **Type**: filepath
 **Severity**: critical
-**Category**: keys
-**Pattern**: `.*\.pem$`
+**Languages**: [all]
 - PEM-encoded private keys or certificates
 - May contain SSL/TLS private keys
 - Remediation: Revoke certificate if private key exposed
 
 ### Private Key Files
+**Pattern**: `.*\.key$|.*[-_]key$`
 **Type**: filepath
 **Severity**: critical
-**Category**: keys
-**Pattern**: `.*\.key$|.*[-_]key$`
+**Languages**: [all]
 - Generic private key files
 - Remediation: Revoke associated certificates
 
 ### PKCS12/PFX Certificates
+**Pattern**: `.*\.p12$|.*\.pfx$`
 **Type**: filepath
 **Severity**: critical
-**Category**: keys
-**Pattern**: `.*\.p12$|.*\.pfx$`
+**Languages**: [all]
 - Certificate bundles with private keys
 - Remediation: Revoke and reissue certificates
 
 ### Java Keystores
+**Pattern**: `.*\.jks$|.*\.keystore$`
 **Type**: filepath
 **Severity**: critical
-**Category**: keys
-**Pattern**: `.*\.jks$|.*\.keystore$`
+**Languages**: [java]
 - Java keystore files with private keys
 - Remediation: Regenerate keystore with new keys
 
@@ -144,34 +144,34 @@ When found in git history, these indicate potential credential leaks requiring i
 ## Configuration Files with Secrets
 
 ### Generic Credentials File
+**Pattern**: `credentials\.json$|credentials\.ya?ml$|credentials\.xml$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `credentials\.json$|credentials\.ya?ml$|credentials\.xml$`
+**Languages**: [all]
 - Application credential files
 - Remediation: Rotate all contained credentials
 
 ### Secrets Configuration
+**Pattern**: `secrets\.json$|secrets\.ya?ml$|secrets\.xml$|secrets\.toml$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `secrets\.json$|secrets\.ya?ml$|secrets\.xml$|secrets\.toml$`
+**Languages**: [all]
 - Application secrets files
 - Remediation: Rotate all secrets
 
 ### Password Files
+**Pattern**: `.*password.*\.txt$|.*passwd.*$|\.htpasswd$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `.*password.*\.txt$|.*passwd.*$|\.htpasswd$`
+**Languages**: [all]
 - Password storage files
 - Remediation: Change all passwords
 
 ### API Key Files
+**Pattern**: `api[-_]?key.*\.txt$|apikey.*$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `api[-_]?key.*\.txt$|apikey.*$`
+**Languages**: [all]
 - API key storage files
 - Remediation: Rotate all API keys
 
@@ -180,36 +180,36 @@ When found in git history, these indicate potential credential leaks requiring i
 ## Infrastructure State Files
 
 ### Terraform State
+**Pattern**: `.*\.tfstate$|terraform\.tfstate$`
 **Type**: filepath
 **Severity**: critical
-**Category**: infrastructure
-**Pattern**: `.*\.tfstate$|terraform\.tfstate$`
+**Languages**: [terraform]
 - Terraform state files contain all resource attributes
 - Often includes database passwords, API keys, etc.
 - Remediation: Use remote state backend with encryption
 
 ### Terraform State Backup
+**Pattern**: `.*\.tfstate\.backup$`
 **Type**: filepath
 **Severity**: critical
-**Category**: infrastructure
-**Pattern**: `.*\.tfstate\.backup$`
+**Languages**: [terraform]
 - Terraform state backup files
 - Contains same sensitive data as state files
 - Remediation: Never commit, use remote backend
 
 ### Terraform Variables
+**Pattern**: `terraform\.tfvars$|.*\.auto\.tfvars$`
 **Type**: filepath
 **Severity**: high
-**Category**: infrastructure
-**Pattern**: `terraform\.tfvars$|.*\.auto\.tfvars$`
+**Languages**: [terraform]
 - Terraform variable files may contain secrets
 - Remediation: Use terraform.tfvars.example for templates
 
 ### Ansible Vault Files
+**Pattern**: `.*vault.*\.ya?ml$|vault\.ya?ml$`
 **Type**: filepath
 **Severity**: high
-**Category**: infrastructure
-**Pattern**: `.*vault.*\.ya?ml$|vault\.ya?ml$`
+**Languages**: [yaml]
 - Ansible encrypted variable files
 - Should be encrypted but patterns help verify
 - Remediation: Ensure vault files are encrypted
@@ -219,10 +219,10 @@ When found in git history, these indicate potential credential leaks requiring i
 ## Kubernetes and Container Credentials
 
 ### Kubernetes Config
+**Pattern**: `\.kube/config$|kubeconfig$`
 **Type**: filepath
 **Severity**: critical
-**Category**: credentials
-**Pattern**: `\.kube/config$|kubeconfig$`
+**Languages**: [kubernetes, yaml]
 - Kubernetes cluster access credentials
 - Contains certificates and tokens
 - Remediation: Revoke and regenerate cluster credentials
