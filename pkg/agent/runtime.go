@@ -35,14 +35,14 @@ func NewRuntime(opts *RuntimeOptions) (*Runtime, error) {
 		opts = &RuntimeOptions{}
 	}
 
-	// Default zero home
+	// Default zero home - check multiple locations
 	zeroHome := opts.ZeroHome
 	if zeroHome == "" {
 		zeroHome = os.Getenv("ZERO_HOME")
-		if zeroHome == "" {
-			home, _ := os.UserHomeDir()
-			zeroHome = filepath.Join(home, ".zero")
-		}
+	}
+	if zeroHome == "" {
+		// Auto-detect: check for local .zero directory first
+		zeroHome = findZeroHome()
 	}
 
 	// Default agents directory
@@ -69,6 +69,41 @@ func NewRuntime(opts *RuntimeOptions) (*Runtime, error) {
 		zeroHome:  zeroHome,
 		agentsDir: agentsDir,
 	}, nil
+}
+
+// findZeroHome tries to locate the .zero directory
+// Priority: ./zero -> ../.zero -> ~/.zero
+func findZeroHome() string {
+	// Check current directory
+	if info, err := os.Stat(".zero"); err == nil && info.IsDir() {
+		if absPath, err := filepath.Abs(".zero"); err == nil {
+			return absPath
+		}
+		return ".zero"
+	}
+
+	// Check parent directory
+	if info, err := os.Stat("../.zero"); err == nil && info.IsDir() {
+		if absPath, err := filepath.Abs("../.zero"); err == nil {
+			return absPath
+		}
+	}
+
+	// Check relative to executable
+	if exe, err := os.Executable(); err == nil {
+		exeDir := filepath.Dir(exe)
+		localZero := filepath.Join(exeDir, ".zero")
+		if info, err := os.Stat(localZero); err == nil && info.IsDir() {
+			return localZero
+		}
+	}
+
+	// Fall back to home directory
+	if home, err := os.UserHomeDir(); err == nil {
+		return filepath.Join(home, ".zero")
+	}
+
+	return ".zero"
 }
 
 // findAgentsDir tries to locate the agents directory
