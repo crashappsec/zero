@@ -33,7 +33,8 @@ go build -o zero ./cmd/zero
 
 # Scene 5: Codebase tour
 ls -la pkg/scanner/
-cat config/zero.config.json
+ls -la rag/
+./zero feeds rules  # Generate Semgrep rules from RAG patterns
 ls -la agents/
 
 # Scene 6: Hydrate entire org (will use cache if already done)

@@ -127,12 +127,12 @@ go build -o zero ./cmd/zero
 
 ---
 
-## Scene 5: Quick Codebase Tour (30 seconds)
+## Scene 5: Quick Codebase Tour (40 seconds)
 
 **[Show editor or terminal with tree view]**
 
 **SAY:**
-> "Zero is organized around scanners, profiles, and AI agents."
+> "Zero is organized around scanners, profiles, AI agents, and a RAG knowledge base."
 
 **TYPE:**
 ```bash
@@ -144,11 +144,19 @@ ls -la pkg/scanner/
 
 **TYPE:**
 ```bash
-cat config/zero.config.json
+ls -la rag/
 ```
 
 **SAY:**
-> "Profiles control which scanners run. 'all-quick' runs everything with fast defaults. You can create custom profiles for your workflow."
+> "The RAG directory contains structured knowledge - technology patterns, security rules, and detection logic."
+
+**TYPE:**
+```bash
+./zero feeds rules
+```
+
+**SAY:**
+> "This command generates Semgrep rules from the RAG patterns. Technology detection, security patterns - all converted to executable rules."
 
 **TYPE:**
 ```bash
@@ -284,6 +292,7 @@ Which repos in zero-test-org have the worst bus factor?
 
 | Topic | What to Highlight |
 |-------|-------------------|
+| **RAG Knowledge** | Structured patterns, `./zero feeds rules` generates Semgrep rules |
 | **Ownership** | Bus factor, CODEOWNERS, contributor distribution |
 | **Package Health** | Dependency freshness, maintenance status, health scores |
 | **SBOM** | Complete inventory, license distribution |
