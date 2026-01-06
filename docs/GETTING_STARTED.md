@@ -15,17 +15,15 @@ This guide will help you get Zero up and running quickly.
 Install these for full scanner functionality:
 
 ```bash
-# SBOM generation (at least one required)
-npm install -g @cyclonedx/cdxgen    # Preferred - complete dependency analysis
-brew install syft                    # Fallback - fast static analysis
+# SBOM generation (required)
+npm install -g @cyclonedx/cdxgen    # CycloneDX generator - complete dependency analysis
 
-# Vulnerability scanning (at least one required)
-brew install grype                   # Recommended
+# Vulnerability scanning (required)
 go install github.com/google/osv-scanner/cmd/osv-scanner@latest
 
 # Code security (highly recommended)
 brew install semgrep                 # SAST, secrets, API security
-brew install gitleaks                # Secrets detection
+brew install trufflehog              # Secrets detection
 
 # Supply chain security
 go install github.com/chainguard-dev/malcontent/cmd/mal@latest
@@ -95,9 +93,9 @@ GitHub Token Status
 External Tools
 ────────────────────────────────────────────────────────────────
   ✓ cdxgen
-  ✓ syft
-  ✓ grype
+  ✓ osv-scanner
   ✓ semgrep
+  ✓ trufflehog
   ✗ malcontent (not installed)
 
 Scanner Compatibility
@@ -333,11 +331,9 @@ Zero: Let me delegate to Cereal to analyze the vulnerability data...
 
 ### "No SBOM tool available"
 
-Install cdxgen or syft:
+Install cdxgen:
 ```bash
 npm install -g @cyclonedx/cdxgen
-# or
-brew install syft
 ```
 
 ### "GitHub token invalid"
