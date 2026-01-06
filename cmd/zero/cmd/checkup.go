@@ -98,7 +98,7 @@ var toolInstallers = map[string]ToolInstaller{
 		Description: "SBOM generation (CycloneDX)",
 		CheckCmd:    "cdxgen --version",
 		InstallCmds: []string{
-			"npm install -g @cyclonedx/cdxgen",
+			"npm install -g @cyclonedx/cdxgen@latest",
 		},
 	},
 	"syft": {
