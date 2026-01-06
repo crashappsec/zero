@@ -56,6 +56,15 @@ type ToolInstaller struct {
 // Prerequisites are foundational tools needed to run Zero or install other tools
 var prerequisites = []ToolInstaller{
 	{
+		Name:        "gh",
+		Description: "GitHub CLI (required for authentication)",
+		CheckCmd:    "gh --version",
+		InstallCmds: []string{
+			"brew install gh",
+			"curl -sS https://webi.sh/gh | sh",
+		},
+	},
+	{
 		Name:        "go",
 		Description: "Go runtime (required for some tool installations)",
 		CheckCmd:    "go version",
@@ -163,15 +172,6 @@ var toolInstallers = map[string]ToolInstaller{
 		CheckCmd:    "mal --version",
 		InstallCmds: []string{
 			"go install github.com/chainguard-dev/malcontent/cmd/mal@latest",
-		},
-	},
-	"gh": {
-		Name:        "gh",
-		Description: "GitHub CLI (authentication)",
-		CheckCmd:    "gh --version",
-		InstallCmds: []string{
-			"brew install gh",
-			"curl -sS https://webi.sh/gh | sh",
 		},
 	},
 	"docker": {
