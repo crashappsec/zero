@@ -33,10 +33,10 @@ go build -o zero ./cmd/zero
 
 ```bash
 # Scan a single repository (uses default 'all-quick' profile)
-./zero hydrate phantom-tests/juice-shop
+./zero hydrate strapi/strapi
 
 # Scan with a specific profile
-./zero hydrate phantom-tests/juice-shop code-security
+./zero hydrate strapi/strapi code-security
 
 # Check scan status
 ./zero status

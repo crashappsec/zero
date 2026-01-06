@@ -98,17 +98,17 @@ Enhancement suggestions are tracked as GitHub issues. When creating an enhanceme
 
 🧪 **Use the Test Organization for safe testing:**
 
-The [phantom-tests](https://github.com/phantom-tests) organization provides sample repositories for testing your changes without affecting real projects.
+Use public repositories like `strapi/strapi` for testing your changes.
 
 ```bash
 # Build the CLI first
 go build -o zero ./cmd/zero
 
 # Test hydration with quick profile
-./zero hydrate phantom-tests/juice-shop all-quick
+./zero hydrate strapi/strapi all-quick
 
 # Test with the security profile
-./zero hydrate phantom-tests/juice-shop code-security
+./zero hydrate strapi/strapi code-security
 
 # View results in web UI
 ./zero serve
@@ -116,7 +116,7 @@ go build -o zero ./cmd/zero
 
 This ensures:
 - Your changes work with realistic repositories
-- No accidental modifications to real projects
+- Consistent test data across contributors
 - Consistent test environment for all contributors
 - Example outputs for documentation
 
