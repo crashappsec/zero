@@ -17,8 +17,8 @@ Zero has been rewritten in Go. The Go implementation provides:
 
 | Shell Script | Go Scanner | Status |
 |--------------|------------|--------|
-| `utils/scanners/package-sbom/package-sbom.sh` | `pkg/scanners/sbom/sbom.go` | Complete - Supports cdxgen/syft with config |
-| `utils/scanners/package-vulns/package-vulns.sh` | `pkg/scanners/vulns/vulns.go` | Complete - Uses osv-scanner/grype |
+| `utils/scanners/package-sbom/package-sbom.sh` | `pkg/scanners/sbom/sbom.go` | Complete - Uses cdxgen |
+| `utils/scanners/package-vulns/package-vulns.sh` | `pkg/scanners/vulns/vulns.go` | Complete - Uses osv-scanner |
 | `utils/scanners/licenses/licenses.sh` | `pkg/scanners/licenses/licenses.go` | Complete |
 | `utils/scanners/package-health/package-health.sh` | `pkg/scanners/health/health.go` | Complete |
 | `utils/scanners/package-malcontent/package-malcontent.sh` | `pkg/scanners/malcontent/malcontent.go` | Complete |
@@ -146,11 +146,9 @@ The Go implementation uses `utils/zero/config/zero.config.json` for configuratio
     "package-sbom": {
       "options": {
         "sbom": {
-          "tool": "auto",
           "spec_version": "1.5",
           "recurse": true,
-          "install_deps": false,
-          "fallback_to_syft": true
+          "install_deps": false
         }
       }
     }

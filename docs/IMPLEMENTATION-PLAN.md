@@ -2186,7 +2186,8 @@ jobs:
       - name: Install dependencies
         run: |
           # Install optional tools
-          go install github.com/anchore/syft/cmd/syft@latest
+          npm install -g @cyclonedx/cdxgen
+          go install github.com/google/osv-scanner/cmd/osv-scanner@latest
           pip install semgrep
 
       - name: Restore cache
