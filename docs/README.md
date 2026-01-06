@@ -12,10 +12,14 @@ Comprehensive documentation for Zero - an engineering intelligence platform for 
 ### Prerequisites
 
 - Go 1.21+
+- GitHub CLI (`gh`) - for authentication
 - GitHub token (for cloning repositories)
 
 ```bash
-# Set your GitHub token
+# Authenticate with GitHub CLI (recommended)
+gh auth login
+
+# Or set your GitHub token directly
 export GITHUB_TOKEN=ghp_your_token_here
 ```
 
@@ -38,6 +42,12 @@ go build -o zero ./cmd/zero
 # Scan with a specific profile
 ./zero hydrate strapi/strapi all-quick
 
+# Scan an organization (default limit: 25 repos)
+./zero hydrate zero-test-org all-quick
+
+# Demo mode: skip repos > 50MB, auto-fetch replacements
+./zero hydrate zero-test-org all-quick --demo
+
 # Check scan status
 ./zero status
 
@@ -58,12 +68,22 @@ go build -o zero ./cmd/zero
 ### Scan an Organization
 
 ```bash
-# Scan all repos in an organization
+# Scan all repos in an organization (default limit: 25)
 ./zero hydrate zero-test-org
 
-# Limit to 5 repos with all-quick profile
-./zero hydrate zero-test-org all-quick --limit 5
+# Scan with a specific profile
+./zero hydrate zero-test-org all-quick
+
+# Limit to 10 repos
+./zero hydrate zero-test-org --limit 10
+
+# Demo mode: skip repos > 50MB, fetch replacements automatically
+./zero hydrate zero-test-org --demo
 ```
+
+**Organization Flags:**
+- `--limit N` - Maximum repos to process (default: 25)
+- `--demo` - Demo mode: skip repositories larger than 50MB, automatically fetch replacement repos to maintain the requested count
 
 ### Enter Agent Mode (Claude Code)
 

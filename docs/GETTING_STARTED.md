@@ -177,7 +177,7 @@ Then open http://localhost:3000 in your browser.
 Scan all repositories in a GitHub organization (target without `/` is treated as org):
 
 ```bash
-# Scan all public repos (uses default profile)
+# Scan all public repos (default limit: 25, uses default profile)
 ./zero hydrate myorganization
 
 # With a specific profile
@@ -187,9 +187,16 @@ Scan all repositories in a GitHub organization (target without `/` is treated as
 # Limit number of repos
 ./zero hydrate myorganization --limit 10
 
+# Demo mode: skip repos > 50MB, fetch replacements automatically
+./zero hydrate myorganization --demo
+
 # Skip slow scanners for faster org scans
 ./zero hydrate myorganization quick --skip-slow
 ```
+
+**Organization Flags:**
+- `--limit N` - Maximum repos to process (default: 25)
+- `--demo` - Demo mode: skip repositories larger than 50MB, automatically fetch replacement repos to maintain the requested count
 
 ## List Available Scanners
 
