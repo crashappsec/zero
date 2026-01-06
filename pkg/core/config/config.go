@@ -131,13 +131,25 @@ func loadScannerDefaults(cfg *Config) error {
 			continue
 		}
 
-		var scanners map[string]Scanner
-		if err := json.Unmarshal(data, &scanners); err != nil {
+		// First unmarshal into raw map to filter out non-scanner entries (like _docs)
+		var raw map[string]json.RawMessage
+		if err := json.Unmarshal(data, &raw); err != nil {
 			return fmt.Errorf("parsing scanner defaults: %w", err)
 		}
 
-		// Remove docs field if present
-		delete(scanners, "_docs")
+		// Remove docs field before parsing scanners
+		delete(raw, "_docs")
+
+		// Now parse each scanner
+		scanners := make(map[string]Scanner)
+		for name, rawScanner := range raw {
+			var scanner Scanner
+			if err := json.Unmarshal(rawScanner, &scanner); err != nil {
+				log.Printf("warning: skipping invalid scanner %q: %v", name, err)
+				continue
+			}
+			scanners[name] = scanner
+		}
 
 		cfg.Scanners = scanners
 		return nil
