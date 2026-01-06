@@ -22,29 +22,30 @@ var (
 
 var feedsCmd = &cobra.Command{
 	Use:   "feeds",
-	Short: "Manage external data feeds",
-	Long: `Synchronize and manage external data feeds.
+	Short: "Manage security rules and data feeds",
+	Long: `Manage security scanning rules and external data feeds.
 
-Zero can sync with various data sources to enhance scanning:
-  - Semgrep community rules
-  - GitHub advisories
-  - OSV vulnerability database
+Zero uses two sources of Semgrep rules:
+  - RAG patterns: Custom rules generated from the rag/ knowledge base
+  - Semgrep community: Official rules from semgrep.dev registry
 
 Examples:
-  zero feeds sync              Sync all enabled feeds
-  zero feeds sync --force      Force sync even if fresh
-  zero feeds status            Show feed sync status
-  zero feeds rules             Generate rules from RAG patterns`,
+  zero feeds rag               Generate rules from RAG knowledge base
+  zero feeds semgrep           Sync Semgrep community rules (SAST)
+  zero feeds semgrep --force   Force sync even if fresh
+  zero feeds status            Show feed status`,
 }
 
-var feedsSyncCmd = &cobra.Command{
-	Use:   "sync",
-	Short: "Sync external feeds",
-	Long: `Synchronize external data feeds.
+var feedsSemgrepCmd = &cobra.Command{
+	Use:   "semgrep",
+	Short: "Sync Semgrep community rules for SAST scanning",
+	Long: `Sync Semgrep community rules from the official registry.
 
-Downloads and caches data from configured feed sources.
-By default, only syncs feeds that are due based on their frequency settings.`,
-	RunE: runFeedsSync,
+Downloads the latest community rules for static analysis security testing (SAST).
+These rules cover common vulnerabilities like SQL injection, XSS, and more.
+
+By default, only syncs if rules are older than 1 week.`,
+	RunE: runFeedsSemgrep,
 }
 
 var feedsStatusCmd = &cobra.Command{
@@ -54,29 +55,31 @@ var feedsStatusCmd = &cobra.Command{
 	RunE:  runFeedsStatus,
 }
 
-var feedsRulesCmd = &cobra.Command{
-	Use:   "rules",
-	Short: "Generate rules from RAG patterns",
-	Long: `Generate Semgrep rules from RAG pattern definitions.
+var feedsRagCmd = &cobra.Command{
+	Use:   "rag",
+	Short: "Generate rules from RAG knowledge base",
+	Long: `Generate Semgrep rules from the RAG (Retrieval-Augmented Generation) knowledge base.
 
-This command reads patterns from the RAG directory and generates
-Semgrep-compatible rules for use in code security scanning.`,
-	RunE: runFeedsRules,
+This command converts patterns from the rag/ directory into Semgrep-compatible
+rules for use by Zero's custom scanners (technology detection, secrets, etc.).
+
+The RAG knowledge base contains human-readable patterns in markdown format
+that are converted to executable Semgrep YAML rules.`,
+	RunE: runFeedsRag,
 }
 
 func init() {
 	rootCmd.AddCommand(feedsCmd)
-	feedsCmd.AddCommand(feedsSyncCmd)
+	feedsCmd.AddCommand(feedsSemgrepCmd)
+	feedsCmd.AddCommand(feedsRagCmd)
 	feedsCmd.AddCommand(feedsStatusCmd)
-	feedsCmd.AddCommand(feedsRulesCmd)
 
-	feedsSyncCmd.Flags().BoolVar(&feedsForce, "force", false, "Force sync even if data is fresh")
-	feedsSyncCmd.Flags().StringVar(&feedsType, "type", "", "Sync specific feed type only")
+	feedsSemgrepCmd.Flags().BoolVar(&feedsForce, "force", false, "Force sync even if rules are fresh")
 
-	feedsRulesCmd.Flags().BoolVar(&feedsForce, "force", false, "Force regenerate even if unchanged")
+	feedsRagCmd.Flags().BoolVar(&feedsForce, "force", false, "Force regenerate even if RAG unchanged")
 }
 
-func runFeedsSync(cmd *cobra.Command, args []string) error {
+func runFeedsSemgrep(cmd *cobra.Command, args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -102,7 +105,7 @@ func runFeedsSync(cmd *cobra.Command, args []string) error {
 	}()
 
 	term.Divider()
-	term.Info("%s", term.Color(terminal.Bold, "Syncing Security Feeds"))
+	term.Info("%s", term.Color(terminal.Bold, "Syncing Semgrep Community Rules"))
 	term.Divider()
 
 	mgr := feeds.NewManager(zeroHome)
@@ -132,7 +135,7 @@ func runFeedsSync(cmd *cobra.Command, args []string) error {
 			)
 			skipped++
 		} else if r.Success {
-			term.Success("  %s %s (%s, %d items)",
+			term.Success("  %s %s (%s, %d rules)",
 				term.Color(terminal.Green, "✓"),
 				r.Feed,
 				formatDuration(r.Duration),
@@ -227,7 +230,7 @@ func runFeedsStatus(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
-func runFeedsRules(cmd *cobra.Command, args []string) error {
+func runFeedsRag(cmd *cobra.Command, args []string) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -241,7 +244,7 @@ func runFeedsRules(cmd *cobra.Command, args []string) error {
 	term := terminal.New()
 
 	term.Divider()
-	term.Info("%s", term.Color(terminal.Bold, "Generating Rules from RAG Patterns"))
+	term.Info("%s", term.Color(terminal.Bold, "Generating Rules from RAG Knowledge Base"))
 	term.Divider()
 
 	mgr := rules.NewManager(zeroHome)
@@ -251,6 +254,7 @@ func runFeedsRules(cmd *cobra.Command, args []string) error {
 	}
 
 	// Display results
+	totalRules := 0
 	for _, r := range results {
 		if r.Skipped {
 			term.Info("  %s %s - skipped (%s)",
@@ -265,6 +269,7 @@ func runFeedsRules(cmd *cobra.Command, args []string) error {
 				formatDuration(r.Duration),
 				r.RuleCount,
 			)
+			totalRules += r.RuleCount
 			for _, f := range r.Files {
 				term.Info("    → %s", f)
 			}
@@ -278,6 +283,10 @@ func runFeedsRules(cmd *cobra.Command, args []string) error {
 	}
 
 	term.Divider()
+	if totalRules == 0 {
+		term.Warning("No RAG patterns found. Ensure rag/ directory contains pattern JSON files.")
+		term.Info("RAG patterns should be JSON files with a 'patterns' array.")
+	}
 	return nil
 }
 

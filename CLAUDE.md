@@ -238,13 +238,14 @@ zero refresh --profile security   # Use specific scan profile
 
 #### zero feeds
 
-Manage external security data feeds:
+Manage security scanning rules:
 
 ```bash
-zero feeds sync              # Sync all enabled feeds (Semgrep rules)
-zero feeds sync --force      # Force sync even if fresh
+zero feeds rag               # Generate rules from RAG knowledge base
+zero feeds rag --force       # Force regenerate even if unchanged
+zero feeds semgrep           # Sync Semgrep community rules (SAST)
+zero feeds semgrep --force   # Force sync even if fresh
 zero feeds status            # Show feed sync status
-zero feeds rules             # Generate rules from RAG patterns
 ```
 
 **Note:** Vulnerability data is queried LIVE via OSV.dev during scans, not cached.

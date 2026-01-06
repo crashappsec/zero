@@ -35,14 +35,14 @@ go build -o zero ./cmd/zero
 
 ### Initialize Rules
 
-Before scanning, generate Semgrep rules from the RAG knowledge base:
+Before scanning, sync Semgrep rules:
 
 ```bash
-# Generate rules from RAG patterns (required for code-security scanner)
-./zero feeds rules
+# Sync Semgrep community rules for SAST scanning (SQL injection, XSS, etc.)
+./zero feeds semgrep
 
-# Optionally sync external feeds (Semgrep community rules)
-./zero feeds sync
+# Generate rules from RAG knowledge base (Zero's custom patterns)
+./zero feeds rag
 ```
 
 ### Scan a Repository
