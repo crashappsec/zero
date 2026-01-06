@@ -31,7 +31,7 @@ Verify all required tools and API keys are configured. Run this before hydrating
 
 **Checks:**
 - Required tools: git, jq, curl
-- Recommended tools: osv-scanner, syft, gh
+- Recommended tools: osv-scanner, cdxgen, gh
 - API keys: GITHUB_TOKEN, ANTHROPIC_API_KEY
 - GitHub authentication
 - Zero storage directory

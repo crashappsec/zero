@@ -120,7 +120,7 @@ These scanners use specialized tools:
 
 | Scanner | Tool | Purpose |
 |---------|------|---------|
-| `package-sbom` | syft/cdxgen | SBOM generation |
+| `package-sbom` | cdxgen | SBOM generation |
 | `package-vulns` | osv-scanner | CVE detection |
 | `package-health` | npm/PyPI APIs | Dependency health |
 | `package-malcontent` | malcontent | Supply chain malware |

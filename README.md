@@ -39,7 +39,7 @@ gh auth login
 
 ## What is Zero?
 
-Zero is a Go CLI that consolidates 7 "super scanners" with 45+ configurable features, integrating tools like cdxgen, semgrep, and grype for comprehensive engineering intelligence.
+Zero is a Go CLI that consolidates 7 "super scanners" with 45+ configurable features, integrating tools like cdxgen, osv-scanner, and semgrep for comprehensive engineering intelligence.
 
 ### Super Scanners
 
