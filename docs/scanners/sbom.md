@@ -23,9 +23,7 @@ Generates a CycloneDX-format SBOM from the repository.
 {
   "generation": {
     "enabled": true,
-    "tool": "auto",
     "spec_version": "1.5",
-    "fallback_to_syft": true,
     "include_dev": false,
     "deep": false
   }
@@ -35,16 +33,12 @@ Generates a CycloneDX-format SBOM from the repository.
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `enabled` | bool | `true` | Enable SBOM generation |
-| `tool` | string | `"auto"` | SBOM generator: `"auto"`, `"cdxgen"`, or `"syft"` |
 | `spec_version` | string | `"1.5"` | CycloneDX spec version |
-| `fallback_to_syft` | bool | `true` | Fall back to syft if cdxgen fails |
 | `include_dev` | bool | `false` | Include dev dependencies |
 | `deep` | bool | `false` | Enable deep analysis mode |
 
-**Tool Selection:**
-- `auto`: Prefers cdxgen, falls back to syft
-- `cdxgen`: CycloneDX Generator (more detailed, slower)
-- `syft`: Anchore Syft (faster, lighter)
+**Tool:**
+- `cdxgen`: CycloneDX Generator - comprehensive dependency analysis
 
 **Output:** Creates `sbom.cdx.json` in CycloneDX format containing:
 - All components (packages, libraries, frameworks)
@@ -100,8 +94,8 @@ See [Package Manager Patterns](/rag/supply-chain/package-managers/) for detailed
 
 ### Technical Flow
 
-1. **Tool Detection**: Checks for `cdxgen` or `syft` availability
-2. **SBOM Generation**: Runs the selected tool against the repository
+1. **Tool Detection**: Checks for `cdxgen` availability
+2. **SBOM Generation**: Runs cdxgen against the repository
 3. **Parsing**: Parses the generated CycloneDX JSON
 4. **Component Extraction**: Extracts components, licenses, hashes, and dependencies
 5. **Integrity Verification**: Compares SBOM against lockfiles (if enabled)
@@ -308,12 +302,11 @@ Each ecosystem has specific configuration options:
 
 ## Prerequisites
 
-One of the following tools must be installed:
+cdxgen is required for SBOM generation:
 
 | Tool | Install Command |
 |------|-----------------|
 | cdxgen | `npm install -g @cyclonedx/cdxgen` |
-| syft | `brew install syft` or `curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \| sh` |
 
 ### Ecosystem-Specific Tools (Optional)
 
