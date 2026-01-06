@@ -120,23 +120,36 @@ func ConvertRAGToSemgrep(ragDir, outputDir string) (*ConversionResult, error) {
 				continue // Skip files that fail to parse
 			}
 
+			// Infer category from file path if not set
+			if pattern.Category == "" {
+				relPath, _ := filepath.Rel(ragDir, pf)
+				parts := strings.Split(relPath, string(filepath.Separator))
+				if len(parts) > 0 {
+					pattern.Category = parts[0]
+					if len(parts) > 1 {
+						pattern.Category += "/" + parts[1]
+					}
+				}
+			}
+
 			rules := convertPatternToRules(pattern, pf, ragDir)
 			for _, rule := range rules {
 				// Categorize rules based on source directory and content
+				cat := strings.ToLower(pattern.Category)
 				switch {
 				case strings.Contains(rule.ID, ".secret."):
 					result.Secrets.Rules = append(result.Secrets.Rules, rule)
 				case strings.HasSuffix(rule.ID, ".config"):
 					result.ConfigFiles.Rules = append(result.ConfigFiles.Rules, rule)
-				case strings.Contains(pattern.Category, "ai-ml"):
+				case strings.Contains(cat, "ai-ml") || strings.Contains(cat, "ai/ml"):
 					result.AIML.Rules = append(result.AIML.Rules, rule)
-				case strings.HasPrefix(pattern.Category, "cryptography"):
+				case strings.HasPrefix(cat, "cryptography"):
 					result.Cryptography.Rules = append(result.Cryptography.Rules, rule)
-				case strings.HasPrefix(pattern.Category, "devops"):
+				case strings.HasPrefix(cat, "devops") || strings.Contains(cat, "docker") || strings.Contains(cat, "iac"):
 					result.DevOps.Rules = append(result.DevOps.Rules, rule)
-				case strings.HasPrefix(pattern.Category, "code-security") || strings.HasPrefix(pattern.Category, "api-security"):
+				case strings.HasPrefix(cat, "code-security") || strings.HasPrefix(cat, "api-security") || strings.Contains(cat, "security"):
 					result.CodeSecurity.Rules = append(result.CodeSecurity.Rules, rule)
-				case strings.HasPrefix(pattern.Category, "supply-chain"):
+				case strings.HasPrefix(cat, "supply-chain") || strings.Contains(cat, "package"):
 					result.SupplyChain.Rules = append(result.SupplyChain.Rules, rule)
 				default:
 					result.TechDiscovery.Rules = append(result.TechDiscovery.Rules, rule)
@@ -241,7 +254,7 @@ func findPatternFiles(dir string) ([]string, error) {
 	return files, err
 }
 
-// parsePatternFile parses a RAG patterns.md file
+// parsePatternFile parses a RAG markdown file and extracts ALL patterns
 func parsePatternFile(path string) (*RAGPattern, error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -259,24 +272,28 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 	scanner := bufio.NewScanner(file)
 	var currentSection string
 	var currentSubsection string
+	var currentHeading3 string
 
 	// Regex patterns for parsing
 	nameRe := regexp.MustCompile(`^#\s+(.+)$`)
 	categoryRe := regexp.MustCompile(`\*\*Category\*\*:\s*(.+)`)
+	ecosystemRe := regexp.MustCompile(`\*\*Ecosystem\*\*:\s*(.+)`)
 	descRe := regexp.MustCompile(`\*\*Description\*\*:\s*(.+)`)
 	homepageRe := regexp.MustCompile(`\*\*Homepage\*\*:\s*(.+)`)
 	packageRe := regexp.MustCompile(`^-\s*` + "`" + `([^` + "`" + `]+)` + "`")
-	// Config file list item: - `filename` or - `filename` (comment)
 	configFileRe := regexp.MustCompile(`^-\s*` + "`" + `([^` + "`" + `]+)` + "`")
+	// Match **Pattern**: `...` anywhere in document
 	patternRe := regexp.MustCompile(`\*\*Pattern\*\*:\s*` + "`" + `([^` + "`" + `]+)` + "`")
-	secretPatternRe := regexp.MustCompile(`\*\*Pattern\*\*:\s*` + "`" + `([^` + "`" + `]+)` + "`")
 	severityRe := regexp.MustCompile(`\*\*Severity\*\*:\s*(\w+)`)
+	confidenceRe := regexp.MustCompile(`\*\*Confidence\*\*:\s*(\d+)`)
+	typeRe := regexp.MustCompile(`\*\*Type\*\*:\s*(\w+)`)
+	languagesRe := regexp.MustCompile(`\*\*Languages\*\*:\s*\[([^\]]+)\]`)
 
 	var inSecretsSection bool
 	var inConfigFilesSection bool
-	var inSecurityPatternsSection bool
-	var currentSecret *SecretPattern
-	var currentSecurityPattern *SecurityPattern
+	var lastPatternSeverity string
+	var lastPatternType string
+	var lastPatternLanguages string
 
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -290,10 +307,16 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 			}
 		}
 
-		// Parse category
+		// Parse category (or infer from ecosystem)
 		if m := categoryRe.FindStringSubmatch(trimmed); m != nil {
 			pattern.Category = m[1]
 			continue
+		}
+		if pattern.Category == "" {
+			if m := ecosystemRe.FindStringSubmatch(trimmed); m != nil {
+				pattern.Category = "supply-chain/" + strings.ToLower(m[1])
+				continue
+			}
 		}
 
 		// Parse description
@@ -312,51 +335,86 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 		if strings.HasPrefix(trimmed, "## ") {
 			currentSection = strings.TrimPrefix(trimmed, "## ")
 			currentSubsection = ""
+			currentHeading3 = ""
 			inSecretsSection = strings.Contains(currentSection, "Secrets") && !strings.Contains(currentSection, "Security")
 			inConfigFilesSection = strings.Contains(currentSection, "Configuration Files")
-			// Match various pattern section headers
-			inSecurityPatternsSection = strings.Contains(currentSection, "Security Patterns") ||
-				strings.Contains(currentSection, "Detection Patterns") ||
-				strings.Contains(currentSection, "Detection") ||
-				strings.Contains(currentSection, "Patterns") ||
-				strings.Contains(currentSection, "gRPC") ||
-				strings.Contains(currentSection, "HTTP") ||
-				strings.Contains(currentSection, "Proto")
 			continue
 		}
 
 		if strings.HasPrefix(trimmed, "### ") {
 			currentSubsection = strings.TrimPrefix(trimmed, "### ")
-			// In Security Patterns section, ### starts a new pattern
-			if inSecurityPatternsSection {
-				currentSecurityPattern = &SecurityPattern{Name: currentSubsection}
-				pattern.SecurityPatterns = append(pattern.SecurityPatterns, *currentSecurityPattern)
+			currentHeading3 = currentSubsection
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "#### ") {
+			currentHeading3 = strings.TrimPrefix(trimmed, "#### ")
+			if inSecretsSection {
+				pattern.Secrets = append(pattern.Secrets, SecretPattern{Name: currentHeading3})
 			}
 			continue
 		}
 
-		if strings.HasPrefix(trimmed, "#### ") && inSecretsSection {
-			// Start of a new secret pattern
-			secretName := strings.TrimPrefix(trimmed, "#### ")
-			currentSecret = &SecretPattern{Name: secretName}
-			pattern.Secrets = append(pattern.Secrets, *currentSecret)
-			continue
+		// Track metadata that applies to next pattern
+		if m := severityRe.FindStringSubmatch(trimmed); m != nil {
+			lastPatternSeverity = m[1]
+		}
+		if m := typeRe.FindStringSubmatch(trimmed); m != nil {
+			lastPatternType = m[1]
+		}
+		if m := languagesRe.FindStringSubmatch(trimmed); m != nil {
+			lastPatternLanguages = m[1]
+		}
+		if m := confidenceRe.FindStringSubmatch(trimmed); m != nil {
+			if conf, err := fmt.Sscanf(m[1], "%d", new(int)); err == nil && conf > 0 {
+				pattern.Confidence["default"] = conf
+			}
 		}
 
-		// Parse security patterns (used in devops files like docker.md)
-		if inSecurityPatternsSection && len(pattern.SecurityPatterns) > 0 {
-			lastIdx := len(pattern.SecurityPatterns) - 1
-			if m := patternRe.FindStringSubmatch(trimmed); m != nil {
-				pattern.SecurityPatterns[lastIdx].Pattern = m[1]
+		// Parse ALL **Pattern**: markers as SecurityPatterns (most flexible)
+		if m := patternRe.FindStringSubmatch(trimmed); m != nil {
+			patternValue := m[1]
+			patternName := currentHeading3
+			if patternName == "" {
+				patternName = currentSubsection
 			}
-			if m := severityRe.FindStringSubmatch(trimmed); m != nil {
-				pattern.SecurityPatterns[lastIdx].Severity = m[1]
+			if patternName == "" {
+				patternName = currentSection
 			}
-			// Parse **Type**: regex
-			typeRe := regexp.MustCompile(`\*\*Type\*\*:\s*(\w+)`)
-			if m := typeRe.FindStringSubmatch(trimmed); m != nil {
-				pattern.SecurityPatterns[lastIdx].Type = m[1]
+			if patternName == "" {
+				patternName = "Pattern"
 			}
+
+			// Determine if this is an import pattern or security pattern
+			isImportPattern := strings.Contains(currentSection, "Import Detection") ||
+				strings.Contains(currentSection, "Import")
+
+			if isImportPattern {
+				lang := strings.ToLower(currentSubsection)
+				if lang == "" {
+					lang = "generic"
+				}
+				pattern.Imports[lang] = append(pattern.Imports[lang], ImportPattern{
+					Pattern: patternValue,
+				})
+			} else {
+				// Add as SecurityPattern (regex-based)
+				secPat := SecurityPattern{
+					Name:     patternName,
+					Pattern:  patternValue,
+					Severity: lastPatternSeverity,
+					Type:     lastPatternType,
+				}
+				if lastPatternLanguages != "" {
+					secPat.Description = "Languages: " + lastPatternLanguages
+				}
+				pattern.SecurityPatterns = append(pattern.SecurityPatterns, secPat)
+			}
+
+			// Reset metadata after use
+			lastPatternSeverity = ""
+			lastPatternType = ""
+			lastPatternLanguages = ""
 		}
 
 		// Parse configuration files
@@ -377,16 +435,6 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 			}
 		}
 
-		// Parse import patterns
-		if strings.Contains(currentSection, "Import Detection") {
-			if m := patternRe.FindStringSubmatch(trimmed); m != nil {
-				lang := strings.ToLower(currentSubsection)
-				pattern.Imports[lang] = append(pattern.Imports[lang], ImportPattern{
-					Pattern: m[1],
-				})
-			}
-		}
-
 		// Parse environment variables
 		if strings.Contains(currentSection, "Environment Variables") {
 			if m := packageRe.FindStringSubmatch(trimmed); m != nil {
@@ -394,10 +442,10 @@ func parsePatternFile(path string) (*RAGPattern, error) {
 			}
 		}
 
-		// Parse secrets
+		// Parse secrets section patterns
 		if inSecretsSection && len(pattern.Secrets) > 0 {
 			lastIdx := len(pattern.Secrets) - 1
-			if m := secretPatternRe.FindStringSubmatch(trimmed); m != nil {
+			if m := patternRe.FindStringSubmatch(trimmed); m != nil {
 				pattern.Secrets[lastIdx].Pattern = m[1]
 			}
 			if m := severityRe.FindStringSubmatch(trimmed); m != nil {
