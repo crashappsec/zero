@@ -6,7 +6,11 @@ SPDX-License-Identifier: GPL-3.0
 
 # OWASP Top 10 - 2021 Edition
 
-Reference guide for the OWASP Top 10 most critical web application security risks.
+**Category**: code-security/standards/owasp
+**Description**: Reference guide for OWASP Top 10 web application security risks
+**CWE**: CWE-284, CWE-327, CWE-89, CWE-209, CWE-16, CWE-1104, CWE-287, CWE-502, CWE-778, CWE-918
+
+---
 
 ## A01:2021 - Broken Access Control
 

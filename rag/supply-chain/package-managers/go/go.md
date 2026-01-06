@@ -155,17 +155,14 @@ cyclonedx-gomod mod -test -json -output sbom.json
 cyclonedx-gomod mod -json -output sbom.json ./path/to/module
 ```
 
-### Using syft
+### Using cdxgen
 
 ```bash
 # Generate from directory
-syft . -o cyclonedx-json > sbom.json
+cdxgen -o sbom.json
 
-# Specify cataloger
-syft . --select-catalogers go-module-file -o cyclonedx-json
-
-# From compiled binary
-syft ./mybinary -o cyclonedx-json > sbom.json
+# Specify type
+cdxgen -t go -o sbom.json
 ```
 
 ### Using govulncheck for Reachability
@@ -399,8 +396,8 @@ Go binaries embed dependency information:
 # Extract dependencies from binary
 go version -m ./mybinary
 
-# Generate SBOM from binary with syft
-syft ./mybinary -o cyclonedx-json > sbom.json
+# Generate SBOM from source with cdxgen (recommended)
+cdxgen -t go -o sbom.json
 ```
 
 ---

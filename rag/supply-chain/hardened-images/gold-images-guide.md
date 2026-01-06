@@ -251,7 +251,7 @@ cosign download sbom cgr.dev/chainguard/python:latest > sbom.json
 cat sbom.json | jq '.components | length'
 
 # Scan SBOM for vulnerabilities
-grype sbom:sbom.json
+osv-scanner --sbom=sbom.json
 ```
 
 ## Scanning and Hardening
@@ -262,8 +262,8 @@ grype sbom:sbom.json
 # Trivy scan
 trivy image gcr.io/distroless/static-debian12
 
-# Grype scan
-grype cgr.dev/chainguard/python:latest
+# osv-scanner scan
+osv-scanner --sbom=sbom.json
 
 # Compare results
 echo "Distroless:" && trivy image --severity HIGH,CRITICAL gcr.io/distroless/static-debian12

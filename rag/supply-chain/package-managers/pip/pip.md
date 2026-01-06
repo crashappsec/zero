@@ -189,14 +189,14 @@ pip freeze | cyclonedx-py requirements - -o sbom.json
 cyclonedx-py requirements --format json --pypi -o sbom.json
 ```
 
-### Using syft
+### Using cdxgen
 
 ```bash
 # Generate from directory
-syft . -o cyclonedx-json > sbom.json
+cdxgen -o sbom.json
 
-# Specify cataloger
-syft . --select-catalogers python -o cyclonedx-json
+# Specify type
+cdxgen -t python -o sbom.json
 ```
 
 ### Using pip-audit for Vulnerabilities

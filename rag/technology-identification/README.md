@@ -15,7 +15,7 @@ The detection system uses three tiers optimized for different use cases:
 
 ### Tier 1: Quick Detection (SBOM-based)
 - **Speed**: Fast (~5-10 seconds)
-- **Method**: Analyzes SBOM package lists from Syft
+- **Method**: Analyzes SBOM package lists from cdxgen
 - **Data**: Package names from npm, pypi, go, maven, rubygems, etc.
 - **Use case**: Quick scans, CI/CD pipelines, bulk organization analysis
 

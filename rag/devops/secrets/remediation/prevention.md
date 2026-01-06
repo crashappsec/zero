@@ -57,17 +57,6 @@ pip install pre-commit
 pre-commit install
 ```
 
-### Gitleaks
-
-```yaml
-# .pre-commit-config.yaml
-repos:
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.18.0
-    hooks:
-      - id: gitleaks
-```
-
 ---
 
 ## .gitignore Best Practices
@@ -336,9 +325,6 @@ trufflehog git file://. --only-verified
 
 # Scan git history
 trufflehog git file://. --since-commit $(git rev-list --max-parents=0 HEAD)
-
-# Scan with gitleaks
-gitleaks detect --source . -v
 ```
 
 ### GitHub Secret Scanning

@@ -477,7 +477,6 @@ pkg:type/namespace/name@version?qualifiers#subpath
 
 ### Generation
 - **cdxgen** - Multi-ecosystem generator (recommended)
-- **syft** - Container and filesystem scanner
 - **trivy** - Security scanner with SBOM
 - **CycloneDX CLI** - Official tool
 

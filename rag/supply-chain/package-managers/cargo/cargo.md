@@ -172,14 +172,14 @@ cdxgen -o sbom.json
 cdxgen --project-type cargo -o sbom.json
 ```
 
-### Using syft
+### Using cdxgen (alternative)
 
 ```bash
 # Generate from directory
-syft . -o cyclonedx-json > sbom.json
+cdxgen -o sbom.json
 
-# Specify cataloger
-syft . --select-catalogers rust-cargo-lock -o cyclonedx-json
+# Specify type
+cdxgen -t rust -o sbom.json
 ```
 
 ### Configuration Options

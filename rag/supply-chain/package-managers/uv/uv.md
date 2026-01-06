@@ -190,14 +190,14 @@ cyclonedx-py requirements -o sbom.json
 uv run cyclonedx-py environment -o sbom.json
 ```
 
-### Using syft
+### Using cdxgen
 
 ```bash
 # Generate from directory
-syft . -o cyclonedx-json > sbom.json
+cdxgen -o sbom.json
 
-# Specify cataloger
-syft . --select-catalogers python -o cyclonedx-json
+# Specify type
+cdxgen -t python -o sbom.json
 ```
 
 ### Configuration Options

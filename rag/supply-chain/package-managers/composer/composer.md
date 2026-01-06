@@ -223,14 +223,14 @@ cdxgen --project-type php -o sbom.json
 cdxgen --no-dev -o sbom.json
 ```
 
-### Using syft
+### Using cdxgen (alternative)
 
 ```bash
 # Generate from directory
-syft . -o cyclonedx-json > sbom.json
+cdxgen -o sbom.json
 
-# Specify cataloger
-syft . --select-catalogers php-composer-lock -o cyclonedx-json
+# Specify type
+cdxgen -t php -o sbom.json
 ```
 
 ### Configuration Options

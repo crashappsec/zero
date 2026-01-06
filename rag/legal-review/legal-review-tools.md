@@ -109,27 +109,6 @@ trufflehog filesystem path/to/code
 trufflehog git https://github.com/user/repo --only-verified
 ```
 
-### GitLeaks
-- **URL**: https://github.com/gitleaks/gitleaks
-- **License**: MIT
-- **Features**:
-  - Fast scanning
-  - Custom rules
-  - Git history support
-  - Pre-commit hook integration
-
-**Usage**:
-```bash
-# Detect secrets
-gitleaks detect --source path/to/repo
-
-# Protect (pre-commit)
-gitleaks protect --staged
-
-# Custom rules
-gitleaks detect --config .gitleaks.toml
-```
-
 ### detect-secrets
 - **URL**: https://github.com/Yelp/detect-secrets
 - **License**: Apache-2.0
@@ -371,7 +350,7 @@ pipeline {
 
         stage('Secret Detection') {
             steps {
-                sh 'gitleaks detect --source . --report-path gitleaks-report.json'
+                sh 'trufflehog git file://. --json > secrets-report.json'
             }
         }
 
@@ -548,26 +527,18 @@ exceptions:
 
 ### Secret Detection Configuration
 
-```toml
-# .gitleaks.toml
-[extend]
-useDefault = true
+```yaml
+# trufflehog.yaml
+detectors:
+  - name: CustomCompanyKey
+    keywords:
+      - "COMP-"
+    regex:
+      pattern: "COMP-[A-Za-z0-9]{32}"
 
-[[rules]]
-id = "company-api-key"
-description = "Company API Key"
-regex = '''COMP-[A-Za-z0-9]{32}'''
-
-[[rules]]
-id = "internal-token"
-description = "Internal Service Token"
-regex = '''internal_[a-zA-Z0-9]{40}'''
-
-[allowlist]
-paths = [
-    '''test/fixtures/.*''',
-    '''.*_test\.go''',
-]
+# Use .secrets.baseline for detect-secrets
+# detect-secrets scan > .secrets.baseline
+```
 
 regexes = [
     '''EXAMPLE_KEY''',
@@ -652,7 +623,7 @@ ignore_files:
 | License Detection | ScanCode | Comprehensive, accurate | Slow on large codebases |
 | License Detection | Licensee | Fast, GitHub integration | Less comprehensive |
 | Secret Detection | TruffleHog | High accuracy, verification | Can be slow |
-| Secret Detection | GitLeaks | Fast, customizable | More false positives |
+| Secret Detection | detect-secrets | Low false positives, baseline | Requires tuning |
 | Content Policy | woke | Focused on inclusivity | Limited scope |
 | Content Policy | alex | Natural language focus | Markdown/docs only |
 | All-in-one | FOSSA | Complete solution | Commercial |

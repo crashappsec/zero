@@ -1,14 +1,156 @@
 # React Security Patterns
 
+**Category**: code-security/framework-security/react
+**Description**: Security vulnerabilities and secure coding patterns for React applications
+**CWE**: CWE-79, CWE-200, CWE-522, CWE-352, CWE-639
+
+---
+
 ## Overview
 
 React applications face unique security challenges related to XSS, state management, and third-party dependencies.
 
-## Common Vulnerabilities
+---
 
-### 1. Cross-Site Scripting (XSS)
+## XSS Patterns
 
-#### Dangerous: dangerouslySetInnerHTML
+### DangerouslySetInnerHTML
+**Pattern**: `dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html\s*:`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript, jsx, tsx]
+- Using dangerouslySetInnerHTML without sanitization
+- CWE-79: Cross-site Scripting
+
+### DangerouslySetInnerHTML with Props
+**Pattern**: `dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html\s*:\s*(?:props|this\.props)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, jsx, tsx]
+- Props directly in dangerouslySetInnerHTML
+- CWE-79: Cross-site Scripting
+
+### Href with Props
+**Pattern**: `href\s*=\s*\{\s*(?:props|this\.props)\.\w+\s*\}`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, jsx, tsx]
+- User-controlled href (potential javascript: XSS)
+- CWE-79: Cross-site Scripting
+
+### Eval with State
+**Pattern**: `eval\s*\(\s*(?:this\.)?state\.`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript, jsx, tsx]
+- State value in eval
+- CWE-94: Code Injection
+
+---
+
+## Sensitive Data Exposure Patterns
+
+### Password in State
+**Pattern**: `(?:password|secret|token)\s*:\s*['"][^'"]+['"]`
+**Type**: regex
+**Severity**: high
+**Context**: react-state
+- Sensitive data in Redux/state (visible in DevTools)
+- CWE-200: Information Exposure
+
+### API Key in Frontend
+**Pattern**: `(?:REACT_APP_|process\.env\.)(?:\w*(?:SECRET|PRIVATE|KEY)\w*)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript, jsx, tsx]
+- Secret exposed in frontend bundle
+- CWE-200: Information Exposure
+
+### Console Log Sensitive
+**Pattern**: `console\.log\s*\([^)]*(?:password|token|secret|key)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, jsx, tsx]
+- Sensitive data logged to console
+- CWE-200: Information Exposure
+
+---
+
+## Token Storage Patterns
+
+### LocalStorage Token
+**Pattern**: `localStorage\.setItem\s*\(\s*['"](?:token|jwt|auth|session)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, jsx, tsx]
+- Token stored in localStorage (XSS accessible)
+- CWE-922: Insecure Storage
+
+### SessionStorage Token
+**Pattern**: `sessionStorage\.setItem\s*\(\s*['"](?:token|jwt|auth)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, jsx, tsx]
+- Token stored in sessionStorage (XSS accessible)
+- CWE-922: Insecure Storage
+
+---
+
+## Authorization Patterns
+
+### Client-Side Only Auth Check
+**Pattern**: `if\s*\(\s*!?(?:user|auth|isAdmin|isAuthenticated)\s*\)\s*(?:return|navigate)`
+**Type**: regex
+**Severity**: low
+**Languages**: [javascript, typescript, jsx, tsx]
+- Frontend-only authorization check (backend must also verify)
+- CWE-639: Authorization Bypass
+
+### Direct Object Reference
+**Pattern**: `useParams\s*\(\s*\).*fetch\s*\([^)]*\$\{.*Id\}`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, jsx, tsx]
+- URL parameter used directly in API call
+- CWE-639: Authorization Bypass (IDOR)
+
+---
+
+## CSRF Patterns
+
+### Missing CSRF Header
+**Pattern**: `fetch\s*\(\s*['"][^'"]*['"],\s*\{[^}]*method\s*:\s*['"]POST['"][^}]*\}\s*\)(?![\s\S]*X-CSRF)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, jsx, tsx]
+- POST request without CSRF token
+- CWE-352: Cross-Site Request Forgery
+
+### Form Without CSRF
+**Pattern**: `<form[^>]*method\s*=\s*['"]post['"][^>]*>(?![\s\S]*csrf)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript, jsx, tsx]
+- Form POST without CSRF token
+- CWE-352: Cross-Site Request Forgery
+
+---
+
+## Dependency Patterns
+
+### Outdated React
+**Pattern**: `"react"\s*:\s*"[<^~]?1[0-6]\.\d+\.\d+"`
+**Type**: regex
+**Severity**: medium
+**Context**: package.json
+- Potentially outdated React version
+- CWE-1104: Use of Unmaintained Components
+
+---
+
+## Code Examples
+
+### XSS - Vulnerable vs Secure
 
 ```jsx
 // VULNERABLE - XSS via dangerouslySetInnerHTML
@@ -30,7 +172,7 @@ function Comment({ text }) {
 }
 ```
 
-#### URL Injection via href
+### URL Injection - Vulnerable vs Secure
 
 ```jsx
 // VULNERABLE - javascript: protocol XSS
@@ -53,83 +195,7 @@ function Link({ url, text }) {
 }
 ```
 
-### 2. State Exposure
-
-#### Sensitive Data in State
-
-```jsx
-// VULNERABLE - Password in Redux store (visible in DevTools)
-const authSlice = createSlice({
-  name: 'auth',
-  initialState: {
-    user: null,
-    password: '', // Don't store passwords!
-    token: null
-  }
-});
-
-// SECURE - Only store tokens, never passwords
-const authSlice = createSlice({
-  name: 'auth',
-  initialState: {
-    user: null,
-    token: null,
-    isAuthenticated: false
-  }
-});
-```
-
-### 3. Insecure Direct Object References
-
-```jsx
-// VULNERABLE - User ID from URL without authorization check
-function UserProfile() {
-  const { userId } = useParams();
-  const { data } = useQuery(['user', userId], () => fetchUser(userId));
-  return <Profile user={data} />;
-}
-
-// SECURE - Backend should verify authorization
-// Frontend should also check current user
-function UserProfile() {
-  const { userId } = useParams();
-  const { currentUser } = useAuth();
-  const { data } = useQuery(['user', userId], () => fetchUser(userId));
-
-  // Frontend check (backend must also verify!)
-  if (data && data.id !== currentUser.id && !currentUser.isAdmin) {
-    return <Unauthorized />;
-  }
-
-  return <Profile user={data} />;
-}
-```
-
-### 4. Client-Side Authorization
-
-```jsx
-// VULNERABLE - Authorization only on frontend
-function AdminPanel() {
-  const { user } = useAuth();
-  if (!user.isAdmin) return <Unauthorized />;
-
-  return <AdminDashboard />;  // Data still fetched from API
-}
-
-// SECURE - Backend enforces authorization
-// Frontend is just UX, not security
-function AdminPanel() {
-  const { user } = useAuth();
-  const { data, error } = useQuery('admin-data', fetchAdminData);
-
-  if (error?.status === 403) return <Unauthorized />;
-  if (!user.isAdmin) return <Unauthorized />;
-
-  return <AdminDashboard data={data} />;
-}
-```
-
-### 5. Insecure Token Storage
+### Token Storage - Vulnerable vs Secure
 
 ```jsx
 // VULNERABLE - Token in localStorage (XSS accessible)
@@ -145,6 +211,8 @@ localStorage.setItem('token', response.token);
 // 3. Proper CSP headers to mitigate XSS
 ```
 
+---
+
 ## Security Best Practices
 
 ### Content Security Policy
@@ -157,7 +225,7 @@ localStorage.setItem('token', response.token);
 />
 ```
 
-### Form Handling
+### Form Handling with CSRF
 
 ```jsx
 // SECURE - CSRF protection with tokens
@@ -165,7 +233,6 @@ function LoginForm() {
   const [csrfToken, setCsrfToken] = useState('');
 
   useEffect(() => {
-    // Fetch CSRF token from server
     fetch('/api/csrf-token')
       .then(r => r.json())
       .then(d => setCsrfToken(d.token));
@@ -198,20 +265,23 @@ const PUBLIC_KEY = process.env.REACT_APP_PUBLIC_KEY;
 // Keep secrets server-side only
 ```
 
-## Dependency Security
+---
 
-### Common Vulnerable Patterns
+## React Security Checklist
 
-1. **Outdated React versions** - Update regularly
-2. **Vulnerable dependencies** - Run `npm audit` regularly
-3. **Typosquatting** - Verify package names carefully
-4. **Malicious packages** - Use lockfiles, verify maintainers
+- [ ] No dangerouslySetInnerHTML without sanitization
+- [ ] URL/href values validated
+- [ ] No sensitive data in state/localStorage
+- [ ] CSRF tokens on forms/API calls
+- [ ] Backend authorization (not just frontend)
+- [ ] Dependencies regularly audited
+- [ ] CSP headers configured
+- [ ] No secrets in REACT_APP_ variables
+- [ ] Error boundaries don't expose details
 
-### Security Headers
+---
 
-Ensure your server sets:
-- `X-Content-Type-Options: nosniff`
-- `X-Frame-Options: DENY`
-- `X-XSS-Protection: 1; mode=block`
-- `Strict-Transport-Security: max-age=31536000`
-- `Content-Security-Policy: ...`
+## References
+
+- [React Security Best Practices](https://react.dev/learn/keeping-components-pure)
+- [OWASP XSS Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html)

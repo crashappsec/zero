@@ -293,14 +293,12 @@ Require contextual keywords near matches:
 
 Limit scanning to relevant files:
 
-```yaml
-# .gitleaks.toml
-[allowlist]
-paths = [
-  '''.*_test\.go''',
-  '''.*\.md''',
-  '''package-lock\.json''',
-]
+```bash
+# TruffleHog exclude paths
+trufflehog git file://. --exclude-paths=.*_test\.go --exclude-paths=.*\.md
+
+# detect-secrets exclude pattern
+detect-secrets scan --exclude-files '.*_test\.go|.*\.md|package-lock\.json'
 ```
 
 ### Entropy Thresholds
@@ -329,33 +327,23 @@ detect-secrets audit .secrets.baseline  # Mark as false positive
 
 ### Option 2: Use Allowlist
 
-```yaml
-# .gitleaks.toml
-[[rules.allowlist]]
-regexes = [
-  '''AKIAIOSFODNN7EXAMPLE''',
-  '''wJalrXUtnFEMI.*EXAMPLEKEY''',
-]
+```bash
+# detect-secrets: mark as false positive in baseline
+detect-secrets audit .secrets.baseline
+# Select finding and mark as "fp" (false positive)
 ```
 
 ### Option 3: Inline Suppression
 
 ```python
 # For specific tools
-API_KEY = "test_key"  # gitleaks:allow
 API_KEY = "test_key"  # pragma: allowlist secret
 API_KEY = "test_key"  # nosec
 ```
 
 ### Option 4: Exclude File
 
-Add to `.gitignore` for scanning tools:
-
-```gitignore
-# .gitleaksignore
-tests/fixtures/mock-credentials.json
-docs/api-examples.md
-```
+Add files to detection tool configuration or use command-line exclusions.
 
 ---
 

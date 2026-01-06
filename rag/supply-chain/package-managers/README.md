@@ -88,7 +88,7 @@ Each patterns.md includes:
 1. **TIER 1: Manifest Detection** - File patterns, required fields, dependency types
 2. **TIER 2: Lock File Detection** - Lock file format, structure, key fields
 3. **TIER 3: Configuration Extraction** - Registry URLs, authentication, environment variables
-4. **SBOM Generation** - Native tools, cdxgen, syft commands
+4. **SBOM Generation** - Native tools, cdxgen commands
 5. **Cache Locations** - Platform-specific paths
 6. **Best Practices** - Reproducible builds, security recommendations
 7. **Troubleshooting** - Common issues and solutions

@@ -1,14 +1,192 @@
 # Django Security Patterns
 
+**Category**: code-security/framework-security/django
+**Description**: Security vulnerabilities and secure coding patterns for Django applications
+**CWE**: CWE-89, CWE-79, CWE-352, CWE-798, CWE-639, CWE-915, CWE-434
+
+---
+
 ## Overview
 
 Django has strong security defaults but misconfigurations and bypasses can introduce vulnerabilities.
 
-## Common Vulnerabilities
+---
 
-### 1. SQL Injection
+## SQL Injection Patterns
 
-#### Raw SQL Queries
+### Raw SQL with f-string
+**Pattern**: `\.raw\s*\(\s*f['"']`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Django raw SQL with f-string interpolation
+- CWE-89: SQL Injection
+
+### Raw SQL with format
+**Pattern**: `\.raw\s*\([^)]*\.format\s*\(`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Django raw SQL with .format() interpolation
+- CWE-89: SQL Injection
+
+### Cursor Execute with f-string
+**Pattern**: `cursor\.execute\s*\(\s*f['"']`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Direct cursor.execute with f-string
+- CWE-89: SQL Injection
+
+### Extra Where Clause
+**Pattern**: `\.extra\s*\(\s*where\s*=\s*\[.*f['"']`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Django extra() with unparameterized where clause
+- CWE-89: SQL Injection
+
+---
+
+## XSS Patterns
+
+### Mark Safe on User Input
+**Pattern**: `mark_safe\s*\(\s*(?:request\.|form\.|data\[)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Marking user input as safe without sanitization
+- CWE-79: Cross-site Scripting
+
+### Safe Filter on User Content
+**Pattern**: `\{\{\s*\w+\s*\|\s*safe\s*\}\}`
+**Type**: regex
+**Severity**: high
+**Context**: django-templates
+- Using |safe filter on potentially user-controlled content
+- CWE-79: Cross-site Scripting
+
+---
+
+## CSRF Patterns
+
+### CSRF Exempt Decorator
+**Pattern**: `@csrf_exempt`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- CSRF protection disabled on view
+- CWE-352: Cross-Site Request Forgery
+
+### CSRF Trusted Origins Wildcard
+**Pattern**: `CSRF_TRUSTED_ORIGINS\s*=\s*\[.*\*`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- Wildcard in CSRF trusted origins
+- CWE-352: Cross-Site Request Forgery
+
+---
+
+## Authentication Patterns
+
+### Hardcoded SECRET_KEY
+**Pattern**: `SECRET_KEY\s*=\s*['"'][^'"]{20,}['"']`
+**Type**: regex
+**Severity**: critical
+**Languages**: [python]
+- Django SECRET_KEY hardcoded in settings
+- CWE-798: Hardcoded Credentials
+
+### Debug Mode Enabled
+**Pattern**: `DEBUG\s*=\s*True`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- Debug mode should be disabled in production
+- CWE-489: Active Debug Code
+
+### Empty Password Validators
+**Pattern**: `AUTH_PASSWORD_VALIDATORS\s*=\s*\[\s*\]`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- No password validation configured
+- CWE-521: Weak Password Requirements
+
+---
+
+## IDOR/Authorization Patterns
+
+### Get Without Owner Check
+**Pattern**: `\.objects\.get\s*\(\s*(?:id|pk)\s*=`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
+- Object retrieval without ownership verification
+- CWE-639: Authorization Bypass
+
+### Mass Assignment
+**Pattern**: `setattr\s*\(\s*\w+\s*,\s*\w+\s*,\s*request\.`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- Setting object attributes directly from request
+- CWE-915: Mass Assignment
+
+---
+
+## File Upload Patterns
+
+### Open Without Path Validation
+**Pattern**: `open\s*\(\s*(?:f['"']|request\.)`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- File operations without path validation
+- CWE-22: Path Traversal
+
+### File Save Without Validation
+**Pattern**: `request\.FILES\[.*\]\.save\s*\(`
+**Type**: regex
+**Severity**: high
+**Languages**: [python]
+- File saved without type/size validation
+- CWE-434: Unrestricted Upload
+
+---
+
+## Security Settings Patterns
+
+### Missing HTTPS Settings
+**Pattern**: `SECURE_SSL_REDIRECT\s*=\s*False`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
+- HTTPS redirect disabled
+- CWE-319: Cleartext Transmission
+
+### Insecure Cookie Settings
+**Pattern**: `SESSION_COOKIE_SECURE\s*=\s*False`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
+- Session cookie not secure
+- CWE-614: Sensitive Cookie in HTTPS Without Secure
+
+### Missing HSTS
+**Pattern**: `SECURE_HSTS_SECONDS\s*=\s*0`
+**Type**: regex
+**Severity**: medium
+**Languages**: [python]
+- HSTS disabled
+- CWE-319: Cleartext Transmission
+
+---
+
+## Code Examples
+
+### SQL Injection - Vulnerable vs Secure
 
 ```python
 # VULNERABLE - String formatting in raw SQL
@@ -16,9 +194,6 @@ def get_user(request):
     user_id = request.GET.get('id')
     user = User.objects.raw(f"SELECT * FROM auth_user WHERE id = {user_id}")
     return user
-
-# VULNERABLE - String concatenation
-cursor.execute("SELECT * FROM users WHERE name = '" + name + "'")
 
 # SECURE - Parameterized queries
 def get_user(request):
@@ -33,22 +208,7 @@ def get_user(request):
     return user
 ```
 
-#### Extra() and RawSQL
-
-```python
-# VULNERABLE - Unvalidated input in extra()
-User.objects.extra(where=[f"username = '{username}'"])
-
-# SECURE - Use params
-User.objects.extra(where=["username = %s"], params=[username])
-
-# BEST - Use filter()
-User.objects.filter(username=username)
-```
-
-### 2. Cross-Site Scripting (XSS)
-
-#### Template Auto-escaping
+### XSS - Vulnerable vs Secure
 
 ```python
 # VULNERABLE - Marking content as safe without sanitization
@@ -57,9 +217,6 @@ from django.utils.safestring import mark_safe
 def show_content(request):
     content = request.POST.get('content')
     return render(request, 'page.html', {'content': mark_safe(content)})
-
-# VULNERABLE - Using |safe filter on user input
-# In template: {{ user_content|safe }}
 
 # SECURE - Let Django escape automatically
 def show_content(request):
@@ -76,196 +233,7 @@ def show_content(request):
     return render(request, 'page.html', {'content': mark_safe(clean_content)})
 ```
 
-### 3. CSRF Vulnerabilities
-
-```python
-# VULNERABLE - Exempting CSRF protection
-from django.views.decorators.csrf import csrf_exempt
-
-@csrf_exempt  # Don't do this for state-changing operations!
-def update_profile(request):
-    # ...
-
-# SECURE - Use CSRF token properly
-# In views - CSRF is enabled by default
-def update_profile(request):
-    # CSRF middleware handles protection
-    pass
-
-# In templates
-<form method="post">
-    {% csrf_token %}
-    <!-- form fields -->
-</form>
-
-# In AJAX
-const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-fetch('/api/update/', {
-    method: 'POST',
-    headers: {'X-CSRFToken': csrftoken},
-    body: data
-});
-```
-
-### 4. Authentication Issues
-
-#### Hardcoded Secrets
-
-```python
-# VULNERABLE - Hardcoded SECRET_KEY
-SECRET_KEY = 'django-insecure-abc123def456'
-
-# SECURE - Environment variable
-import os
-SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
-
-# Or use django-environ
-import environ
-env = environ.Env()
-SECRET_KEY = env('SECRET_KEY')
-```
-
-#### Weak Password Validation
-
-```python
-# VULNERABLE - No password validation
-AUTH_PASSWORD_VALIDATORS = []
-
-# SECURE - Strong validation
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
-     'OPTIONS': {'min_length': 12}},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
-]
-```
-
-### 5. Insecure Direct Object References (IDOR)
-
-```python
-# VULNERABLE - No ownership check
-def view_document(request, doc_id):
-    doc = Document.objects.get(id=doc_id)
-    return render(request, 'document.html', {'doc': doc})
-
-# SECURE - Verify ownership
-def view_document(request, doc_id):
-    doc = get_object_or_404(Document, id=doc_id, owner=request.user)
-    return render(request, 'document.html', {'doc': doc})
-
-# Or using permissions
-from django.contrib.auth.decorators import permission_required
-
-@permission_required('documents.view_document')
-def view_document(request, doc_id):
-    doc = get_object_or_404(Document, id=doc_id)
-    if not request.user.has_perm('documents.view_document', doc):
-        raise PermissionDenied
-    return render(request, 'document.html', {'doc': doc})
-```
-
-### 6. Mass Assignment
-
-```python
-# VULNERABLE - All fields from request
-def update_user(request):
-    user = request.user
-    for key, value in request.POST.items():
-        setattr(user, key, value)  # Can set is_superuser!
-    user.save()
-
-# SECURE - Explicit fields
-def update_user(request):
-    user = request.user
-    user.first_name = request.POST.get('first_name', user.first_name)
-    user.last_name = request.POST.get('last_name', user.last_name)
-    user.save()
-
-# BEST - Use forms with explicit fields
-class UserUpdateForm(forms.ModelForm):
-    class Meta:
-        model = User
-        fields = ['first_name', 'last_name', 'email']  # Whitelist
-```
-
-### 7. File Upload Vulnerabilities
-
-```python
-# VULNERABLE - No validation
-def upload_file(request):
-    file = request.FILES['file']
-    with open(f'/uploads/{file.name}', 'wb') as f:
-        for chunk in file.chunks():
-            f.write(chunk)
-
-# SECURE - Validate file type and sanitize name
-import os
-from django.core.files.storage import FileSystemStorage
-from django.utils.text import get_valid_filename
-import magic
-
-ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf']
-MAX_SIZE = 10 * 1024 * 1024  # 10MB
-
-def upload_file(request):
-    file = request.FILES['file']
-
-    # Check size
-    if file.size > MAX_SIZE:
-        raise ValidationError("File too large")
-
-    # Check MIME type (not just extension)
-    mime = magic.from_buffer(file.read(1024), mime=True)
-    file.seek(0)
-    if mime not in ALLOWED_TYPES:
-        raise ValidationError("Invalid file type")
-
-    # Sanitize filename
-    safe_name = get_valid_filename(file.name)
-
-    # Use Django's storage
-    fs = FileSystemStorage(location='/uploads/')
-    fs.save(safe_name, file)
-```
-
-## Security Settings
-
-### Production Settings
-
-```python
-# settings/production.py
-
-DEBUG = False
-ALLOWED_HOSTS = ['yourdomain.com', 'www.yourdomain.com']
-
-# Security middleware
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',
-    # ... other middleware
-]
-
-# HTTPS settings
-SECURE_SSL_REDIRECT = True
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-
-# HSTS
-SECURE_HSTS_SECONDS = 31536000
-SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-SECURE_HSTS_PRELOAD = True
-
-# Other security headers
-SECURE_CONTENT_TYPE_NOSNIFF = True
-SECURE_BROWSER_XSS_FILTER = True
-X_FRAME_OPTIONS = 'DENY'
-
-# Session security
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_AGE = 3600  # 1 hour
-SESSION_EXPIRE_AT_BROWSER_CLOSE = True
-```
+---
 
 ## Django Security Checklist
 
@@ -281,3 +249,10 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 - [ ] File uploads validated
 - [ ] Permissions checked on views
 - [ ] Security middleware enabled
+
+---
+
+## References
+
+- [Django Security Documentation](https://docs.djangoproject.com/en/stable/topics/security/)
+- [OWASP Django Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Django_Security_Cheat_Sheet.html)

@@ -254,29 +254,6 @@ lib/  # Be careful - may contain project code
 
 ## Tool-Specific Configuration
 
-### Gitleaks (.gitleaks.toml)
-
-```toml
-[allowlist]
-paths = [
-    '''node_modules''',
-    '''vendor''',
-    '''\.git''',
-    '''go\.sum''',
-    '''package-lock\.json''',
-    '''yarn\.lock''',
-    '''.*_test\.go''',
-    '''.*\.test\.js''',
-    '''.*\.spec\.ts''',
-]
-
-# Exclude specific files
-files = [
-    '''^\.gitignore$''',
-    '''^README\.md$''',
-]
-```
-
 ### detect-secrets (.secrets.baseline)
 
 ```json

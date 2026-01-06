@@ -171,14 +171,14 @@ poetry run cyclonedx-py poetry -o sbom.json
 poetry run cyclonedx-py poetry --from-poetry-lock -o sbom.json
 ```
 
-### Using syft
+### Using cdxgen
 
 ```bash
 # Generate from directory
-syft . -o cyclonedx-json > sbom.json
+cdxgen -o sbom.json
 
-# Specify cataloger
-syft . --select-catalogers python -o cyclonedx-json
+# Specify type
+cdxgen -t python -o sbom.json
 ```
 
 ### Configuration Options

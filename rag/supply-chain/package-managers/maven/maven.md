@@ -219,17 +219,14 @@ cdxgen -o sbom.json
 cdxgen --project-type maven -o sbom.json
 ```
 
-### Using syft
+### Using cdxgen (alternative)
 
 ```bash
 # Generate from directory
-syft . -o cyclonedx-json > sbom.json
+cdxgen -o sbom.json
 
-# Specify cataloger
-syft . --select-catalogers java-pom -o cyclonedx-json
-
-# From JAR file
-syft ./target/app.jar -o cyclonedx-json > sbom.json
+# Specify type
+cdxgen -t java -o sbom.json
 ```
 
 ### Configuration Options

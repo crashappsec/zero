@@ -1,6 +1,9 @@
 # API Versioning
 
-Detection patterns for API versioning practices and issues.
+**Category**: api-security/versioning
+**Description**: Detection patterns for API versioning practices and issues
+
+---
 
 ## Overview
 
@@ -9,171 +12,142 @@ This scanner identifies versioning patterns and potential issues.
 
 **Note:** This scanner is informational and NOT included in the security profile.
 
-## Patterns
+---
 
-### URL Path Versioning
+## URL Path Versioning
 
-CATEGORY: api-versioning
-SEVERITY: info
-CONFIDENCE: 90
-CWE: none
-OWASP: none
+### Version in URL Path
+**Pattern**: `\/v[0-9]+\/`
+**Type**: regex
+**Severity**: info
+**Languages**: [javascript, typescript, python, java, go]
+- Common URL path versioning pattern (e.g., /v1/, /v2/)
 
-Version in URL path (common pattern):
-```
-PATTERN: \/v[0-9]+\/
-LANGUAGES: javascript, typescript, python, java, go
-```
+### Major Minor Versioning
+**Pattern**: `\/v[0-9]+\.[0-9]+\/`
+**Type**: regex
+**Severity**: info
+**Languages**: [javascript, typescript, python, java, go]
+- Major.minor version in URL path (e.g., /v1.2/)
 
-Major.minor versioning:
-```
-PATTERN: \/v[0-9]+\.[0-9]+\/
-LANGUAGES: javascript, typescript, python, java, go
-```
+---
 
-### Header Versioning
+## Header Versioning
 
-CATEGORY: api-versioning
-SEVERITY: info
-CONFIDENCE: 85
-CWE: none
-OWASP: none
+### Custom Version Header
+**Pattern**: `(X-API-Version|Accept-Version|Api-Version)\s*[=:]`
+**Type**: regex
+**Severity**: info
+**Languages**: [javascript, typescript, python]
+- Custom HTTP header for API versioning
 
-Custom version header:
-```
-PATTERN: (X-API-Version|Accept-Version|Api-Version)\s*[=:]
-LANGUAGES: javascript, typescript, python
-```
+### Accept Header Versioning
+**Pattern**: `Accept.*application\/vnd\.[^+]+\+json;\s*version=`
+**Type**: regex
+**Severity**: info
+**Languages**: [javascript, typescript, python]
+- Content negotiation versioning via Accept header
 
-Accept header versioning:
-```
-PATTERN: Accept.*application\/vnd\.[^+]+\+json;\s*version=
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### Query Parameter Versioning
+## Query Parameter Versioning
 
-CATEGORY: api-versioning
-SEVERITY: info
-CONFIDENCE: 85
-CWE: none
-OWASP: none
+### Version Query String
+**Pattern**: `[\?&]version=[0-9]`
+**Type**: regex
+**Severity**: info
+**Languages**: [javascript, typescript, python]
+- Version passed as query parameter
 
-Version in query string:
-```
-PATTERN: [\?&]version=[0-9]
-LANGUAGES: javascript, typescript, python
-```
+### API Version Query Param
+**Pattern**: `[\?&]api[-_]?version=[0-9]`
+**Type**: regex
+**Severity**: info
+**Languages**: [javascript, typescript, python]
+- API version as query parameter
 
-API version query param:
-```
-PATTERN: [\?&]api[-_]?version=[0-9]
-LANGUAGES: javascript, typescript, python
-```
+---
 
-### Deprecated API Endpoints
+## Deprecated API Endpoints
 
-CATEGORY: api-versioning
-SEVERITY: low
-CONFIDENCE: 80
-CWE: none
-OWASP: none
+### Deprecated Annotation
+**Pattern**: `(@deprecated|@Deprecated|# deprecated|// deprecated|DEPRECATED)`
+**Type**: regex
+**Severity**: low
+**Languages**: [javascript, typescript, python, java]
+- Deprecated annotation or comment marker
 
-Deprecated annotation/comment:
-```
-PATTERN: (@deprecated|@Deprecated|# deprecated|// deprecated|DEPRECATED)
-LANGUAGES: javascript, typescript, python, java
-```
+### Sunset Header
+**Pattern**: `Sunset\s*[=:]`
+**Type**: regex
+**Severity**: low
+**Languages**: [javascript, typescript, python]
+- RFC 8594 Sunset header indicating API retirement
 
-Sunset header:
-```
-PATTERN: Sunset\s*[=:]
-LANGUAGES: javascript, typescript, python
-```
+### Deprecation Header
+**Pattern**: `Deprecation\s*[=:]`
+**Type**: regex
+**Severity**: low
+**Languages**: [javascript, typescript, python]
+- HTTP Deprecation header
 
-Deprecation header:
-```
-PATTERN: Deprecation\s*[=:]
-LANGUAGES: javascript, typescript, python
-```
+---
+
+## Version Issues
 
 ### Version Mismatch
-
-CATEGORY: api-versioning
-SEVERITY: low
-CONFIDENCE: 70
-CWE: none
-OWASP: none
-
-Multiple version definitions:
-```
-PATTERN: (\/v1\/.*\/v2\/|\/v2\/.*\/v1\/)
-LANGUAGES: javascript, typescript, python
-```
+**Pattern**: `(\/v1\/.*\/v2\/|\/v2\/.*\/v1\/)`
+**Type**: regex
+**Severity**: low
+**Languages**: [javascript, typescript, python]
+- Multiple conflicting version definitions in URL
 
 ### Missing Version
-
-CATEGORY: api-versioning
-SEVERITY: info
-CONFIDENCE: 60
-CWE: none
-OWASP: none
-
-API routes without version:
-```
-PATTERN: app\.(get|post|put|delete)\s*\(\s*['"]\/api\/(?!v[0-9])
-LANGUAGES: javascript, typescript
-```
+**Pattern**: `app\.(get|post|put|delete)\s*\(\s*['"]\/api\/(?!v[0-9])`
+**Type**: regex
+**Severity**: info
+**Languages**: [javascript, typescript]
+- API routes without version prefix
 
 ### Legacy API Versions
+**Pattern**: `\/v[0-1]\/`
+**Type**: regex
+**Severity**: info
+**Languages**: [javascript, typescript, python]
+- Very old API versions (v0, v1) still active
 
-CATEGORY: api-versioning
-SEVERITY: info
-CONFIDENCE: 75
-CWE: none
-OWASP: none
+---
 
-Very old API versions still active:
-```
-PATTERN: \/v[0-1]\/
-LANGUAGES: javascript, typescript, python
-```
+## GraphQL Versioning
 
-### GraphQL Versioning
+### GraphQL Schema Version
+**Pattern**: `(schemaVersion|schema_version|apiVersion)\s*[=:]\s*['"][0-9]`
+**Type**: regex
+**Severity**: info
+**Languages**: [javascript, typescript, python]
+- GraphQL schema version field
 
-CATEGORY: api-versioning
-SEVERITY: info
-CONFIDENCE: 80
-CWE: none
-OWASP: none
+---
 
-GraphQL schema version:
-```
-PATTERN: (schemaVersion|schema_version|apiVersion)\s*[=:]\s*['"][0-9]
-LANGUAGES: javascript, typescript, python
-```
+## OpenAPI Version Spec
 
-### OpenAPI Version Spec
+### OpenAPI Version Field
+**Pattern**: `(openapi|swagger)\s*[=:]\s*['"][0-9]+\.[0-9]+`
+**Type**: regex
+**Severity**: info
+**Languages**: [yaml, json]
+- OpenAPI/Swagger specification version
 
-CATEGORY: api-versioning
-SEVERITY: info
-CONFIDENCE: 90
-CWE: none
-OWASP: none
+### API Info Version
+**Pattern**: `info\s*:[\s\S]*?version\s*[=:]\s*['"][0-9]+\.[0-9]+`
+**Type**: regex
+**Severity**: info
+**Languages**: [yaml, json]
+- API version in OpenAPI info block
 
-OpenAPI version field:
-```
-PATTERN: (openapi|swagger)\s*[=:]\s*['"][0-9]+\.[0-9]+
-LANGUAGES: yaml, json
-```
+---
 
-API info version:
-```
-PATTERN: info\s*:[\s\S]*?version\s*[=:]\s*['"][0-9]+\.[0-9]+
-LANGUAGES: yaml, json
-```
-
-## Best Practices
+## Best Practices Summary
 
 ### Recommended Patterns
 
@@ -201,6 +175,8 @@ LANGUAGES: yaml, json
 2. **No Versioning**
    - Breaking changes affect all clients
    - No migration path
+
+---
 
 ## References
 

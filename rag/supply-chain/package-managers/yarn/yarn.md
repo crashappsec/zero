@@ -185,14 +185,14 @@ yarn cyclonedx --output-file sbom.json
 yarn cyclonedx --production --output-file sbom.json
 ```
 
-### Using syft
+### Using cdxgen
 
 ```bash
 # Generate from directory
-syft . -o cyclonedx-json > sbom.json
+cdxgen -o sbom.json
 
-# Specify cataloger
-syft . --select-catalogers javascript-lock -o cyclonedx-json
+# Specify type
+cdxgen -t js -o sbom.json
 ```
 
 ### Configuration Options

@@ -56,7 +56,7 @@ Tools and automation for automated legal review of source code.
 
 **Topics Covered**:
 - Open source scanners (ScanCode, Licensee, FOSSology, ORT)
-- Secret detection (TruffleHog, GitLeaks, detect-secrets)
+- Secret detection (TruffleHog, detect-secrets)
 - Content policy tools (alex, woke)
 - Commercial platforms (FOSSA, Black Duck, Snyk)
 - CI/CD integration examples
@@ -126,7 +126,7 @@ Phase 4 AI-enhanced legal analysis with Claude Sonnet for intelligent recommenda
 
 1. **Secret detection**
    - Read: Secret detection section in [Content Policy Guide](content-policy-guide.md)
-   - Tools: TruffleHog, GitLeaks
+   - Tools: TruffleHog, detect-secrets
 
 2. **PII scanning**
    - Read: Security & Privacy section in [Content Policy Guide](content-policy-guide.md)

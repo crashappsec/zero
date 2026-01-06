@@ -1,14 +1,207 @@
 # Express.js Security Patterns
 
+**Category**: code-security/framework-security/express
+**Description**: Security vulnerabilities and secure coding patterns for Express.js applications
+**CWE**: CWE-89, CWE-79, CWE-78, CWE-22, CWE-352, CWE-693, CWE-384
+
+---
+
 ## Overview
 
 Express.js is minimal by design, requiring explicit security configurations. Many vulnerabilities arise from missing middleware or improper input handling.
 
-## Common Vulnerabilities
+---
 
-### 1. SQL/NoSQL Injection
+## SQL/NoSQL Injection Patterns
 
-#### SQL Injection
+### SQL Template Literal
+**Pattern**: `\$\{.*\}.*(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Template literal string in SQL query
+- CWE-89: SQL Injection
+
+### MongoDB Query Injection
+**Pattern**: `\.find(?:One)?\s*\(\s*\{\s*\w+\s*:\s*req\.(?:body|query|params)`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Direct request input in MongoDB query
+- CWE-943: NoSQL Injection
+
+### Mongoose Query
+**Pattern**: `\.findOne\s*\(\s*req\.body\s*\)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Entire request body as MongoDB query
+- CWE-943: NoSQL Injection
+
+---
+
+## XSS Patterns
+
+### Template Literal Response
+**Pattern**: `res\.send\s*\(\s*`.*\$\{.*req\.`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Request input directly in HTML response
+- CWE-79: Cross-site Scripting
+
+### Unescaped HTML
+**Pattern**: `innerHTML\s*=\s*.*req\.`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- User input assigned to innerHTML
+- CWE-79: Cross-site Scripting
+
+---
+
+## Command Injection Patterns
+
+### Exec with Template
+**Pattern**: `exec\s*\(\s*`.*\$\{`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Template literal in child_process.exec
+- CWE-78: OS Command Injection
+
+### Exec with Concatenation
+**Pattern**: `exec\s*\([^)]*\+\s*req\.`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- Request input concatenated in exec
+- CWE-78: OS Command Injection
+
+---
+
+## Path Traversal Patterns
+
+### SendFile with Params
+**Pattern**: `sendFile\s*\([^)]*req\.params`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- sendFile with unvalidated path parameter
+- CWE-22: Path Traversal
+
+### ReadFile with Request
+**Pattern**: `readFile(?:Sync)?\s*\([^)]*req\.`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- File read with user-controlled path
+- CWE-22: Path Traversal
+
+---
+
+## Security Header Patterns
+
+### Missing Helmet
+**Pattern**: `const\s+app\s*=\s*express\s*\(\s*\)(?![\s\S]*helmet)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Express app without helmet middleware
+- CWE-693: Protection Mechanism Failure
+
+### X-Powered-By Enabled
+**Pattern**: `app\.disable\s*\(\s*['"]x-powered-by['"]\s*\)`
+**Type**: regex
+**Severity**: low
+**Languages**: [javascript, typescript]
+- X-Powered-By header should be disabled (positive pattern)
+
+---
+
+## CORS Patterns
+
+### Wildcard CORS Origin
+**Pattern**: `cors\s*\(\s*\{\s*origin\s*:\s*['"]\*['"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- CORS allows any origin
+- CWE-942: Permissive CORS Policy
+
+### Reflected CORS Origin
+**Pattern**: `['"]Access-Control-Allow-Origin['"]\s*,\s*req\.headers\.origin`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- CORS origin reflected from request
+- CWE-942: Permissive CORS Policy
+
+### CORS Credentials with Wildcard
+**Pattern**: `cors\s*\(\s*\{[^}]*origin\s*:\s*['"]\*['"][^}]*credentials\s*:\s*true`
+**Type**: regex
+**Severity**: critical
+**Languages**: [javascript, typescript]
+- CORS credentials with wildcard origin
+- CWE-942: Permissive CORS Policy
+
+---
+
+## Session Security Patterns
+
+### Weak Session Secret
+**Pattern**: `session\s*\(\s*\{[^}]*secret\s*:\s*['"][^'"]{1,15}['"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Short/weak session secret
+- CWE-798: Hardcoded Credentials
+
+### Insecure Session Cookie
+**Pattern**: `session\s*\(\s*\{[^}]*cookie\s*:\s*\{[^}]*secure\s*:\s*false`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Session cookie not secure
+- CWE-614: Sensitive Cookie Without Secure
+
+### Missing HttpOnly
+**Pattern**: `cookie\s*:\s*\{[^}]*httpOnly\s*:\s*false`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Cookie accessible via JavaScript
+- CWE-1004: Sensitive Cookie Without HttpOnly
+
+---
+
+## Error Handling Patterns
+
+### Stack Trace Exposure
+**Pattern**: `res\.(?:json|send)\s*\(\s*\{[^}]*(?:stack|error)\s*:\s*(?:err|error)\.stack`
+**Type**: regex
+**Severity**: medium
+**Languages**: [javascript, typescript]
+- Stack trace sent to client
+- CWE-209: Error Message Information Leak
+
+---
+
+## Rate Limiting Patterns
+
+### Auth Without Rate Limit
+**Pattern**: `app\.post\s*\(\s*['"]\/(?:api\/)?(?:login|auth|signin)['"]`
+**Type**: regex
+**Severity**: high
+**Languages**: [javascript, typescript]
+- Login endpoint (check for rate limiting middleware)
+- CWE-307: Improper Restriction of Auth Attempts
+
+---
+
+## Code Examples
+
+### SQL Injection - Vulnerable vs Secure
 
 ```javascript
 // VULNERABLE - String concatenation
@@ -24,7 +217,7 @@ app.get('/user', (req, res) => {
 });
 ```
 
-#### NoSQL Injection (MongoDB)
+### NoSQL Injection - Vulnerable vs Secure
 
 ```javascript
 // VULNERABLE - Direct object from request
@@ -46,55 +239,7 @@ app.post('/login', (req, res) => {
 });
 ```
 
-### 2. Cross-Site Scripting (XSS)
-
-#### Reflected XSS
-
-```javascript
-// VULNERABLE - Reflecting user input
-app.get('/search', (req, res) => {
-  res.send(`<h1>Results for: ${req.query.q}</h1>`);
-});
-
-// SECURE - Escape output
-const escapeHtml = require('escape-html');
-app.get('/search', (req, res) => {
-  res.send(`<h1>Results for: ${escapeHtml(req.query.q)}</h1>`);
-});
-
-// BEST - Use template engine with auto-escaping
-app.set('view engine', 'ejs');  // EJS escapes by default with <%= %>
-app.get('/search', (req, res) => {
-  res.render('search', { query: req.query.q });
-});
-```
-
-#### Stored XSS
-
-```javascript
-// VULNERABLE - Storing and displaying raw HTML
-app.post('/comment', (req, res) => {
-  Comment.create({ content: req.body.content });
-});
-
-// Later:
-app.get('/comments', (req, res) => {
-  const comments = await Comment.find();
-  res.send(comments.map(c => `<div>${c.content}</div>`).join(''));
-});
-
-// SECURE - Sanitize HTML
-const createDOMPurify = require('dompurify');
-const { JSDOM } = require('jsdom');
-const DOMPurify = createDOMPurify(new JSDOM('').window);
-
-app.post('/comment', (req, res) => {
-  const clean = DOMPurify.sanitize(req.body.content);
-  Comment.create({ content: clean });
-});
-```
-
-### 3. Command Injection
+### Command Injection - Vulnerable vs Secure
 
 ```javascript
 // VULNERABLE - User input in shell command
@@ -110,7 +255,6 @@ app.get('/ping', (req, res) => {
 const { execFile } = require('child_process');
 
 app.get('/ping', (req, res) => {
-  // Validate input
   const hostRegex = /^[a-zA-Z0-9.-]+$/;
   if (!hostRegex.test(req.query.host)) {
     return res.status(400).send('Invalid host');
@@ -122,153 +266,7 @@ app.get('/ping', (req, res) => {
 });
 ```
 
-### 4. Path Traversal
-
-```javascript
-// VULNERABLE - Direct file access
-app.get('/files/:name', (req, res) => {
-  res.sendFile(`/uploads/${req.params.name}`);
-  // Attacker: /files/../../../etc/passwd
-});
-
-// SECURE - Validate and resolve path
-const path = require('path');
-
-app.get('/files/:name', (req, res) => {
-  const uploadsDir = path.resolve('/uploads');
-  const filePath = path.resolve(uploadsDir, req.params.name);
-
-  // Ensure path is within uploads directory
-  if (!filePath.startsWith(uploadsDir)) {
-    return res.status(403).send('Forbidden');
-  }
-
-  res.sendFile(filePath);
-});
-```
-
-### 5. Missing Security Headers
-
-```javascript
-// VULNERABLE - No security headers
-const app = express();
-app.listen(3000);
-
-// SECURE - Use helmet
-const helmet = require('helmet');
-
-const app = express();
-app.use(helmet());  // Sets many security headers
-
-// Or configure individually
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true
-  }
-}));
-```
-
-### 6. CSRF Vulnerabilities
-
-```javascript
-// VULNERABLE - No CSRF protection
-app.post('/transfer', (req, res) => {
-  transferMoney(req.body.to, req.body.amount);
-});
-
-// SECURE - Use csurf middleware
-const csrf = require('csurf');
-const csrfProtection = csrf({ cookie: true });
-
-app.get('/transfer', csrfProtection, (req, res) => {
-  res.render('transfer', { csrfToken: req.csrfToken() });
-});
-
-app.post('/transfer', csrfProtection, (req, res) => {
-  // Token validated automatically
-  transferMoney(req.body.to, req.body.amount);
-});
-```
-
-### 7. Session Security
-
-```javascript
-// VULNERABLE - Insecure session config
-app.use(session({
-  secret: 'keyboard cat',  // Weak secret
-  cookie: {}  // Missing secure options
-}));
-
-// SECURE - Proper session configuration
-app.use(session({
-  secret: process.env.SESSION_SECRET,  // Strong, from env
-  name: 'sessionId',  // Change default name
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: true,        // HTTPS only
-    httpOnly: true,      // No JS access
-    sameSite: 'strict',  // CSRF protection
-    maxAge: 3600000      // 1 hour
-  }
-}));
-```
-
-### 8. Rate Limiting
-
-```javascript
-// VULNERABLE - No rate limiting
-app.post('/login', (req, res) => {
-  // Brute force possible
-});
-
-// SECURE - Add rate limiting
-const rateLimit = require('express-rate-limit');
-
-const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,  // 15 minutes
-  max: 5,  // 5 attempts
-  message: 'Too many login attempts'
-});
-
-app.post('/login', loginLimiter, (req, res) => {
-  // Protected from brute force
-});
-```
-
-### 9. Information Disclosure
-
-```javascript
-// VULNERABLE - Exposing stack traces
-app.use((err, req, res, next) => {
-  res.status(500).json({ error: err.stack });
-});
-
-// SECURE - Generic error in production
-app.use((err, req, res, next) => {
-  console.error(err);  // Log internally
-
-  if (process.env.NODE_ENV === 'production') {
-    res.status(500).json({ error: 'Internal server error' });
-  } else {
-    res.status(500).json({ error: err.message, stack: err.stack });
-  }
-});
-
-// Also disable X-Powered-By
-app.disable('x-powered-by');
-// Or use helmet which does this automatically
-```
+---
 
 ## Security Middleware Stack
 
@@ -308,10 +306,9 @@ app.use(xss());            // XSS
 
 // Prevent parameter pollution
 app.use(hpp());
-
-// Trust proxy (if behind reverse proxy)
-app.set('trust proxy', 1);
 ```
+
+---
 
 ## Express Security Checklist
 
@@ -326,3 +323,10 @@ app.set('trust proxy', 1);
 - [ ] Error messages sanitized
 - [ ] File upload validation
 - [ ] Dependencies audited (`npm audit`)
+
+---
+
+## References
+
+- [Express.js Security Best Practices](https://expressjs.com/en/advanced/best-practice-security.html)
+- [OWASP NodeJS Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Nodejs_Security_Cheat_Sheet.html)

@@ -195,14 +195,14 @@ cyclonedx-ruby -o sbom.json
 cyclonedx-ruby --exclude-group development --exclude-group test -o sbom.json
 ```
 
-### Using syft
+### Using cdxgen
 
 ```bash
 # Generate from directory
-syft . -o cyclonedx-json > sbom.json
+cdxgen -o sbom.json
 
-# Specify cataloger
-syft . --select-catalogers ruby-gemfile-lock -o cyclonedx-json
+# Specify type
+cdxgen -t ruby -o sbom.json
 ```
 
 ### Configuration Options

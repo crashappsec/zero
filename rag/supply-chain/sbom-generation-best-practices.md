@@ -435,8 +435,8 @@ packages:
 # Using Snyk
 snyk sbom --format=cyclonedx1.4+json --package-manager=pnpm --file=pnpm-lock.yaml > sbom.json
 
-# Using Syft
-syft scan . -o cyclonedx-json > sbom.json
+# Using cdxgen
+cdxgen -o sbom.json
 ```
 
 **Challenges:**
@@ -463,11 +463,11 @@ syft scan . -o cyclonedx-json > sbom.json
 
 **SBOM Generation:**
 ```bash
-# Using Syft
-syft scan . -o cyclonedx-json > sbom.json
+# Using cdxgen
+cdxgen -o sbom.json
 ```
 
-**Note:** Bun is a newer package manager with limited native SBOM tooling support. Use generic SBOM generators like Syft or cdxgen.
+**Note:** Bun is a newer package manager with limited native SBOM tooling support. Use cdxgen for SBOM generation.
 
 **Best Practices:**
 - Commit bun.lockb to version control
@@ -594,8 +594,8 @@ version = "2023.7.22"
 # Using CycloneDX
 cyclonedx-py poetry -o sbom.json
 
-# Using Syft (with poetry.lock)
-syft scan . -o cyclonedx-json > sbom.json
+# Using cdxgen (with poetry.lock)
+cdxgen -o sbom.json
 ```
 
 **Note:** Some tools have issues extracting license information from poetry.lock. Ensure license data is in pyproject.toml.
@@ -675,8 +675,8 @@ BUNDLED WITH
 # Using CycloneDX
 cyclonedx-ruby -p ./ -o sbom.json
 
-# Using Syft
-syft scan . -o cyclonedx-json > sbom.json
+# Using cdxgen
+cdxgen -o sbom.json
 ```
 
 **Best Practices:**
@@ -725,8 +725,8 @@ cargo cyclonedx --format json --output-cdx sbom.json
 cargo install cargo-sbom
 cargo sbom > sbom.spdx.json
 
-# Using Syft
-syft scan . -o cyclonedx-json > sbom.json
+# Using cdxgen
+cdxgen -o sbom.json
 ```
 
 **Note:** Trivy requires Cargo.lock to be available when scanning Rust binaries.
@@ -786,8 +786,8 @@ cyclonedx-gomod app -json -licenses -output sbom.json
 # Using SPDX
 spdx-sbom-generator -p ./ -o sbom.spdx
 
-# Using Syft
-syft scan . -o cyclonedx-json > sbom.json
+# Using cdxgen
+cdxgen -o sbom.json
 ```
 
 **Best Practices:**
@@ -1062,12 +1062,11 @@ For critical applications, generate SBOMs with multiple tools and compare:
 ```bash
 # Generate with multiple tools
 npm sbom --sbom-format=cyclonedx > sbom-npm.json
-syft scan . -o cyclonedx-json > sbom-syft.json
 cdxgen -t js -o sbom-cdxgen.json
 
 # Compare results
 diff <(jq -S '.components | sort_by(.name)' sbom-npm.json) \
-     <(jq -S '.components | sort_by(.name)' sbom-syft.json)
+     <(jq -S '.components | sort_by(.name)' sbom-cdxgen.json)
 ```
 
 ### Common Transitive Dependency Challenges
@@ -1116,10 +1115,10 @@ pkg:cargo/openssl@0.10.55?platform=linux-x86_64
 **Example (pnpm workspaces):**
 ```bash
 # Per-package SBOM
-syft scan packages/api -o cyclonedx-json > sbom-api.json
+cdxgen -o sbom-api.json packages/api
 
 # Aggregate SBOM
-syft scan . -o cyclonedx-json > sbom-monorepo.json
+cdxgen -o sbom-monorepo.json
 ```
 
 ---
@@ -1265,8 +1264,8 @@ criterion = "0.5"
 # CycloneDX (production only)
 cargo cyclonedx --format json --output-cdx sbom.json
 
-# Syft (from compiled binary - no dev deps)
-syft scan target/release/myapp -o cyclonedx-json > sbom.json
+# cdxgen (from source - production deps only)
+cdxgen --no-include-dev -o sbom.json
 ```
 
 ### Best Practices for Production SBOMs
@@ -1307,23 +1306,24 @@ cargo build --release
 
 **Container Images:**
 ```bash
-# Generate from final image (not build stage)
-syft scan image:tag -o cyclonedx-json > sbom.json
+# Generate SBOM during container build with cdxgen
+cdxgen -t docker -o sbom.json .
+
+# Or integrate into Dockerfile
+# COPY --from=builder sbom.json /app/sbom.json
 ```
 
-**Binary Executables:**
+**Go/Rust Projects:**
 ```bash
-# Go binary
-syft scan ./myapp -o cyclonedx-json > sbom.json
-
-# Rust binary
-syft scan target/release/myapp -o cyclonedx-json > sbom.json
+# Generate from source before building
+cdxgen -t go -o sbom.json
+cdxgen -t rust -o sbom.json
 ```
 
-**Java JAR:**
+**Java Projects:**
 ```bash
-# Generate from packaged JAR
-syft scan target/myapp.jar -o cyclonedx-json > sbom.json
+# Generate from pom.xml/build.gradle
+cdxgen -t java -o sbom.json
 ```
 
 #### 4. Document SBOM Scope
@@ -1365,8 +1365,8 @@ npm sbom --omit=dev -o sbom-production.json
 # Development SBOM
 npm sbom -o sbom-development.json
 
-# Build environment SBOM
-syft scan . -o cyclonedx-json > sbom-build-env.json
+# Build environment SBOM (includes all deps)
+cdxgen -o sbom-build-env.json
 ```
 
 ### Debate: To Include or Not to Include
@@ -1763,44 +1763,7 @@ diff <(git show main:sbom.json | jq -S '.components | sort_by(.name)') \
 
 ### Multi-Language Tools
 
-#### Syft (Anchore)
-
-**Supported Formats:** SPDX, CycloneDX
-**Ecosystems:** 20+ languages and package managers
-
-**Key Features:**
-- Container image scanning
-- Binary analysis
-- Lock file parsing
-- Fast and accurate
-
-**Installation:**
-```bash
-# macOS
-brew install syft
-
-# Linux
-curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
-```
-
-**Usage:**
-```bash
-# Scan directory
-syft scan . -o cyclonedx-json > sbom.json
-
-# Scan container image
-syft scan nginx:latest -o spdx-json > sbom.spdx.json
-
-# Scan binary
-syft scan ./myapp -o cyclonedx-json > sbom.json
-
-# Specify package type
-syft scan . --catalogers python -o spdx-json > sbom.json
-```
-
-**Best For:** Broad language support, container images, CI/CD automation
-
-#### cdxgen (OWASP)
+#### cdxgen (OWASP) - Recommended
 
 **Supported Formats:** CycloneDX
 **Ecosystems:** 20+ languages
@@ -2143,17 +2106,14 @@ cyclonedx-ruby -p ./ -o sbom.json
 
 ### Container Images
 
-#### Syft
+#### cdxgen
 
 ```bash
-# Scan image
-syft scan nginx:latest -o cyclonedx-json > sbom.json
+# Generate SBOM for container project
+cdxgen -t docker -o sbom.json .
 
-# Scan local image
-syft scan myapp:latest -o spdx-json > sbom.spdx.json
-
-# Scan image tar
-syft scan image.tar -o cyclonedx-json > sbom.json
+# With specific output format
+cdxgen -t docker -o sbom.json --spec-version 1.5
 ```
 
 #### Trivy
@@ -2395,11 +2355,11 @@ npm sbom --sbom-format=cyclonedx > sbom.json
 #### Step 2: Scan for Vulnerabilities
 
 ```bash
+# Using osv-scanner (recommended)
+osv-scanner --sbom=sbom.json --format json > vulnerabilities.json
+
 # Using Trivy
 trivy sbom sbom.json --format json > vulnerabilities.json
-
-# Using Grype
-grype sbom:sbom.json -o json > vulnerabilities.json
 
 # Using OWASP Dependency-Track
 # Upload SBOM to Dependency-Track for continuous monitoring
@@ -2456,33 +2416,33 @@ curl -X "POST" "http://dtrack.example.com/api/v1/bom" \
 
 **Best For:** Continuous SBOM monitoring, enterprise-scale
 
-#### Grype
+#### osv-scanner (Recommended)
 
 **Installation:**
 ```bash
 # macOS
-brew install grype
+brew install osv-scanner
 
-# Linux
-curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+# Linux/Go install
+go install github.com/google/osv-scanner/cmd/osv-scanner@latest
 ```
 
 **Usage:**
 ```bash
 # Scan SBOM
-grype sbom:./sbom.json
+osv-scanner --sbom=sbom.json
 
 # Output as JSON
-grype sbom:./sbom.json -o json
+osv-scanner --sbom=sbom.json --format json
 
-# Scan directory
-grype dir:.
+# Scan directory (lock files)
+osv-scanner -r .
 
-# Scan container image
-grype nginx:latest
+# Scan specific lock file
+osv-scanner --lockfile=package-lock.json
 ```
 
-**Best For:** CI/CD vulnerability scanning
+**Best For:** CI/CD vulnerability scanning, OSV database integration
 
 #### Trivy
 
@@ -2714,8 +2674,8 @@ cosign verify-blob --key cosign.pub --signature sbom.sig sbom.json
 
 **Attach SBOM as Attestation to Container Image:**
 ```bash
-# Generate SBOM
-syft scan myapp:latest -o cyclonedx-json > sbom.json
+# Generate SBOM with cdxgen
+cdxgen -t docker -o sbom.json .
 
 # Create attestation and attach to image
 cosign attest --key cosign.key --type cyclonedx --predicate sbom.json myapp:latest
@@ -2887,7 +2847,7 @@ cosign verify-attestation --type cyclonedx myapp:latest
 
 **Solution:**
 - Use lock files as source of truth
-- Scan binaries with tools like Syft
+- Generate SBOM from source with cdxgen
 - Generate SBOMs at build time, not from source only
 - Validate SBOM completeness against package manager output
 
@@ -3051,7 +3011,7 @@ ajv validate -s cyclonedx-schema.json -d sbom.json
 - No dedicated SBOM management
 
 **Solution:**
-- Use open-source tools (Syft, CycloneDX, SPDX tools)
+- Use open-source tools (cdxgen, CycloneDX CLI, SPDX tools)
 - Train security and DevOps teams
 - Start small: one project as pilot
 - Leverage community resources and documentation
@@ -3073,8 +3033,8 @@ ajv validate -s cyclonedx-schema.json -d sbom.json
 # Use lock file only
 npm sbom --package-lock-only > sbom.json
 
-# Syft: scan lock file, not directory
-syft scan file:./package-lock.json -o cyclonedx-json > sbom.json
+# cdxgen: automatically uses lock files when present
+cdxgen -o sbom.json
 ```
 
 ### 9. Incorrect Version Resolution
@@ -3282,12 +3242,12 @@ pkg:npm/node-sass@7.0.0?os=win32&arch=x64
 
 **Multi-Language Monorepo Pattern:**
 ```bash
-# Generate per-language SBOMs
-syft scan packages/api -o cyclonedx-json > sbom-api.json
-syft scan packages/web -o cyclonedx-json > sbom-web.json
+# Generate per-language SBOMs with cdxgen
+cdxgen -o sbom-api.json packages/api
+cdxgen -o sbom-web.json packages/web
 
 # Generate aggregate SBOM
-syft scan . -o cyclonedx-json > sbom-monorepo.json
+cdxgen -o sbom-monorepo.json
 
 # Merge SBOMs
 cyclonedx merge --input-files sbom-api.json sbom-web.json --output-file sbom-combined.json
@@ -3359,7 +3319,8 @@ SBOM generation is a critical component of modern software supply chain security
 - NTIA SBOM: https://www.ntia.gov/page/software-bill-materials
 
 **Tools:**
-- Syft: https://github.com/anchore/syft
+- cdxgen: https://github.com/CycloneDX/cdxgen
+- osv-scanner: https://github.com/google/osv-scanner
 - CycloneDX Tools: https://cyclonedx.org/tool-center/
 - SPDX Tools: https://github.com/spdx
 - Sigstore: https://www.sigstore.dev/

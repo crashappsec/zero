@@ -33,7 +33,7 @@ This document consolidates RAG knowledge for the **packages** super scanner.
 ### SBOM (Software Bill of Materials)
 - CycloneDX format (version 1.5 preferred)
 - Component identification via purl (Package URL)
-- Tools: cdxgen, syft
+- Tools: cdxgen
 
 ### Vulnerability Scanning
 - OSV database for vulnerability lookup

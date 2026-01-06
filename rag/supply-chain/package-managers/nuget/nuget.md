@@ -209,17 +209,14 @@ cdxgen -o sbom.json
 cdxgen --project-type dotnet -o sbom.json
 ```
 
-### Using syft
+### Using cdxgen (alternative)
 
 ```bash
 # Generate from directory
-syft . -o cyclonedx-json > sbom.json
+cdxgen -o sbom.json
 
-# Specify cataloger
-syft . --select-catalogers dotnet-deps -o cyclonedx-json
-
-# From NuGet packages folder
-syft dir:~/.nuget/packages -o cyclonedx-json
+# Specify type
+cdxgen -t dotnet -o sbom.json
 ```
 
 ### Configuration Options
