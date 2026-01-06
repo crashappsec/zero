@@ -113,6 +113,23 @@ Scanner Compatibility
       Missing tool: malcontent
 ```
 
+## Initialize Rules
+
+Before scanning, generate Semgrep rules from the RAG knowledge base:
+
+```bash
+# Generate rules from RAG patterns (required for code-security scanner)
+./zero feeds rules
+
+# Optionally sync external feeds (Semgrep community rules)
+./zero feeds sync
+
+# Check feed status
+./zero feeds status
+```
+
+This converts the human-readable RAG patterns (in `rag/`) into executable Semgrep YAML rules.
+
 ## Quick Start
 
 ### Analyze a Repository

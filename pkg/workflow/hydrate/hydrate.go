@@ -223,6 +223,11 @@ func (h *Hydrate) Run(ctx context.Context) ([]string, error) {
 	h.term.Info("Profile:      %s", h.term.Color(terminal.Cyan, h.opts.Profile))
 	h.term.Info("Scanners:     %s", h.term.Color(terminal.Cyan, fmt.Sprintf("%d parallel", h.opts.ParallelScanners)))
 
+	// Show repo summary with sizes (for org mode)
+	if h.opts.Org != "" && len(repos) > 0 {
+		h.printRepoSummary(repos)
+	}
+
 	// Phase 1: Clone
 	h.term.Header("CLONING")
 	repoStatuses, err := h.cloneRepos(ctx, repos)
@@ -1000,6 +1005,39 @@ func (h *Hydrate) getTotalFiles(statuses []*RepoStatus) int {
 		total += s.FileCount
 	}
 	return total
+}
+
+// printRepoSummary displays a table of repositories to be scanned with their sizes
+func (h *Hydrate) printRepoSummary(repos []github.Repository) {
+	fmt.Println()
+	fmt.Println("\033[1mRepositories to scan:\033[0m")
+	fmt.Println("  \033[2mName                                    Size\033[0m")
+	fmt.Println("  " + strings.Repeat("─", 50))
+
+	var totalSize int
+	for _, r := range repos {
+		name := r.Name
+		if len(name) > 38 {
+			name = name[:35] + "..."
+		}
+		sizeStr := formatRepoSize(r.Size)
+		totalSize += r.Size
+		fmt.Printf("  %-40s %s\n", name, sizeStr)
+	}
+
+	fmt.Println("  " + strings.Repeat("─", 50))
+	fmt.Printf("  \033[1m%-40s %s\033[0m\n", fmt.Sprintf("Total (%d repos)", len(repos)), formatRepoSize(totalSize))
+	fmt.Println()
+}
+
+// formatRepoSize formats a size in KB to human-readable form
+func formatRepoSize(sizeKB int) string {
+	if sizeKB >= 1024*1024 {
+		return fmt.Sprintf("%.1fGB", float64(sizeKB)/(1024*1024))
+	} else if sizeKB >= 1024 {
+		return fmt.Sprintf("%dMB", sizeKB/1024)
+	}
+	return fmt.Sprintf("%dKB", sizeKB)
 }
 
 func formatNumber(n int) string {
