@@ -11,6 +11,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/crashappsec/zero/pkg/core/credentials"
 )
 
 const (
@@ -49,7 +51,11 @@ func NewLLMClient(opts *LLMClientOptions) *LLMClient {
 
 	apiKey := opts.APIKey
 	if apiKey == "" {
-		apiKey = os.Getenv("ANTHROPIC_API_KEY")
+		// Use credentials package to get API key from env var or config file
+		credInfo := credentials.GetAnthropicKey()
+		if credInfo.Valid {
+			apiKey = credInfo.Value
+		}
 	}
 
 	apiURL := opts.APIURL
@@ -414,7 +420,14 @@ func (c *LLMClient) parseSSEStream(body io.Reader, callback func(ChatEvent)) (*C
 					block.Text = currentText.String()
 				} else if block.Type == "tool_use" {
 					if builder, ok := currentToolInputs[event.Index]; ok {
-						block.Input = json.RawMessage(builder.String())
+						inputStr := builder.String()
+						if inputStr == "" {
+							inputStr = "{}"
+						}
+						block.Input = json.RawMessage(inputStr)
+					} else {
+						// No input received, default to empty object
+						block.Input = json.RawMessage("{}")
 					}
 				}
 			}
