@@ -42,8 +42,8 @@ SBOM generation and package/dependency analysis (consolidated from sbom + packag
 ```
 
 **Key Features:**
-- CycloneDX 1.5 SBOM generation (cdxgen or syft)
-- Vulnerability scanning (OSV, CISA KEV)
+- CycloneDX 1.5 SBOM generation (cdxgen)
+- Vulnerability scanning (osv-scanner, CISA KEV)
 - Package health assessment (deps.dev)
 - License compliance checking
 - Malcontent behavioral analysis
@@ -205,11 +205,10 @@ See `config/zero.config.json` for all profile definitions.
 | Tool | Used By | Purpose | Install |
 |------|---------|---------|---------|
 | cdxgen | code-packages | SBOM generation | `npm i -g @cyclonedx/cdxgen` |
-| syft | code-packages | SBOM generation (fallback) | `brew install syft` |
 | osv-scanner | code-packages | Vulnerability scanning | `go install github.com/google/osv-scanner/...` |
 | malcontent | code-packages | Behavioral analysis | `brew install malcontent` |
 | semgrep | code-security, code-quality | Pattern analysis | `pip install semgrep` |
-| gitleaks | code-security | Secret detection | `brew install gitleaks` |
+| trufflehog | code-security | Secret detection | `brew install trufflehog` |
 | checkov | devops | IaC scanning | `pip install checkov` |
 | trivy | devops | Container/IaC scanning | `brew install trivy` |
 
