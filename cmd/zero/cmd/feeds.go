@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/crashappsec/zero/pkg/core/config"
 	"github.com/crashappsec/zero/pkg/core/feeds"
-	"github.com/crashappsec/zero/pkg/core/rules"
+	"github.com/crashappsec/zero/pkg/core/rag"
 	"github.com/crashappsec/zero/pkg/core/terminal"
+	techid "github.com/crashappsec/zero/pkg/scanner/technology-identification"
 	"github.com/spf13/cobra"
 )
 
@@ -247,46 +249,54 @@ func runFeedsRag(cmd *cobra.Command, args []string) error {
 	term.Info("%s", term.Color(terminal.Bold, "Generating Rules from RAG Knowledge Base"))
 	term.Divider()
 
-	mgr := rules.NewManager(zeroHome)
-	results, err := mgr.RefreshRules(feedsForce)
+	// Find RAG directory
+	ragPath := rag.FindRAGPath()
+	if ragPath == "" {
+		return fmt.Errorf("could not find rag/ directory")
+	}
+
+	// Output directory for generated rules
+	outputDir := filepath.Join(zeroHome, "rules", "generated")
+
+	term.Info("RAG source: %s", term.Color(terminal.Cyan, ragPath))
+	term.Info("Output dir: %s", term.Color(terminal.Cyan, outputDir))
+	term.Info("")
+
+	start := time.Now()
+
+	// Convert RAG markdown patterns to Semgrep YAML rules
+	result, err := techid.ConvertRAGToSemgrep(ragPath, outputDir)
 	if err != nil {
 		return fmt.Errorf("rule generation failed: %w", err)
 	}
 
+	duration := time.Since(start)
+
 	// Display results
-	totalRules := 0
-	for _, r := range results {
-		if r.Skipped {
-			term.Info("  %s %s - skipped (%s)",
-				term.Color(terminal.Dim, "○"),
-				r.Type,
-				r.Reason,
-			)
-		} else if r.Success {
-			term.Success("  %s %s (%s, %d rules)",
-				term.Color(terminal.Green, "✓"),
-				r.Type,
-				formatDuration(r.Duration),
-				r.RuleCount,
-			)
-			totalRules += r.RuleCount
-			for _, f := range r.Files {
-				term.Info("    → %s", f)
-			}
-		} else {
-			term.Error("  %s %s - %s",
-				term.Color(terminal.Red, "✗"),
-				r.Type,
-				r.Error,
-			)
-		}
+	if len(result.TechDiscovery.Rules) > 0 {
+		term.Success("  %s tech-discovery.yaml (%d rules)",
+			term.Color(terminal.Green, "✓"),
+			len(result.TechDiscovery.Rules))
+	}
+	if len(result.Secrets.Rules) > 0 {
+		term.Success("  %s secrets.yaml (%d rules)",
+			term.Color(terminal.Green, "✓"),
+			len(result.Secrets.Rules))
+	}
+	if len(result.AIML.Rules) > 0 {
+		term.Success("  %s ai-ml.yaml (%d rules)",
+			term.Color(terminal.Green, "✓"),
+			len(result.AIML.Rules))
+	}
+	if len(result.ConfigFiles.Rules) > 0 {
+		term.Success("  %s config-files.yaml (%d rules)",
+			term.Color(terminal.Green, "✓"),
+			len(result.ConfigFiles.Rules))
 	}
 
 	term.Divider()
-	if totalRules == 0 {
-		term.Warning("No RAG patterns found. Ensure rag/ directory contains pattern JSON files.")
-		term.Info("RAG patterns should be JSON files with a 'patterns' array.")
-	}
+	term.Success("Generated %d rules in %s", result.TotalRules, formatDuration(duration))
+
 	return nil
 }
 
