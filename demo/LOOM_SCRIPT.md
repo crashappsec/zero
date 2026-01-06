@@ -11,7 +11,8 @@
 
 - [ ] Terminal with dark theme, large font (16pt+)
 - [ ] Clear terminal history: `clear`
-- [ ] Ensure `GITHUB_TOKEN` and `ANTHROPIC_API_KEY` are set
+- [ ] Create a **fine-grained** GitHub token (not classic!) scoped to demo repos
+- [ ] Have `ANTHROPIC_API_KEY` ready
 - [ ] Pre-hydrate the demo org: `./zero hydrate zero-test-org all-quick`
 - [ ] Close unnecessary apps/notifications
 - [ ] Have the Zero codebase open in your editor for the tour
@@ -74,27 +75,29 @@ go build -o zero ./cmd/zero
 **[Shows current credential status - likely empty]**
 
 **SAY:**
-> "Let's add a GitHub token. Use a fine-grained token scoped to the repos you want to analyze."
+> "Let's add a GitHub token. Important: use a fine-grained personal access token, not a classic token. Fine-grained tokens let you scope access to specific repos - much more secure."
+
+**[Optional: Show GitHub settings page creating a fine-grained token]**
 
 **TYPE:**
 ```bash
-./zero config set github_token
+./zero config set github_token <your-token>
 ```
 
-**[Prompts for token, enter it - shown masked]**
+**[Token saved with warning about command line usage]**
 
 **SAY:**
 > "And the Anthropic key for AI agent features."
 
 **TYPE:**
 ```bash
-./zero config set anthropic_key
+./zero config set anthropic_key <your-key>
 ```
 
-**[Prompts for key, enter it - shown masked]**
+**[Key saved]**
 
 **SAY:**
-> "Credentials are stored securely in ~/.zero/credentials.json with restricted permissions. You can also use environment variables GITHUB_TOKEN and ANTHROPIC_API_KEY instead."
+> "Credentials are stored securely in ~/.zero/credentials.json. You can also use environment variables instead. The checkup command will warn you if you're using a classic token with broad access."
 
 ---
 
