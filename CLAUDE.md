@@ -41,7 +41,7 @@ The following agents are available for specialized analysis tasks. Use the Task 
 | `blade` | Blade | Blade | Compliance, SOC 2, ISO 27001, audit prep | code-packages, code-security |
 | `phreak` | Phreak | Phantom Phreak | Legal, licenses, data privacy | **code-packages** (licenses) |
 | `acid` | Acid | Acid Burn | Frontend, React, TypeScript, accessibility | **code-security**, **code-quality** |
-| `dade` | Dade | Dade Murphy | Backend, APIs, databases, Node.js, Python | **code-security** (api) |
+| `flushot` | Flu Shot | Flu Shot | Backend, APIs, databases, Node.js, Python | **code-security** (api) |
 | `nikon` | Nikon | Lord Nikon | Architecture, system design, patterns | **technology-identification** |
 | `joey` | Joey | Joey | CI/CD, build optimization, caching | **devops** (github_actions) |
 | `plague` | Plague | The Plague | DevOps, infrastructure, Kubernetes, IaC | **devops** |
@@ -168,10 +168,10 @@ Specializes in React, TypeScript, component architecture, accessibility (a11y), 
 **Primary scanner:** `code-security`, `code-quality`
 **Required data:** `code-security.json`, `code-quality.json`
 
-#### Dade (Backend Engineer)
-**subagent_type:** `dade`
+#### Flu Shot (Backend Engineer)
+**subagent_type:** `flushot`
 
-Dade Murphy - the person behind Zero Cool, backend systems expert.
+Flu Shot - one of the underground hackers from the pool party scene, methodical and reliable.
 Specializes in APIs, databases, Node.js, Python, and backend architecture.
 
 **Primary scanner:** `code-security` (api feature)
@@ -493,10 +493,10 @@ Specialists can delegate to other agents when cross-domain expertise is needed:
 | Agent | Can Delegate To |
 |-------|-----------------|
 | Cereal | Phreak (legal), Razor (security), Plague (devops), Nikon (architecture), Gill (code-crypto) |
-| Razor | Cereal (supply chain), Blade (compliance), Nikon (architecture), Dade (backend), Gill (code-crypto) |
+| Razor | Cereal (supply chain), Blade (compliance), Nikon (architecture), Flu Shot (backend), Gill (code-crypto) |
 | Blade | Cereal (supply chain), Razor (security), Phreak (legal), Gill (code-crypto) |
-| Acid | Dade (backend), Nikon (architecture), Razor (security) |
-| Dade | Acid (frontend), Nikon (architecture), Razor (security), Plague (devops) |
+| Acid | Flu Shot (backend), Nikon (architecture), Razor (security) |
+| Flu Shot | Acid (frontend), Nikon (architecture), Razor (security), Plague (devops) |
 | Nikon | All technical domains |
 | Gill | Razor (security), Cereal (supply chain), Plague (devops), Blade (compliance) |
 

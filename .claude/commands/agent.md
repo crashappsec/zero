@@ -31,7 +31,7 @@ This includes:
 | Blade | Compliance, SOC 2, ISO 27001 | `subagent_type: "blade"` |
 | Phreak | Legal, licenses, privacy | `subagent_type: "phreak"` |
 | Acid | Frontend, React, TypeScript | `subagent_type: "acid"` |
-| Dade | Backend, APIs, databases | `subagent_type: "dade"` |
+| Flu Shot | Backend, APIs, databases | `subagent_type: "flushot"` |
 | Nikon | Architecture, system design | `subagent_type: "nikon"` |
 | Joey | Build, CI/CD, pipelines | `subagent_type: "joey"` |
 | Plague | DevOps, infrastructure, K8s | `subagent_type: "plague"` |

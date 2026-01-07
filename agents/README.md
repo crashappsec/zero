@@ -19,6 +19,8 @@ All agents are named after characters from the movie **Hackers (1995)** - "Hack 
 | **Joey** | Joey | Build engineer | [build/](build/) |
 | **Plague** | The Plague | DevOps engineer | [devops/](devops/) |
 | **Gibson** | The Gibson | Engineering leader | [engineering-leader/](engineering-leader/) |
+| **Gill** | Gill Bates | Cryptography specialist | [cryptography/](cryptography/) |
+| **Turing** | Alan Turing | AI/ML security | [ai-security/](ai-security/) |
 
 ## Voice Modes
 
@@ -78,6 +80,28 @@ Phantom Phreak knew the legal angles and how systems really work. Analyzes licen
 Phreak cares about: License compatibility, GPL concerns, data privacy, contract terms, legal risk assessment.
 
 *"Ask Phreak about license conflicts" or "Phreak, can we use this library?"*
+
+---
+
+### Gill - Cryptography Specialist
+**Agent:** [cryptography/](cryptography/) | **Character:** Gill Bates
+
+Gill Bates represented the corporate establishment in Hackers - now reformed and using vast crypto knowledge to help secure implementations. Analyzes cryptographic implementations, cipher usage, key management, and TLS configurations.
+
+Gill cares about: Weak/deprecated ciphers (DES, RC4, MD5), hardcoded keys, TLS misconfigurations, insecure random number generation, certificate validation.
+
+*"Ask Gill about the crypto implementation" or "Gill, are there hardcoded keys?"*
+
+---
+
+### Turing - AI/ML Security
+**Agent:** [ai-security/](ai-security/) | **Character:** Alan Turing
+
+Alan Turing - the father of artificial intelligence and legendary codebreaker. Analyzes ML model security, detects unsafe pickle files, audits AI framework usage, and generates ML-BOMs.
+
+Turing cares about: Unsafe pickle model files, torch.load without weights_only, hardcoded LLM API keys, ML model provenance, AI governance (model cards, licenses).
+
+*"Ask Turing about ML security" or "Turing, are there unsafe model files?"*
 
 ---
 
@@ -240,6 +264,8 @@ Task tool with:
 | Joey | technology, dora, code-security |
 | Plague | technology, dora, iac-security, container-security |
 | Gibson | dora, code-ownership, git-insights |
+| Gill | code-security (ciphers, keys, random, tls, certificates) |
+| Turing | technology-identification (models, frameworks, datasets, security, governance) |
 
 ## Agent Autonomy
 
@@ -263,16 +289,18 @@ Specialists can delegate to other agents for cross-domain expertise:
 
 | Agent | Can Delegate To |
 |-------|-----------------|
-| Cereal | Phreak, Razor, Plague, Nikon |
-| Razor | Cereal, Blade, Nikon, Dade |
-| Blade | Cereal, Razor, Phreak |
+| Cereal | Phreak, Razor, Plague, Nikon, Gill |
+| Razor | Cereal, Blade, Nikon, Flu Shot, Gill |
+| Blade | Cereal, Razor, Phreak, Gill |
 | Phreak | Cereal, Blade |
-| Acid | Dade, Nikon, Razor |
-| Dade | Acid, Nikon, Razor, Plague |
-| Nikon | Acid, Dade, Cereal, Razor, Plague |
+| Acid | Flu Shot, Nikon, Razor |
+| Flu Shot | Acid, Nikon, Razor, Plague |
+| Nikon | Acid, Flu Shot, Cereal, Razor, Plague |
 | Joey | Plague, Nikon, Razor |
-| Plague | Joey, Nikon, Razor |
+| Plague | Joey, Nikon, Razor, Gill |
 | Gibson | Nikon, Joey, Plague |
+| Gill | Razor, Cereal, Plague, Blade |
+| Turing | Cereal, Razor, Blade, Phreak, Plague |
 
 **Example delegation:**
 ```
