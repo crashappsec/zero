@@ -118,21 +118,48 @@ SPDX-License-Identifier: GPL-3.0
 
 ## Active Priorities
 
-### Priority 1: RAG Scanning Rules
+### Priority 1: RAG System Improvements
 
-**Rationale:** RAG patterns drive technology detection and need validation.
+**Rationale:** RAG patterns are the foundation for both agent knowledge and automated scanning.
 
-**Tasks:**
-- Test RAG → Semgrep rule generation across all categories
-- Validate generated rules against real repositories
-- Identify false positives and missing detections
-- Improve pattern coverage for edge cases
-- Add test fixtures for rule validation
+#### Phase 1-3: ✅ Complete (branch: `rag-improvements`)
+
+| Task | Status |
+|------|--------|
+| Pattern validator framework (`pkg/core/rag/validator.go`) | ✅ Complete |
+| Test fixtures (`testdata/rag/`) | ✅ Complete |
+| Fix regex cleaning (remove <4 char filter) | ✅ Complete |
+| Expand language support (18 languages) | ✅ Complete |
+| Dynamic RAG category discovery (23+ categories) | ✅ Complete |
+| Preserve severity metadata (`original_severity`, `is_critical`) | ✅ Complete |
+| Fix hardcoded paths in RAG loader | ✅ Complete |
+| Agent RAG search capability (`rag-search`) | ✅ Complete |
+
+**Result:** Rule generation now produces **3497 rules** (major increase).
+
+#### Phase 4: Testing & Validation (Current)
+
+| Task | Status |
+|------|--------|
+| Detection tests (`pkg/core/rag/detection_test.go`) | ⏳ In Progress |
+| Integration tests (RAG → Semgrep → Run → Verify) | ⏳ In Progress |
+| False positive test suite | ⏳ In Progress |
+| Run generated rules against real repositories | ⏳ In Progress |
+
+#### Phase 5: Pattern Coverage Expansion (Next)
+
+| Task | Status |
+|------|--------|
+| Add missing language patterns (Rust, C#, PHP, Java) | Planned |
+| Semantic Semgrep patterns (dataflow, multi-line) | Planned |
+| Community rule sync implementation | Planned |
 
 **Files:**
 - `rag/` - 23 categories, 400+ pattern files
-- `pkg/core/rules/manager.go` - Rule generation
+- `pkg/core/rag/validator.go` - Pattern validation
+- `pkg/core/rag/loader.go` - RAG loading with path discovery
 - `pkg/scanner/technology-identification/rag_converter.go` - RAG to Semgrep
+- `pkg/agent/system_info.go` - Agent RAG search
 
 ---
 
