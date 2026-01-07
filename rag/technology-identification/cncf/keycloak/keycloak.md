@@ -110,9 +110,9 @@
 ### Credentials
 
 #### Client Secret
-**Pattern**: `secret["':\s]+['"]?([a-zA-Z0-9-]+)['"]?`
+**Pattern**: `(client[_-]?secret|credentials\.secret)\s*[=:]\s*['"]([a-zA-Z0-9_-]{8,})['"]`
 **Severity**: critical
-**Description**: Keycloak client secret
+**Description**: Keycloak client secret in configuration
 
 #### Admin Password
 **Pattern**: `KEYCLOAK_ADMIN_PASSWORD\s*[=:]\s*['"]?([^\s'"]+)['"]?`

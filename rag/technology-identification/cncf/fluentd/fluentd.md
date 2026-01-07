@@ -122,10 +122,9 @@ Extensions: `.rb`
 **Example**: `FLUENT_ELASTICSEARCH_PASSWORD=secret`
 
 #### Fluentd HTTP Auth
-**Pattern**: `password\s+['"]?([^\s'"<>]+)['"]?`
+**Pattern**: `<(?:source|match|filter)[^>]*>[\s\S]*?password\s+['"]?([^\s'"<>]{4,})['"]?`
 **Severity**: high
-**Description**: Password in Fluentd config
-**Context Required**: In <source> or <match> block
+**Description**: Password in Fluentd config block
 
 ---
 

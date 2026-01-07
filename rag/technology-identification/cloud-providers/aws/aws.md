@@ -247,11 +247,10 @@ Extensions: `.go`
 **Example**: `AKIAIOSFODNN7EXAMPLE`
 
 #### AWS Secret Access Key
-**Pattern**: `(?<![A-Za-z0-9/+=])[A-Za-z0-9/+=]{40}(?![A-Za-z0-9/+=])`
+**Pattern**: `(?:aws_secret_access_key|AWS_SECRET_ACCESS_KEY|secret_access_key|SecretAccessKey)\s*[=:]\s*['"]?([A-Za-z0-9/+=]{40})['"]?`
 **Severity**: critical
 **Description**: AWS Secret Access Key - paired with Access Key ID for authentication
-**Context Required**: Must appear near `AWS`, `aws`, `secret`, or `key`
-**Note**: High false positive rate without context - validate with AWS STS
+**Example**: `aws_secret_access_key = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"`
 
 #### AWS Session Token
 **Pattern**: `(?:aws_session_token|AWS_SESSION_TOKEN)\s*[=:]\s*['"]?([A-Za-z0-9/+=]{100,})['"]?`

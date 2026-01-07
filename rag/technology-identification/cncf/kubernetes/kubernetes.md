@@ -177,9 +177,10 @@ Extensions: `.js`, `.ts`
 ### Credentials
 
 #### Kubernetes Token
-**Pattern**: `(?:bearer_token|token):\s*['"]?([A-Za-z0-9\-_\.]+)['"]?`
+**Pattern**: `bearer_token:\s*['"]?([A-Za-z0-9\-_\.]{20,})['"]?`
 **Severity**: critical
 **Description**: Kubernetes bearer token in kubeconfig
+**Example**: `bearer_token: eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...`
 
 #### Kubernetes Client Certificate
 **Pattern**: `client-certificate-data:\s*([A-Za-z0-9+/=]+)`

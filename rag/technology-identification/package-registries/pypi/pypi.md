@@ -95,10 +95,9 @@
 **Example**: `pypi-AgEIcHlwaS5vcmcCJGNh...`
 
 #### PyPI Password in .pypirc
-**Pattern**: `password\s*=\s*([^\s]+)`
+**Pattern**: `\[(?:pypi|testpypi|server)\][\s\S]*?password\s*=\s*([^\s]{8,})`
 **Severity**: critical
 **Description**: PyPI password in .pypirc file
-**Context Required**: Near [pypi] or [testpypi] sections
 
 #### Twine Credentials
 **Pattern**: `TWINE_(?:USERNAME|PASSWORD)\s*[=:]\s*['"]?([^\s'"]+)['"]?`

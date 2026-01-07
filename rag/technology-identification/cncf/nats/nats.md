@@ -118,14 +118,16 @@
 ### Credentials
 
 #### NATS Password
-**Pattern**: `password:\s*['"]?([^\s'"]+)['"]?`
+**Pattern**: `NATS_PASSWORD\s*[=:]\s*['"]?([^\s'"]{8,})['"]?`
 **Severity**: critical
-**Description**: NATS user password in config
+**Description**: NATS user password in environment variable
+**Example**: `NATS_PASSWORD=mysecretpass123`
 
 #### NATS Token
-**Pattern**: `token:\s*['"]?([^\s'"]+)['"]?`
+**Pattern**: `NATS_TOKEN\s*[=:]\s*['"]?([^\s'"]{8,})['"]?`
 **Severity**: critical
-**Description**: NATS authentication token
+**Description**: NATS authentication token in environment variable
+**Example**: `NATS_TOKEN=mytoken123456`
 
 #### NKey Seed
 **Pattern**: `SUAM[A-Z0-9]{56}`
