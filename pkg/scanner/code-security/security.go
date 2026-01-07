@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	coreFindings "github.com/crashappsec/zero/pkg/core/findings"
 	"github.com/crashappsec/zero/pkg/scanner"
 	"github.com/crashappsec/zero/pkg/scanner/common"
 )
@@ -308,9 +309,14 @@ func parseVulnsOutput(data []byte, repoPath string, cfg VulnsConfig) ([]VulnFind
 				Line int `json:"line"`
 				Col  int `json:"col"`
 			} `json:"start"`
+			End struct {
+				Line int `json:"line"`
+				Col  int `json:"col"`
+			} `json:"end"`
 			Extra struct {
 				Severity string                 `json:"severity"`
 				Message  string                 `json:"message"`
+				Lines    string                 `json:"lines"`
 				Metadata map[string]interface{} `json:"metadata"`
 			} `json:"extra"`
 		} `json:"results"`
@@ -337,6 +343,29 @@ func parseVulnsOutput(data []byte, repoPath string, cfg VulnsConfig) ([]VulnFind
 		cwe := extractCWEFromMetadata(r.Extra.Metadata)
 		owasp := extractOWASPFromMetadata(r.Extra.Metadata)
 
+		// Determine rule source from rule ID
+		ruleSource := "semgrep-community"
+		if strings.HasPrefix(r.CheckID, "zero.") || strings.HasPrefix(r.CheckID, "rag.") {
+			ruleSource = "rag"
+		}
+
+		// Create evidence for analyst review
+		evidence := &coreFindings.Evidence{
+			FilePath:        file,
+			LineStart:       r.Start.Line,
+			LineEnd:         r.End.Line,
+			ColumnStart:     r.Start.Col,
+			ColumnEnd:       r.End.Col,
+			MatchedText:     r.Extra.Lines,
+			RuleID:          r.CheckID,
+			RuleSource:      ruleSource,
+			PatternType:     "semgrep-semantic",
+			ScannerName:     "code-security",
+			ConfidenceScore: 0.85, // Default high confidence for Semgrep semantic matches
+			ConfidenceReason: "Semgrep semantic pattern match",
+		}
+		evidence.ComputeFingerprint()
+
 		finding := VulnFinding{
 			RuleID:      r.CheckID,
 			Title:       extractTitle(r.CheckID),
@@ -348,6 +377,7 @@ func parseVulnsOutput(data []byte, repoPath string, cfg VulnsConfig) ([]VulnFind
 			Category:    category,
 			CWE:         cwe,
 			OWASP:       owasp,
+			Evidence:    evidence,
 		}
 		findings = append(findings, finding)
 
@@ -636,6 +666,10 @@ func parseSecretsOutput(data []byte, repoPath string, cfg SecretsConfig) ([]Secr
 				Line int `json:"line"`
 				Col  int `json:"col"`
 			} `json:"start"`
+			End struct {
+				Line int `json:"line"`
+				Col  int `json:"col"`
+			} `json:"end"`
 			Extra struct {
 				Severity string `json:"severity"`
 				Message  string `json:"message"`
@@ -664,15 +698,40 @@ func parseSecretsOutput(data []byte, repoPath string, cfg SecretsConfig) ([]Secr
 			snippet = redactSecret(snippet)
 		}
 
+		// Determine rule source from rule ID
+		ruleSource := "semgrep-community"
+		if strings.HasPrefix(r.CheckID, "zero.") || strings.HasPrefix(r.CheckID, "rag.") {
+			ruleSource = "rag"
+		}
+
+		// Create evidence for analyst review
+		evidence := &coreFindings.Evidence{
+			FilePath:         file,
+			LineStart:        r.Start.Line,
+			LineEnd:          r.End.Line,
+			ColumnStart:      r.Start.Col,
+			ColumnEnd:        r.End.Col,
+			MatchedText:      r.Extra.Lines, // Original unredacted for fingerprint
+			RuleID:           r.CheckID,
+			RuleSource:       ruleSource,
+			PatternType:      "semgrep-regex",
+			ScannerName:      "code-security",
+			ConfidenceScore:  0.90, // High confidence for secret patterns
+			ConfidenceReason: "Secret pattern match",
+		}
+		evidence.ComputeFingerprint()
+
 		finding := SecretFinding{
-			RuleID:   r.CheckID,
-			Type:     secretType,
-			Severity: severity,
-			Message:  r.Extra.Message,
-			File:     file,
-			Line:     r.Start.Line,
-			Column:   r.Start.Col,
-			Snippet:  snippet,
+			RuleID:          r.CheckID,
+			Type:            secretType,
+			Severity:        severity,
+			Message:         r.Extra.Message,
+			File:            file,
+			Line:            r.Start.Line,
+			Column:          r.Start.Col,
+			Snippet:         snippet,
+			DetectionSource: "semgrep",
+			Evidence:        evidence,
 		}
 		findings = append(findings, finding)
 

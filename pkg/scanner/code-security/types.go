@@ -1,6 +1,10 @@
 package codesecurity
 
-import "time"
+import (
+	"time"
+
+	"github.com/crashappsec/zero/pkg/core/findings"
+)
 
 // Result holds all feature results
 type Result struct {
@@ -105,6 +109,9 @@ type VulnFinding struct {
 	CWE         []string `json:"cwe,omitempty"`
 	OWASP       []string `json:"owasp,omitempty"`
 	Fix         string   `json:"fix,omitempty"`
+
+	// Evidence for analyst review and rule improvement
+	Evidence *findings.Evidence `json:"evidence,omitempty"`
 }
 
 // SecretFinding represents a detected secret
@@ -135,6 +142,9 @@ type SecretFinding struct {
 	// Remediation guidance
 	Rotation        *RotationGuide `json:"rotation,omitempty"`         // Rotation steps, URLs, commands
 	ServiceProvider string         `json:"service_provider,omitempty"` // "aws", "github", "stripe", etc.
+
+	// Evidence for analyst review and rule improvement
+	Evidence *findings.Evidence `json:"evidence,omitempty"`
 }
 
 // CommitInfo contains git commit context for history findings
@@ -176,6 +186,9 @@ type APIFinding struct {
 	Endpoint    string   `json:"endpoint,omitempty"`    // /api/users, /graphql, etc.
 	Framework   string   `json:"framework,omitempty"`   // express, fastapi, django, etc.
 	Remediation string   `json:"remediation,omitempty"`
+
+	// Evidence for analyst review and rule improvement
+	Evidence *findings.Evidence `json:"evidence,omitempty"`
 }
 
 // Crypto feature summaries (merged from code-crypto)
@@ -237,6 +250,9 @@ type CipherFinding struct {
 	Suggestion  string `json:"suggestion"`
 	CWE         string `json:"cwe"`
 	Source      string `json:"source"` // "semgrep" or "pattern"
+
+	// Evidence for analyst review and rule improvement
+	Evidence *findings.Evidence `json:"evidence,omitempty"`
 }
 
 // KeyFinding represents a hardcoded key finding
@@ -248,6 +264,9 @@ type KeyFinding struct {
 	Description string `json:"description"`
 	Match       string `json:"match,omitempty"`
 	CWE         string `json:"cwe"`
+
+	// Evidence for analyst review and rule improvement
+	Evidence *findings.Evidence `json:"evidence,omitempty"`
 }
 
 // RandomFinding represents an insecure random finding
@@ -260,6 +279,9 @@ type RandomFinding struct {
 	Match       string `json:"match,omitempty"`
 	Suggestion  string `json:"suggestion"`
 	CWE         string `json:"cwe"`
+
+	// Evidence for analyst review and rule improvement
+	Evidence *findings.Evidence `json:"evidence,omitempty"`
 }
 
 // TLSFinding represents a TLS misconfiguration finding
@@ -272,6 +294,9 @@ type TLSFinding struct {
 	Match       string `json:"match,omitempty"`
 	Suggestion  string `json:"suggestion"`
 	CWE         string `json:"cwe"`
+
+	// Evidence for analyst review and rule improvement
+	Evidence *findings.Evidence `json:"evidence,omitempty"`
 }
 
 // CertificatesResult holds certificate analysis results
