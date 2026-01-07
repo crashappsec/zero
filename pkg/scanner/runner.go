@@ -36,6 +36,7 @@ type RunOptions struct {
 	Timeout        time.Duration
 	Parallel       int
 	FeatureConfigs map[string]map[string]interface{} // Scanner name -> feature config
+	RepoMetadata   *RepoMetadata                     // Repository metadata for evidence collection
 }
 
 // RunScanners executes all configured scanners for a repository
@@ -136,10 +137,11 @@ func (r *NativeRunner) RunScanners(ctx context.Context, opts RunOptions) (*RunRe
 				// Build scan options
 				sbomMu.RLock()
 				scanOpts := &ScanOptions{
-					RepoPath:  opts.RepoPath,
-					OutputDir: outputDir,
-					SBOMPath:  sbomPath,
-					Timeout:   timeout,
+					RepoPath:     opts.RepoPath,
+					OutputDir:    outputDir,
+					SBOMPath:     sbomPath,
+					Timeout:      timeout,
+					RepoMetadata: opts.RepoMetadata,
 					// Forward status messages to progress callback
 					OnStatus: func(msg string) {
 						if r.OnProgress != nil {

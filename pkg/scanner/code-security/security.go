@@ -290,11 +290,11 @@ func (s *CodeSecurityScanner) runVulns(ctx context.Context, opts *scanner.ScanOp
 		return &VulnsSummary{Error: "semgrep execution failed"}, findings
 	}
 
-	findings, summary := parseVulnsOutput(result.Stdout, opts.RepoPath, cfg)
+	findings, summary := parseVulnsOutput(result.Stdout, opts, cfg)
 	return summary, findings
 }
 
-func parseVulnsOutput(data []byte, repoPath string, cfg VulnsConfig) ([]VulnFinding, *VulnsSummary) {
+func parseVulnsOutput(data []byte, opts *scanner.ScanOptions, cfg VulnsConfig) ([]VulnFinding, *VulnsSummary) {
 	var findings []VulnFinding
 	summary := &VulnsSummary{
 		ByCWE:      make(map[string]int),
@@ -328,8 +328,8 @@ func parseVulnsOutput(data []byte, repoPath string, cfg VulnsConfig) ([]VulnFind
 
 	for _, r := range output.Results {
 		file := r.Path
-		if strings.HasPrefix(file, repoPath) {
-			file = strings.TrimPrefix(file, repoPath+"/")
+		if strings.HasPrefix(file, opts.RepoPath) {
+			file = strings.TrimPrefix(file, opts.RepoPath+"/")
 		}
 
 		severity := mapSemgrepSeverity(r.Extra.Severity)
@@ -351,18 +351,28 @@ func parseVulnsOutput(data []byte, repoPath string, cfg VulnsConfig) ([]VulnFind
 
 		// Create evidence for analyst review
 		evidence := &coreFindings.Evidence{
-			FilePath:        file,
-			LineStart:       r.Start.Line,
-			LineEnd:         r.End.Line,
-			ColumnStart:     r.Start.Col,
-			ColumnEnd:       r.End.Col,
-			MatchedText:     r.Extra.Lines,
-			RuleID:          r.CheckID,
-			RuleSource:      ruleSource,
-			PatternType:     "semgrep-semantic",
-			ScannerName:     "code-security",
-			ConfidenceScore: 0.85, // Default high confidence for Semgrep semantic matches
+			FilePath:         file,
+			LineStart:        r.Start.Line,
+			LineEnd:          r.End.Line,
+			ColumnStart:      r.Start.Col,
+			ColumnEnd:        r.End.Col,
+			MatchedText:      r.Extra.Lines,
+			RuleID:           r.CheckID,
+			RuleSource:       ruleSource,
+			PatternType:      "semgrep-semantic",
+			ScannerName:      "code-security",
+			ScannerVersion:   Version,
+			ConfidenceScore:  0.85, // Default high confidence for Semgrep semantic matches
 			ConfidenceReason: "Semgrep semantic pattern match",
+		}
+		// Add repo metadata if available
+		if opts.RepoMetadata != nil {
+			evidence.GitHubOrg = opts.RepoMetadata.GitHubOrg
+			evidence.GitHubRepo = opts.RepoMetadata.GitHubRepo
+			evidence.RepoURL = opts.RepoMetadata.RepoURL
+			evidence.CommitSHA = opts.RepoMetadata.CommitSHA
+			evidence.Branch = opts.RepoMetadata.Branch
+			evidence.ScanProfile = opts.RepoMetadata.ScanProfile
 		}
 		evidence.ComputeFingerprint()
 
@@ -451,7 +461,7 @@ func (s *CodeSecurityScanner) runSecrets(ctx context.Context, opts *scanner.Scan
 
 		if err == nil && result != nil {
 			mu.Lock()
-			semgrepFindings, semgrepSummary = parseSecretsOutput(result.Stdout, opts.RepoPath, cfg)
+			semgrepFindings, semgrepSummary = parseSecretsOutput(result.Stdout, opts, cfg)
 			// Mark detection source
 			for i := range semgrepFindings {
 				semgrepFindings[i].DetectionSource = "semgrep"
@@ -650,7 +660,7 @@ func (s *CodeSecurityScanner) runSecrets(ctx context.Context, opts *scanner.Scan
 	return semgrepSummary, allFindings
 }
 
-func parseSecretsOutput(data []byte, repoPath string, cfg SecretsConfig) ([]SecretFinding, *SecretsSummary) {
+func parseSecretsOutput(data []byte, opts *scanner.ScanOptions, cfg SecretsConfig) ([]SecretFinding, *SecretsSummary) {
 	var findings []SecretFinding
 	summary := &SecretsSummary{
 		ByType:    make(map[string]int),
@@ -689,8 +699,8 @@ func parseSecretsOutput(data []byte, repoPath string, cfg SecretsConfig) ([]Secr
 		secretType := getSecretType(r.CheckID)
 
 		file := r.Path
-		if strings.HasPrefix(file, repoPath) {
-			file = strings.TrimPrefix(file, repoPath+"/")
+		if strings.HasPrefix(file, opts.RepoPath) {
+			file = strings.TrimPrefix(file, opts.RepoPath+"/")
 		}
 
 		snippet := r.Extra.Lines
@@ -716,8 +726,18 @@ func parseSecretsOutput(data []byte, repoPath string, cfg SecretsConfig) ([]Secr
 			RuleSource:       ruleSource,
 			PatternType:      "semgrep-regex",
 			ScannerName:      "code-security",
+			ScannerVersion:   Version,
 			ConfidenceScore:  0.90, // High confidence for secret patterns
 			ConfidenceReason: "Secret pattern match",
+		}
+		// Add repo metadata if available
+		if opts.RepoMetadata != nil {
+			evidence.GitHubOrg = opts.RepoMetadata.GitHubOrg
+			evidence.GitHubRepo = opts.RepoMetadata.GitHubRepo
+			evidence.RepoURL = opts.RepoMetadata.RepoURL
+			evidence.CommitSHA = opts.RepoMetadata.CommitSHA
+			evidence.Branch = opts.RepoMetadata.Branch
+			evidence.ScanProfile = opts.RepoMetadata.ScanProfile
 		}
 		evidence.ComputeFingerprint()
 

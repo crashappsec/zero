@@ -52,6 +52,33 @@ type ScanOptions struct {
 
 	// FeatureConfig contains feature-specific configuration for super scanners
 	FeatureConfig map[string]interface{}
+
+	// Repository metadata for evidence collection
+	RepoMetadata *RepoMetadata
+}
+
+// RepoMetadata contains GitHub repository information for evidence tracking
+type RepoMetadata struct {
+	// GitHubOrg is the organization or user that owns the repo (e.g., "expressjs")
+	GitHubOrg string `json:"github_org"`
+
+	// GitHubRepo is the repository name (e.g., "express")
+	GitHubRepo string `json:"github_repo"`
+
+	// RepoURL is the full GitHub URL (e.g., "https://github.com/expressjs/express")
+	RepoURL string `json:"repo_url"`
+
+	// CommitSHA is the exact commit being scanned
+	CommitSHA string `json:"commit_sha"`
+
+	// Branch is the branch name (e.g., "main", "master")
+	Branch string `json:"branch"`
+
+	// ScanProfile is the profile used for scanning (e.g., "all-quick")
+	ScanProfile string `json:"scan_profile"`
+
+	// ScannerVersion is the Zero version
+	ScannerVersion string `json:"scanner_version"`
 }
 
 // Feature describes a feature within a super scanner

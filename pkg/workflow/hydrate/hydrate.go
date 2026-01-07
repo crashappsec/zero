@@ -540,6 +540,17 @@ func (h *Hydrate) scanRepoSimple(ctx context.Context, status *RepoStatus, scanne
 	// Load feature configs for each scanner
 	featureConfigs := h.loadFeatureConfigs(scanners)
 
+	// Build repo metadata for evidence collection
+	repoMetadata := &scanner.RepoMetadata{
+		GitHubOrg:      status.Repo.Owner,
+		GitHubRepo:     status.Repo.Name,
+		RepoURL:        fmt.Sprintf("https://github.com/%s", status.Repo.NameWithOwner),
+		CommitSHA:      h.getFullCommitHash(status.RepoPath),
+		Branch:         h.getCurrentBranch(status.RepoPath),
+		ScanProfile:    h.opts.Profile,
+		ScannerVersion: h.cfg.Version,
+	}
+
 	// Run scanners
 	opts := scanner.RunOptions{
 		RepoPath:       status.RepoPath,
@@ -549,6 +560,7 @@ func (h *Hydrate) scanRepoSimple(ctx context.Context, status *RepoStatus, scanne
 		Parallel:       h.opts.ParallelScanners,
 		Timeout:        time.Duration(h.cfg.Settings.ScannerTimeoutSeconds) * time.Second,
 		FeatureConfigs: featureConfigs,
+		RepoMetadata:   repoMetadata,
 	}
 
 	result, err := h.runner.RunScanners(ctx, opts)
@@ -774,6 +786,17 @@ func (h *Hydrate) scanRepoWithProgress(ctx context.Context, status *RepoStatus, 
 	// Load feature configs for each scanner
 	featureConfigs := h.loadFeatureConfigs(scanners)
 
+	// Build repo metadata for evidence collection
+	repoMetadata := &scanner.RepoMetadata{
+		GitHubOrg:      status.Repo.Owner,
+		GitHubRepo:     status.Repo.Name,
+		RepoURL:        fmt.Sprintf("https://github.com/%s", status.Repo.NameWithOwner),
+		CommitSHA:      h.getFullCommitHash(status.RepoPath),
+		Branch:         h.getCurrentBranch(status.RepoPath),
+		ScanProfile:    h.opts.Profile,
+		ScannerVersion: h.cfg.Version,
+	}
+
 	// Run scanners (parallel execution within repo)
 	result, err := h.runner.RunScanners(ctx, scanner.RunOptions{
 		RepoPath:       status.RepoPath,
@@ -782,6 +805,7 @@ func (h *Hydrate) scanRepoWithProgress(ctx context.Context, status *RepoStatus, 
 		SkipScanners:   skipScanners,
 		Parallel:       h.opts.ParallelScanners,
 		FeatureConfigs: featureConfigs,
+		RepoMetadata:   repoMetadata,
 	})
 	status.Duration = time.Since(start)
 

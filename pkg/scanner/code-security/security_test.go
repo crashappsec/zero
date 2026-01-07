@@ -2,6 +2,8 @@ package codesecurity
 
 import (
 	"testing"
+
+	"github.com/crashappsec/zero/pkg/scanner"
 )
 
 func TestCodeSecurityScanner_Name(t *testing.T) {
@@ -393,7 +395,8 @@ func TestParseVulnsOutput(t *testing.T) {
 	}`)
 
 	cfg := VulnsConfig{SeverityMinimum: "low"}
-	findings, summary := parseVulnsOutput(validOutput, "/repo", cfg)
+	opts := &scanner.ScanOptions{RepoPath: "/repo"}
+	findings, summary := parseVulnsOutput(validOutput, opts, cfg)
 
 	if len(findings) != 1 {
 		t.Errorf("parseVulnsOutput() returned %d findings, want 1", len(findings))
@@ -409,7 +412,7 @@ func TestParseVulnsOutput(t *testing.T) {
 
 	// Empty output
 	emptyOutput := []byte(`{"results": []}`)
-	findings2, summary2 := parseVulnsOutput(emptyOutput, "/repo", cfg)
+	findings2, summary2 := parseVulnsOutput(emptyOutput, opts, cfg)
 	if len(findings2) != 0 {
 		t.Errorf("parseVulnsOutput(empty) returned %d findings, want 0", len(findings2))
 	}
@@ -419,7 +422,7 @@ func TestParseVulnsOutput(t *testing.T) {
 
 	// Invalid JSON
 	invalidOutput := []byte(`not json`)
-	findings3, _ := parseVulnsOutput(invalidOutput, "/repo", cfg)
+	findings3, _ := parseVulnsOutput(invalidOutput, opts, cfg)
 	if len(findings3) != 0 {
 		t.Errorf("parseVulnsOutput(invalid) returned %d findings, want 0", len(findings3))
 	}
@@ -443,7 +446,8 @@ func TestParseSecretsOutput(t *testing.T) {
 	}`)
 
 	cfg := SecretsConfig{RedactSecrets: true}
-	findings, summary := parseSecretsOutput(validOutput, "/repo", cfg)
+	opts := &scanner.ScanOptions{RepoPath: "/repo"}
+	findings, summary := parseSecretsOutput(validOutput, opts, cfg)
 
 	if len(findings) != 1 {
 		t.Errorf("parseSecretsOutput() returned %d findings, want 1", len(findings))
