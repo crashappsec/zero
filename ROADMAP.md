@@ -118,7 +118,25 @@ SPDX-License-Identifier: GPL-3.0
 
 ## Active Priorities
 
-### Priority 1: Test Coverage
+### Priority 1: RAG Scanning Rules
+
+**Rationale:** RAG patterns drive technology detection and need validation.
+
+**Tasks:**
+- Test RAG → Semgrep rule generation across all categories
+- Validate generated rules against real repositories
+- Identify false positives and missing detections
+- Improve pattern coverage for edge cases
+- Add test fixtures for rule validation
+
+**Files:**
+- `rag/` - 23 categories, 400+ pattern files
+- `pkg/core/rules/manager.go` - Rule generation
+- `pkg/scanner/technology-identification/rag_converter.go` - RAG to Semgrep
+
+---
+
+### Priority 2: Test Coverage
 
 **Rationale:** Low coverage (6-47%) blocks confident releases and refactoring.
 
@@ -137,7 +155,7 @@ SPDX-License-Identifier: GPL-3.0
 
 ---
 
-### Priority 2: Web UI Performance
+### Priority 3: Web UI Performance
 
 **Rationale:** Dashboard unusable with current 500-2000ms response times.
 
@@ -153,7 +171,7 @@ SPDX-License-Identifier: GPL-3.0
 
 ---
 
-### Priority 3: MCP Integration
+### Priority 4: MCP Integration
 
 **Rationale:** Enable Zero as MCP server for IDE integration.
 
@@ -167,7 +185,7 @@ SPDX-License-Identifier: GPL-3.0
 
 ---
 
-### Priority 4: Reachability Analysis
+### Priority 5: Reachability Analysis
 
 **Rationale:** Prioritize actually-reachable vulnerabilities.
 
@@ -203,7 +221,6 @@ SPDX-License-Identifier: GPL-3.0
 
 | Feature | Description | Status |
 |---------|-------------|--------|
-| HTML Reports | Interactive HTML report generation | Planned |
 | PDF Export | Executive summaries | Future |
 | Trend Analysis | Track security posture over time | Future |
 | Compliance Dashboards | SOC 2, ISO 27001, NIST mapping | Future |
