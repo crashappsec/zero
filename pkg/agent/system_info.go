@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -45,6 +46,8 @@ func (s *SystemInfo) GetSystemInfo(category, filter string) (string, error) {
 		return s.getRAGPatterns(filter)
 	case "rag-search":
 		return s.getRAGSearch(filter)
+	case "rag-detail":
+		return s.getRAGDetail(filter)
 	case "rules-status":
 		return s.getRulesStatus()
 	case "feeds-status":
@@ -62,7 +65,7 @@ func (s *SystemInfo) GetSystemInfo(category, filter string) (string, error) {
 	case "help":
 		return s.getHelpInfo()
 	default:
-		return "", fmt.Errorf("unknown category: %s. Valid categories: rag-stats, rag-patterns, rag-search, rules-status, feeds-status, scanners, profiles, config, agents, versions, help", category)
+		return "", fmt.Errorf("unknown category: %s. Valid categories: rag-stats, rag-patterns, rag-search, rag-detail, rules-status, feeds-status, scanners, profiles, config, agents, versions, help", category)
 	}
 }
 
@@ -355,6 +358,91 @@ func (s *SystemInfo) getAvailableCategories() []string {
 		return []string{}
 	}
 	return categories
+}
+
+// RAGDetailResponse is the response for rag-detail
+type RAGDetailResponse struct {
+	ID          string                 `json:"id"`
+	Category    string                 `json:"category"`
+	Technology  string                 `json:"technology"`
+	Pattern     string                 `json:"pattern"`
+	Type        string                 `json:"type"`
+	Severity    string                 `json:"severity"`
+	Message     string                 `json:"message,omitempty"`
+	Description string                 `json:"description,omitempty"`
+	Confidence  int                    `json:"confidence,omitempty"`
+	Languages   []string               `json:"languages,omitempty"`
+	CWE         string                 `json:"cwe,omitempty"`
+	References  []string               `json:"references,omitempty"`
+	Examples    []string               `json:"examples,omitempty"`
+	Source      string                 `json:"source"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// getRAGDetail retrieves full details for a specific pattern by ID
+func (s *SystemInfo) getRAGDetail(filter string) (string, error) {
+	if filter == "" {
+		return toJSON(map[string]interface{}{
+			"message": "Specify a pattern ID to retrieve details",
+			"usage":   "filter: <pattern-id>",
+			"hint":    "Use rag-search to find pattern IDs first",
+			"examples": []string{
+				"aws-access-key-id",
+				"sql-injection",
+				"weak-cipher-des",
+			},
+		})
+	}
+
+	patternID := strings.TrimSpace(filter)
+
+	// Search through all categories for the pattern
+	categories, err := s.ragLoader.ListCategories()
+	if err != nil {
+		return "", fmt.Errorf("listing categories: %w", err)
+	}
+
+	for _, cat := range categories {
+		loadResult, err := s.ragLoader.LoadCategory(cat)
+		if err != nil {
+			continue
+		}
+
+		for _, ps := range loadResult.PatternSets {
+			for _, p := range ps.Patterns {
+				// Match by ID (exact or partial)
+				if strings.EqualFold(p.ID, patternID) ||
+					strings.Contains(strings.ToLower(p.ID), strings.ToLower(patternID)) {
+
+					// Extract CWE from message or description
+					cwe := ""
+					cwePattern := regexp.MustCompile(`CWE-\d+`)
+					if match := cwePattern.FindString(p.Message); match != "" {
+						cwe = match
+					}
+
+					response := RAGDetailResponse{
+						ID:          p.ID,
+						Category:    cat,
+						Technology:  ps.Technology,
+						Pattern:     p.Pattern,
+						Type:        p.Type,
+						Severity:    p.Severity,
+						Message:     p.Message,
+						Confidence:  p.Confidence,
+						Languages:   p.Languages,
+						CWE:         cwe,
+						Source:      ps.Source,
+						Metadata:    p.Metadata,
+					}
+
+					return toJSON(response)
+				}
+			}
+		}
+	}
+
+	return "", fmt.Errorf("pattern '%s' not found. Use rag-search to find valid pattern IDs", patternID)
 }
 
 // parseSearchParams parses "key:value" pairs from filter string
@@ -815,6 +903,7 @@ func (s *SystemInfo) getHelpInfo() (string, error) {
 			"rag-stats - Pattern counts by RAG category",
 			"rag-patterns - List patterns in a category (use filter)",
 			"rag-search - Search patterns (filter: query:text severity:level category:name language:lang limit:n)",
+			"rag-detail - Get full pattern details by ID (filter: pattern-id)",
 			"rules-status - Generated and community rule status",
 			"feeds-status - Feed synchronization status",
 			"scanners - Scanner inventory with features",
