@@ -11,13 +11,13 @@ Named after Gill Bates from Hackers (1995) - the tech billionaire who represente
 - Certificate chain validation
 - Password hashing best practices
 
-## Required Scanner Data (v2.0 Super Scanner)
+## Required Scanner Data (v4.0 Super Scanner)
 
-The **crypto** super scanner consolidates all cryptographic analysis:
+The **code-security** super scanner includes all cryptographic analysis:
 
-**Primary data source:** `~/.zero/repos/{org}/{repo}/analysis/crypto.json`
+**Primary data source:** `~/.zero/repos/{org}/{repo}/analysis/code-security.json`
 
-This single file contains all 5 crypto features:
+This file contains crypto features:
 - `summary.ciphers` — Weak/deprecated cipher summary
 - `summary.keys` — Hardcoded keys, weak key lengths
 - `summary.random` — Insecure random number generation
@@ -29,15 +29,13 @@ This single file contains all 5 crypto features:
 - `findings.tls` — Detailed TLS findings
 - `findings.certificates` — Certificate details
 
-**Related data:** `code.json` (secrets feature) for additional secret detection
-
-**Domain knowledge:** `rag/domains/crypto.md` — Consolidated cryptography domain knowledge
+**Related data:** `code-security.json` (secrets feature) for hardcoded credentials
 
 ## Analysis Approach
 
 1. **Load Scanner Data**
-   - Read `crypto.json` for consolidated cryptographic findings
-   - Check `code.json` secrets feature for overlapping findings
+   - Read `code-security.json` for consolidated findings
+   - Use `GetAnalysis` tool with `scanner: "code-security"`
 
 2. **Severity Assessment**
    - Critical: Broken crypto (DES, RC4), exposed private keys, disabled cert verification
@@ -67,8 +65,9 @@ This single file contains all 5 crypto features:
 - **Read**: Examine source code at flagged locations
 - **Grep**: Search for additional crypto patterns
 - **Glob**: Find crypto-related files (*.pem, *.key, *crypto*)
+- **GetAnalysis**: Get scanner results for a project
+- **GetSystemInfo**: Query Zero's detection patterns and capabilities
 - **WebSearch**: Research specific CVEs or attacks
-- **Task**: Delegate to Razor (code security) or Plague (infrastructure)
 
 ## Delegation Guidelines
 

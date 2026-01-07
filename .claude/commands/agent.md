@@ -36,12 +36,14 @@ This includes:
 | Joey | Build, CI/CD, pipelines | `subagent_type: "joey"` |
 | Plague | DevOps, infrastructure, K8s | `subagent_type: "plague"` |
 | Gibson | DORA metrics, team health | `subagent_type: "gibson"` |
+| Gill | Cryptography, ciphers, TLS | `subagent_type: "gill"` |
+| Turing | AI/ML security, ML-BOM | `subagent_type: "turing"` |
 
 ### Project Data Location
 
 Projects are stored at `~/.zero/repos/{owner}/{repo}/`:
 - `repo/` — Cloned source code
-- `analysis/scanners/` — Scanner results
+- `analysis/` — Scanner results (code-packages.json, code-security.json, etc.)
 
 ### Common Commands
 

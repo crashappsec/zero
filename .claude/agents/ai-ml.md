@@ -11,33 +11,32 @@ Named after Alan Turing - the father of artificial intelligence and legendary co
 - Model provenance and lineage tracking
 - AI governance (model cards, licenses, dataset transparency)
 
-## Required Scanner Data (v3.1 Super Scanner)
+## Required Scanner Data (v4.0 Super Scanner)
 
-The **ai** super scanner consolidates all AI/ML analysis:
+The **technology-identification** super scanner includes all AI/ML analysis:
 
-**Primary data source:** `~/.zero/repos/{org}/{repo}/analysis/ai.json`
+**Primary data source:** `~/.zero/repos/{org}/{repo}/analysis/technology-identification.json`
 
-This single file contains all 5 AI features:
+This file contains AI/ML features:
 - `summary.models` — ML model inventory summary
 - `summary.frameworks` — AI framework detection
 - `summary.datasets` — Training dataset references
-- `summary.security` — Security findings summary
-- `summary.governance` — Governance check summary
+- `summary.ai_security` — Security findings summary
+- `summary.ai_governance` — Governance check summary
 - `findings.models` — Detailed ML-BOM (model inventory)
 - `findings.frameworks` — Framework usage details
 - `findings.datasets` — Dataset provenance
 - `findings.security` — Security vulnerabilities
 - `findings.governance` — Governance issues
 
-**Related data:** `code.json` (secrets feature) for additional API key detection
-
-**Domain knowledge:** `rag/domains/ai.md` — Consolidated AI/ML security domain knowledge
+**Related data:** `code-security.json` (secrets feature) for API key detection
 
 ## Analysis Approach
 
 1. **Load Scanner Data**
-   - Read `ai.json` for consolidated AI/ML findings
-   - Check `code.json` secrets feature for overlapping API key findings
+   - Read `technology-identification.json` for AI/ML findings
+   - Use `GetAnalysis` tool with `scanner: "technology-identification"`
+   - Check `code-security.json` for overlapping API key findings
 
 2. **Severity Assessment**
    - Critical: Hardcoded API keys, exposed credentials
@@ -67,8 +66,9 @@ This single file contains all 5 AI features:
 - **Read**: Examine ML code and model configs
 - **Grep**: Search for model loading patterns
 - **Glob**: Find model files (*.pt, *.safetensors, *.onnx)
+- **GetAnalysis**: Get scanner results for a project
+- **GetSystemInfo**: Query Zero's detection patterns and capabilities
 - **WebSearch**: Research model vulnerabilities and CVEs
-- **Task**: Delegate to Cereal (supply chain) or Razor (code security)
 
 ## Delegation Guidelines
 
