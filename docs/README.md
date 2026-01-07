@@ -7,6 +7,22 @@ SPDX-License-Identifier: GPL-3.0
 
 Comprehensive documentation for Zero - an engineering intelligence platform for repository assessment.
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Getting Started](GETTING_STARTED.md) | Installation, setup, and first scan |
+| [Docker](DOCKER.md) | Running Zero in containers |
+| [Roadmap](ROADMAP.md) | Project roadmap and planned features |
+| [Changelog](CHANGELOG.md) | Version history and release notes |
+
+## Scanners
+
+| Document | Description |
+|----------|-------------|
+| [Scanner Reference](scanners/reference.md) | Complete list of all scanners with options |
+| [Output Formats](scanners/output-formats.md) | JSON schemas for scanner output |
+
 ## Quick Start
 
 ### Prerequisites
@@ -38,44 +54,28 @@ go build -o zero ./cmd/zero
 Before scanning, sync Semgrep rules:
 
 ```bash
-# Sync Semgrep community rules for SAST scanning (SQL injection, XSS, etc.)
+# Sync Semgrep community rules for SAST scanning
 ./zero feeds semgrep
 
-# Generate rules from RAG knowledge base (Zero's custom patterns)
+# Generate rules from RAG knowledge base
 ./zero feeds rag
 ```
 
 ### Scan a Repository
 
 ```bash
-# Scan a single repository (uses default 'all-quick' profile)
+# Scan a single repository
 ./zero hydrate strapi/strapi
 
 # Scan with a specific profile
 ./zero hydrate strapi/strapi all-quick
 
-# Scan an organization (default limit: 25 repos)
-./zero hydrate zero-test-org all-quick
-
-# Demo mode: skip repos > 50MB, auto-fetch replacements
-./zero hydrate zero-test-org all-quick --demo
-
 # Check scan status
 ./zero status
 
-# Start web UI to view reports
-./zero serve
+# Generate interactive report
+./zero report strapi/strapi
 ```
-
-### Available Profiles
-
-| Profile | Description | Time |
-|---------|-------------|------|
-| `all-quick` | All scanners, limited features (default) | ~2 min |
-| `all-complete` | All scanners, all features | ~12 min |
-| `code-security` | SAST, secrets, API security, git history security | ~3 min |
-| `packages` | SBOM + vulnerability analysis | ~3 min |
-| `devops` | IaC, containers, GitHub Actions | ~3 min |
 
 ### Scan an Organization
 
@@ -83,88 +83,27 @@ Before scanning, sync Semgrep rules:
 # Scan all repos in an organization (default limit: 25)
 ./zero hydrate zero-test-org
 
-# Scan with a specific profile
-./zero hydrate zero-test-org all-quick
-
-# Limit to 10 repos
-./zero hydrate zero-test-org --limit 10
-
-# Demo mode: skip repos > 50MB, fetch replacements automatically
+# Demo mode: skip repos > 50MB, fetch replacements
 ./zero hydrate zero-test-org --demo
 ```
 
-**Organization Flags:**
-- `--limit N` - Maximum repos to process (default: 25)
-- `--demo` - Demo mode: skip repositories larger than 50MB, automatically fetch replacement repos to maintain the requested count
+### Enter Agent Mode
 
-### Enter Agent Mode (Claude Code)
-
-In Claude Code, use the `/agent` slash command to chat with Zero, the AI orchestrator who can delegate to specialist agents.
-
-## Documentation Index
-
-### Architecture
-
-Technical documentation for developers and contributors.
-
-| Document | Description |
-|----------|-------------|
-| [System Overview](architecture/overview.md) | High-level architecture and component relationships |
-| [Scanner Architecture](architecture/scanners.md) | How scanners work: Semgrep engine + RAG rules + wrappers |
-| [RAG Pipeline](architecture/rag-pipeline.md) | Converting markdown patterns to Semgrep YAML rules |
-| [Knowledge Base](architecture/knowledge-base.md) | Knowledge organization within agents |
-
-### Scanners
-
-Reference documentation for all available scanners.
-
-| Document | Description |
-|----------|-------------|
-| [Scanner Reference](scanners/reference.md) | Complete list of all scanners with options and examples |
-| [Output Formats](scanners/output-formats.md) | JSON schemas for scanner output with examples |
-
-### Agents (Hackers-Themed)
-
-Self-contained, portable AI agents named after characters from Hackers (1995):
-
-| Agent | Character | Expertise | Documentation |
-|-------|-----------|-----------|---------------|
-| **Zero** | Zero Cool | Orchestrator | [agents/README.md](agents/README.md) |
-| **Cereal** | Cereal Killer | Supply chain, CVEs, malware | [agents/supply-chain](../agents/supply-chain/) |
-| **Razor** | Razor | Code security, SAST, secrets | [agents/code-security](../agents/code-security/) |
-| **Gill** | Gill Bates | Cryptography, TLS, keys | [agents/cryptography](../agents/cryptography/) |
-| **Blade** | Blade | Compliance, SOC 2, ISO 27001 | [agents/compliance](../agents/compliance/) |
-| **Phreak** | Phantom Phreak | Legal, licenses, privacy | [agents/legal](../agents/legal/) |
-| **Acid** | Acid Burn | Frontend, React, TypeScript | [agents/frontend](../agents/frontend/) |
-| **Dade** | Dade Murphy | Backend, APIs, databases | [agents/backend](../agents/backend/) |
-| **Nikon** | Lord Nikon | Architecture, system design | [agents/architecture](../agents/architecture/) |
-| **Joey** | Joey | CI/CD, build optimization | [agents/build](../agents/build/) |
-| **Plague** | The Plague | DevOps, Kubernetes, IaC | [agents/devops](../agents/devops/) |
-| **Gibson** | The Gibson | DORA metrics, team health | [agents/engineering-leader](../agents/engineering-leader/) |
-
-See [Agent Reference](agents/README.md) for full documentation including invocation examples.
-
-### Integrations
-
-How to integrate Zero with other tools.
-
-| Document | Description |
-|----------|-------------|
-| [MCP Server](integrations/mcp.md) | Model Context Protocol server for Claude Code |
+In Claude Code, use the `/agent` slash command to chat with Zero and the specialist agents.
 
 ## Super Scanners (v4.0)
 
-Zero uses 7 consolidated super scanners with configurable features:
+Zero uses 7 consolidated super scanners:
 
 | Scanner | Description |
 |---------|-------------|
 | `code-packages` | SBOM generation + dependency analysis (vulns, licenses, malcontent, health) |
-| `code-security` | SAST, secrets, API security, cryptography (ciphers, keys, TLS) |
-| `code-quality` | Tech debt markers, complexity, test coverage, documentation |
+| `code-security` | SAST, secrets, API security, cryptography |
+| `code-quality` | Tech debt, complexity, test coverage, documentation |
 | `devops` | IaC security, containers, GitHub Actions, DORA metrics |
-| `technology-identification` | Technology detection, ML-BOM generation, AI/ML frameworks |
+| `technology-identification` | Technology detection, ML-BOM generation |
 | `code-ownership` | Contributors, bus factor, CODEOWNERS, code churn |
-| `developer-experience` | Onboarding friction, tool sprawl, workflow analysis |
+| `developer-experience` | Onboarding friction, tool sprawl, workflow |
 
 ## Scan Profiles
 
@@ -176,9 +115,29 @@ Zero uses 7 consolidated super scanners with configurable features:
 | `code-security` | SAST, secrets, API, cryptography | ~2 min |
 | `devops` | IaC, containers, GitHub Actions, DORA | ~3 min |
 
+## AI Agents
+
+Zero includes 12 specialist agents named after characters from Hackers (1995):
+
+| Agent | Character | Expertise |
+|-------|-----------|-----------|
+| **Zero** | Zero Cool | Master orchestrator |
+| **Cereal** | Cereal Killer | Supply chain, CVEs, malware |
+| **Razor** | Razor | Code security, SAST, secrets |
+| **Gill** | Gill Bates | Cryptography, TLS, keys |
+| **Turing** | Alan Turing | AI/ML security, model safety |
+| **Blade** | Blade | Compliance, SOC 2, ISO 27001 |
+| **Phreak** | Phantom Phreak | Legal, licenses, privacy |
+| **Acid** | Acid Burn | Frontend, React, TypeScript |
+| **Dade** | Dade Murphy | Backend, APIs, databases |
+| **Nikon** | Lord Nikon | Architecture, system design |
+| **Joey** | Joey | CI/CD, build optimization |
+| **Plague** | The Plague | DevOps, Kubernetes, IaC |
+| **Gibson** | The Gibson | DORA metrics, team health |
+
 ## Data Storage
 
-Zero stores data in `.zero/` (project local by default, override with `ZERO_HOME`):
+Zero stores data in `.zero/` (project local, override with `ZERO_HOME`):
 
 ```
 .zero/
@@ -187,14 +146,14 @@ Zero stores data in `.zero/` (project local by default, override with `ZERO_HOME
         └── repo/
             ├── repo/           # Cloned repository
             └── analysis/       # Scanner output
-                ├── sbom.cdx.json               # CycloneDX SBOM
-                ├── code-packages.json          # Package analysis
-                ├── code-security.json          # Security findings
-                ├── code-quality.json           # Quality metrics
-                ├── devops.json                 # DevOps analysis
-                ├── technology-identification.json  # Tech detection
-                ├── code-ownership.json         # Ownership analysis
-                └── developer-experience.json   # DevX metrics
+                ├── sbom.cdx.json
+                ├── code-packages.json
+                ├── code-security.json
+                ├── code-quality.json
+                ├── devops.json
+                ├── technology-identification.json
+                ├── code-ownership.json
+                └── developer-experience.json
 ```
 
 ## Environment Variables
@@ -205,20 +164,7 @@ Zero stores data in `.zero/` (project local by default, override with `ZERO_HOME
 | `ANTHROPIC_API_KEY` | No | Claude API for AI-enhanced analysis |
 | `ZERO_HOME` | No | Override default `.zero/` location |
 
-## RAG Knowledge Base
-
-Zero uses a RAG (Retrieval-Augmented Generation) knowledge base:
-
-- **Technology detection patterns** covering cloud providers, APIs, frameworks, and services
-- **Secret detection rules** generated from RAG patterns
-- **Markdown source files** converted to Semgrep YAML rules
-- **Human-readable patterns** that serve as both documentation and detection rules
-
-Run `zero rag stats` to see current pattern counts.
-
-See [RAG Pipeline](architecture/rag-pipeline.md) for details.
-
 ## See Also
 
 - [CLAUDE.md](../CLAUDE.md) - Claude Code configuration
-- [ROADMAP.md](../ROADMAP.md) - Project roadmap
+- [Root README](../README.md) - Project overview
