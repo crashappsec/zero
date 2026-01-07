@@ -19,23 +19,25 @@ type RAGLoader struct {
 }
 
 // NewLoader creates a new RAG loader
-// If ragPath is empty, it attempts to find the rag directory relative to the binary
+// If ragPath is empty, it attempts to find the rag directory using:
+// 1. ZERO_RAG_PATH environment variable
+// 2. ZERO_HOME/rag if ZERO_HOME is set
+// 3. Relative paths from current directory and executable
 func NewLoader(ragPath string) *RAGLoader {
 	if ragPath == "" {
-		// Try to find rag directory
-		candidates := []string{
-			"rag",                    // Current directory
-			"../rag",                 // Parent directory
-			"../../rag",              // Two levels up
-			"/Users/curphey/zero/rag", // Absolute fallback
-		}
-		for _, candidate := range candidates {
-			if info, err := os.Stat(candidate); err == nil && info.IsDir() {
-				ragPath = candidate
-				break
+		// First check ZERO_RAG_PATH for explicit override
+		if envPath := os.Getenv("ZERO_RAG_PATH"); envPath != "" {
+			if info, err := os.Stat(envPath); err == nil && info.IsDir() {
+				ragPath = envPath
 			}
 		}
 	}
+
+	if ragPath == "" {
+		// Use FindRAGPath which checks ZERO_HOME, relative paths, and executable location
+		ragPath = FindRAGPath()
+	}
+
 	return &RAGLoader{
 		ragPath: ragPath,
 		cache:   make(map[string]interface{}),

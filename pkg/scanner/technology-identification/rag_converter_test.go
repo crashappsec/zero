@@ -184,10 +184,155 @@ func TestCategoryToToolType(t *testing.T) {
 	}
 }
 
+func TestMapLanguage(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"python", "python"},
+		{"javascript", "javascript"},
+		{"typescript", "typescript"},
+		{"go", "go"},
+		{"ruby", "ruby"},
+		{"java", "java"},
+		{"php", "php"},
+		{"csharp", "csharp"},
+		{"c#", "csharp"},
+		{"rust", "rust"},
+		{"c", "c"},
+		{"c++", "cpp"},
+		{"cpp", "cpp"},
+		{"kotlin", "kotlin"},
+		{"scala", "scala"},
+		{"swift", "swift"},
+		// New languages
+		{"bash", "bash"},
+		{"shell", "bash"},
+		{"sh", "bash"},
+		{"powershell", "generic"},
+		{"dockerfile", "dockerfile"},
+		{"docker", "dockerfile"},
+		{"hcl", "hcl"},
+		{"terraform", "hcl"},
+		{"yaml", "yaml"},
+		{"json", "json"},
+		{"generic", "generic"},
+		// Unknown returns empty
+		{"unknown", ""},
+	}
+
+	for _, tc := range tests {
+		result := mapLanguage(tc.input)
+		if result != tc.expected {
+			t.Errorf("mapLanguage(%q) = %q, expected %q", tc.input, result, tc.expected)
+		}
+	}
+}
+
+func TestCleanRegexForSemgrep(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+		name     string
+	}{
+		{"", "", "empty string"},
+		{`api`, "api", "short valid pattern (3 chars)"},
+		{`jwt`, "jwt", "short valid pattern (3 chars)"},
+		{`^import foo$`, "import foo", "anchors stripped"},
+		{`\b`, "", "too generic - word boundary"},
+		{`\s+`, "", "too generic - whitespace"},
+		{`.*`, "", "too generic - match all"},
+		{`.+`, "", "too generic - match one or more"},
+		{`\w+`, "", "too generic - word chars"},
+		{`import\s+.*\s+from\s+['"]react['"]`, `import\s+.*\s+from\s+['"]react['"]`, "complex valid pattern"},
+		{`(unclosed`, "", "invalid regex"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := cleanRegexForSemgrep(tc.input)
+			if result != tc.expected {
+				t.Errorf("cleanRegexForSemgrep(%q) = %q, expected %q", tc.input, result, tc.expected)
+			}
+		})
+	}
+}
+
+func TestMapSeverityWithMetadata(t *testing.T) {
+	tests := []struct {
+		input          string
+		expectedSev    string
+		expectCritical bool
+	}{
+		{"critical", "ERROR", true},
+		{"high", "WARNING", false},
+		{"medium", "WARNING", false},
+		{"low", "INFO", false},
+		{"info", "INFO", false},
+		{"", "INFO", false},
+		{"unknown", "INFO", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.input, func(t *testing.T) {
+			sev, meta := mapSeverityWithMetadata(tc.input)
+			if sev != tc.expectedSev {
+				t.Errorf("mapSeverityWithMetadata(%q) severity = %q, expected %q", tc.input, sev, tc.expectedSev)
+			}
+
+			if tc.input != "" {
+				if origSev, ok := meta["original_severity"].(string); !ok || origSev != tc.input {
+					t.Errorf("mapSeverityWithMetadata(%q) should preserve original_severity, got %v", tc.input, meta["original_severity"])
+				}
+			}
+
+			if tc.expectCritical {
+				if isCrit, ok := meta["is_critical"].(bool); !ok || !isCrit {
+					t.Errorf("mapSeverityWithMetadata(%q) should set is_critical=true", tc.input)
+				}
+			}
+		})
+	}
+}
+
+func TestDiscoverRAGDirectories(t *testing.T) {
+	// Create a temp directory with some subdirs
+	tmpDir, err := os.MkdirTemp("", "rag-discover-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create some subdirectories
+	subdirs := []string{"technology-identification", "cryptography", "devops", ".hidden"}
+	for _, dir := range subdirs {
+		os.Mkdir(filepath.Join(tmpDir, dir), 0755)
+	}
+	// Create a file (should be ignored)
+	os.WriteFile(filepath.Join(tmpDir, "README.md"), []byte("test"), 0644)
+
+	dirs, err := discoverRAGDirectories(tmpDir)
+	if err != nil {
+		t.Fatalf("discoverRAGDirectories failed: %v", err)
+	}
+
+	// Should have 3 directories (hidden one is excluded)
+	if len(dirs) != 3 {
+		t.Errorf("Expected 3 directories, got %d: %v", len(dirs), dirs)
+	}
+
+	// Hidden directory should be excluded
+	for _, d := range dirs {
+		if d == ".hidden" {
+			t.Error("Hidden directory should be excluded")
+		}
+	}
+}
+
 func TestConvertRAGToSemgrep(t *testing.T) {
-	// Test with actual RAG directory if it exists
-	ragDir := "/Users/curphey/zero/rag"
-	if _, err := os.Stat(ragDir); os.IsNotExist(err) {
+	// Try multiple possible RAG locations
+	ragDir := findTestRAGDir()
+	if ragDir == "" {
 		t.Skip("RAG directory not found, skipping integration test")
 	}
 
@@ -247,4 +392,40 @@ func TestConvertRAGToSemgrep(t *testing.T) {
 			t.Logf("Output file %s: %d bytes", f, info.Size())
 		}
 	}
+}
+
+// findTestRAGDir tries to locate the RAG directory for testing
+func findTestRAGDir() string {
+	candidates := []string{
+		"rag",                     // Current directory
+		"../rag",                  // Parent directory
+		"../../rag",               // Two levels up
+		"../../../rag",            // Three levels up
+		"../../../../rag",         // Four levels up (for deep test directories)
+	}
+
+	// Also check ZERO_HOME environment variable
+	if zeroHome := os.Getenv("ZERO_HOME"); zeroHome != "" {
+		candidates = append([]string{filepath.Join(zeroHome, "rag")}, candidates...)
+	}
+
+	// Check ZERO_RAG_PATH for explicit override
+	if ragPath := os.Getenv("ZERO_RAG_PATH"); ragPath != "" {
+		candidates = append([]string{ragPath}, candidates...)
+	}
+
+	for _, candidate := range candidates {
+		absPath, err := filepath.Abs(candidate)
+		if err != nil {
+			continue
+		}
+		if info, err := os.Stat(absPath); err == nil && info.IsDir() {
+			// Verify it's actually the RAG directory by checking for known subdirs
+			if _, err := os.Stat(filepath.Join(absPath, "technology-identification")); err == nil {
+				return absPath
+			}
+		}
+	}
+
+	return ""
 }

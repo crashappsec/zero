@@ -87,24 +87,35 @@ func ConvertRAGToSemgrep(ragDir, outputDir string) (*ConversionResult, error) {
 		SupplyChain:   SemgrepRules{Rules: []SemgrepRule{}},
 	}
 
-	// RAG directories to process - all directories containing pattern files
-	ragDirs := []string{
-		"technology-identification",
-		"cryptography",
-		"devops",
-		"code-security",
-		"code-quality",
-		"supply-chain",
-		"api-security",
-		"certificate-analysis",
-		"code-ownership",
-		"dora-metrics",
-		"domains",
-		"architecture",
-		"legal-review",
-		"ai-ml",
-		"ai-adoption",
-		"tech-debt",
+	// RAG directories to process - dynamically discover all subdirectories
+	ragDirs, err := discoverRAGDirectories(ragDir)
+	if err != nil {
+		// Fall back to known directories if discovery fails
+		ragDirs = []string{
+			"technology-identification",
+			"cryptography",
+			"devops",
+			"code-security",
+			"code-quality",
+			"supply-chain",
+			"api-security",
+			"certificate-analysis",
+			"code-ownership",
+			"dora-metrics",
+			"domains",
+			"architecture",
+			"legal-review",
+			"ai-ml",
+			"ai-adoption",
+			"tech-debt",
+			"backend-engineering",
+			"frontend-engineering",
+			"brand",
+			"cocomo",
+			"dora",
+			"personas",
+			"semgrep",
+		}
 	}
 
 	for _, dir := range ragDirs {
@@ -548,17 +559,28 @@ func convertPatternToRules(pattern *RAGPattern, filePath, ragDir string) []Semgr
 		}
 
 		ruleID := fmt.Sprintf("zero.%s.secret.%s", baseID, sanitizeID(secret.Name))
+
+		// Map severity with metadata preservation
+		mappedSev, sevMeta := mapSeverityWithMetadata(secret.Severity)
+
+		// Build metadata
+		metadata := map[string]interface{}{
+			"technology":  pattern.Name,
+			"category":    "secrets",
+			"secret_type": secret.Name,
+			"confidence":  95,
+		}
+		// Merge severity metadata
+		for k, v := range sevMeta {
+			metadata[k] = v
+		}
+
 		rule := SemgrepRule{
-			ID:        ruleID,
-			Message:   fmt.Sprintf("Potential %s %s exposed", pattern.Name, secret.Name),
-			Severity:  mapSeverity(secret.Severity),
-			Languages: []string{"generic"},
-			Metadata: map[string]interface{}{
-				"technology":  pattern.Name,
-				"category":    "secrets",
-				"secret_type": secret.Name,
-				"confidence":  95,
-			},
+			ID:           ruleID,
+			Message:      fmt.Sprintf("Potential %s %s exposed", pattern.Name, secret.Name),
+			Severity:     mappedSev,
+			Languages:    []string{"generic"},
+			Metadata:     metadata,
 			PatternRegex: secret.Pattern,
 		}
 		rules = append(rules, rule)
@@ -627,18 +649,28 @@ func convertPatternToRules(pattern *RAGPattern, filePath, ragDir string) []Semgr
 			language = "yaml"
 		}
 
+		// Map severity and get additional metadata
+		mappedSev, sevMeta := mapSeverityWithMetadata(secPat.Severity)
+
+		// Build metadata with original severity preserved
+		metadata := map[string]interface{}{
+			"technology":     pattern.Name,
+			"category":       pattern.Category,
+			"detection_type": "security",
+			"pattern_name":   secPat.Name,
+			"confidence":     90,
+		}
+		// Merge severity metadata
+		for k, v := range sevMeta {
+			metadata[k] = v
+		}
+
 		rule := SemgrepRule{
-			ID:        ruleID,
-			Message:   fmt.Sprintf("%s: %s", pattern.Name, secPat.Name),
-			Severity:  mapSeverity(secPat.Severity),
-			Languages: []string{language},
-			Metadata: map[string]interface{}{
-				"technology":     pattern.Name,
-				"category":       pattern.Category,
-				"detection_type": "security",
-				"pattern_name":   secPat.Name,
-				"confidence":     90,
-			},
+			ID:           ruleID,
+			Message:      fmt.Sprintf("%s: %s", pattern.Name, secPat.Name),
+			Severity:     mappedSev,
+			Languages:    []string{language},
+			Metadata:     metadata,
 			PatternRegex: secPat.Pattern,
 		}
 		rules = append(rules, rule)
@@ -739,22 +771,60 @@ func mapLanguage(lang string) string {
 		"kotlin":     "kotlin",
 		"scala":      "scala",
 		"swift":      "swift",
+		"bash":       "bash",
+		"shell":      "bash",
+		"sh":         "bash",
+		"powershell": "generic", // Semgrep doesn't have native powershell, use generic
+		"ps1":        "generic",
+		"lua":        "lua",
+		"r":          "r",
+		"elixir":     "elixir",
+		"ocaml":      "ocaml",
+		"hcl":        "hcl",         // Terraform
+		"terraform":  "hcl",
+		"dockerfile": "dockerfile",
+		"docker":     "dockerfile",
+		"yaml":       "yaml",
+		"json":       "json",
+		"xml":        "xml",
+		"html":       "html",
+		"generic":    "generic",
 	}
 	return mapping[lang]
 }
 
 // mapSeverity maps RAG severity to semgrep severity
+// Returns both the mapped severity and a flag indicating if it was critical
 func mapSeverity(sev string) string {
 	mapping := map[string]string{
 		"critical": "ERROR",
 		"high":     "WARNING",
 		"medium":   "WARNING",
 		"low":      "INFO",
+		"info":     "INFO",
 	}
 	if mapped, ok := mapping[strings.ToLower(sev)]; ok {
 		return mapped
 	}
 	return "INFO"
+}
+
+// mapSeverityWithMetadata maps severity and returns additional metadata
+func mapSeverityWithMetadata(sev string) (string, map[string]interface{}) {
+	meta := make(map[string]interface{})
+	normalizedSev := strings.ToLower(sev)
+
+	// Preserve original severity in metadata
+	if normalizedSev != "" {
+		meta["original_severity"] = normalizedSev
+	}
+
+	// Flag critical severity for easy filtering
+	if normalizedSev == "critical" {
+		meta["is_critical"] = true
+	}
+
+	return mapSeverity(sev), meta
 }
 
 // getConfidence returns the confidence score for a detection type
@@ -780,13 +850,14 @@ func cleanRegexForSemgrep(regex string) string {
 	// Remove end-of-line anchor
 	pattern = strings.TrimSuffix(pattern, "$")
 
-	// Skip patterns that are too generic or would cause too many false positives
-	if len(pattern) < 4 {
+	// Skip patterns that are just word boundaries or too simple (overly generic)
+	if pattern == `\b` || pattern == `\s+` || pattern == `.*` || pattern == `.+` || pattern == `\w+` {
 		return ""
 	}
 
-	// Skip patterns that are just word boundaries or too simple
-	if pattern == `\b` || pattern == `\s+` || pattern == `.*` {
+	// Validate regex compiles - this catches truly invalid patterns
+	// while allowing valid short patterns like "api", "jwt", etc.
+	if _, err := regexp.Compile(pattern); err != nil {
 		return ""
 	}
 
@@ -882,4 +953,25 @@ func writeYAML(path string, rules SemgrepRules) error {
 		return fmt.Errorf("failed to marshal rules: %w", err)
 	}
 	return os.WriteFile(path, data, 0644)
+}
+
+// discoverRAGDirectories dynamically discovers all RAG subdirectories
+func discoverRAGDirectories(ragDir string) ([]string, error) {
+	entries, err := os.ReadDir(ragDir)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read RAG directory: %w", err)
+	}
+
+	var dirs []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			// Skip hidden directories
+			if strings.HasPrefix(entry.Name(), ".") {
+				continue
+			}
+			dirs = append(dirs, entry.Name())
+		}
+	}
+
+	return dirs, nil
 }
