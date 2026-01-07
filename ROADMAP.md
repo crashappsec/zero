@@ -24,10 +24,86 @@ SPDX-License-Identifier: GPL-3.0
 | Agent CLI (`./zero agent`) | ✅ Complete | Interactive agent mode with Zero orchestrator |
 | Agent Self-Awareness | ✅ Complete | GetSystemInfo tool - agents can query RAG patterns, scanners, feeds, config |
 | RAG Pattern System | ✅ Complete | 23 categories, 400+ patterns |
-| Evidence Reports | ✅ Complete | HTML reports via Evidence.dev |
 | Hydrate Command | ✅ Complete | Clone + scan with profiles |
 | Freshness Tracking | ✅ Complete | Fresh/stale/expired indicators |
 | Feed Sync | ✅ Complete | Semgrep rules, RAG rule generation |
+
+### Scanner Features
+
+#### code-packages (14 features)
+| Feature | Description | Status |
+|---------|-------------|--------|
+| generation | SBOM generation via cdxgen/syft | ✅ |
+| integrity | Lock file integrity verification | ✅ |
+| vulns | Vulnerability scanning via OSV.dev | ✅ |
+| health | Package health scores via deps.dev | ✅ |
+| licenses | License detection and compliance | ✅ |
+| malcontent | Supply chain malware detection | ✅ |
+| confusion | Dependency confusion detection | ✅ |
+| typosquats | Typosquatting detection | ✅ |
+| deprecations | Deprecated package detection | ✅ |
+| duplicates | Duplicate dependency detection | ✅ |
+| reachability | Vulnerable code path detection | ⏳ Planned |
+| provenance | SLSA provenance verification | ✅ |
+| bundle | Bundle size analysis | ✅ |
+| recommendations | Package replacement suggestions | ✅ |
+
+#### code-security (8 features)
+| Feature | Description | Status |
+|---------|-------------|--------|
+| vulns | SAST via Semgrep (OWASP, CWE) | ✅ |
+| secrets | Secret detection + git history | ✅ |
+| api | API security (auth, injection, CORS) | ✅ |
+| ciphers | Weak/deprecated cipher detection | ✅ |
+| keys | Hardcoded cryptographic keys | ✅ |
+| random | Insecure random number generation | ✅ |
+| tls | TLS version and cipher suite analysis | ✅ |
+| certificates | Certificate validation issues | ✅ |
+
+#### code-quality (4 features)
+| Feature | Description | Status |
+|---------|-------------|--------|
+| tech_debt | TODO/FIXME/HACK marker detection | ✅ |
+| complexity | Cyclomatic/cognitive complexity | ✅ |
+| test_coverage | Coverage report parsing | ⚠️ Basic |
+| documentation | Doc comment coverage | ✅ |
+
+#### devops (5 features)
+| Feature | Description | Status |
+|---------|-------------|--------|
+| iac | IaC scanning via Checkov/Trivy | ✅ |
+| containers | Dockerfile security linting | ✅ |
+| github_actions | Action pinning, secrets, permissions | ✅ |
+| dora | DORA metrics (deploy freq, lead time, MTTR, CFR) | ✅ |
+| git | Git activity and contributor patterns | ✅ |
+
+#### technology-identification (7 features)
+| Feature | Description | Status |
+|---------|-------------|--------|
+| detection | Language/framework/tool detection | ✅ |
+| models | ML model inventory (.pt, .onnx, .safetensors) | ✅ |
+| frameworks | AI/ML framework detection | ✅ |
+| datasets | Training dataset detection | ✅ |
+| ai_security | Pickle RCE, unsafe loading patterns | ✅ |
+| ai_governance | Model cards, responsible AI checks | ✅ |
+| infrastructure | Microservice mapping, API contracts | ✅ |
+
+#### code-ownership (6 features)
+| Feature | Description | Status |
+|---------|-------------|--------|
+| contributors | Git contributor analysis | ✅ |
+| bus_factor | Key person risk calculation | ✅ |
+| codeowners | CODEOWNERS file validation | ✅ |
+| orphans | Files without active maintainers | ✅ |
+| churn | High-churn file detection | ✅ |
+| patterns | Commit timing and patterns | ✅ |
+
+#### developer-experience (3 features)
+| Feature | Description | Status |
+|---------|-------------|--------|
+| onboarding | README quality, setup friction | ✅ |
+| sprawl | Tool and technology sprawl analysis | ✅ |
+| workflow | PR templates, local dev, hot reload | ✅ |
 
 ### Maturity Levels
 
@@ -127,6 +203,7 @@ SPDX-License-Identifier: GPL-3.0
 
 | Feature | Description | Status |
 |---------|-------------|--------|
+| HTML Reports | Interactive HTML report generation | Planned |
 | PDF Export | Executive summaries | Future |
 | Trend Analysis | Track security posture over time | Future |
 | Compliance Dashboards | SOC 2, ISO 27001, NIST mapping | Future |
