@@ -43,6 +43,8 @@ func (s *SystemInfo) GetSystemInfo(category, filter string) (string, error) {
 		return s.getRAGStats()
 	case "rag-patterns":
 		return s.getRAGPatterns(filter)
+	case "rag-search":
+		return s.getRAGSearch(filter)
 	case "rules-status":
 		return s.getRulesStatus()
 	case "feeds-status":
@@ -60,7 +62,7 @@ func (s *SystemInfo) GetSystemInfo(category, filter string) (string, error) {
 	case "help":
 		return s.getHelpInfo()
 	default:
-		return "", fmt.Errorf("unknown category: %s. Valid categories: rag-stats, rag-patterns, rules-status, feeds-status, scanners, profiles, config, agents, versions, help", category)
+		return "", fmt.Errorf("unknown category: %s. Valid categories: rag-stats, rag-patterns, rag-search, rules-status, feeds-status, scanners, profiles, config, agents, versions, help", category)
 	}
 }
 
@@ -188,6 +190,201 @@ func (s *SystemInfo) getRAGPatterns(filter string) (string, error) {
 	}
 
 	return toJSON(response)
+}
+
+// RAGSearchResult is a search result
+type RAGSearchResult struct {
+	ID         string   `json:"id"`
+	Category   string   `json:"category"`
+	Technology string   `json:"technology"`
+	Pattern    string   `json:"pattern"`
+	Type       string   `json:"type"`
+	Severity   string   `json:"severity"`
+	Confidence int      `json:"confidence,omitempty"`
+	Languages  []string `json:"languages,omitempty"`
+	Source     string   `json:"source"`
+}
+
+// RAGSearchResponse is the response for rag-search
+type RAGSearchResponse struct {
+	Query        string            `json:"query"`
+	TotalResults int               `json:"total_results"`
+	Results      []RAGSearchResult `json:"results"`
+	Hint         string            `json:"hint,omitempty"`
+}
+
+// getRAGSearch searches RAG patterns with flexible filtering
+// Filter format: "query:text severity:high category:cryptography language:python limit:20"
+func (s *SystemInfo) getRAGSearch(filter string) (string, error) {
+	if filter == "" {
+		return toJSON(map[string]interface{}{
+			"message": "Specify search parameters in the filter",
+			"format":  "query:<text> severity:<level> category:<name> language:<lang> limit:<n>",
+			"examples": []string{
+				"query:password",
+				"severity:critical",
+				"category:cryptography",
+				"query:api severity:high limit:10",
+				"language:python category:secrets",
+			},
+			"available_severities": []string{"critical", "high", "medium", "low", "info"},
+			"available_categories": s.getAvailableCategories(),
+		})
+	}
+
+	// Parse filter parameters
+	params := parseSearchParams(filter)
+	query := params["query"]
+	severityFilter := strings.ToLower(params["severity"])
+	categoryFilter := params["category"]
+	languageFilter := strings.ToLower(params["language"])
+	limit := 20 // Default
+	if l, ok := params["limit"]; ok {
+		if n, err := fmt.Sscanf(l, "%d", &limit); err == nil && n > 0 {
+			if limit > 100 {
+				limit = 100 // Cap at 100
+			}
+		}
+	}
+
+	// Get all categories to search
+	categories, err := s.ragLoader.ListCategories()
+	if err != nil {
+		return "", fmt.Errorf("listing categories: %w", err)
+	}
+
+	// Filter categories if specified
+	if categoryFilter != "" {
+		found := false
+		for _, c := range categories {
+			if strings.EqualFold(c, categoryFilter) || strings.Contains(strings.ToLower(c), strings.ToLower(categoryFilter)) {
+				categories = []string{c}
+				found = true
+				break
+			}
+		}
+		if !found {
+			return "", fmt.Errorf("category '%s' not found", categoryFilter)
+		}
+	}
+
+	var results []RAGSearchResult
+
+	// Search through categories
+	for _, cat := range categories {
+		loadResult, err := s.ragLoader.LoadCategory(cat)
+		if err != nil {
+			continue // Skip categories that fail to load
+		}
+
+		for _, ps := range loadResult.PatternSets {
+			for _, p := range ps.Patterns {
+				// Apply filters
+				if severityFilter != "" && strings.ToLower(p.Severity) != severityFilter {
+					continue
+				}
+
+				if languageFilter != "" {
+					hasLang := false
+					for _, lang := range p.Languages {
+						if strings.ToLower(lang) == languageFilter {
+							hasLang = true
+							break
+						}
+					}
+					if !hasLang && len(p.Languages) > 0 {
+						continue
+					}
+				}
+
+				// Text query match
+				if query != "" {
+					queryLower := strings.ToLower(query)
+					matchesQuery := strings.Contains(strings.ToLower(p.ID), queryLower) ||
+						strings.Contains(strings.ToLower(p.Pattern), queryLower) ||
+						strings.Contains(strings.ToLower(p.Message), queryLower) ||
+						strings.Contains(strings.ToLower(ps.Technology), queryLower)
+					if !matchesQuery {
+						continue
+					}
+				}
+
+				results = append(results, RAGSearchResult{
+					ID:         p.ID,
+					Category:   cat,
+					Technology: ps.Technology,
+					Pattern:    truncateString(p.Pattern, 80),
+					Type:       p.Type,
+					Severity:   p.Severity,
+					Confidence: p.Confidence,
+					Languages:  p.Languages,
+					Source:     ps.Source,
+				})
+
+				if len(results) >= limit {
+					break
+				}
+			}
+			if len(results) >= limit {
+				break
+			}
+		}
+		if len(results) >= limit {
+			break
+		}
+	}
+
+	response := RAGSearchResponse{
+		Query:        filter,
+		TotalResults: len(results),
+		Results:      results,
+	}
+
+	if len(results) == 0 {
+		response.Hint = "Try a broader search or different filter combination"
+	} else if len(results) == limit {
+		response.Hint = fmt.Sprintf("Results limited to %d. Add more filters or increase limit.", limit)
+	}
+
+	return toJSON(response)
+}
+
+func (s *SystemInfo) getAvailableCategories() []string {
+	categories, err := s.ragLoader.ListCategories()
+	if err != nil {
+		return []string{}
+	}
+	return categories
+}
+
+// parseSearchParams parses "key:value" pairs from filter string
+func parseSearchParams(filter string) map[string]string {
+	params := make(map[string]string)
+
+	// Handle simple text query without key
+	if !strings.Contains(filter, ":") {
+		params["query"] = filter
+		return params
+	}
+
+	// Parse key:value pairs
+	parts := strings.Fields(filter)
+	for _, part := range parts {
+		if idx := strings.Index(part, ":"); idx > 0 {
+			key := part[:idx]
+			value := part[idx+1:]
+			params[key] = value
+		} else {
+			// Treat as part of query
+			if existing, ok := params["query"]; ok {
+				params["query"] = existing + " " + part
+			} else {
+				params["query"] = part
+			}
+		}
+	}
+
+	return params
 }
 
 // RulesStatusResponse is the response for rules-status
@@ -597,6 +794,7 @@ func (s *SystemInfo) getHelpInfo() (string, error) {
 	return toJSON(HelpResponse{
 		Capabilities: []string{
 			"Answer questions about Zero's detection rules and patterns",
+			"Search RAG patterns by name, severity, category, or language",
 			"Explain what scanners and features are available",
 			"Show status of security feeds and data freshness",
 			"List available specialist agents and their expertise",
@@ -609,12 +807,14 @@ func (s *SystemInfo) getHelpInfo() (string, error) {
 			"When were the vulnerability feeds last updated?",
 			"Which agent should I use for license compliance?",
 			"What detection patterns exist for AWS credentials?",
+			"Search for critical severity patterns",
+			"Find patterns related to cryptography",
 			"What scan profiles are available?",
-			"What is Zero's current configuration?",
 		},
 		Categories: []string{
 			"rag-stats - Pattern counts by RAG category",
 			"rag-patterns - List patterns in a category (use filter)",
+			"rag-search - Search patterns (filter: query:text severity:level category:name language:lang limit:n)",
 			"rules-status - Generated and community rule status",
 			"feeds-status - Feed synchronization status",
 			"scanners - Scanner inventory with features",
