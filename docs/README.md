@@ -125,7 +125,7 @@ Zero includes 12 specialist agents named after characters from Hackers (1995):
 | **Cereal** | Cereal Killer | Supply chain, CVEs, malware |
 | **Razor** | Razor | Code security, SAST, secrets |
 | **Gill** | Gill Bates | Cryptography, TLS, keys |
-| **Turing** | Alan Turing | AI/ML security, model safety |
+| **Hal** | Hal | AI/ML security, model safety |
 | **Blade** | Blade | Compliance, SOC 2, ISO 27001 |
 | **Phreak** | Phantom Phreak | Legal, licenses, privacy |
 | **Acid** | Acid Burn | Frontend, React, TypeScript |

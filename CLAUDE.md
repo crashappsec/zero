@@ -47,7 +47,7 @@ The following agents are available for specialized analysis tasks. Use the Task 
 | `plague` | Plague | The Plague | DevOps, infrastructure, Kubernetes, IaC | **devops** |
 | `gibson` | Gibson | The Gibson | DORA metrics, team health, engineering KPIs | **devops** (dora, git), **code-ownership** |
 | `gill` | Gill | Gill Bates | Cryptography, ciphers, keys, TLS, random | **code-security** (crypto) |
-| `turing` | Turing | Alan Turing | AI/ML security, ML-BOM, model safety, LLM security | **technology-identification** |
+| `hal` | Hal | Hal | AI/ML security, ML-BOM, model safety, LLM security | **technology-identification** |
 
 ### Agent Details
 
@@ -90,10 +90,10 @@ Task tool with subagent_type: "gill"
 prompt: "Analyze the cryptographic security of this repository. Focus on hardcoded keys and weak ciphers."
 ```
 
-#### Turing (AI/ML Security Specialist)
-**subagent_type:** `turing`
+#### Hal (AI/ML Security Specialist)
+**subagent_type:** `hal`
 
-Alan Turing - the father of artificial intelligence and legendary codebreaker. Uses deep understanding of machine learning to secure AI systems against emerging ML supply chain threats.
+Hal - the elusive hacker who speaks in machine code and sees patterns others miss. Uses deep understanding of machine learning to secure AI systems against emerging ML supply chain threats.
 Specializes in ML model security, ML-BOM generation, AI framework analysis, LLM security, and AI governance.
 
 **Primary scanner:** `technology-identification`
@@ -101,7 +101,7 @@ Specializes in ML model security, ML-BOM generation, AI framework analysis, LLM 
 
 **Example invocation:**
 ```
-Task tool with subagent_type: "turing"
+Task tool with subagent_type: "hal"
 prompt: "Analyze the AI/ML security of this repository. Check for unsafe pickle models and exposed API keys."
 ```
 

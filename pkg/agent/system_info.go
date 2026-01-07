@@ -813,7 +813,7 @@ func (s *SystemInfo) getAgentsInfo(filter string) (string, error) {
 		{ID: "plague", Name: "The Plague", Domain: "DevOps", PrimaryScanner: "devops"},
 		{ID: "gibson", Name: "The Gibson", Domain: "Engineering Metrics", PrimaryScanner: "devops, code-ownership"},
 		{ID: "gill", Name: "Gill Bates", Domain: "Cryptography", PrimaryScanner: "code-security (crypto)"},
-		{ID: "turing", Name: "Alan Turing", Domain: "AI/ML Security", PrimaryScanner: "technology-identification"},
+		{ID: "hal", Name: "Hal", Domain: "AI/ML Security", PrimaryScanner: "technology-identification"},
 	}
 
 	// If filter specified, return only that agent

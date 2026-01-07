@@ -22,7 +22,7 @@ Zero's specialist agents are AI personas that analyze repositories from differen
 │   ACID (Frontend)          DADE (Backend)           PLAGUE (DevOps)         │
 │   └── React, TypeScript    └── APIs, databases      └── K8s, infrastructure │
 │                                                                              │
-│   JOEY (Build)             GIBSON (Metrics)         TURING (AI/ML)          │
+│   JOEY (Build)             GIBSON (Metrics)         HAL (AI/ML)             │
 │   └── CI/CD, caching       └── DORA, team health    └── ML security, LLMs   │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -44,7 +44,7 @@ Zero's specialist agents are AI personas that analyze repositories from differen
 | `joey` | Joey | CI/CD, build optimization | devops.json (github_actions) |
 | `plague` | The Plague | DevOps, Kubernetes, IaC | devops.json (iac, containers) |
 | `gibson` | The Gibson | DORA metrics, team health | devops.json (dora, git), code-ownership.json |
-| `turing` | Alan Turing | AI/ML security, ML-BOM | technology-identification.json (ai_security) |
+| `hal` | Hal | AI/ML security, ML-BOM | technology-identification.json (ai_security) |
 
 ## Invoking Agents
 

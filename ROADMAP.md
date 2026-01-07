@@ -20,7 +20,7 @@ SPDX-License-Identifier: GPL-3.0
 | Component | Status | Notes |
 |-----------|--------|-------|
 | 7 Super Scanners | ✅ Complete | code-packages, code-security, code-quality, devops, technology-identification, code-ownership, devx |
-| 12 Specialist Agents | ✅ Complete | Cereal, Razor, Gill, Turing, Blade, Phreak, Acid, Dade, Nikon, Joey, Plague, Gibson |
+| 12 Specialist Agents | ✅ Complete | Cereal, Razor, Gill, Hal, Blade, Phreak, Acid, Dade, Nikon, Joey, Plague, Gibson |
 | Agent CLI (`./zero agent`) | ✅ Complete | Interactive agent mode with Zero orchestrator |
 | Agent Self-Awareness | ✅ Complete | GetSystemInfo tool - agents can query RAG patterns, scanners, feeds, config |
 | RAG Pattern System | ✅ Complete | 23 categories, 400+ patterns |
@@ -304,7 +304,7 @@ SPDX-License-Identifier: GPL-3.0
 | Cereal | Supply chain, vulnerabilities | code-packages |
 | Razor | Code security, SAST, secrets | code-security |
 | Gill | Cryptography, ciphers, TLS | code-security |
-| Turing | AI/ML security, ML-BOM | technology-identification |
+| Hal | AI/ML security, ML-BOM | technology-identification |
 | Blade | Compliance, SOC 2, ISO 27001 | Multiple |
 | Phreak | Legal, licenses, privacy | code-packages |
 | Acid | Frontend, React, TypeScript | code-security, code-quality |

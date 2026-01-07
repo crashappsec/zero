@@ -43,7 +43,7 @@ const agentIcons: Record<string, React.ReactNode> = {
   plague: <Cloud className="h-5 w-5" />,
   gibson: <BarChart3 className="h-5 w-5" />,
   gill: <Key className="h-5 w-5" />,
-  turing: <Brain className="h-5 w-5" />,
+  hal: <Brain className="h-5 w-5" />,
 };
 
 function AgentSelector({

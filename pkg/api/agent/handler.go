@@ -401,7 +401,7 @@ func (h *Handler) HandleListAgents(w http.ResponseWriter, r *http.Request) {
 		{"id": "plague", "name": "Plague", "persona": "The Plague", "description": "DevOps, IaC, Kubernetes"},
 		{"id": "gibson", "name": "Gibson", "persona": "The Gibson", "description": "DORA metrics, team health"},
 		{"id": "gill", "name": "Gill", "persona": "Gill Bates", "description": "Cryptography specialist"},
-		{"id": "turing", "name": "Turing", "persona": "Alan Turing", "description": "AI/ML security"},
+		{"id": "hal", "name": "Hal", "persona": "Hal", "description": "AI/ML security"},
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{

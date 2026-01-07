@@ -165,7 +165,7 @@ func DefaultEnhancedConfig() EnhancedOwnershipConfig {
 			"infrastructure", // Plague
 			"metrics",        // Gibson
 			"crypto",         // Gill
-			"ai-ml",          // Turing
+			"ai-ml",          // Hal
 		},
 	}
 }

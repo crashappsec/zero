@@ -128,7 +128,7 @@ func (h *SystemHandler) ListAgents(w http.ResponseWriter, r *http.Request) {
 		{ID: "plague", Name: "Plague", Persona: "The Plague", Description: "DevOps, IaC, Kubernetes", Scanner: "devops"},
 		{ID: "gibson", Name: "Gibson", Persona: "The Gibson", Description: "DORA metrics, team health", Scanner: "devops"},
 		{ID: "gill", Name: "Gill", Persona: "Gill Bates", Description: "Cryptography specialist", Scanner: "code-security"},
-		{ID: "turing", Name: "Turing", Persona: "Alan Turing", Description: "AI/ML security", Scanner: "technology-identification"},
+		{ID: "hal", Name: "Hal", Persona: "Hal", Description: "AI/ML security", Scanner: "technology-identification"},
 	}
 
 	writeJSON(w, http.StatusOK, types.ListResponse[types.AgentInfo]{

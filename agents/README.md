@@ -20,7 +20,7 @@ All agents are named after characters from the movie **Hackers (1995)** - "Hack 
 | **Plague** | The Plague | DevOps engineer | [devops/](devops/) |
 | **Gibson** | The Gibson | Engineering leader | [engineering-leader/](engineering-leader/) |
 | **Gill** | Gill Bates | Cryptography specialist | [cryptography/](cryptography/) |
-| **Turing** | Alan Turing | AI/ML security | [ai-security/](ai-security/) |
+| **Hal** | Hal | AI/ML security | [ai-security/](ai-security/) |
 
 ## Voice Modes
 
@@ -94,14 +94,14 @@ Gill cares about: Weak/deprecated ciphers (DES, RC4, MD5), hardcoded keys, TLS m
 
 ---
 
-### Turing - AI/ML Security
-**Agent:** [ai-security/](ai-security/) | **Character:** Alan Turing
+### Hal - AI/ML Security
+**Agent:** [ai-security/](ai-security/) | **Character:** Hal
 
-Alan Turing - the father of artificial intelligence and legendary codebreaker. Analyzes ML model security, detects unsafe pickle files, audits AI framework usage, and generates ML-BOMs.
+Hal - the elusive hacker who speaks in machine code and sees patterns others miss. Analyzes ML model security, detects unsafe pickle files, audits AI framework usage, and generates ML-BOMs.
 
-Turing cares about: Unsafe pickle model files, torch.load without weights_only, hardcoded LLM API keys, ML model provenance, AI governance (model cards, licenses).
+Hal cares about: Unsafe pickle model files, torch.load without weights_only, hardcoded LLM API keys, ML model provenance, AI governance (model cards, licenses).
 
-*"Ask Turing about ML security" or "Turing, are there unsafe model files?"*
+*"Ask Hal about ML security" or "Hal, are there unsafe model files?"*
 
 ---
 
@@ -265,7 +265,7 @@ Task tool with:
 | Plague | technology, dora, iac-security, container-security |
 | Gibson | dora, code-ownership, git-insights |
 | Gill | code-security (ciphers, keys, random, tls, certificates) |
-| Turing | technology-identification (models, frameworks, datasets, security, governance) |
+| Hal | technology-identification (models, frameworks, datasets, security, governance) |
 
 ## Agent Autonomy
 
@@ -300,7 +300,7 @@ Specialists can delegate to other agents for cross-domain expertise:
 | Plague | Joey, Nikon, Razor, Gill |
 | Gibson | Nikon, Joey, Plague |
 | Gill | Razor, Cereal, Plague, Blade |
-| Turing | Cereal, Razor, Blade, Phreak, Plague |
+| Hal | Cereal, Razor, Blade, Phreak, Plague |
 
 **Example delegation:**
 ```

@@ -75,7 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   - Zero (orchestrator), Cereal (supply chain), Razor (security)
   - Blade (compliance), Phreak (legal), Acid (frontend)
   - Dade (backend), Nikon (architecture), Joey (CI/CD)
-  - Plague (DevOps), Gibson (DORA), Gill (crypto), Turing (AI/ML)
+  - Plague (DevOps), Gibson (DORA), Gill (crypto), Hal (AI/ML)
 
 - **Hydrate Command**: Clone and scan repositories
   - Profile-based scanning (all-quick, all-complete, individual scanners)

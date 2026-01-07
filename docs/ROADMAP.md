@@ -49,7 +49,7 @@ Zero is an engineering intelligence platform that provides AI-assisted code anal
 | **Cereal** | Supply chain security, malcontent, vulnerabilities |
 | **Razor** | Code security, SAST, secrets detection |
 | **Gill** | Cryptography, ciphers, keys, TLS |
-| **Turing** | AI/ML security, model safety, LLM security |
+| **Hal** | AI/ML security, model safety, LLM security |
 | **Blade** | Compliance, SOC 2, ISO 27001 |
 | **Phreak** | Legal, licenses, data privacy |
 | **Plague** | DevOps, infrastructure, Kubernetes |

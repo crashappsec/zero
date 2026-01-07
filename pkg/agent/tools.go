@@ -266,7 +266,7 @@ func DelegateAgentTool() ToolDefinition {
 						"plague",  // DevOps
 						"gibson",  // Engineering metrics
 						"gill",    // Cryptography
-						"turing",  // AI/ML security
+						"hal",  // AI/ML security
 					},
 				},
 				"task": {

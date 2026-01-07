@@ -118,7 +118,7 @@ Consolidated from 9 to **7 super scanners** with cleaner feature organization.
 - **Semgrep Integration**: RAG-to-Semgrep converter for technology detection
 - **ML-BOM Generation**: Machine Learning Bill of Materials
 - **Code Ownership Enhancements**: Adaptive period detection, activity status
-- **Turing Agent**: AI/ML security specialist (named after Alan Turing)
+- **Hal Agent**: AI/ML security specialist
 - **Gill Agent**: Cryptography specialist (named after Gill Bates from Hackers)
 
 #### Changed
@@ -159,7 +159,7 @@ Renamed from **Phantom** to **Zero** with Hackers (1995) themed agents.
   - Cereal (supply chain), Razor (security), Blade (compliance)
   - Phreak (legal), Acid (frontend), Dade (backend)
   - Nikon (architecture), Joey (build), Plague (devops)
-  - Gibson (metrics), Gill (crypto), Turing (AI/ML)
+  - Gibson (metrics), Gill (crypto), Hal (AI/ML)
 
 - **Malcontent Integration**: 14,500+ YARA rules for supply chain detection
 

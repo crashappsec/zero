@@ -78,7 +78,7 @@ Available Agents:
   plague  - DevOps, infrastructure
   gibson  - DORA metrics
   gill    - Cryptography
-  turing  - AI/ML security`,
+  hal     - AI/ML security`,
 	RunE: runAgentCmd,
 }
 
@@ -448,7 +448,7 @@ func getAgentColorCode(agentID string) string {
 		"plague": colorRed,
 		"gibson": colorGreen,
 		"gill":   colorCyan,
-		"turing": colorMagenta,
+		"hal": colorMagenta,
 	}
 	if c, ok := colors[agentID]; ok {
 		return c
@@ -495,7 +495,7 @@ func printAgentList(runtime *agent.Runtime) {
 		{"plague", "DevOps, infrastructure, K8s"},
 		{"gibson", "DORA metrics, team health"},
 		{"gill", "Cryptography specialist"},
-		{"turing", "AI/ML security"},
+		{"hal", "AI/ML security"},
 	}
 
 	for _, a := range agents {

@@ -37,7 +37,7 @@ This includes:
 | Plague | DevOps, infrastructure, K8s | `subagent_type: "plague"` |
 | Gibson | DORA metrics, team health | `subagent_type: "gibson"` |
 | Gill | Cryptography, ciphers, TLS | `subagent_type: "gill"` |
-| Turing | AI/ML security, ML-BOM | `subagent_type: "turing"` |
+| Hal | AI/ML security, ML-BOM | `subagent_type: "hal"` |
 
 ### Project Data Location
 

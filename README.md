@@ -64,7 +64,7 @@ Zero is a Go CLI that consolidates 7 "super scanners" with 45+ configurable feat
 | **Razor** | Code security, SAST, secrets |
 | **Gill** | Cryptography, TLS, keys |
 | **Plague** | DevOps, Kubernetes, IaC |
-| **Turing** | AI/ML security, ML-BOM |
+| **Hal** | AI/ML security, ML-BOM |
 
 Use `/agent` in Claude Code to chat with Zero.
 

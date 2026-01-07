@@ -70,7 +70,7 @@ var agentDirMapping = map[string]string{
 	"plague": "devops",
 	"gibson": "engineering-leader",
 	"gill":   "cryptography",
-	"turing": "ai-security",
+	"hal": "ai-security",
 }
 
 // agentMetadata provides static metadata for agents
@@ -91,7 +91,7 @@ var agentMetadata = map[string]struct {
 	"plague": {"Plague", "The Plague", "Eugene Belford"},
 	"gibson": {"Gibson", "The Gibson", "The Gibson"},
 	"gill":   {"Gill", "Gill Bates", "Gill Bates"},
-	"turing": {"Turing", "Alan Turing", "Alan Turing"},
+	"hal": {"Hal", "Hal", "Hal"},
 }
 
 // Load loads an agent definition by ID
