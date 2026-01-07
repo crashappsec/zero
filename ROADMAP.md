@@ -155,19 +155,23 @@ SPDX-License-Identifier: GPL-3.0
 
 ---
 
-### Priority 3: Web UI Performance
+### Priority 3: Web UI Completion
 
-**Rationale:** Dashboard unusable with current 500-2000ms response times.
+**Rationale:** Web UI is partially built and needs to be finished.
 
-**Plan:** `docs/PERFORMANCE-IMPLEMENTATION-PLAN.md`
+**Current State:**
+- Next.js dashboard scaffolded
+- API handlers exist but incomplete
+- Performance issues (500-2000ms response times)
 
-| Phase | Description | Status |
-|-------|-------------|--------|
-| Phase 1 | SQLite storage layer | In Progress |
-| Phase 2 | In-memory caching | Planned |
-| Phase 3 | SWR request deduplication | Planned |
+**Tasks:**
+- Complete dashboard pages and components
+- Finish API endpoints for all scanner data
+- Add SQLite storage layer for performance
+- Implement SWR request deduplication
+- Polish UI/UX
 
-**Target:** <50ms API responses, <500ms dashboard load
+**Target:** Functional dashboard with <500ms load times
 
 ---
 
