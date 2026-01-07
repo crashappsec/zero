@@ -6,88 +6,130 @@ SPDX-License-Identifier: GPL-3.0
 
 # Zero Roadmap
 
-**Vision**: Position Zero as the leading **open-source software analysis toolkit** — providing deep insights into what software is made of, how it's built, and its security posture.
+**Version:** 5.0.0
+**Last Updated:** 2026-01-07
 
-Zero is the free, open-source component of the Crash Override platform. It provides analyzers for understanding software while adding AI capabilities via specialist agents.
+**Vision**: Position Zero as the leading **open-source software analysis toolkit** — providing deep insights into what software is made of, how it's built, and its security posture.
 
 ---
 
-## Maturity Levels
+## Current State
+
+### What's Complete
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| 7 Super Scanners | ✅ Complete | code-packages, code-security, code-quality, devops, technology-identification, code-ownership, devx |
+| 12 Specialist Agents | ✅ Complete | Cereal, Razor, Gill, Turing, Blade, Phreak, Acid, Dade, Nikon, Joey, Plague, Gibson |
+| Agent CLI (`./zero agent`) | ✅ Complete | Interactive agent mode with Zero orchestrator |
+| Agent Self-Awareness | ✅ Complete | GetSystemInfo tool - agents can query RAG patterns, scanners, feeds, config |
+| RAG Pattern System | ✅ Complete | 23 categories, 400+ patterns |
+| Evidence Reports | ✅ Complete | HTML reports via Evidence.dev |
+| Hydrate Command | ✅ Complete | Clone + scan with profiles |
+| Freshness Tracking | ✅ Complete | Fresh/stale/expired indicators |
+| Feed Sync | ✅ Complete | Semgrep rules, RAG rule generation |
+
+### Maturity Levels
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| **Scanners** | Alpha | 7 super scanners with 45+ features, changing fast |
+| **Scanners** | Alpha | 7 super scanners with 45+ features |
 | **AI Agents** | Alpha | 12 specialist agents for deep analysis |
 | **CLI** | Alpha | Core commands working, APIs may change |
 | **Web UI** | Experimental | Next.js dashboard, expect breaking changes |
 
 ---
 
+## Active Priorities
+
+### Priority 1: Test Coverage
+
+**Rationale:** Low coverage (6-47%) blocks confident releases and refactoring.
+
+| Package | Current | Target | Complexity |
+|---------|---------|--------|------------|
+| `pkg/api/handlers` | 0% | 70% | Medium |
+| `pkg/scanner/code-packages` | 8% | 70% | High |
+| `pkg/scanner/code-security` | 28% | 70% | Medium |
+| `pkg/core/scoring` | 0% | 70% | Low |
+| `pkg/workflow/hydrate` | 17% | 70% | Medium |
+
+**Approach:**
+- Table-driven tests for scanner detection logic
+- Mock external tools (semgrep, osv-scanner, cdxgen)
+- Integration tests with test fixtures in `testdata/`
+
+---
+
+### Priority 2: Web UI Performance
+
+**Rationale:** Dashboard unusable with current 500-2000ms response times.
+
+**Plan:** `docs/PERFORMANCE-IMPLEMENTATION-PLAN.md`
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | SQLite storage layer | In Progress |
+| Phase 2 | In-memory caching | Planned |
+| Phase 3 | SWR request deduplication | Planned |
+
+**Target:** <50ms API responses, <500ms dashboard load
+
+---
+
+### Priority 3: MCP Integration
+
+**Rationale:** Enable Zero as MCP server for IDE integration.
+
+**Current State:** Scaffolded in `pkg/mcp/`, not functional.
+
+**Implementation:**
+- MCP server exposing scanner results
+- Tool definitions for each scanner
+- Resource definitions for analysis data
+- Integration with Claude Desktop / VS Code
+
+---
+
+### Priority 4: Reachability Analysis
+
+**Rationale:** Prioritize actually-reachable vulnerabilities.
+
+**Features:**
+- Vulnerable code path detection
+- Call graph analysis
+- Risk prioritization based on reachability
+
+---
+
 ## Planned Features
 
-### Source Code Scanners
+### Source Code Analysis
 
-#### Reachability Analysis
-Determine if vulnerable dependencies are actually used:
-- Vulnerable Code Path Detection - Trace calls to vulnerable functions
-- Call Graph Analysis - Map how vulnerabilities could be exploited
-- Risk Prioritization - Focus on reachable vulnerabilities first
+| Feature | Description | Status |
+|---------|-------------|--------|
+| Reachability Analysis | Trace calls to vulnerable functions | Planned |
+| Dependency Graph Visualization | Interactive dependency explorer | Planned |
+| Circular Dependency Detection | Find problematic cycles | Planned |
+| Database Schema Analysis | Migration risks, schema drift | Future |
+| Jupyter Notebook Security | Secrets in `.ipynb` files | Future |
 
-#### Advanced Architecture Analysis
-- Dependency Graph Visualization - Interactive dependency explorer
-- Circular Dependency Detection - Find problematic dependency cycles
-- Layer Violation Identification - Detect architecture rule violations
-- Microservice Mapping - Service-to-service communication from code
-- Database Schema Analysis - Migration risks, schema drift from ORM models
+### Cloud & Runtime
 
-#### Semgrep Rule Management
-Better organization and discoverability of Semgrep rules:
-- Unified Taxonomy - Consistent naming across code-security, tech-id, secrets, IaC
-- Individual Rule Files - One file per rule for easy browsing and review
-- Rule Browser - CLI command to list, search, and inspect rules
-- Rule Metadata - Severity, category, references, test cases per rule
-- Design TBD - Goal is making rules easy to browse, review, and contribute
-
-#### Future Enhancements
-- API Versioning Audit - Detect deprecated or sunset API endpoints
-- Training Data Analysis - PII detection in ML datasets
-- Jupyter Notebook Security - Secrets in `.ipynb` files
-- Semgrep IaC Enhancement - Custom organizational policies via RAG patterns
-- Secrets-in-IaC Detection - Semgrep rules for hardcoded secrets in IaC files
-
----
-
-### Cloud & Runtime Scanners
-
-These require cloud credentials or access to running infrastructure. **Not source code based.**
-
-#### Cloud Asset Inventory
-Connect to cloud providers to build infrastructure SBOMs:
-- Multi-Cloud Discovery - Inventory AWS, Azure, GCP resources via [CloudQuery](https://github.com/cloudquery/cloudquery) or [Fix Inventory](https://github.com/someengineering/fixinventory)
-- Cloud SBOM Generation - CycloneDX SBOMs for containers, functions, services
-- Runtime vs Build-time Comparison - Compare deployed assets against source SBOMs
-- Cloud Security Posture - Misconfigurations, exposed services, risky permissions
-- Cross-Cloud Unified View - Normalize resource data across providers
-
-#### Live Endpoint Scanning
-- Certificate Expiry Monitoring - Check live SSL/TLS certificates
-- Exposed Service Detection - Identify publicly accessible services
-- DNS Security - DNSSEC, SPF, DKIM, DMARC validation
-
----
+| Feature | Description | Status |
+|---------|-------------|--------|
+| Cloud Asset Inventory | AWS/Azure/GCP resource discovery | Planned |
+| Cloud SBOM Generation | CycloneDX for cloud resources | Planned |
+| Certificate Monitoring | Live SSL/TLS certificate expiry | Future |
+| DNS Security | DNSSEC, SPF, DKIM, DMARC | Future |
 
 ### Reports & Analytics
 
-#### Report Enhancements
-- PDF Export - Executive summaries for stakeholders
-- Trend Analysis - Track security posture over time
-- Compliance Dashboards - SOC 2, ISO 27001, NIST mapping
-
-#### Developer Experience Metrics
-- Flow Metrics - Cycle time, PR review time, deployment frequency
-- Bottleneck Identification - Where is work getting stuck?
-- Team Health Indicators - Code review patterns, on-call burden
-- Investment Tracking - Where is engineering time spent?
+| Feature | Description | Status |
+|---------|-------------|--------|
+| PDF Export | Executive summaries | Future |
+| Trend Analysis | Track security posture over time | Future |
+| Compliance Dashboards | SOC 2, ISO 27001, NIST mapping | Future |
 
 ---
 
@@ -95,41 +137,61 @@ Connect to cloud providers to build infrastructure SBOMs:
 
 ### Ocular Integration
 
-[Ocular](https://ocularproject.io) is a Crash Override project providing robust code synchronization and tool orchestration at scale.
+[Ocular](https://ocularproject.io) provides robust code synchronization at scale.
 
 - Replace Zero's hydration with Ocular's code sync
-- Leverage Ocular's repository caching and versioning
-- Delegate scanner execution to Ocular's orchestration layer
+- Leverage repository caching and versioning
 - Support for monorepos and multi-repo projects
-- Real-time analysis as Ocular syncs changes
 
 ### Chalk Integration
 
-[Chalk](https://github.com/crashappsec/chalk) provides build-time attestation and security metadata.
+[Chalk](https://github.com/crashappsec/chalk) provides build-time attestation.
 
 - Build-time security analysis integration
 - Attestation enrichment with Zero findings
-- CI/CD workflow templates
 - SLSA compliance verification
-
-### GitHub/GitLab Organization Analysis
-
-- Repository security configuration audit
-- Branch protection and access review
-- GitHub Actions/GitLab CI security analysis
-- Compliance mapping (SOC 2, ISO 27001)
-- Organization-wide policy enforcement
 
 ### Database Backend
 
 - SQLite for single-user deployments
 - DuckDB for analytics and dashboards
 - PostgreSQL for enterprise multi-user
-- Cross-project queries and aggregation
 
 ---
 
-## How to Contribute
+## Quick Reference
+
+### CLI Commands
+
+```bash
+./zero hydrate owner/repo      # Clone and scan
+./zero status                  # Check hydrated projects
+./zero report owner/repo       # Generate HTML report
+./zero agent                   # Enter agent mode
+./zero feeds semgrep           # Sync Semgrep rules
+./zero feeds rag               # Generate RAG rules
+```
+
+### Available Agents
+
+| Agent | Domain | Scanner |
+|-------|--------|---------|
+| Cereal | Supply chain, vulnerabilities | code-packages |
+| Razor | Code security, SAST, secrets | code-security |
+| Gill | Cryptography, ciphers, TLS | code-security |
+| Turing | AI/ML security, ML-BOM | technology-identification |
+| Blade | Compliance, SOC 2, ISO 27001 | Multiple |
+| Phreak | Legal, licenses, privacy | code-packages |
+| Acid | Frontend, React, TypeScript | code-security, code-quality |
+| Dade | Backend, APIs, databases | code-security |
+| Nikon | Architecture, system design | technology-identification |
+| Joey | Build, CI/CD, pipelines | devops |
+| Plague | DevOps, infrastructure, K8s | devops |
+| Gibson | DORA metrics, team health | devops, code-ownership |
+
+---
+
+## Contributing
 
 1. **Submit Feature Requests**: [Create an issue](https://github.com/crashappsec/zero/issues/new)
 2. **Comment on Existing Items**: Add use cases and implementation ideas
@@ -139,8 +201,5 @@ Connect to cloud providers to build infrastructure SBOMs:
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
 ---
-
-*Last Updated: 2026-01-05*
-*Version: 4.1.0*
 
 *"Hack the planet!"*

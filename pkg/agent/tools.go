@@ -13,6 +13,7 @@ func BuiltinTools() []ToolDefinition {
 		WebSearchTool(),
 		WebFetchTool(),
 		DelegateAgentTool(),
+		GetSystemInfoTool(),
 	}
 }
 
@@ -282,6 +283,40 @@ func DelegateAgentTool() ToolDefinition {
 	}
 }
 
+// GetSystemInfoTool defines the tool to query Zero system metadata
+func GetSystemInfoTool() ToolDefinition {
+	return ToolDefinition{
+		Name:        "GetSystemInfo",
+		Description: "Get information about the Zero system itself - RAG patterns, rules, feeds, scanner capabilities, agents, and configuration. Use this to answer questions about Zero's detection capabilities.",
+		InputSchema: InputSchema{
+			Type: "object",
+			Properties: map[string]Property{
+				"category": {
+					Type:        "string",
+					Description: "Category of system info to retrieve",
+					Enum: []string{
+						"rag-stats",     // Pattern counts by RAG category
+						"rag-patterns",  // List patterns in a specific RAG category
+						"rules-status",  // Generated/community rule status
+						"feeds-status",  // Feed sync status
+						"scanners",      // Scanner inventory with features
+						"profiles",      // Available scan profiles
+						"config",        // Active configuration summary
+						"agents",        // Available specialist agents
+						"versions",      // Zero and scanner versions
+						"help",          // Example questions and capabilities
+					},
+				},
+				"filter": {
+					Type:        "string",
+					Description: "Optional filter (e.g., 'secrets' for rag-patterns, 'code-security' for scanners)",
+				},
+			},
+			Required: []string{"category"},
+		},
+	}
+}
+
 // GetToolsForAgent returns the tools available for a specific agent
 func GetToolsForAgent(agentID string) []ToolDefinition {
 	// All agents get base tools
@@ -291,6 +326,7 @@ func GetToolsForAgent(agentID string) []ToolDefinition {
 		GlobTool(),
 		ListProjectsTool(),
 		GetAnalysisTool(),
+		GetSystemInfoTool(), // All agents can query system info
 	}
 
 	// Add web tools for investigation

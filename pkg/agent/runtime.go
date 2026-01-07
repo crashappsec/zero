@@ -241,6 +241,8 @@ func (r *Runtime) createToolExecutor(session *Session) ToolExecutor {
 			return r.executeWebFetch(ctx, session, call)
 		case "DelegateAgent":
 			return r.executeDelegateAgent(ctx, session, call)
+		case "GetSystemInfo":
+			return r.executeGetSystemInfo(ctx, session, call)
 		default:
 			return &ToolResult{
 				ToolCallID: call.ID,
@@ -430,7 +432,13 @@ func (r *Runtime) executeListProjects(ctx context.Context, session *Session, cal
 	// List organizations/owners
 	entries, err := os.ReadDir(reposDir)
 	if err != nil {
-		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error reading repos: %s", err), IsError: true}, nil
+		if os.IsNotExist(err) {
+			return &ToolResult{
+				ToolCallID: call.ID,
+				Content:    "No projects directory found. Run `./zero hydrate owner/repo` to add your first project.",
+			}, nil
+		}
+		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error reading repos: %s\n\nTry: Check that ZERO_HOME is set correctly or run from the zero directory.", err), IsError: true}, nil
 	}
 
 	var projects []string
@@ -451,10 +459,13 @@ func (r *Runtime) executeListProjects(ctx context.Context, session *Session, cal
 	}
 
 	if len(projects) == 0 {
-		return &ToolResult{ToolCallID: call.ID, Content: "No projects found. Use 'zero hydrate owner/repo' to add projects."}, nil
+		return &ToolResult{
+			ToolCallID: call.ID,
+			Content:    "No projects found.\n\n**To add a project:**\n```\n./zero hydrate owner/repo\n```\n\nExample: `./zero hydrate expressjs/express`",
+		}, nil
 	}
 
-	return &ToolResult{ToolCallID: call.ID, Content: strings.Join(projects, "\n")}, nil
+	return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("**%d projects available:**\n%s", len(projects), strings.Join(projects, "\n"))}, nil
 }
 
 // executeGetAnalysis executes the GetAnalysis tool
@@ -473,6 +484,23 @@ func (r *Runtime) executeGetAnalysis(ctx context.Context, session *Session, call
 
 	content, err := os.ReadFile(analysisPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			// Check if project exists at all
+			projectPath := filepath.Join(r.zeroHome, "repos", input.ProjectID)
+			if _, err := os.Stat(projectPath); os.IsNotExist(err) {
+				return &ToolResult{
+					ToolCallID: call.ID,
+					Content:    fmt.Sprintf("Project '%s' not found.\n\n**To add this project:**\n```\n./zero hydrate %s\n```", input.ProjectID, input.ProjectID),
+					IsError:    true,
+				}, nil
+			}
+			// Project exists but scanner data missing
+			return &ToolResult{
+				ToolCallID: call.ID,
+				Content:    fmt.Sprintf("Scanner '%s' data not found for %s.\n\n**To run this scanner:**\n```\n./zero hydrate %s %s\n```\n\n**Available scanners:** code-packages, code-security, code-quality, devops, technology-identification, code-ownership, developer-experience", input.Scanner, input.ProjectID, input.ProjectID, input.Scanner),
+				IsError:    true,
+			}, nil
+		}
 		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error reading analysis: %s", err), IsError: true}, nil
 	}
 
@@ -772,4 +800,31 @@ func (r *Runtime) ListAgents() []string {
 // GetGreeting returns a greeting for an agent
 func (r *Runtime) GetGreeting(agentID, projectID string) (string, error) {
 	return r.prompt.GetAgentGreeting(agentID, projectID)
+}
+
+// executeGetSystemInfo executes the GetSystemInfo tool
+func (r *Runtime) executeGetSystemInfo(ctx context.Context, session *Session, call *ToolCall) (*ToolResult, error) {
+	var input struct {
+		Category string `json:"category"`
+		Filter   string `json:"filter"`
+	}
+	if err := json.Unmarshal(call.Input, &input); err != nil {
+		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Invalid input: %s", err), IsError: true}, nil
+	}
+
+	if input.Category == "" {
+		return &ToolResult{
+			ToolCallID: call.ID,
+			Content:    "Category is required. Valid categories: rag-stats, rag-patterns, rules-status, feeds-status, scanners, profiles, config, agents, versions, help",
+			IsError:    true,
+		}, nil
+	}
+
+	sysInfo := NewSystemInfo(r.zeroHome)
+	result, err := sysInfo.GetSystemInfo(input.Category, input.Filter)
+	if err != nil {
+		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error: %s", err), IsError: true}, nil
+	}
+
+	return &ToolResult{ToolCallID: call.ID, Content: result}, nil
 }

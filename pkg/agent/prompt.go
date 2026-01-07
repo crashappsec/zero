@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 )
@@ -164,6 +165,7 @@ func (b *PromptBuilder) buildToolsSection(agent *AgentDefinition) string {
 		{"Bash", "Execute shell commands (sandboxed)"},
 		{"ListProjects", "List all hydrated projects"},
 		{"GetAnalysis", "Get scanner results for a project"},
+		{"GetSystemInfo", "Get information about Zero itself (patterns, scanners, rules, agents, config)"},
 		{"WebSearch", "Search the web for information"},
 		{"WebFetch", "Fetch content from a URL"},
 	}
@@ -310,11 +312,21 @@ func (b *PromptBuilder) GetAgentGreeting(agentID string, projectID string) (stri
 
 	var greeting string
 
+	// Get project count for context
+	projectCount := b.countHydratedProjects()
+	projectsInfo := ""
+	if projectCount > 0 {
+		projectsInfo = fmt.Sprintf("\n\n**%d projects hydrated** - use `ListProjects` to see them.", projectCount)
+	}
+
 	switch agentID {
 	case "zero":
-		greeting = "Zero here. What do you need?"
 		if projectID != "" {
 			greeting = fmt.Sprintf("Zero here. I've got %s loaded. What do you want to dig into?", projectID)
+		} else if projectCount > 0 {
+			greeting = fmt.Sprintf("Zero here. Ready to investigate.%s\n\n**Try:**\n- \"Analyze security of [project]\"\n- \"What vulnerabilities are in [project]?\"\n- \"How many secrets detection patterns do we have?\"", projectsInfo)
+		} else {
+			greeting = "Zero here. No projects hydrated yet.\n\n**Get started:**\n- Run `zero hydrate owner/repo` to add a project\n- Ask \"What scanners are available?\" to learn about capabilities"
 		}
 	case "cereal":
 		greeting = "FYI man, Cereal Killer here. Ready to check your supply chain."
@@ -344,4 +356,33 @@ func (b *PromptBuilder) GetAgentGreeting(agentID string, projectID string) (stri
 	}
 
 	return greeting, nil
+}
+
+// countHydratedProjects counts how many projects are hydrated
+func (b *PromptBuilder) countHydratedProjects() int {
+	reposDir := filepath.Join(b.zeroHome, "repos")
+
+	entries, err := os.ReadDir(reposDir)
+	if err != nil {
+		return 0
+	}
+
+	count := 0
+	for _, owner := range entries {
+		if !owner.IsDir() {
+			continue
+		}
+		ownerPath := filepath.Join(reposDir, owner.Name())
+		repos, err := os.ReadDir(ownerPath)
+		if err != nil {
+			continue
+		}
+		for _, repo := range repos {
+			if repo.IsDir() {
+				count++
+			}
+		}
+	}
+
+	return count
 }
