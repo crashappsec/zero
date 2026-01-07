@@ -412,6 +412,151 @@
 
 ---
 
+## Rust Weak Ciphers
+
+### Rust DES Cipher
+**Pattern**: `des::Des::new`
+**Type**: regex
+**Severity**: critical
+**Languages**: [rust]
+- DES cipher in Rust (des crate)
+- CWE-327: Use of a Broken or Risky Cryptographic Algorithm
+
+### Rust Triple DES
+**Pattern**: `des::TdesEde[23]::new`
+**Type**: regex
+**Severity**: high
+**Languages**: [rust]
+- Triple DES in Rust
+
+### Rust MD5 Crate
+**Pattern**: `md5::compute`
+**Type**: regex
+**Severity**: high
+**Languages**: [rust]
+- MD5 in Rust (md5 crate)
+- CWE-328: Use of Weak Hash
+
+### Rust MD5 Digest
+**Pattern**: `Md5::new\(\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [rust]
+- MD5 in Rust (md-5/digest crate)
+
+### Rust SHA1 Digest
+**Pattern**: `Sha1::new\(\)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [rust]
+- SHA1 in Rust (sha-1/digest crate)
+
+### Rust RC4 Cipher
+**Pattern**: `rc4::Rc4::new`
+**Type**: regex
+**Severity**: critical
+**Languages**: [rust]
+- RC4 in Rust
+
+### Rust Blowfish
+**Pattern**: `blowfish::Blowfish::new`
+**Type**: regex
+**Severity**: high
+**Languages**: [rust]
+- Blowfish in Rust
+
+### Rust ECB Mode
+**Pattern**: `ecb::Encryptor|ecb::Decryptor`
+**Type**: regex
+**Severity**: high
+**Languages**: [rust]
+- ECB mode in Rust (block-modes crate)
+
+---
+
+## C# Weak Ciphers
+
+### C# DES Provider
+**Pattern**: `DESCryptoServiceProvider`
+**Type**: regex
+**Severity**: critical
+**Languages**: [csharp]
+- DES in C#
+- CWE-327: Use of a Broken or Risky Cryptographic Algorithm
+
+### C# DES Create
+**Pattern**: `DES\.Create\(\)`
+**Type**: regex
+**Severity**: critical
+**Languages**: [csharp]
+- DES.Create() in C#
+
+### C# Triple DES
+**Pattern**: `TripleDESCryptoServiceProvider`
+**Type**: regex
+**Severity**: high
+**Languages**: [csharp]
+- Triple DES in C#
+
+### C# Triple DES Create
+**Pattern**: `TripleDES\.Create\(\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [csharp]
+- TripleDES.Create() in C#
+
+### C# RC2 Provider
+**Pattern**: `RC2CryptoServiceProvider`
+**Type**: regex
+**Severity**: critical
+**Languages**: [csharp]
+- RC2 in C#
+
+### C# MD5 Provider
+**Pattern**: `MD5CryptoServiceProvider`
+**Type**: regex
+**Severity**: high
+**Languages**: [csharp]
+- MD5 in C#
+- CWE-328: Use of Weak Hash
+
+### C# MD5 Create
+**Pattern**: `MD5\.Create\(\)`
+**Type**: regex
+**Severity**: high
+**Languages**: [csharp]
+- MD5.Create() in C#
+
+### C# SHA1 Provider
+**Pattern**: `SHA1CryptoServiceProvider`
+**Type**: regex
+**Severity**: medium
+**Languages**: [csharp]
+- SHA1 in C#
+
+### C# SHA1 Create
+**Pattern**: `SHA1\.Create\(\)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [csharp]
+- SHA1.Create() in C#
+
+### C# SHA1 Managed
+**Pattern**: `SHA1Managed`
+**Type**: regex
+**Severity**: medium
+**Languages**: [csharp]
+- SHA1Managed in C#
+
+### C# ECB Mode
+**Pattern**: `CipherMode\.ECB`
+**Type**: regex
+**Severity**: high
+**Languages**: [csharp]
+- ECB mode in C#
+
+---
+
 ## Hardcoded Keys Detection
 
 ### Hardcoded DES Key

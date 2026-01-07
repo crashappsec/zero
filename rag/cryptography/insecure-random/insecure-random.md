@@ -377,6 +377,61 @@
 
 ---
 
+## Rust Weak Random
+
+### Rust Rand ThreadRng
+**Pattern**: `rand::thread_rng\(\)`
+**Type**: regex
+**Severity**: medium
+**Languages**: [rust]
+- Thread-local RNG (ChaCha12 - cryptographically secure but context matters)
+- CWE-330: Use of Insufficiently Random Values
+
+### Rust Rand SmallRng
+**Pattern**: `SmallRng::from_`
+**Type**: regex
+**Severity**: high
+**Languages**: [rust]
+- Small, fast but non-cryptographic RNG
+- CWE-338: Use of Cryptographically Weak PRNG
+
+### Rust Rand StdRng Seed
+**Pattern**: `StdRng::seed_from_u64`
+**Type**: regex
+**Severity**: high
+**Languages**: [rust]
+- Standard RNG with deterministic seed
+
+### Rust Rand Random
+**Pattern**: `rand::random::<`
+**Type**: regex
+**Severity**: medium
+**Languages**: [rust]
+- Random generation (context-dependent)
+
+### Rust Rand Rng Trait
+**Pattern**: `\.gen_range\(`
+**Type**: regex
+**Severity**: medium
+**Languages**: [rust]
+- RNG gen_range method (context-dependent)
+
+### Rust XorShiftRng
+**Pattern**: `XorShiftRng`
+**Type**: regex
+**Severity**: critical
+**Languages**: [rust]
+- XorShift RNG (weak, predictable)
+
+### Rust Pcg32
+**Pattern**: `Pcg32::seed_from_u64`
+**Type**: regex
+**Severity**: high
+**Languages**: [rust]
+- PCG32 with deterministic seed
+
+---
+
 ## C# Weak Random
 
 ### CSharp Random Constructor
@@ -450,6 +505,7 @@
 | PHP | `rand()`, `mt_rand()` | `random_bytes()`, `random_int()` |
 | C/C++ | `rand()` | `getrandom()`, `/dev/urandom`, OpenSSL RAND |
 | C# | `System.Random` | `System.Security.Cryptography.RandomNumberGenerator` |
+| Rust | `SmallRng`, `XorShiftRng` | `OsRng`, `rand::rngs::OsRng` |
 
 ---
 
