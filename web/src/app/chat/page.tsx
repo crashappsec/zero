@@ -8,13 +8,14 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { useChat, useAgents, useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
-import type { AgentInfo } from '@/lib/types';
+import type { AgentInfo, ToolCallInfo } from '@/lib/types';
 import {
   Send,
   Bot,
   User,
   Trash2,
   ChevronDown,
+  ChevronRight,
   Terminal,
   Shield,
   Package,
@@ -28,6 +29,14 @@ import {
   BarChart3,
   Key,
   Brain,
+  Loader2,
+  CheckCircle2,
+  XCircle,
+  FileSearch,
+  Search,
+  Globe,
+  FolderSearch,
+  Play,
 } from 'lucide-react';
 
 const agentIcons: Record<string, React.ReactNode> = {
@@ -45,6 +54,84 @@ const agentIcons: Record<string, React.ReactNode> = {
   gill: <Key className="h-5 w-5" />,
   hal: <Brain className="h-5 w-5" />,
 };
+
+// Tool icons mapping
+const toolIcons: Record<string, React.ReactNode> = {
+  Read: <FileSearch className="h-3.5 w-3.5" />,
+  Grep: <Search className="h-3.5 w-3.5" />,
+  Glob: <FolderSearch className="h-3.5 w-3.5" />,
+  Bash: <Terminal className="h-3.5 w-3.5" />,
+  WebSearch: <Globe className="h-3.5 w-3.5" />,
+  WebFetch: <Globe className="h-3.5 w-3.5" />,
+  GetAnalysis: <BarChart3 className="h-3.5 w-3.5" />,
+  ListProjects: <Package className="h-3.5 w-3.5" />,
+  DelegateAgent: <Bot className="h-3.5 w-3.5" />,
+  GetSystemInfo: <Cpu className="h-3.5 w-3.5" />,
+};
+
+// Tool call display component
+function ToolCallsDisplay({ toolCalls, isActive }: { toolCalls: ToolCallInfo[]; isActive?: boolean }) {
+  const [expanded, setExpanded] = useState(false);
+
+  if (toolCalls.length === 0) return null;
+
+  return (
+    <div className="mt-2 border-l-2 border-gray-700 pl-3">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-300 transition-colors"
+      >
+        {expanded ? (
+          <ChevronDown className="h-3 w-3" />
+        ) : (
+          <ChevronRight className="h-3 w-3" />
+        )}
+        <span className="font-medium">
+          {isActive ? 'Running' : 'Used'} {toolCalls.length} tool{toolCalls.length > 1 ? 's' : ''}
+        </span>
+        {isActive && <Loader2 className="h-3 w-3 animate-spin text-green-500" />}
+      </button>
+
+      {expanded && (
+        <div className="mt-2 space-y-1.5">
+          {toolCalls.map((tool) => (
+            <div
+              key={tool.id}
+              className="flex items-start gap-2 rounded bg-gray-800/50 px-2 py-1.5 text-xs"
+            >
+              <div className="flex items-center gap-1.5 text-gray-400">
+                {tool.status === 'running' ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-yellow-500" />
+                ) : tool.status === 'complete' ? (
+                  <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                ) : (
+                  <XCircle className="h-3.5 w-3.5 text-red-500" />
+                )}
+                {toolIcons[tool.name] || <Play className="h-3.5 w-3.5" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <span className="font-medium text-gray-300">{tool.name}</span>
+                {tool.input && Object.keys(tool.input).length > 0 && (
+                  <span className="ml-1.5 text-gray-500">
+                    {Object.entries(tool.input)
+                      .slice(0, 2)
+                      .map(([k, v]) => `${k}: ${String(v).slice(0, 30)}${String(v).length > 30 ? '...' : ''}`)
+                      .join(', ')}
+                  </span>
+                )}
+                {tool.endTime && tool.startTime && (
+                  <span className="ml-2 text-gray-600">
+                    {((tool.endTime - tool.startTime) / 1000).toFixed(1)}s
+                  </span>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AgentSelector({
   agents,
@@ -109,10 +196,12 @@ function ChatMessage({
   role,
   content,
   agentName,
+  toolCalls,
 }: {
   role: 'user' | 'assistant';
   content: string;
   agentName?: string;
+  toolCalls?: ToolCallInfo[];
 }) {
   const isUser = role === 'user';
 
@@ -135,6 +224,10 @@ function ChatMessage({
         {!isUser && agentName && (
           <p className="text-xs text-green-500 mb-1">{agentName}</p>
         )}
+        {/* Show tool calls if present */}
+        {!isUser && toolCalls && toolCalls.length > 0 && (
+          <ToolCallsDisplay toolCalls={toolCalls} />
+        )}
         <div className="text-sm text-gray-200 whitespace-pre-wrap">{content}</div>
       </div>
     </div>
@@ -153,16 +246,18 @@ function ChatPageContent({ projectId }: { projectId?: string }) {
     messages,
     isStreaming,
     streamingContent,
+    activeToolCalls,
     sendMessage,
     reset,
   } = useChat(agentId);
 
   const selectedAgent = agents.find((a) => a.id === agentId);
 
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamingContent]);
+  }, [messages, streamingContent, activeToolCalls]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -257,16 +352,27 @@ function ChatPageContent({ projectId }: { projectId?: string }) {
                     role={msg.role}
                     content={msg.content}
                     agentName={msg.role === 'assistant' ? selectedAgent?.name : undefined}
+                    toolCalls={msg.toolCalls}
                   />
                 ))}
-                {isStreaming && streamingContent && (
-                  <ChatMessage
-                    role="assistant"
-                    content={streamingContent}
-                    agentName={selectedAgent?.name}
-                  />
+                {isStreaming && (streamingContent || activeToolCalls.length > 0) && (
+                  <div className="flex gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-green-600">
+                      <Bot className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="max-w-[80%] rounded-lg border px-4 py-3 bg-gray-800/50 border-gray-700">
+                      <p className="text-xs text-green-500 mb-1">{selectedAgent?.name}</p>
+                      {/* Show active tool calls while streaming */}
+                      {activeToolCalls.length > 0 && (
+                        <ToolCallsDisplay toolCalls={activeToolCalls} isActive />
+                      )}
+                      {streamingContent && (
+                        <div className="text-sm text-gray-200 whitespace-pre-wrap mt-2">{streamingContent}</div>
+                      )}
+                    </div>
+                  </div>
                 )}
-                {isStreaming && !streamingContent && (
+                {isStreaming && !streamingContent && activeToolCalls.length === 0 && (
                   <div className="flex gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600">
                       <Bot className="h-4 w-4 text-white animate-pulse" />

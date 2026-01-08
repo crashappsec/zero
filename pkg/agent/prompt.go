@@ -46,9 +46,11 @@ func (b *PromptBuilder) BuildSystemPrompt(session *Session) (string, error) {
 		sb.WriteString(b.buildProcessSection(agent))
 	}
 
-	// 5. Project Context (if set)
+	// 5. Project Context (if set) or Available Projects
 	if session.ProjectID != "" {
 		sb.WriteString(b.buildProjectContext(session))
+	} else {
+		sb.WriteString(b.buildNoProjectContext())
 	}
 
 	// 6. Available Tools
@@ -114,6 +116,27 @@ func (b *PromptBuilder) buildProcessSection(agent *AgentDefinition) string {
 	sb.WriteString("## Your Process\n\n")
 	sb.WriteString(agent.Process)
 	sb.WriteString("\n\n")
+	return sb.String()
+}
+
+// buildNoProjectContext builds guidance when no project is selected
+func (b *PromptBuilder) buildNoProjectContext() string {
+	var sb strings.Builder
+
+	sb.WriteString("## No Project Selected\n\n")
+	sb.WriteString("**IMPORTANT**: No project/repository is currently selected for analysis.\n\n")
+	sb.WriteString("If the user asks about security issues, vulnerabilities, dependencies, or anything that requires analyzing a specific codebase:\n\n")
+	sb.WriteString("1. Use the `ListProjects` tool to see available hydrated projects\n")
+	sb.WriteString("2. **Analyze the user's question** to understand what they're looking for:\n")
+	sb.WriteString("   - If they mention a language (Go, Python, JavaScript), filter to projects using that language\n")
+	sb.WriteString("   - If they mention a framework (React, Express, Django), filter to relevant projects\n")
+	sb.WriteString("   - If they mention a category (frontend, backend, ML), filter appropriately\n")
+	sb.WriteString("3. Present a **smart, filtered list** based on their question context\n")
+	sb.WriteString("4. ASK which one they want to analyze - do NOT assume\n\n")
+	sb.WriteString("**Example**: If user asks \"Check Go best practices\", you should:\n")
+	sb.WriteString("- List projects, identify which are Go-based\n")
+	sb.WriteString("- Say: \"I found 3 Go projects: [list]. Which one should I analyze for Go best practices?\"\n\n")
+
 	return sb.String()
 }
 
@@ -248,20 +271,17 @@ func (b *PromptBuilder) buildVoiceSection(agent *AgentDefinition, voiceMode stri
 
 // defaultVoiceFull provides a default full voice if none specified
 func (b *PromptBuilder) defaultVoiceFull(agent *AgentDefinition) string {
-	return fmt.Sprintf(`You are %s from the movie Hackers (1995). Stay in character while providing expert analysis.
+	return fmt.Sprintf(`You are %s, a security specialist. You can occasionally reference your expertise but focus on the analysis.
 
-Be engaging, use your character's speech patterns, but always prioritize accurate technical information.
-Reference the movie occasionally but don't let it overshadow the analysis.
-
-*"Hack the planet."*`, agent.Persona)
+IMPORTANT: Do NOT start responses with "[Name] here" or announce yourself. Get straight to the point like a professional would.
+Be helpful and informative. Prioritize accurate technical information over character roleplay.`, agent.Persona)
 }
 
 // defaultVoiceMinimal provides a default minimal voice
 func (b *PromptBuilder) defaultVoiceMinimal(agent *AgentDefinition) string {
 	return fmt.Sprintf(`You are %s, providing professional security analysis.
 
-Use agent names (Cereal, Razor, etc.) but maintain a professional tone.
-Be direct, efficient, and focus on actionable findings.`, agent.Name)
+Do NOT announce yourself at the start of responses. Be direct, efficient, and focus on actionable findings.`, agent.Name)
 }
 
 // defaultVoiceNeutral provides a default neutral voice
@@ -269,7 +289,7 @@ func (b *PromptBuilder) defaultVoiceNeutral(agent *AgentDefinition) string {
 	return fmt.Sprintf(`You are the %s module. Provide objective technical analysis.
 
 Use formal, precise language. Focus on facts, findings, and recommendations.
-No character roleplay. Pure technical output.`, agent.Domain)
+No character roleplay. No self-announcement. Pure technical output.`, agent.Domain)
 }
 
 // buildGuidelinesSection builds general guidelines
@@ -282,6 +302,7 @@ func (b *PromptBuilder) buildGuidelinesSection() string {
 4. **Show Evidence**: Cite file paths, line numbers, and specific findings.
 5. **Be Proactive**: Use tools without being asked when investigation is needed.
 6. **Delegate When Needed**: If a question is outside your expertise, suggest the right specialist.
+7. **Ask for Clarification**: If the user asks about a specific project/repository but no project context is set, use ListProjects to see available projects and ASK the user which one they want to analyze. Do NOT assume or guess. List the available options and ask them to choose.
 
 `
 }

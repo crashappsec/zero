@@ -158,6 +158,7 @@ export function streamChat(
   onError: (error: Error) => void
 ): () => void {
   const controller = new AbortController();
+  let aborted = false;
 
   fetch(`${API_BASE}/chat/stream`, {
     method: 'POST',
@@ -177,6 +178,7 @@ export function streamChat(
       let buffer = '';
 
       while (true) {
+        if (aborted) break;
         const { done, value } = await reader.read();
         if (done) break;
 
@@ -190,7 +192,7 @@ export function streamChat(
               const chunk = JSON.parse(line.slice(6)) as StreamChunk;
               onChunk(chunk);
             } catch {
-              // Ignore parse errors
+              // Ignore parse errors for malformed SSE data
             }
           }
         }
@@ -202,7 +204,10 @@ export function streamChat(
       }
     });
 
-  return () => controller.abort();
+  return () => {
+    aborted = true;
+    controller.abort();
+  };
 }
 
 // WebSocket for scan progress

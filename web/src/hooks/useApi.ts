@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { api, connectScanWS, streamChat } from '@/lib/api';
-import type { Repo, Project, ScanJob, StreamChunk, QueueStats, AgentInfo } from '@/lib/types';
+import type { Repo, Project, ScanJob, StreamChunk, QueueStats, AgentInfo, ToolCallInfo } from '@/lib/types';
 
 // Generic hook for fetching data
 export function useFetch<T>(
@@ -148,12 +148,14 @@ export function useScanProgress(jobId: string | null) {
   return { job, connected };
 }
 
-// Chat hook
+// Chat hook with tool call tracking
 export function useChat(agentId = 'zero') {
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; toolCalls?: ToolCallInfo[] }[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
+  const [activeToolCalls, setActiveToolCalls] = useState<ToolCallInfo[]>([]);
+  const [toolCallCounter, setToolCallCounter] = useState(0);
 
   const sendMessage = useCallback(
     async (message: string, projectId?: string) => {
@@ -161,6 +163,9 @@ export function useChat(agentId = 'zero') {
       setMessages((prev) => [...prev, { role: 'user', content: message }]);
       setIsStreaming(true);
       setStreamingContent('');
+      setActiveToolCalls([]);
+
+      let currentToolCalls: ToolCallInfo[] = [];
 
       return new Promise<void>((resolve, reject) => {
         streamChat(
@@ -171,30 +176,65 @@ export function useChat(agentId = 'zero') {
               setSessionId(chunk.session_id);
             } else if (chunk.type === 'delta') {
               setStreamingContent((prev) => prev + (chunk.content || ''));
+            } else if (chunk.type === 'tool_call') {
+              // Add new tool call
+              const newToolCall: ToolCallInfo = {
+                id: `tool-${Date.now()}-${toolCallCounter}`,
+                name: chunk.tool_name || 'unknown',
+                input: chunk.tool_input || {},
+                status: 'running',
+                startTime: Date.now(),
+              };
+              setToolCallCounter((c) => c + 1);
+              currentToolCalls = [...currentToolCalls, newToolCall];
+              setActiveToolCalls([...currentToolCalls]);
+            } else if (chunk.type === 'tool_result') {
+              // Mark last tool call as complete
+              if (currentToolCalls.length > 0) {
+                const lastIdx = currentToolCalls.length - 1;
+                currentToolCalls[lastIdx] = {
+                  ...currentToolCalls[lastIdx],
+                  status: chunk.is_error ? 'error' : 'complete',
+                  endTime: Date.now(),
+                };
+                setActiveToolCalls([...currentToolCalls]);
+              }
             } else if (chunk.type === 'done') {
-              setMessages((prev) => [...prev, { role: 'assistant', content: chunk.content || '' }]);
+              // Save message with tool calls
+              setMessages((prev) => [
+                ...prev,
+                {
+                  role: 'assistant',
+                  content: chunk.content || '',
+                  toolCalls: currentToolCalls.length > 0 ? currentToolCalls : undefined,
+                },
+              ]);
               setStreamingContent('');
+              setActiveToolCalls([]);
               setIsStreaming(false);
               resolve();
             } else if (chunk.type === 'error') {
               setIsStreaming(false);
+              setActiveToolCalls([]);
               reject(new Error(chunk.error));
             }
           },
           (error) => {
             setIsStreaming(false);
+            setActiveToolCalls([]);
             reject(error);
           }
         );
       });
     },
-    [sessionId, agentId]
+    [sessionId, agentId, toolCallCounter]
   );
 
   const reset = useCallback(() => {
     setSessionId(null);
     setMessages([]);
     setStreamingContent('');
+    setActiveToolCalls([]);
     setIsStreaming(false);
   }, []);
 
@@ -203,6 +243,7 @@ export function useChat(agentId = 'zero') {
     messages,
     isStreaming,
     streamingContent,
+    activeToolCalls,
     sendMessage,
     reset,
   };

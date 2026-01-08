@@ -80,7 +80,7 @@ func (s *Server) setupRoutes() {
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.Timeout(60 * time.Second))
+	// Note: Timeout middleware is applied per-route group to allow longer timeouts for chat
 
 	// CORS configuration
 	corsOpts := cors.Options{
@@ -103,68 +103,76 @@ func (s *Server) setupRoutes() {
 	scanHandler := handlers.NewScanHandler(s.queue)
 	configHandler := handlers.NewConfigHandler(s.cfg)
 
-	// API routes
+	// Standard API routes (with 60s timeout)
 	r.Route("/api", func(r chi.Router) {
-		// System endpoints
-		r.Get("/health", systemHandler.Health)
-		r.Get("/config", systemHandler.GetConfig)
-		r.Get("/scanners", systemHandler.ListScanners)
-		r.Get("/agents", systemHandler.ListAgents)
+		// Group for standard routes with 60s timeout
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Timeout(60 * time.Second))
 
-		// Repos endpoints (renamed from projects)
-		r.Get("/repos", repoHandler.List)
-		r.Get("/repos/{projectID}", repoHandler.Get)
-		r.Delete("/repos/{projectID}", repoHandler.Delete)
-		r.Get("/repos/{projectID}/freshness", repoHandler.GetFreshness)
-		r.Get("/repos/{projectID}/analysis/{analysisType}", analysisHandler.GetAnalysis)
+			// System endpoints
+			r.Get("/health", systemHandler.Health)
+			r.Get("/config", systemHandler.GetConfig)
+			r.Get("/scanners", systemHandler.ListScanners)
+			r.Get("/agents", systemHandler.ListAgents)
 
-		// Backwards compatibility: /projects routes still work
-		r.Get("/projects", repoHandler.List)
-		r.Get("/projects/{projectID}", repoHandler.Get)
-		r.Delete("/projects/{projectID}", repoHandler.Delete)
-		r.Get("/projects/{projectID}/freshness", repoHandler.GetFreshness)
-		r.Get("/projects/{projectID}/analysis/{analysisType}", analysisHandler.GetAnalysis)
+			// Repos endpoints (renamed from projects)
+			r.Get("/repos", repoHandler.List)
+			r.Get("/repos/{projectID}", repoHandler.Get)
+			r.Delete("/repos/{projectID}", repoHandler.Delete)
+			r.Get("/repos/{projectID}/freshness", repoHandler.GetFreshness)
+			r.Get("/repos/{projectID}/analysis/{analysisType}", analysisHandler.GetAnalysis)
 
-		// Analysis aggregation endpoints
-		r.Get("/analysis/stats", analysisHandler.GetAggregateStats)
-		r.Get("/analysis/{projectID}/summary", analysisHandler.GetSummary)
-		r.Get("/analysis/{projectID}/vulnerabilities", analysisHandler.GetVulnerabilities)
-		r.Get("/analysis/{projectID}/secrets", analysisHandler.GetSecrets)
-		r.Get("/analysis/{projectID}/dependencies", analysisHandler.GetDependencies)
+			// Backwards compatibility: /projects routes still work
+			r.Get("/projects", repoHandler.List)
+			r.Get("/projects/{projectID}", repoHandler.Get)
+			r.Delete("/projects/{projectID}", repoHandler.Delete)
+			r.Get("/projects/{projectID}/freshness", repoHandler.GetFreshness)
+			r.Get("/projects/{projectID}/analysis/{analysisType}", analysisHandler.GetAnalysis)
 
-		// Profile management
-		r.Get("/profiles", configHandler.ListProfiles)
-		r.Get("/profiles/{name}", configHandler.GetProfile)
-		r.Post("/profiles", configHandler.CreateProfile)
-		r.Put("/profiles/{name}", configHandler.UpdateProfile)
-		r.Delete("/profiles/{name}", configHandler.DeleteProfile)
+			// Analysis aggregation endpoints
+			r.Get("/analysis/stats", analysisHandler.GetAggregateStats)
+			r.Get("/analysis/{projectID}/summary", analysisHandler.GetSummary)
+			r.Get("/analysis/{projectID}/vulnerabilities", analysisHandler.GetVulnerabilities)
+			r.Get("/analysis/{projectID}/secrets", analysisHandler.GetSecrets)
+			r.Get("/analysis/{projectID}/dependencies", analysisHandler.GetDependencies)
 
-		// Settings management
-		r.Get("/settings", configHandler.GetSettings)
-		r.Put("/settings", configHandler.UpdateSettings)
+			// Profile management
+			r.Get("/profiles", configHandler.ListProfiles)
+			r.Get("/profiles/{name}", configHandler.GetProfile)
+			r.Post("/profiles", configHandler.CreateProfile)
+			r.Put("/profiles/{name}", configHandler.UpdateProfile)
+			r.Delete("/profiles/{name}", configHandler.DeleteProfile)
 
-		// Scanner configuration
-		r.Get("/scanners/{name}", configHandler.GetScanner)
-		r.Put("/scanners/{name}", configHandler.UpdateScanner)
+			// Settings management
+			r.Get("/settings", configHandler.GetSettings)
+			r.Put("/settings", configHandler.UpdateSettings)
 
-		// Config export/import
-		r.Get("/config/export", configHandler.ExportConfig)
-		r.Post("/config/import", configHandler.ImportConfig)
+			// Scanner configuration
+			r.Get("/scanners/{name}", configHandler.GetScanner)
+			r.Put("/scanners/{name}", configHandler.UpdateScanner)
 
-		// Scan endpoints
-		r.Post("/scans", scanHandler.Start)
-		r.Get("/scans/active", scanHandler.ListActive)
-		r.Get("/scans/history", scanHandler.ListHistory)
-		r.Get("/scans/stats", scanHandler.Stats)
-		r.Get("/scans/{jobID}", scanHandler.Get)
-		r.Delete("/scans/{jobID}", scanHandler.Cancel)
+			// Config export/import
+			r.Get("/config/export", configHandler.ExportConfig)
+			r.Post("/config/import", configHandler.ImportConfig)
 
-		// Agent chat endpoints
-		r.Post("/chat", s.agentHandler.HandleChat)
-		r.Post("/chat/stream", s.agentHandler.HandleChatStream)
-		r.Get("/chat/sessions", s.agentHandler.HandleListSessions)
-		r.Get("/chat/sessions/{sessionID}", s.agentHandler.HandleGetSession)
-		r.Delete("/chat/sessions/{sessionID}", s.agentHandler.HandleDeleteSession)
+			// Scan endpoints
+			r.Post("/scans", scanHandler.Start)
+			r.Get("/scans/active", scanHandler.ListActive)
+			r.Get("/scans/history", scanHandler.ListHistory)
+			r.Get("/scans/stats", scanHandler.Stats)
+			r.Get("/scans/{jobID}", scanHandler.Get)
+			r.Delete("/scans/{jobID}", scanHandler.Cancel)
+		})
+
+		// Agent chat endpoints (separate group with 5 min timeout for tool use)
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.Timeout(300 * time.Second))
+			r.Post("/chat", s.agentHandler.HandleChat)
+			r.Post("/chat/stream", s.agentHandler.HandleChatStream)
+			r.Get("/chat/sessions", s.agentHandler.HandleListSessions)
+			r.Get("/chat/sessions/{sessionID}", s.agentHandler.HandleGetSession)
+			r.Delete("/chat/sessions/{sessionID}", s.agentHandler.HandleDeleteSession)
+		})
 	})
 
 	// WebSocket endpoints for real-time updates
@@ -192,8 +200,8 @@ func (s *Server) Run(ctx context.Context) error {
 		Addr:         addr,
 		Handler:      s.router,
 		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 60 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		WriteTimeout: 300 * time.Second, // 5 min for chat with tool use
+		IdleTimeout:  120 * time.Second,
 	}
 
 	// Graceful shutdown

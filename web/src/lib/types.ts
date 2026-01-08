@@ -101,11 +101,26 @@ export interface ChatSession {
 }
 
 export interface StreamChunk {
-  type: 'start' | 'delta' | 'done' | 'error';
+  type: 'start' | 'delta' | 'done' | 'error' | 'tool_call' | 'tool_result';
   session_id: string;
   agent_id: string;
   content?: string;
   error?: string;
+  // Tool call fields
+  tool_name?: string;
+  tool_input?: Record<string, unknown>;
+  // Tool result fields
+  is_error?: boolean;
+}
+
+// Tool call tracking for threaded display
+export interface ToolCallInfo {
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+  status: 'running' | 'complete' | 'error';
+  startTime: number;
+  endTime?: number;
 }
 
 // Analysis types
