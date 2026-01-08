@@ -48,6 +48,17 @@ func (h *AnalysisHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 		"project": projectID,
 	}
 
+	// Initialize totals for severity counts
+	totals := map[string]int{
+		"critical": 0,
+		"high":     0,
+		"medium":   0,
+		"low":      0,
+	}
+
+	// Track scanner status for UI
+	scannerStatus := map[string]interface{}{}
+
 	// Aggregate from multiple scanners (v4.0 super scanners)
 	scanners := []string{"code-packages", "code-security", "code-quality", "devops", "technology-identification", "code-ownership", "developer-experience"}
 	for _, scanner := range scanners {
@@ -55,8 +66,44 @@ func (h *AnalysisHandler) GetSummary(w http.ResponseWriter, r *http.Request) {
 			if summ, ok := data["summary"]; ok {
 				summary[scanner] = summ
 			}
+
+			// Count findings for scanner status
+			findingsCount := 0
+			if findings, ok := data["findings"].(map[string]interface{}); ok {
+				// Count vulnerabilities by severity
+				if vulns, ok := findings["vulns"].([]interface{}); ok {
+					findingsCount += len(vulns)
+					for _, v := range vulns {
+						if vm, ok := v.(map[string]interface{}); ok {
+							if sev, ok := vm["severity"].(string); ok {
+								totals[strings.ToLower(sev)]++
+							}
+						}
+					}
+				}
+
+				// Count secrets by severity
+				if secrets, ok := findings["secrets"].([]interface{}); ok {
+					findingsCount += len(secrets)
+					for _, s := range secrets {
+						if sm, ok := s.(map[string]interface{}); ok {
+							if sev, ok := sm["severity"].(string); ok {
+								totals[strings.ToLower(sev)]++
+							}
+						}
+					}
+				}
+			}
+
+			scannerStatus[scanner] = map[string]interface{}{
+				"status":         "completed",
+				"findings_count": findingsCount,
+			}
 		}
 	}
+
+	summary["totals"] = totals
+	summary["scanners"] = scannerStatus
 
 	// Get available analyses
 	var available []string
@@ -116,7 +163,8 @@ func (h *AnalysisHandler) GetVulnerabilities(w http.ResponseWriter, r *http.Requ
 	result := map[string]interface{}{
 		"project":         projectID,
 		"total":           len(allVulns),
-		"vulnerabilities": allVulns,
+		"data":            allVulns,
+		"vulnerabilities": allVulns, // Deprecated: use "data" field
 	}
 
 	writeJSON(w, http.StatusOK, result)
@@ -143,7 +191,8 @@ func (h *AnalysisHandler) GetSecrets(w http.ResponseWriter, r *http.Request) {
 	result := map[string]interface{}{
 		"project": projectID,
 		"total":   len(secrets),
-		"secrets": secrets,
+		"data":    secrets,
+		"secrets": secrets, // Deprecated: use "data" field
 	}
 
 	writeJSON(w, http.StatusOK, result)
@@ -173,7 +222,8 @@ func (h *AnalysisHandler) GetDependencies(w http.ResponseWriter, r *http.Request
 	result := map[string]interface{}{
 		"project":  projectID,
 		"total":    len(packages),
-		"packages": packages,
+		"data":     packages,
+		"packages": packages, // Deprecated: use "data" field
 	}
 
 	// Add license summary if available (now in same supply-chain scanner)

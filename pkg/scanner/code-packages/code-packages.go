@@ -1852,7 +1852,10 @@ func fetchKEV(ctx context.Context) map[string]bool {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return vulns
+	}
 	var catalog struct {
 		Vulnerabilities []struct {
 			CVEID string `json:"cveID"`
@@ -2267,13 +2270,18 @@ func checkNPMPackage(ctx context.Context, client *http.Client, name string) (boo
 		return false, ""
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, ""
+	}
 	var pkg struct {
 		DistTags struct {
 			Latest string `json:"latest"`
 		} `json:"dist-tags"`
 	}
-	json.Unmarshal(body, &pkg)
+	if json.Unmarshal(body, &pkg) != nil {
+		return false, ""
+	}
 	return true, pkg.DistTags.Latest
 }
 
@@ -2287,13 +2295,18 @@ func checkPyPIPackage(ctx context.Context, client *http.Client, name string) (bo
 		return false, ""
 	}
 	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, ""
+	}
 	var pkg struct {
 		Info struct {
 			Version string `json:"version"`
 		} `json:"info"`
 	}
-	json.Unmarshal(body, &pkg)
+	if json.Unmarshal(body, &pkg) != nil {
+		return false, ""
+	}
 	return true, pkg.Info.Version
 }
 
@@ -2631,7 +2644,10 @@ func getPackageAge(ctx context.Context, client *http.Client, name string) int {
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return -1
+	}
 	var pkg struct {
 		Time map[string]string `json:"time"`
 	}
@@ -2729,7 +2745,10 @@ func checkNPMDeprecation(ctx context.Context, client *http.Client, name, version
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, ""
+	}
 	var pkg struct {
 		Deprecated string `json:"deprecated"`
 	}
@@ -2751,7 +2770,10 @@ func checkPyPIDeprecation(ctx context.Context, client *http.Client, name string)
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, ""
+	}
 	var pkg struct {
 		Info struct {
 			Classifiers []string `json:"classifiers"`
@@ -2799,7 +2821,10 @@ func checkGoDeprecation(ctx context.Context, client *http.Client, modulePath, ve
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, ""
+	}
 	var info struct {
 		Version string `json:"Version"`
 		Time    string `json:"Time"`
@@ -2832,7 +2857,10 @@ func checkGoDeprecation(ctx context.Context, client *http.Client, modulePath, ve
 	defer resp.Body.Close()
 
 	// Quick check for deprecation notice in HTML
-	htmlBody, _ := io.ReadAll(resp.Body)
+	htmlBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return false, ""
+	}
 	htmlStr := string(htmlBody)
 	if strings.Contains(htmlStr, "Deprecated") && strings.Contains(htmlStr, "deprecated") {
 		return true, "Module marked as deprecated on pkg.go.dev"
