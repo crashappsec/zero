@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path/filepath"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -17,6 +18,8 @@ import (
 	"github.com/crashappsec/zero/pkg/api/jobs"
 	"github.com/crashappsec/zero/pkg/api/ws"
 	"github.com/crashappsec/zero/pkg/core/config"
+	"github.com/crashappsec/zero/pkg/storage"
+	"github.com/crashappsec/zero/pkg/storage/sqlite"
 )
 
 // Server is the HTTP API server
@@ -28,6 +31,7 @@ type Server struct {
 	queue        *jobs.Queue
 	workerPool   *jobs.WorkerPool
 	agentHandler *agent.Handler
+	store        storage.Store
 	port         int
 	devMode      bool
 }
@@ -53,6 +57,14 @@ func NewServer(opts *Options) (*Server, error) {
 		opts.NumWorkers = 1
 	}
 
+	// Initialize SQLite store for fast queries
+	dbPath := filepath.Join(zeroHome, "zero.db")
+	store, err := sqlite.New(dbPath)
+	if err != nil {
+		log.Printf("Warning: Failed to initialize SQLite store: %v (falling back to JSON)", err)
+		// Continue without store - handlers will fall back to JSON
+	}
+
 	hub := ws.NewHub()
 	queue := jobs.NewQueue(100) // Max 100 queued jobs
 
@@ -65,6 +77,7 @@ func NewServer(opts *Options) (*Server, error) {
 		queue:        queue,
 		workerPool:   jobs.NewWorkerPool(queue, hub, opts.NumWorkers),
 		agentHandler: agent.NewHandler(zeroHome),
+		store:        store,
 	}
 
 	s.setupRoutes()
@@ -209,6 +222,9 @@ func (s *Server) Run(ctx context.Context) error {
 		<-ctx.Done()
 		log.Println("Shutting down server...")
 		s.workerPool.Stop()
+		if s.store != nil {
+			s.store.Close()
+		}
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		srv.Shutdown(shutdownCtx)
