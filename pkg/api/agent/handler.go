@@ -202,6 +202,7 @@ func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 	var toolCalls []map[string]interface{}
 
 	chatReq := &agent.ChatRequest{
+		SessionID: sessionID, // Pass session ID so runtime maintains conversation history
 		AgentID:   agentID,
 		ProjectID: session.ProjectID,
 		VoiceMode: req.VoiceMode,
@@ -297,6 +298,7 @@ func (h *Handler) HandleChatStream(w http.ResponseWriter, r *http.Request) {
 	// Stream response with tool use events
 	var fullResponse string
 	chatReq := &agent.ChatRequest{
+		SessionID: sessionID, // Pass session ID so runtime maintains conversation history
 		AgentID:   agentID,
 		ProjectID: session.ProjectID,
 		VoiceMode: req.VoiceMode,
@@ -544,6 +546,7 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 	// Stream response with tool use
 	var fullResponse string
 	chatReq := &agent.ChatRequest{
+		SessionID: c.session.ID, // Pass session ID so runtime maintains conversation history
 		AgentID:   c.session.AgentID,
 		ProjectID: c.session.ProjectID,
 		VoiceMode: c.voiceMode,
