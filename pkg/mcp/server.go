@@ -220,20 +220,29 @@ func (s *Server) handleGetProjectSummary(ctx context.Context, req *mcp.CallToolR
 		"available_scans": found.AvailableScans,
 	}
 
-	// Add vuln stats if available
-	if contains(found.AvailableScans, "package-vulns") {
-		if data, err := s.readAnalysis(input.Project, "package-vulns"); err == nil {
+	// Add package/vuln stats from code-packages scanner (v4.0)
+	if contains(found.AvailableScans, "code-packages") {
+		if data, err := s.readAnalysis(input.Project, "code-packages"); err == nil {
 			if summ, ok := data["summary"].(map[string]interface{}); ok {
-				summary["vulnerabilities"] = summ
+				summary["packages"] = summ
 			}
 		}
 	}
 
-	// Add package stats if available
-	if contains(found.AvailableScans, "package-sbom") {
-		if data, err := s.readAnalysis(input.Project, "package-sbom"); err == nil {
+	// Add security stats from code-security scanner (v4.0)
+	if contains(found.AvailableScans, "code-security") {
+		if data, err := s.readAnalysis(input.Project, "code-security"); err == nil {
 			if summ, ok := data["summary"].(map[string]interface{}); ok {
-				summary["packages"] = summ
+				summary["security"] = summ
+			}
+		}
+	}
+
+	// Add technology stats (v4.0)
+	if contains(found.AvailableScans, "technology-identification") {
+		if data, err := s.readAnalysis(input.Project, "technology-identification"); err == nil {
+			if summ, ok := data["summary"].(map[string]interface{}); ok {
+				summary["technologies"] = summ
 			}
 		}
 	}
@@ -243,42 +252,65 @@ func (s *Server) handleGetProjectSummary(ctx context.Context, req *mcp.CallToolR
 }
 
 func (s *Server) handleGetVulnerabilities(ctx context.Context, req *mcp.CallToolRequest, input VulnerabilitiesInput) (*mcp.CallToolResult, TextOutput, error) {
-	data, err := s.readAnalysis(input.Project, "package-vulns")
+	// v4.0: Vulnerabilities are in code-packages scanner under findings.vulns
+	data, err := s.readAnalysis(input.Project, "code-packages")
 	if err != nil {
 		return nil, TextOutput{}, fmt.Errorf("no vulnerability data for '%s'", input.Project)
 	}
 
-	// Filter by severity if specified
-	if input.Severity != "" {
-		if findings, ok := data["findings"].([]interface{}); ok {
-			var filtered []interface{}
-			for _, f := range findings {
-				if fm, ok := f.(map[string]interface{}); ok {
-					if sev, _ := fm["severity"].(string); strings.EqualFold(sev, input.Severity) {
-						filtered = append(filtered, f)
+	result := map[string]interface{}{
+		"project": input.Project,
+	}
+
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		if vulns, ok := findings["vulns"].([]interface{}); ok {
+			// Filter by severity if specified
+			if input.Severity != "" {
+				var filtered []interface{}
+				for _, v := range vulns {
+					if vm, ok := v.(map[string]interface{}); ok {
+						if sev, _ := vm["severity"].(string); strings.EqualFold(sev, input.Severity) {
+							filtered = append(filtered, v)
+						}
 					}
 				}
+				result["vulnerabilities"] = filtered
+				result["count"] = len(filtered)
+			} else {
+				result["vulnerabilities"] = vulns
+				result["count"] = len(vulns)
 			}
-			data["findings"] = filtered
 		}
 	}
 
-	result, _ := json.MarshalIndent(data, "", "  ")
-	return nil, TextOutput{Text: string(result)}, nil
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return nil, TextOutput{Text: string(output)}, nil
 }
 
 func (s *Server) handleGetMalcontent(ctx context.Context, req *mcp.CallToolRequest, input MalcontentInput) (*mcp.CallToolResult, TextOutput, error) {
-	data, err := s.readAnalysis(input.Project, "package-malcontent")
+	// v4.0: Malcontent is in code-packages scanner under findings.malcontent
+	data, err := s.readAnalysis(input.Project, "code-packages")
 	if err != nil {
 		return nil, TextOutput{}, fmt.Errorf("no malcontent data for '%s'", input.Project)
 	}
 
-	result, _ := json.MarshalIndent(data, "", "  ")
-	return nil, TextOutput{Text: string(result)}, nil
+	result := map[string]interface{}{
+		"project": input.Project,
+	}
+
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		if malcontent, ok := findings["malcontent"]; ok {
+			result["malcontent"] = malcontent
+		}
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return nil, TextOutput{Text: string(output)}, nil
 }
 
 func (s *Server) handleGetTechnologies(ctx context.Context, req *mcp.CallToolRequest, input ProjectInput) (*mcp.CallToolResult, TextOutput, error) {
-	data, err := s.readAnalysis(input.Project, "tech-discovery")
+	// v4.0: Technology detection is in technology-identification scanner
+	data, err := s.readAnalysis(input.Project, "technology-identification")
 	if err != nil {
 		return nil, TextOutput{}, fmt.Errorf("no technology data for '%s'", input.Project)
 	}
@@ -288,59 +320,100 @@ func (s *Server) handleGetTechnologies(ctx context.Context, req *mcp.CallToolReq
 }
 
 func (s *Server) handleGetPackageHealth(ctx context.Context, req *mcp.CallToolRequest, input ProjectInput) (*mcp.CallToolResult, TextOutput, error) {
-	data, err := s.readAnalysis(input.Project, "package-health")
+	// v4.0: Package health is in code-packages scanner under findings.health
+	data, err := s.readAnalysis(input.Project, "code-packages")
 	if err != nil {
 		return nil, TextOutput{}, fmt.Errorf("no package health data for '%s'", input.Project)
 	}
 
-	result, _ := json.MarshalIndent(data, "", "  ")
-	return nil, TextOutput{Text: string(result)}, nil
+	result := map[string]interface{}{
+		"project": input.Project,
+	}
+
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		if health, ok := findings["health"]; ok {
+			result["health"] = health
+		}
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return nil, TextOutput{Text: string(output)}, nil
 }
 
 func (s *Server) handleGetLicenses(ctx context.Context, req *mcp.CallToolRequest, input ProjectInput) (*mcp.CallToolResult, TextOutput, error) {
-	data, err := s.readAnalysis(input.Project, "licenses")
+	// v4.0: Licenses are in code-packages scanner under findings.licenses
+	data, err := s.readAnalysis(input.Project, "code-packages")
 	if err != nil {
 		return nil, TextOutput{}, fmt.Errorf("no license data for '%s'", input.Project)
 	}
 
-	result, _ := json.MarshalIndent(data, "", "  ")
-	return nil, TextOutput{Text: string(result)}, nil
+	result := map[string]interface{}{
+		"project": input.Project,
+	}
+
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		if licenses, ok := findings["licenses"]; ok {
+			result["licenses"] = licenses
+		}
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return nil, TextOutput{Text: string(output)}, nil
 }
 
 func (s *Server) handleGetSecrets(ctx context.Context, req *mcp.CallToolRequest, input ProjectInput) (*mcp.CallToolResult, TextOutput, error) {
-	data, err := s.readAnalysis(input.Project, "code-secrets")
+	// v4.0: Secrets are in code-security scanner under findings.secrets
+	data, err := s.readAnalysis(input.Project, "code-security")
 	if err != nil {
 		return nil, TextOutput{}, fmt.Errorf("no secrets data for '%s'", input.Project)
 	}
 
-	result, _ := json.MarshalIndent(data, "", "  ")
-	return nil, TextOutput{Text: string(result)}, nil
+	result := map[string]interface{}{
+		"project": input.Project,
+	}
+
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		if secrets, ok := findings["secrets"]; ok {
+			result["secrets"] = secrets
+		}
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return nil, TextOutput{Text: string(output)}, nil
 }
 
 func (s *Server) handleGetCryptoIssues(ctx context.Context, req *mcp.CallToolRequest, input ProjectInput) (*mcp.CallToolResult, TextOutput, error) {
-	combined := make(map[string]interface{})
-	combined["project"] = input.Project
-
-	// Collect all crypto scanner results
-	if data, err := s.readAnalysis(input.Project, "crypto-ciphers"); err == nil {
-		combined["weak_ciphers"] = data
-	}
-	if data, err := s.readAnalysis(input.Project, "crypto-keys"); err == nil {
-		combined["hardcoded_keys"] = data
-	}
-	if data, err := s.readAnalysis(input.Project, "crypto-tls"); err == nil {
-		combined["tls_issues"] = data
-	}
-	if data, err := s.readAnalysis(input.Project, "crypto-random"); err == nil {
-		combined["weak_random"] = data
-	}
-
-	if len(combined) == 1 {
+	// v4.0: All crypto findings are in code-security scanner
+	data, err := s.readAnalysis(input.Project, "code-security")
+	if err != nil {
 		return nil, TextOutput{}, fmt.Errorf("no crypto data for '%s'", input.Project)
 	}
 
-	result, _ := json.MarshalIndent(combined, "", "  ")
-	return nil, TextOutput{Text: string(result)}, nil
+	result := map[string]interface{}{
+		"project": input.Project,
+	}
+
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		// Collect all crypto-related findings
+		if ciphers, ok := findings["ciphers"]; ok {
+			result["weak_ciphers"] = ciphers
+		}
+		if keys, ok := findings["keys"]; ok {
+			result["hardcoded_keys"] = keys
+		}
+		if tls, ok := findings["tls"]; ok {
+			result["tls_issues"] = tls
+		}
+		if random, ok := findings["random"]; ok {
+			result["weak_random"] = random
+		}
+		if certs, ok := findings["certificates"]; ok {
+			result["certificates"] = certs
+		}
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return nil, TextOutput{Text: string(output)}, nil
 }
 
 func (s *Server) handleGetAnalysisRaw(ctx context.Context, req *mcp.CallToolRequest, input AnalysisRawInput) (*mcp.CallToolResult, TextOutput, error) {
@@ -370,7 +443,8 @@ func (s *Server) handleSearchFindings(ctx context.Context, req *mcp.CallToolRequ
 		projects = filtered
 	}
 
-	searchTypes := []string{"package-vulns", "package-malcontent", "code-secrets"}
+	// v4.0: Super scanner names
+	searchTypes := []string{"code-packages", "code-security", "technology-identification", "devops", "code-ownership"}
 	if input.Type != "" && input.Type != "all" {
 		searchTypes = []string{input.Type}
 	}
