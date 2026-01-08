@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
+	"strings"
 	"sync"
 	"time"
 
@@ -26,9 +28,37 @@ const (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true // Allow all origins in dev; restrict in production
-	},
+	CheckOrigin:     checkOrigin,
+}
+
+// checkOrigin validates WebSocket origins to prevent CSRF attacks.
+// Allows same-origin requests and localhost for development.
+func checkOrigin(r *http.Request) bool {
+	origin := r.Header.Get("Origin")
+	if origin == "" {
+		// No origin header - allow (same-origin request or non-browser)
+		return true
+	}
+
+	// Parse origin URL
+	originURL, err := url.Parse(origin)
+	if err != nil {
+		return false
+	}
+
+	// Allow localhost for development
+	if originURL.Hostname() == "localhost" || originURL.Hostname() == "127.0.0.1" {
+		return true
+	}
+
+	// Allow same-origin (host matches)
+	host := r.Host
+	if idx := strings.Index(host, ":"); idx != -1 {
+		host = host[:idx]
+	}
+	originHost := originURL.Hostname()
+
+	return originHost == host
 }
 
 // Handler manages agent chat functionality using the new runtime
