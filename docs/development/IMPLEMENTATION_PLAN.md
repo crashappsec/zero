@@ -9,6 +9,12 @@ This document contains prioritized, actionable items ready for GitHub Issues.
 
 ## P0: Critical Bugs (Fix Immediately)
 
+### Bug: Web UI Findings Views Empty
+- **Description**: Main findings views in web UI don't display any data despite API returning results
+- **Impact**: Users cannot see vulnerabilities, secrets, or other scan findings in the dashboard
+- **Files**: `web/src/app/repos/[id]/page.tsx`, `web/src/hooks/useApi.ts`
+- **Labels**: `bug`, `priority:critical`, `component:web`
+
 ### Bug: Web Chat UI Freezing
 - **Description**: Web chat interface freezes when asking questions - SSE streaming works but UI doesn't update
 - **Root cause**: Likely React state update issue or stale closure in useChat hook
