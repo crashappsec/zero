@@ -202,7 +202,8 @@ func (s *Store) DeleteProject(ctx context.Context, id string) error {
 	defer tx.Rollback()
 
 	// Delete in order due to foreign keys
-	tables := []string{"secrets", "vulnerabilities", "scanner_results", "scans", "findings_summary", "projects"}
+	// Note: scanner_results has ON DELETE CASCADE from scans, so it will be deleted automatically
+	tables := []string{"secrets", "vulnerabilities", "scans", "findings_summary", "projects"}
 	for _, table := range tables {
 		var query string
 		if table == "projects" {
