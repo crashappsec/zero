@@ -1,0 +1,104 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: Claude PR Review
+    runs-on: ubuntu-latest
+    # Skip for dependabot and bot PRs
+    if: github.actor != 'dependabot[bot]' && github.actor != 'github-actions[bot]'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+        with:
+          files: |
+            **/*.go
+            **/*.ts
+            **/*.tsx
+            **/*.js
+            **/*.jsx
+
+      - name: Set up Go
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Set up Node.js
+        if: steps.changed-files.outputs.any_changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code
+        if: steps.changed-files.outputs.any_changed == 'true'
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Review with Claude
+        if: steps.changed-files.outputs.any_changed == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+        run: |
+          # Create review prompt
+          cat << 'PROMPT' > /tmp/review-prompt.md
+          Review the following code changes for this pull request. Focus on:
+
+          1. **Security Issues** - Look for vulnerabilities, injection risks, hardcoded secrets
+          2. **Error Handling** - Check for proper error handling and edge cases
+          3. **Code Quality** - Identify code smells, complexity issues, naming problems
+          4. **Performance** - Flag potential performance issues or inefficiencies
+          5. **Best Practices** - Verify adherence to Go/TypeScript best practices
+
+          For each issue found, provide:
+          - File and line number
+          - Severity (critical/high/medium/low)
+          - Description of the issue
+          - Suggested fix
+
+          If the code looks good, say so briefly. Be concise and actionable.
+
+          Changed files:
+          PROMPT
+
+          # Add changed files to prompt
+          echo "$CHANGED_FILES" >> /tmp/review-prompt.md
+
+          # Get diff for context
+          echo -e "\n\nDiff:\n" >> /tmp/review-prompt.md
+          git diff origin/main...HEAD -- $CHANGED_FILES >> /tmp/review-prompt.md 2>/dev/null || true
+
+          # Run Claude review (non-interactive)
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            REVIEW=$(claude -p "$(cat /tmp/review-prompt.md)" --max-tokens 2000 2>/dev/null || echo "Unable to generate review")
+
+            # Post review as PR comment
+            if [ -n "$REVIEW" ] && [ "$REVIEW" != "Unable to generate review" ]; then
+              gh pr comment $PR_NUMBER --body "## Claude Code Review
+
+          $REVIEW
+
+          ---
+          *Automated review by Claude Code*"
+            fi
+          else
+            echo "ANTHROPIC_API_KEY not set, skipping Claude review"
+          fi
+
+      - name: Skip notification
+        if: steps.changed-files.outputs.any_changed != 'true'
+        run: echo "No code files changed, skipping review"

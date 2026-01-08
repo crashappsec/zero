@@ -134,6 +134,28 @@ This document contains prioritized, actionable items ready for GitHub Issues.
 
 ## P4: Future Features
 
+### Feature: Agent Idle Banter (Full Personality Mode)
+- **Description**: Agents chat among themselves when idle in "full personality mode"
+- **Behavior**:
+  - Agents engage in conversations based on their Hackers (1995) movie personas
+  - Discuss the Hackers movie, hacking culture, and development topics
+  - Reference actual code and findings from current analysis as conversation topics
+  - Generate puns and witty banter related to security, coding, and their specialties
+  - Cereal makes supply chain jokes, Razor cuts with sharp security puns, etc.
+- **Scope**:
+  - [ ] Implement "full personality mode" toggle in settings
+  - [ ] Create persona-specific banter templates for each agent
+  - [ ] Generate context-aware jokes based on current scan results
+  - [ ] Agent-to-agent conversation system during idle periods
+  - [ ] Hackers movie quotes and references database
+  - [ ] Pun generation for security/code topics
+- **Example banter**:
+  - Cereal: "Hey Razor, saw you found 47 hardcoded secrets. Talk about an open door policy!"
+  - Razor: "At least they're not as exposed as Plague's firewall configs. That's what I call 'security theater'!"
+  - Acid: "Speaking of theater, remember when we crashed the Gibson? Good times."
+  - Joey: "I crashed a build once. Does that count?"
+- **Labels**: `enhancement`, `priority:low`, `fun`, `component:agents`
+
 ### Feature: Multi-Repo Analysis
 - **Description**: Compare security posture across multiple repositories
 - **Labels**: `enhancement`, `priority:low`
@@ -176,6 +198,8 @@ This document contains prioritized, actionable items ready for GitHub Issues.
 | `component:mcp` | MCP integration |
 | `component:ci` | CI/CD integration |
 | `component:storage` | Storage layer |
+| `component:agents` | Agent system |
+| `fun` | Fun/personality features |
 
 ---
 

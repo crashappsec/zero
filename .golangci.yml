@@ -1,0 +1,51 @@
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gosec
+    - bodyclose
+    - contextcheck
+    - durationcheck
+    - errorlint
+    - exportloopref
+    - makezero
+    - nilerr
+    - noctx
+    - predeclared
+    - rowserrcheck
+    - sqlclosecheck
+    - unconvert
+    - unparam
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
+  gosec:
+    excludes:
+      - G104 # Audit errors not checked - we have specific handlers
+      - G304 # File path provided as taint input - we validate paths
+  govet:
+    check-shadowing: true
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests
+    - path: _test\.go
+      linters:
+        - errcheck
+        - gosec
+    # Exclude known patterns
+    - linters:
+        - errcheck
+      text: "Error return value of .*(Close|Write|Flush)"
+  max-issues-per-linter: 50
+  max-same-issues: 10
