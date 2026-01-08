@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api, connectScanWS, streamChat } from '@/lib/api';
 import type { Repo, Project, ScanJob, StreamChunk, QueueStats, AgentInfo, ToolCallInfo } from '@/lib/types';
 
@@ -155,10 +155,34 @@ export function useChat(agentId = 'zero') {
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [activeToolCalls, setActiveToolCalls] = useState<ToolCallInfo[]>([]);
-  const [toolCallCounter, setToolCallCounter] = useState(0);
+
+  // Store cleanup function in a ref to avoid stale closures
+  const cleanupRef = useRef<(() => void) | null>(null);
+  const toolCallCounterRef = useRef(0);
+  const sessionIdRef = useRef<string | null>(null);
+
+  // Keep sessionIdRef in sync
+  useEffect(() => {
+    sessionIdRef.current = sessionId;
+  }, [sessionId]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (cleanupRef.current) {
+        cleanupRef.current();
+      }
+    };
+  }, []);
 
   const sendMessage = useCallback(
     async (message: string, projectId?: string) => {
+      // Cancel any existing stream
+      if (cleanupRef.current) {
+        cleanupRef.current();
+        cleanupRef.current = null;
+      }
+
       // Add user message
       setMessages((prev) => [...prev, { role: 'user', content: message }]);
       setIsStreaming(true);
@@ -166,12 +190,15 @@ export function useChat(agentId = 'zero') {
       setActiveToolCalls([]);
 
       let currentToolCalls: ToolCallInfo[] = [];
+      let isCancelled = false;
 
       return new Promise<void>((resolve, reject) => {
-        streamChat(
+        const cleanup = streamChat(
           message,
-          { session_id: sessionId || undefined, agent_id: agentId, project_id: projectId },
+          { session_id: sessionIdRef.current || undefined, agent_id: agentId, project_id: projectId },
           (chunk: StreamChunk) => {
+            if (isCancelled) return;
+
             if (chunk.type === 'start') {
               setSessionId(chunk.session_id);
             } else if (chunk.type === 'delta') {
@@ -179,13 +206,12 @@ export function useChat(agentId = 'zero') {
             } else if (chunk.type === 'tool_call') {
               // Add new tool call
               const newToolCall: ToolCallInfo = {
-                id: `tool-${Date.now()}-${toolCallCounter}`,
+                id: `tool-${Date.now()}-${toolCallCounterRef.current++}`,
                 name: chunk.tool_name || 'unknown',
                 input: chunk.tool_input || {},
                 status: 'running',
                 startTime: Date.now(),
               };
-              setToolCallCounter((c) => c + 1);
               currentToolCalls = [...currentToolCalls, newToolCall];
               setActiveToolCalls([...currentToolCalls]);
             } else if (chunk.type === 'tool_result') {
@@ -212,25 +238,40 @@ export function useChat(agentId = 'zero') {
               setStreamingContent('');
               setActiveToolCalls([]);
               setIsStreaming(false);
+              cleanupRef.current = null;
               resolve();
             } else if (chunk.type === 'error') {
               setIsStreaming(false);
               setActiveToolCalls([]);
+              cleanupRef.current = null;
               reject(new Error(chunk.error));
             }
           },
           (error) => {
+            if (isCancelled) return;
             setIsStreaming(false);
             setActiveToolCalls([]);
+            cleanupRef.current = null;
             reject(error);
           }
         );
+
+        // Store cleanup function
+        cleanupRef.current = () => {
+          isCancelled = true;
+          cleanup();
+        };
       });
     },
-    [sessionId, agentId, toolCallCounter]
+    [agentId]
   );
 
   const reset = useCallback(() => {
+    // Cancel any ongoing stream
+    if (cleanupRef.current) {
+      cleanupRef.current();
+      cleanupRef.current = null;
+    }
     setSessionId(null);
     setMessages([]);
     setStreamingContent('');
