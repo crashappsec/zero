@@ -73,6 +73,15 @@ This document contains prioritized, actionable items ready for GitHub Issues.
 - **Target**: <500ms load times (currently 500-2000ms)
 - **Labels**: `enhancement`, `priority:high`, `component:storage`
 
+### Feature: GitHub Actions CI/CD
+- **Description**: GitHub Actions workflows for quality and code review
+- **Scope**:
+  - [ ] Build and test workflow (Go + TypeScript)
+  - [ ] Linting (golangci-lint, ESLint)
+  - [ ] Claude-powered code review on PRs
+  - [ ] Coverage reporting
+- **Labels**: `enhancement`, `priority:high`, `component:ci`
+
 ---
 
 ## P2: Medium Priority Features
@@ -84,14 +93,6 @@ This document contains prioritized, actionable items ready for GitHub Issues.
   - [ ] Vulnerable code path detection
   - [ ] Risk prioritization based on reachability
 - **Labels**: `enhancement`, `priority:medium`, `component:scanner`
-
-### Feature: CI/CD Integration
-- **Description**: GitHub Actions workflow for automated scanning
-- **Scope**:
-  - [ ] GitHub Action for Zero scanning
-  - [ ] PR comment integration
-  - [ ] SARIF export for GitHub Security tab
-- **Labels**: `enhancement`, `priority:medium`, `component:ci`
 
 ### Feature: Incremental Scanning
 - **Description**: Only scan changed files for faster repeat scans
