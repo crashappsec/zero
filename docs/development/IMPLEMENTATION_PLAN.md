@@ -61,6 +61,12 @@ This document contains prioritized, actionable items ready for GitHub Issues.
 - **Files**: `web/src/hooks/useApi.ts`, `web/src/lib/api.ts`
 - **Labels**: `enhancement`, `priority:high`, `component:web`
 
+### Feature: SQLite Storage Layer
+- **Description**: Add SQLite backend for better performance
+- **Current state**: JSON file-based storage
+- **Target**: <500ms load times (currently 500-2000ms)
+- **Labels**: `enhancement`, `priority:high`, `component:storage`
+
 ---
 
 ## P2: Medium Priority Features
@@ -80,12 +86,6 @@ This document contains prioritized, actionable items ready for GitHub Issues.
   - [ ] PR comment integration
   - [ ] SARIF export for GitHub Security tab
 - **Labels**: `enhancement`, `priority:medium`, `component:ci`
-
-### Feature: SQLite Storage Layer
-- **Description**: Add SQLite backend for better performance
-- **Current state**: JSON file-based storage
-- **Target**: <500ms load times (currently 500-2000ms)
-- **Labels**: `enhancement`, `priority:medium`, `component:storage`
 
 ### Feature: Incremental Scanning
 - **Description**: Only scan changed files for faster repeat scans
@@ -181,21 +181,26 @@ This document contains prioritized, actionable items ready for GitHub Issues.
 
 ## Milestones
 
-### v1.0-alpha (Current)
+### v1.0-alpha.1 (Current)
 - 7 super scanners working
 - 12 specialist agents
 - CLI functional
 - Web UI experimental
 
-### v1.0-beta (Target: Q1 2026)
+### v1.0-alpha.2
 - [ ] All P0 bugs fixed
-- [ ] Test coverage >50%
-- [ ] Web UI stable
-- [ ] MCP integration working
-
-### v1.0 (Target: Q2 2026)
-- [ ] Test coverage >70%
-- [ ] Web UI production-ready
-- [ ] CI/CD integration
+- [ ] Web chat streaming working
 - [ ] SQLite storage layer
+- [ ] Test coverage >30%
+
+### v1.0-alpha.3
+- [ ] MCP integration working
+- [ ] Test coverage >50%
+- [ ] GitHub Actions CI/CD
+- [ ] Claude code review integration
+
+### v1.0-alpha.4
+- [ ] Test coverage >70%
+- [ ] Web UI stable
+- [ ] Reachability analysis
 - [ ] Documentation complete
