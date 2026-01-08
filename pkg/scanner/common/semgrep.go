@@ -609,7 +609,8 @@ func GenerateRulesFromRAG(ragPath, category, outputPath string) error {
 			return nil
 		}
 
-		if info.IsDir() || info.Name() != "patterns.md" {
+		// Accept any .md file (patterns.md, docker.md, api.md, etc.)
+		if info.IsDir() || !strings.HasSuffix(info.Name(), ".md") {
 			return nil
 		}
 

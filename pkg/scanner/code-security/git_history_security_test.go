@@ -25,6 +25,8 @@ func TestNewGitHistorySecurityScanner(t *testing.T) {
 }
 
 func TestGitHistorySecurityScanner_SensitivePatterns(t *testing.T) {
+	// Clear cache to ensure fresh pattern loading
+	ClearRAGGitHistoryCache()
 	scanner := NewGitHistorySecurityScanner(GitHistorySecurityConfig{})
 
 	if len(scanner.sensitivePatterns) == 0 {
