@@ -316,7 +316,7 @@ func (v *Validator) ValidateAll(loader *RAGLoader) (*ValidationResult, error) {
 func (r *ValidationResult) Summary() string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("Validation Summary:\n"))
+	sb.WriteString("Validation Summary:\n")
 	sb.WriteString(fmt.Sprintf("  Total Patterns:   %d\n", r.TotalPatterns))
 	sb.WriteString(fmt.Sprintf("  Valid:            %d\n", r.ValidPatterns))
 	sb.WriteString(fmt.Sprintf("  Invalid:          %d\n", r.InvalidPatterns))

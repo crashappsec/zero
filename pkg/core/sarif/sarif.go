@@ -268,19 +268,11 @@ func NewExporter(analysisDir, repoPath string) *Exporter {
 func (e *Exporter) Export() (*Log, error) {
 	log := NewLog()
 
-	// Export each scanner's results
-	if err := e.exportCodeSecurity(log); err != nil {
-		// Continue even if one scanner fails
-	}
-	if err := e.exportPackageVulns(log); err != nil {
-		// Continue
-	}
-	if err := e.exportCrypto(log); err != nil {
-		// Continue
-	}
-	if err := e.exportCodeQuality(log); err != nil {
-		// Continue
-	}
+	// Export each scanner's results (continue even if one scanner fails)
+	_ = e.exportCodeSecurity(log)
+	_ = e.exportPackageVulns(log)
+	_ = e.exportCrypto(log)
+	_ = e.exportCodeQuality(log)
 
 	return log, nil
 }

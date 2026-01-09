@@ -125,11 +125,7 @@ func (rm *RuleManager) needsRefresh() bool {
 
 	// Check if any RAG files are newer than the cache
 	ragModTime := rm.getLatestRAGModTime()
-	if ragModTime.After(info.ModTime()) {
-		return true
-	}
-
-	return false
+	return ragModTime.After(info.ModTime())
 }
 
 // getLatestRAGModTime returns the latest modification time of RAG pattern files

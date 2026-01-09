@@ -387,10 +387,8 @@ func (s *GitHistorySecurityScanner) ScanRepository(repoPath string) (*GitHistory
 		return result, fmt.Errorf("shallow clone detected: git history scanning requires full history")
 	}
 
-	// Parse gitignore
-	if err := s.parseGitignore(repoPath); err != nil {
-		// Continue without gitignore rules if file doesn't exist
-	}
+	// Parse gitignore (continue without gitignore rules if file doesn't exist)
+	_ = s.parseGitignore(repoPath)
 
 	// Open repository
 	repo, err := git.PlainOpen(repoPath)

@@ -385,17 +385,16 @@ func (s *Store) GetAggregateStats(ctx context.Context) (*storage.AggregateStats,
 	if err != nil {
 		return nil, fmt.Errorf("querying freshness counts: %w", err)
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var level string
 		var count int
 		if err := rows.Scan(&level, &count); err != nil {
-			rows.Close()
 			return nil, fmt.Errorf("scanning freshness row: %w", err)
 		}
 		stats.FreshnessCounts[level] = count
 		stats.TotalProjects += count
 	}
-	rows.Close()
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating freshness rows: %w", err)
 	}

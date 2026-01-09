@@ -90,7 +90,14 @@ func extractTitleFromRuleID(ruleID string) string {
 	if len(parts) > 0 {
 		title := parts[len(parts)-1]
 		title = strings.ReplaceAll(title, "-", " ")
-		return strings.Title(title)
+		// Capitalize first letter of each word
+		words := strings.Fields(title)
+		for i, word := range words {
+			if len(word) > 0 {
+				words[i] = strings.ToUpper(word[:1]) + word[1:]
+			}
+		}
+		return strings.Join(words, " ")
 	}
 	return ruleID
 }
