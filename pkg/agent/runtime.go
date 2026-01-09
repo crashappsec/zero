@@ -193,8 +193,8 @@ func (r *Runtime) Chat(ctx context.Context, req *ChatRequest, callback func(Chat
 	// Get tools for this agent
 	tools := GetToolsForAgent(session.AgentID)
 
-	// Create tool executor
-	toolExecutor := r.createToolExecutor(session)
+	// Create streaming tool executor (supports DelegateAgent streaming)
+	toolExecutor := r.createStreamingToolExecutor(session)
 
 	// Get conversation history
 	messages := session.GetMessages()
@@ -209,8 +209,8 @@ func (r *Runtime) Chat(ctx context.Context, req *ChatRequest, callback func(Chat
 		isError  bool
 	}
 
-	// Chat with Claude
-	err = r.llm.ChatWithTools(ctx, systemPrompt, messages, tools, toolExecutor, func(event ChatEvent) {
+	// Chat with Claude using streaming tool executor
+	err = r.llm.ChatWithStreamingTools(ctx, systemPrompt, messages, tools, toolExecutor, func(event ChatEvent) {
 		// Track token usage
 		if event.Type == "done" && event.Usage != nil {
 			session.AddTokens(event.Usage.InputTokens + event.Usage.OutputTokens)
@@ -278,9 +278,10 @@ func findToolName(calls []ToolCall, callID string) string {
 	return "unknown"
 }
 
-// createToolExecutor creates a tool executor for the session
-func (r *Runtime) createToolExecutor(session *Session) ToolExecutor {
-	return func(ctx context.Context, call *ToolCall) (*ToolResult, error) {
+// createStreamingToolExecutor creates a streaming tool executor for the session
+// The callback parameter allows tools like DelegateAgent to stream progress
+func (r *Runtime) createStreamingToolExecutor(session *Session) StreamingToolExecutor {
+	return func(ctx context.Context, call *ToolCall, callback func(ChatEvent)) (*ToolResult, error) {
 		switch call.Name {
 		case "Read":
 			return r.executeRead(ctx, session, call)
@@ -301,7 +302,7 @@ func (r *Runtime) createToolExecutor(session *Session) ToolExecutor {
 		case "WebFetch":
 			return r.executeWebFetch(ctx, session, call)
 		case "DelegateAgent":
-			return r.executeDelegateAgent(ctx, session, call)
+			return r.executeDelegateAgent(ctx, session, call, callback)
 		case "GetSystemInfo":
 			return r.executeGetSystemInfo(ctx, session, call)
 		default:
@@ -751,8 +752,8 @@ func (r *Runtime) executeWebFetch(ctx context.Context, session *Session, call *T
 	}, nil
 }
 
-// executeDelegateAgent executes the DelegateAgent tool
-func (r *Runtime) executeDelegateAgent(ctx context.Context, session *Session, call *ToolCall) (*ToolResult, error) {
+// executeDelegateAgent executes the DelegateAgent tool with streaming support
+func (r *Runtime) executeDelegateAgent(ctx context.Context, session *Session, call *ToolCall, parentCallback func(ChatEvent)) (*ToolResult, error) {
 	var input struct {
 		AgentID string `json:"agent_id"`
 		Task    string `json:"task"`
@@ -761,6 +762,19 @@ func (r *Runtime) executeDelegateAgent(ctx context.Context, session *Session, ca
 	if err := json.Unmarshal(call.Input, &input); err != nil {
 		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Invalid input: %s", err), IsError: true}, nil
 	}
+
+	// Get agent info for status updates
+	agentName, _, _, _ := r.loader.GetAgentInfo(input.AgentID)
+	if agentName == "" {
+		agentName = input.AgentID
+	}
+
+	// Send delegation start event to parent
+	parentCallback(ChatEvent{
+		Type:           "delegation",
+		DelegatedAgent: agentName,
+		DelegatedEvent: "start",
+	})
 
 	// Create a new session for the delegated agent
 	delegateSession := r.sessions.Create(input.AgentID)
@@ -786,19 +800,50 @@ func (r *Runtime) executeDelegateAgent(ctx context.Context, session *Session, ca
 	// Get tools for delegate
 	tools := GetToolsForAgent(input.AgentID)
 
-	// Create tool executor for delegate
-	toolExecutor := r.createToolExecutor(delegateSession)
+	// Create streaming tool executor for delegate (supports nested delegation)
+	toolExecutor := r.createStreamingToolExecutor(delegateSession)
 
 	// Add task as user message
 	delegateSession.AddUserMessage(task)
 	messages := delegateSession.GetMessages()
 
-	// Collect response
+	// Collect response and stream events to parent
 	var response strings.Builder
-	err = r.llm.ChatWithTools(ctx, systemPrompt, messages, tools, toolExecutor, func(event ChatEvent) {
-		if event.Type == "text" {
+	err = r.llm.ChatWithStreamingTools(ctx, systemPrompt, messages, tools, toolExecutor, func(event ChatEvent) {
+		switch event.Type {
+		case "text":
 			response.WriteString(event.Text)
+			// Stream text from sub-agent to parent
+			parentCallback(ChatEvent{
+				Type:           "delegation",
+				Text:           event.Text,
+				DelegatedAgent: agentName,
+				DelegatedEvent: "text",
+			})
+		case "tool_call":
+			// Notify parent about sub-agent's tool calls
+			parentCallback(ChatEvent{
+				Type:           "delegation",
+				ToolCall:       event.ToolCall,
+				DelegatedAgent: agentName,
+				DelegatedEvent: "tool_call",
+			})
+		case "tool_result":
+			// Notify parent about sub-agent's tool results
+			parentCallback(ChatEvent{
+				Type:           "delegation",
+				ToolResult:     event.ToolResult,
+				DelegatedAgent: agentName,
+				DelegatedEvent: "tool_result",
+			})
 		}
+	})
+
+	// Send delegation end event
+	parentCallback(ChatEvent{
+		Type:           "delegation",
+		DelegatedAgent: agentName,
+		DelegatedEvent: "done",
 	})
 
 	if err != nil {
@@ -806,7 +851,6 @@ func (r *Runtime) executeDelegateAgent(ctx context.Context, session *Session, ca
 	}
 
 	// Format response with agent attribution
-	agentName, _, _, _ := r.loader.GetAgentInfo(input.AgentID)
 	return &ToolResult{
 		ToolCallID: call.ID,
 		Content:    fmt.Sprintf("**Response from %s:**\n\n%s", agentName, response.String()),

@@ -193,7 +193,7 @@ type StreamDelta struct {
 
 // ChatEvent represents an event in the chat stream
 type ChatEvent struct {
-	Type string `json:"type"` // "text", "tool_call", "tool_result", "error", "done"
+	Type string `json:"type"` // "text", "tool_call", "tool_result", "error", "done", "delegation"
 
 	// For text events
 	Text string `json:"text,omitempty"`
@@ -209,6 +209,10 @@ type ChatEvent struct {
 
 	// For done events
 	Usage *TokenUsage `json:"usage,omitempty"`
+
+	// For delegation events (sub-agent progress)
+	DelegatedAgent string `json:"delegated_agent,omitempty"` // Name of delegated agent
+	DelegatedEvent string `json:"delegated_event,omitempty"` // Type of sub-event (tool_call, text, etc.)
 }
 
 // TokenUsage tracks token usage
@@ -219,6 +223,10 @@ type TokenUsage struct {
 
 // ToolExecutor is a function that executes a tool
 type ToolExecutor func(ctx context.Context, call *ToolCall) (*ToolResult, error)
+
+// StreamingToolExecutor is a function that executes a tool with event streaming support
+// The callback parameter allows tools (like DelegateAgent) to stream progress events
+type StreamingToolExecutor func(ctx context.Context, call *ToolCall, callback func(ChatEvent)) (*ToolResult, error)
 
 // ChatWithTools sends a message and handles tool calls with streaming
 func (c *LLMClient) ChatWithTools(
@@ -273,6 +281,89 @@ func (c *LLMClient) ChatWithTools(
 
 			// Execute the tool
 			result, err := toolExecutor(ctx, &call)
+			if err != nil {
+				result = &ToolResult{
+					ToolCallID: call.ID,
+					Content:    fmt.Sprintf("Error: %s", err.Error()),
+					IsError:    true,
+				}
+			}
+
+			// Notify about tool result
+			callback(ChatEvent{Type: "tool_result", ToolResult: result})
+
+			toolResults = append(toolResults, ContentBlock{
+				Type:      "tool_result",
+				ToolUseID: call.ID,
+				Content:   result.Content,
+				IsError:   result.IsError,
+			})
+		}
+
+		// Add tool results to messages
+		claudeMessages = append(claudeMessages, ClaudeMessage{
+			Role:    "user",
+			Content: toolResults,
+		})
+
+		// Continue the loop to get Claude's response to tool results
+	}
+}
+
+// ChatWithStreamingTools sends a message and handles tool calls with streaming tool support
+// This version allows tools to stream events (e.g., DelegateAgent streaming sub-agent progress)
+func (c *LLMClient) ChatWithStreamingTools(
+	ctx context.Context,
+	systemPrompt string,
+	messages []Message,
+	tools []ToolDefinition,
+	toolExecutor StreamingToolExecutor,
+	callback func(ChatEvent),
+) error {
+	if !c.IsAvailable() {
+		return fmt.Errorf("ANTHROPIC_API_KEY not configured")
+	}
+
+	// Convert messages to Claude format
+	claudeMessages := c.convertMessages(messages)
+
+	// Main tool use loop
+	for {
+		// Send request to Claude
+		response, err := c.sendStreamingRequest(ctx, systemPrompt, claudeMessages, tools, callback)
+		if err != nil {
+			callback(ChatEvent{Type: "error", Error: err.Error()})
+			return err
+		}
+
+		// Check if we need to execute tools
+		toolCalls := extractToolCalls(response)
+		if len(toolCalls) == 0 {
+			// No tool calls, we're done
+			callback(ChatEvent{
+				Type: "done",
+				Usage: &TokenUsage{
+					InputTokens:  response.Usage.InputTokens,
+					OutputTokens: response.Usage.OutputTokens,
+				},
+			})
+			return nil
+		}
+
+		// Add assistant response to messages
+		claudeMessages = append(claudeMessages, ClaudeMessage{
+			Role:    "assistant",
+			Content: response.Content,
+		})
+
+		// Execute each tool call
+		var toolResults []ContentBlock
+		for _, call := range toolCalls {
+			// Notify about tool call
+			callback(ChatEvent{Type: "tool_call", ToolCall: &call})
+
+			// Execute the tool with callback for streaming support
+			result, err := toolExecutor(ctx, &call, callback)
 			if err != nil {
 				result = &ToolResult{
 					ToolCallID: call.ID,

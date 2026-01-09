@@ -149,7 +149,14 @@ export function useScanProgress(jobId: string | null) {
 }
 
 // Chat stage type for UX feedback
-export type ChatStage = 'idle' | 'sending' | 'thinking' | 'tool_running' | 'responding';
+export type ChatStage = 'idle' | 'sending' | 'thinking' | 'tool_running' | 'responding' | 'delegating';
+
+// Delegation info for sub-agent progress
+export interface DelegationInfo {
+  agentName: string;
+  event: string;
+  toolCalls: ToolCallInfo[];
+}
 
 // Chat hook with tool call tracking and elapsed time
 export function useChat(agentId = 'zero') {
@@ -161,6 +168,7 @@ export function useChat(agentId = 'zero') {
   const [stage, setStage] = useState<ChatStage>('idle');
   const [elapsedTime, setElapsedTime] = useState(0);
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [delegation, setDelegation] = useState<DelegationInfo | null>(null);
 
   // Store cleanup function in a ref to avoid stale closures
   const cleanupRef = useRef<(() => void) | null>(null);
@@ -260,6 +268,47 @@ export function useChat(agentId = 'zero') {
                 };
                 setActiveToolCalls([...currentToolCalls]);
               }
+            } else if (chunk.type === 'delegation') {
+              // Handle sub-agent delegation events
+              const agentName = chunk.delegated_agent || 'Agent';
+              const event = chunk.delegated_event || 'working';
+
+              if (event === 'start') {
+                setStage('delegating');
+                setDelegation({ agentName, event, toolCalls: [] });
+              } else if (event === 'done') {
+                setDelegation(null);
+                setStage('thinking'); // Back to parent agent
+              } else if (event === 'tool_call') {
+                // Track sub-agent tool calls
+                setDelegation((prev) => {
+                  if (!prev) return { agentName, event, toolCalls: [] };
+                  const newToolCall: ToolCallInfo = {
+                    id: `delegate-tool-${Date.now()}-${toolCallCounterRef.current++}`,
+                    name: chunk.tool_name || 'unknown',
+                    input: chunk.tool_input || {},
+                    status: 'running',
+                    startTime: Date.now(),
+                  };
+                  return { ...prev, event: 'tool_call', toolCalls: [...prev.toolCalls, newToolCall] };
+                });
+              } else if (event === 'tool_result') {
+                // Mark sub-agent tool as complete
+                setDelegation((prev) => {
+                  if (!prev || prev.toolCalls.length === 0) return prev;
+                  const lastIdx = prev.toolCalls.length - 1;
+                  const updatedCalls = [...prev.toolCalls];
+                  updatedCalls[lastIdx] = {
+                    ...updatedCalls[lastIdx],
+                    status: chunk.is_error ? 'error' : 'complete',
+                    endTime: Date.now(),
+                  };
+                  return { ...prev, event: 'tool_result', toolCalls: updatedCalls };
+                });
+              } else if (event === 'text') {
+                // Sub-agent is responding
+                setDelegation((prev) => prev ? { ...prev, event: 'responding' } : null);
+              }
             } else if (chunk.type === 'done') {
               // Save message with tool calls
               setMessages((prev) => [
@@ -320,6 +369,7 @@ export function useChat(agentId = 'zero') {
     setIsStreaming(false);
     setStage('idle');
     setStartTime(null);
+    setDelegation(null);
   }, []);
 
   return {
@@ -330,6 +380,7 @@ export function useChat(agentId = 'zero') {
     activeToolCalls,
     stage,
     elapsedTime,
+    delegation,
     sendMessage,
     reset,
   };

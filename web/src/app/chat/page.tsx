@@ -295,6 +295,7 @@ function ChatPageContent({ projectId }: { projectId?: string }) {
     activeToolCalls,
     stage,
     elapsedTime,
+    delegation,
     sendMessage,
     reset,
   } = useChat(agentId);
@@ -305,7 +306,7 @@ function ChatPageContent({ projectId }: { projectId?: string }) {
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamingContent, activeToolCalls]);
+  }, [messages, streamingContent, activeToolCalls, delegation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -420,7 +421,7 @@ function ChatPageContent({ projectId }: { projectId?: string }) {
                     </div>
                   </div>
                 )}
-                {isStreaming && !streamingContent && activeToolCalls.length === 0 && (
+                {isStreaming && !streamingContent && activeToolCalls.length === 0 && !delegation && (
                   <div className="flex gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600">
                       <Bot className="h-4 w-4 text-white animate-pulse" />
@@ -438,6 +439,33 @@ function ChatPageContent({ projectId }: { projectId?: string }) {
                         <span className="text-xs text-gray-500 tabular-nums">
                           {elapsedTime}s
                         </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {/* Delegation progress - sub-agent working */}
+                {delegation && (
+                  <div className="flex gap-3">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-600">
+                      <Bot className="h-4 w-4 text-white animate-pulse" />
+                    </div>
+                    <div className="rounded-lg border border-purple-700 bg-purple-900/20 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
+                        <span className="text-sm text-purple-300">
+                          Delegated to <span className="font-medium">{delegation.agentName}</span>
+                        </span>
+                        {elapsedTime > 0 && (
+                          <span className="text-xs text-purple-500 tabular-nums">
+                            {elapsedTime}s
+                          </span>
+                        )}
+                      </div>
+                      {/* Show sub-agent's tool calls */}
+                      {delegation.toolCalls.length > 0 && (
+                        <div className="mt-2">
+                          <ToolCallsDisplay toolCalls={delegation.toolCalls} isActive />
+                        </div>
                       )}
                     </div>
                   </div>

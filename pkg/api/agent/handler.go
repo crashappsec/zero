@@ -343,6 +343,28 @@ func (h *Handler) HandleChatStream(w http.ResponseWriter, r *http.Request) {
 
 		case "done":
 			// Token usage could be included here
+
+		case "delegation":
+			// Forward delegation events (sub-agent progress)
+			data := map[string]interface{}{
+				"type":            "delegation",
+				"session_id":      sessionID,
+				"agent_id":        agentID,
+				"delegated_agent": event.DelegatedAgent,
+				"delegated_event": event.DelegatedEvent,
+			}
+			// Include relevant fields based on sub-event type
+			if event.Text != "" {
+				data["content"] = event.Text
+			}
+			if event.ToolCall != nil {
+				data["tool_name"] = event.ToolCall.Name
+				data["tool_input"] = event.ToolCall.Input
+			}
+			if event.ToolResult != nil {
+				data["is_error"] = event.ToolResult.IsError
+			}
+			sendSSE(w, flusher, data)
 		}
 	})
 
