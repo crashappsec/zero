@@ -148,7 +148,49 @@ export const api = {
     session: (id: string) => fetchJSON<ChatSession>(`/chat/sessions/${id}`),
     deleteSession: (id: string) => fetchJSON<void>(`/chat/sessions/${id}`, { method: 'DELETE' }),
   },
+
+  // Banter (Full Personality Mode)
+  banter: {
+    status: () => fetchJSON<{ enabled: boolean; agents: string[]; interval: string }>('/banter/status'),
+    toggle: (enabled: boolean) =>
+      fetchJSON<{ enabled: boolean }>('/banter/toggle', {
+        method: 'POST',
+        body: JSON.stringify({ enabled }),
+      }),
+    generate: (context?: { repo?: string; finding_count?: number }) =>
+      fetchJSON<BanterMessage>('/banter/generate', {
+        method: 'POST',
+        body: JSON.stringify(context || {}),
+      }),
+    exchange: (context?: { repo?: string; finding_count?: number }) =>
+      fetchJSON<{ messages: BanterMessage[]; count: number }>('/banter/exchange', {
+        method: 'POST',
+        body: JSON.stringify(context || {}),
+      }),
+    agents: () => fetchJSON<{ agents: BanterAgent[]; count: number }>('/banter/agents'),
+    agent: (name: string) => fetchJSON<BanterAgent>(`/banter/agent?name=${name}`),
+  },
 };
+
+// Banter types
+export interface BanterMessage {
+  id: string;
+  agent: string;
+  agent_name: string;
+  message: string;
+  type: 'pun' | 'quote' | 'reaction' | 'conversation';
+  target?: string;
+  timestamp: string;
+}
+
+export interface BanterAgent {
+  id: string;
+  name: string;
+  full_name: string;
+  character: string;
+  domain: string;
+  personality: string;
+}
 
 // Streaming chat via SSE
 export function streamChat(
@@ -250,6 +292,33 @@ export function connectAgentWS(
     try {
       const data = JSON.parse(event.data) as StreamChunk;
       onMessage(data);
+    } catch {
+      // Ignore parse errors
+    }
+  };
+
+  ws.onerror = onError;
+
+  return ws;
+}
+
+// WebSocket for banter (Full Personality Mode)
+export function connectBanterWS(
+  onMessage: (msg: BanterMessage) => void,
+  onError: (error: Event) => void,
+  onConnect?: (enabled: boolean) => void
+): WebSocket {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const ws = new WebSocket(`${protocol}//${window.location.host}/ws/banter`);
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      if (data.type === 'connected' && onConnect) {
+        onConnect(data.payload?.enabled || false);
+      } else if (data.type === 'banter' && data.payload) {
+        onMessage(data.payload as BanterMessage);
+      }
     } catch {
       // Ignore parse errors
     }

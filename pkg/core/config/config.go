@@ -25,6 +25,7 @@ type Settings struct {
 	ParallelScanners      int    `json:"parallel_scanners"`
 	ScannerTimeoutSeconds int    `json:"scanner_timeout_seconds"`
 	CacheTTLHours         int    `json:"cache_ttl_hours"`
+	PersonalityMode       string `json:"personality_mode,omitempty"` // "full", "minimal", "neutral" (default: "minimal")
 }
 
 // Scanner defines a scanner configuration with features

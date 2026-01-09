@@ -24,7 +24,9 @@ import {
   Zap,
   Palette,
   Keyboard,
+  Sparkles,
 } from 'lucide-react';
+import { AgentBanter } from '@/components/AgentBanter';
 
 function HealthStatus() {
   const { data: health, loading, error, refetch } = useFetch(
@@ -285,6 +287,21 @@ export default function SettingsPage() {
               </div>
             </div>
           </CardContent>
+        </Card>
+
+        {/* Full Personality Mode */}
+        <Card>
+          <CardTitle className="flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-yellow-500" />
+            Full Personality Mode
+          </CardTitle>
+          <CardContent className="mt-4">
+            <p className="text-gray-400 mb-4">
+              When enabled, agents chat among themselves during idle periods, staying in character
+              as their Hackers (1995) movie personas. Each agent has signature humor matching their
+              specialty.
+            </p>
+            <AgentBanter maxMessages={5} autoConnect={true} /></CardContent>
         </Card>
 
         <div className="grid gap-6 lg:grid-cols-2">
