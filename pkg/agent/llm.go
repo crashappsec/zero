@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/crashappsec/zero/pkg/core/credentials"
@@ -273,32 +274,46 @@ func (c *LLMClient) ChatWithTools(
 			Content: response.Content,
 		})
 
-		// Execute each tool call
-		var toolResults []ContentBlock
-		for _, call := range toolCalls {
-			// Notify about tool call
-			callback(ChatEvent{Type: "tool_call", ToolCall: &call})
+		// Execute tools in parallel for better performance
+		toolResults := make([]ContentBlock, len(toolCalls))
+		var wg sync.WaitGroup
 
-			// Execute the tool
-			result, err := toolExecutor(ctx, &call)
-			if err != nil {
-				result = &ToolResult{
-					ToolCallID: call.ID,
-					Content:    fmt.Sprintf("Error: %s", err.Error()),
-					IsError:    true,
-				}
-			}
-
-			// Notify about tool result
-			callback(ChatEvent{Type: "tool_result", ToolResult: result})
-
-			toolResults = append(toolResults, ContentBlock{
-				Type:      "tool_result",
-				ToolUseID: call.ID,
-				Content:   result.Content,
-				IsError:   result.IsError,
-			})
+		// Notify about all tool calls immediately
+		for i := range toolCalls {
+			callback(ChatEvent{Type: "tool_call", ToolCall: &toolCalls[i]})
 		}
+
+		// Execute all tools concurrently
+		for i, call := range toolCalls {
+			wg.Add(1)
+			go func(idx int, tc ToolCall) {
+				defer wg.Done()
+
+				// Execute the tool
+				result, err := toolExecutor(ctx, &tc)
+				if err != nil {
+					result = &ToolResult{
+						ToolCallID: tc.ID,
+						Content:    fmt.Sprintf("Error: %s", err.Error()),
+						IsError:    true,
+					}
+				}
+
+				// Notify about tool result as soon as it completes
+				callback(ChatEvent{Type: "tool_result", ToolResult: result})
+
+				// Store result in correct position (order preserved for Claude)
+				toolResults[idx] = ContentBlock{
+					Type:      "tool_result",
+					ToolUseID: tc.ID,
+					Content:   result.Content,
+					IsError:   result.IsError,
+				}
+			}(i, call)
+		}
+
+		// Wait for all tools to complete
+		wg.Wait()
 
 		// Add tool results to messages
 		claudeMessages = append(claudeMessages, ClaudeMessage{
@@ -356,32 +371,46 @@ func (c *LLMClient) ChatWithStreamingTools(
 			Content: response.Content,
 		})
 
-		// Execute each tool call
-		var toolResults []ContentBlock
-		for _, call := range toolCalls {
-			// Notify about tool call
-			callback(ChatEvent{Type: "tool_call", ToolCall: &call})
+		// Execute tools in parallel for better performance
+		toolResults := make([]ContentBlock, len(toolCalls))
+		var wg sync.WaitGroup
 
-			// Execute the tool with callback for streaming support
-			result, err := toolExecutor(ctx, &call, callback)
-			if err != nil {
-				result = &ToolResult{
-					ToolCallID: call.ID,
-					Content:    fmt.Sprintf("Error: %s", err.Error()),
-					IsError:    true,
-				}
-			}
-
-			// Notify about tool result
-			callback(ChatEvent{Type: "tool_result", ToolResult: result})
-
-			toolResults = append(toolResults, ContentBlock{
-				Type:      "tool_result",
-				ToolUseID: call.ID,
-				Content:   result.Content,
-				IsError:   result.IsError,
-			})
+		// Notify about all tool calls immediately
+		for i := range toolCalls {
+			callback(ChatEvent{Type: "tool_call", ToolCall: &toolCalls[i]})
 		}
+
+		// Execute all tools concurrently
+		for i, call := range toolCalls {
+			wg.Add(1)
+			go func(idx int, tc ToolCall) {
+				defer wg.Done()
+
+				// Execute the tool with callback for streaming support
+				result, err := toolExecutor(ctx, &tc, callback)
+				if err != nil {
+					result = &ToolResult{
+						ToolCallID: tc.ID,
+						Content:    fmt.Sprintf("Error: %s", err.Error()),
+						IsError:    true,
+					}
+				}
+
+				// Notify about tool result as soon as it completes
+				callback(ChatEvent{Type: "tool_result", ToolResult: result})
+
+				// Store result in correct position (order preserved for Claude)
+				toolResults[idx] = ContentBlock{
+					Type:      "tool_result",
+					ToolUseID: tc.ID,
+					Content:   result.Content,
+					IsError:   result.IsError,
+				}
+			}(i, call)
+		}
+
+		// Wait for all tools to complete
+		wg.Wait()
 
 		// Add tool results to messages
 		claudeMessages = append(claudeMessages, ClaudeMessage{
