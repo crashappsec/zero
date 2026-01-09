@@ -23,7 +23,6 @@ import (
 
 // ruleLoadMessageOnce ensures we only print the rule loading message once
 var ruleLoadMessageOnce sync.Once
-var ruleLoadMessagePrinted bool
 
 const (
 	Name        = "technology-identification"
@@ -114,7 +113,6 @@ func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) 
 		} else {
 			fmt.Printf("          ▸ Using cached semgrep rules (%d patterns)\n", refreshResult.TotalRules)
 		}
-		ruleLoadMessagePrinted = true
 	})
 
 	// Step 3: Run semgrep with generated rules
@@ -544,7 +542,7 @@ func (s *TechnologyScanner) detectModelFiles(repoPath string) []MLModel {
 	// Use RAG-loaded formats with fallback to hardcoded
 	fileFormats := GetModelFileFormatsFromRAG()
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -863,7 +861,7 @@ func (s *TechnologyScanner) scanCodeForModels(repoPath string) []MLModel {
 	var models []MLModel
 	seen := make(map[string]bool)
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
@@ -927,16 +925,6 @@ func (s *TechnologyScanner) scanCodeForModels(repoPath string) []MLModel {
 	return models
 }
 
-// Config file patterns for model references
-var configModelPatterns = []struct {
-	Keys    []string
-	Pattern *regexp.Regexp
-}{
-	{Keys: []string{"model", "model_name", "model_id", "base_model", "llm_model"}, Pattern: nil},
-	{Keys: []string{"embedding_model", "embeddings_model"}, Pattern: nil},
-	{Keys: []string{"hf_model", "huggingface_model"}, Pattern: nil},
-}
-
 // scanConfigsForModels scans YAML/JSON config files for model references
 func (s *TechnologyScanner) scanConfigsForModels(repoPath string) []MLModel {
 	var models []MLModel
@@ -946,7 +934,7 @@ func (s *TechnologyScanner) scanConfigsForModels(repoPath string) []MLModel {
 		".yaml": true, ".yml": true, ".json": true, ".toml": true,
 	}
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
@@ -1393,7 +1381,7 @@ func (s *TechnologyScanner) detectFrameworks(repoPath string) []Framework {
 	var frameworks []Framework
 	detected := make(map[string]*Framework)
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
@@ -1503,7 +1491,7 @@ func (s *TechnologyScanner) detectDatasets(repoPath string) []Dataset {
 	var datasets []Dataset
 	seen := make(map[string]bool)
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
@@ -1647,7 +1635,7 @@ func (s *TechnologyScanner) checkUnsafeLoading(repoPath string) []SecurityFindin
 	unsafeLoadPattern := regexp.MustCompile(`torch\.load\s*\([^)]*\)`)
 	safeLoadPattern := regexp.MustCompile(`weights_only\s*=\s*True`)
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
@@ -1707,7 +1695,7 @@ func (s *TechnologyScanner) checkAPIKeyExposure(repoPath string) []SecurityFindi
 		{"Cohere", regexp.MustCompile(`[a-zA-Z0-9]{40}`)}, // Generic but context-sensitive
 	}
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
@@ -2091,7 +2079,7 @@ func (s *TechnologyScanner) detectFromSBOM(sbomPath string) []Technology {
 func (s *TechnologyScanner) detectFromFileExtensions(repoPath string) []Technology {
 	extCounts := make(map[string]int)
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}

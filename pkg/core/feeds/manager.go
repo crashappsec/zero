@@ -108,7 +108,7 @@ func (m *Manager) SaveStatus() error {
 		return fmt.Errorf("creating directory: %w", err)
 	}
 
-	if err := os.WriteFile(m.statusPath(), data, 0644); err != nil {
+	if err := os.WriteFile(m.statusPath(), data, 0600); err != nil {
 		return fmt.Errorf("writing feed status: %w", err)
 	}
 
@@ -301,7 +301,7 @@ func (m *Manager) syncSemgrepRules(ctx context.Context, cfg *FeedConfig) (int, e
 
 	// Save to cache file
 	cachePath := filepath.Join(cacheDir, "rules.json")
-	if err := os.WriteFile(cachePath, body, 0644); err != nil {
+	if err := os.WriteFile(cachePath, body, 0600); err != nil {
 		return 0, fmt.Errorf("writing cache file: %w", err)
 	}
 
@@ -316,7 +316,7 @@ func (m *Manager) syncSemgrepRules(ctx context.Context, cfg *FeedConfig) (int, e
 	}
 	metaData, _ := json.MarshalIndent(meta, "", "  ")
 	metaPath := filepath.Join(cacheDir, "metadata.json")
-	os.WriteFile(metaPath, metaData, 0644)
+	_ = os.WriteFile(metaPath, metaData, 0600)
 
 	return len(rulesData.Rules), nil
 }

@@ -107,10 +107,12 @@ func parseGitHistoryPatterns(path string) ([]*RAGGitHistoryPattern, error) {
 	var currentCategory string
 	var currentType string
 	var currentDescription string
+	var currentSectionCategory string // Category from ## header
 	var inPatternBlock bool
 
 	// Regex for parsing
 	sectionHeaderRe := regexp.MustCompile(`^###\s+(.+)$`)
+	majorSectionRe := regexp.MustCompile(`^##\s+(.+)$`)
 	typeRe := regexp.MustCompile(`\*\*Type\*\*:\s*(\w+)`)
 	severityRe := regexp.MustCompile(`\*\*Severity\*\*:\s*(\w+)`)
 	categoryRe := regexp.MustCompile(`\*\*Category\*\*:\s*(\w+)`)
@@ -125,6 +127,12 @@ func parseGitHistoryPatterns(path string) ([]*RAGGitHistoryPattern, error) {
 				regexPattern = filepathToRegex(currentPattern)
 			}
 
+			// Use explicit category if set, otherwise derive from section header
+			category := currentCategory
+			if category == "" && currentSectionCategory != "" {
+				category = sectionToCategory(currentSectionCategory)
+			}
+
 			compiled, err := regexp.Compile("(?i)" + regexPattern)
 			if err == nil {
 				patterns = append(patterns, &RAGGitHistoryPattern{
@@ -132,7 +140,7 @@ func parseGitHistoryPatterns(path string) ([]*RAGGitHistoryPattern, error) {
 					Pattern:     compiled,
 					RawPattern:  currentPattern,
 					Severity:    normalizeGitHistorySeverity(currentSeverity),
-					Category:    currentCategory,
+					Category:    category,
 					Description: currentDescription,
 					Type:        currentType,
 				})
@@ -164,9 +172,10 @@ func parseGitHistoryPatterns(path string) ([]*RAGGitHistoryPattern, error) {
 			continue
 		}
 
-		// ## header ends the current pattern block
-		if strings.HasPrefix(trimmed, "## ") {
+		// ## header sets section category and ends current pattern block
+		if m := majorSectionRe.FindStringSubmatch(trimmed); m != nil {
 			saveCurrentPattern()
+			currentSectionCategory = m[1]
 			inPatternBlock = false
 			continue
 		}
@@ -254,6 +263,41 @@ func normalizeGitHistorySeverity(severity string) string {
 		return "info"
 	default:
 		return "medium"
+	}
+}
+
+// sectionToCategory converts a section header to a category
+func sectionToCategory(section string) string {
+	lower := strings.ToLower(section)
+	switch {
+	case strings.Contains(lower, "environment") || strings.Contains(lower, "credential") ||
+		strings.Contains(lower, "secret") || strings.Contains(lower, "password"):
+		return "credentials"
+	case strings.Contains(lower, "ssh") || strings.Contains(lower, "ssl") ||
+		strings.Contains(lower, "key") || strings.Contains(lower, "certificate"):
+		return "keys"
+	case strings.Contains(lower, "cloud") || strings.Contains(lower, "aws") ||
+		strings.Contains(lower, "gcp") || strings.Contains(lower, "azure"):
+		return "credentials"
+	case strings.Contains(lower, "database") || strings.Contains(lower, "sql"):
+		return "database"
+	case strings.Contains(lower, "terraform") || strings.Contains(lower, "ansible") ||
+		strings.Contains(lower, "infrastructure") || strings.Contains(lower, "iac"):
+		return "infrastructure"
+	case strings.Contains(lower, "build") || strings.Contains(lower, "artifact") ||
+		strings.Contains(lower, "vendor") || strings.Contains(lower, "node_modules"):
+		return "build_artifact"
+	case strings.Contains(lower, "ide") || strings.Contains(lower, "editor"):
+		return "ide"
+	case strings.Contains(lower, "log") || strings.Contains(lower, "temp"):
+		return "logs"
+	case strings.Contains(lower, "docker") || strings.Contains(lower, "kubernetes") ||
+		strings.Contains(lower, "container"):
+		return "configuration"
+	case strings.Contains(lower, "backup"):
+		return "backup"
+	default:
+		return "configuration"
 	}
 }
 

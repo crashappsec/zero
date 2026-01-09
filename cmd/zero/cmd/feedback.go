@@ -101,8 +101,8 @@ func init() {
 	feedbackAddCmd.Flags().StringVar(&feedbackVerdict, "verdict", "", "Verdict: false_positive, true_positive, needs_review, ignored (required)")
 	feedbackAddCmd.Flags().StringVar(&feedbackReason, "reason", "", "Reason for the verdict")
 	feedbackAddCmd.Flags().StringVar(&feedbackCategory, "category", "", "Category: test_code, example, documentation, etc.")
-	feedbackAddCmd.MarkFlagRequired("fingerprint")
-	feedbackAddCmd.MarkFlagRequired("verdict")
+	_ = feedbackAddCmd.MarkFlagRequired("fingerprint")
+	_ = feedbackAddCmd.MarkFlagRequired("verdict")
 
 	feedbackListCmd.Flags().StringVar(&feedbackVerdict, "verdict", "", "Filter by verdict")
 	feedbackListCmd.Flags().StringVar(&feedbackRuleID, "rule-id", "", "Filter by rule ID")

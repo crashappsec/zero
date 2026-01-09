@@ -913,7 +913,7 @@ func (h *Hydrate) handleSlowScannerWarning(statuses []*RepoStatus, scanners []st
 
 func (h *Hydrate) countFiles(path string) int {
 	count := 0
-	filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -984,7 +984,7 @@ func (h *Hydrate) detectAndCacheLanguages(repo github.Repository, repoPath strin
 	if err != nil {
 		return
 	}
-	os.WriteFile(langFile, data, 0644)
+	_ = os.WriteFile(langFile, data, 0600)
 }
 
 // deepenHistory fetches more commit history for a shallow clone
@@ -993,7 +993,7 @@ func (h *Hydrate) deepenHistory(ctx context.Context, repoPath string) {
 	cmd := exec.CommandContext(ctx, "git", "-C", repoPath, "fetch", "--deepen=100")
 	cmd.Stdout = nil
 	cmd.Stderr = nil
-	cmd.Run() // Ignore errors - best effort
+	_ = cmd.Run() // Ignore errors - best effort
 }
 
 func (h *Hydrate) getRepoSize(path string) string {

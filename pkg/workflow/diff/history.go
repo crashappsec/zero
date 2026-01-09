@@ -88,7 +88,7 @@ func (m *HistoryManager) SaveHistory(projectID string, history *History) error {
 	}
 
 	historyFile := m.GetHistoryFile(projectID)
-	if err := os.WriteFile(historyFile, data, 0644); err != nil {
+	if err := os.WriteFile(historyFile, data, 0600); err != nil {
 		return fmt.Errorf("failed to write history: %w", err)
 	}
 

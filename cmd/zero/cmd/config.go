@@ -217,8 +217,8 @@ func runConfigClear(cmd *cobra.Command, args []string) error {
 // readSecureInput reads input without echoing (for passwords/tokens)
 func readSecureInput() (string, error) {
 	// Try to read securely (hidden)
-	if xterm.IsTerminal(int(syscall.Stdin)) {
-		bytes, err := xterm.ReadPassword(int(syscall.Stdin))
+	if xterm.IsTerminal(syscall.Stdin) {
+		bytes, err := xterm.ReadPassword(syscall.Stdin)
 		fmt.Println() // Add newline after hidden input
 		if err != nil {
 			return "", err

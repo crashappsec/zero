@@ -334,6 +334,7 @@ var BusFactorThresholds = struct {
 }
 
 // GitHubTokenMessage is shown when GITHUB_TOKEN is not set
+// #nosec G101 -- This is an instructional message showing token format, not a real credential
 const GitHubTokenMessage = `GitHub token not found. For full ownership analysis (PR reviews, team membership), set GITHUB_TOKEN:
 
 1. Go to https://github.com/settings/tokens

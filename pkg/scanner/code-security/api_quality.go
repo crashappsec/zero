@@ -90,7 +90,14 @@ func extractTitleFromRuleID(ruleID string) string {
 	if len(parts) > 0 {
 		title := parts[len(parts)-1]
 		title = strings.ReplaceAll(title, "-", " ")
-		return strings.Title(title)
+		// Capitalize first letter of each word
+		words := strings.Fields(title)
+		for i, word := range words {
+			if len(word) > 0 {
+				words[i] = strings.ToUpper(word[:1]) + word[1:]
+			}
+		}
+		return strings.Join(words, " ")
 	}
 	return ruleID
 }
@@ -133,66 +140,4 @@ func getCacheDir() string {
 // Uses Semgrep with RAG-generated rules - requires Semgrep to be installed
 func (s *CodeSecurityScanner) runAPIQualityChecks(ctx context.Context, opts *scanner.ScanOptions, cfg APIConfig) []APIFinding {
 	return s.runAPIQualityWithSemgrep(ctx, opts, cfg)
-}
-
-// shouldSkipQualityDir checks if a directory should be skipped for quality checks
-func shouldSkipQualityDir(name string) bool {
-	skipDirs := []string{
-		"node_modules", "vendor", ".git", "dist", "build",
-		"coverage", "__pycache__", ".venv", "venv",
-		"test", "tests", "__tests__", "spec", "specs",
-	}
-	for _, skip := range skipDirs {
-		if name == skip {
-			return true
-		}
-	}
-	return false
-}
-
-// isLikelyAPIFile checks if a file is likely to contain API routes
-func isLikelyAPIFile(path string) bool {
-	pathLower := strings.ToLower(path)
-
-	// Positive indicators
-	positivePatterns := []string{
-		"route", "controller", "handler", "api", "endpoint",
-		"server", "app", "router", "rest", "graphql",
-	}
-	for _, pattern := range positivePatterns {
-		if strings.Contains(pathLower, pattern) {
-			return true
-		}
-	}
-
-	// Check common API file patterns
-	filename := filepath.Base(pathLower)
-	apiFilePatterns := []string{
-		"index.js", "index.ts", "app.js", "app.ts",
-		"server.js", "server.ts", "main.py", "app.py",
-		"main.go", "handlers.go", "routes.go",
-	}
-	for _, pattern := range apiFilePatterns {
-		if filename == pattern {
-			return true
-		}
-	}
-
-	return false
-}
-
-// shouldCheckQualityCategory determines if a quality category should be checked
-func shouldCheckQualityCategory(category string, cfg APIConfig) bool {
-	switch category {
-	case "api-design":
-		return cfg.CheckDesign
-	case "api-performance":
-		return cfg.CheckPerformance
-	case "api-observability":
-		return cfg.CheckObservability
-	case "api-documentation":
-		return cfg.CheckDocumentation
-	default:
-		return true
-	}
 }

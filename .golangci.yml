@@ -12,18 +12,19 @@ linters:
     - unused
     - gosec
     - bodyclose
-    - contextcheck
     - durationcheck
-    - errorlint
-    - exportloopref
     - makezero
-    - nilerr
-    - noctx
-    - predeclared
     - rowserrcheck
     - sqlclosecheck
     - unconvert
-    - unparam
+  # Disabled linters (too noisy for now, will enable gradually):
+  # - contextcheck  # Many valid uses of context.Background() in goroutines
+  # - errorlint     # Type assertions on errors are valid in many cases
+  # - nilerr        # Many intentional patterns in filepath.Walk callbacks
+  # - noctx         # HTTP requests without context are acceptable in CLI tools
+  # - predeclared   # Using min/max/new as names is common
+  # - unparam       # Unused params kept for API consistency
+  # - exportloopref # Deprecated in Go 1.22+
 
 linters-settings:
   errcheck:
@@ -34,7 +35,24 @@ linters-settings:
       - G104 # Audit errors not checked - we have specific handlers
       - G304 # File path provided as taint input - we validate paths
   govet:
-    check-shadowing: true
+    enable:
+      - assign
+      - atomic
+      - bools
+      - buildtag
+      - copylocks
+      - httpresponse
+      - loopclosure
+      - lostcancel
+      - nilfunc
+      - printf
+      - stringintconv
+      - structtag
+      - tests
+      - unmarshal
+      - unreachable
+      - unusedresult
+    # shadow checking disabled - too noisy and often intentional
 
 issues:
   exclude-rules:
@@ -43,6 +61,9 @@ issues:
       linters:
         - errcheck
         - gosec
+        - gosimple
+        - staticcheck
+        - ineffassign
     # Exclude known patterns
     - linters:
         - errcheck

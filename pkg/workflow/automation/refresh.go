@@ -173,7 +173,7 @@ func (m *RefreshManager) RefreshRepo(ctx context.Context, repo string) (*Refresh
 				Error:        run.Error,
 			}
 		}
-		m.freshnessManager.RecordScan(repo, scanResults)
+		_ = m.freshnessManager.RecordScan(repo, scanResults)
 	}
 
 	return result, nil

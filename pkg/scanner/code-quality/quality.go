@@ -124,9 +124,9 @@ func (s *QualityScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*s
 
 	scanResult := scanner.NewScanResult(Name, Version, start)
 	scanResult.Repository = opts.RepoPath
-	scanResult.SetSummary(result.Summary)
-	scanResult.SetFindings(result.Findings)
-	scanResult.SetMetadata(map[string]interface{}{
+	_ = scanResult.SetSummary(result.Summary)
+	_ = scanResult.SetFindings(result.Findings)
+	_ = scanResult.SetMetadata(map[string]interface{}{
 		"features_run": result.FeaturesRun,
 	})
 
@@ -173,7 +173,7 @@ func (s *QualityScanner) runTechDebt(ctx context.Context, opts *scanner.ScanOpti
 
 	// Scan for debt markers and issues
 	if cfg.IncludeMarkers || cfg.IncludeIssues {
-		scanForDebt(opts.RepoPath, &markers, &issues, fileStats, cfg)
+		_ = scanForDebt(opts.RepoPath, &markers, &issues, fileStats, cfg)
 	}
 
 	// Calculate hotspots
@@ -584,7 +584,7 @@ func (s *QualityScanner) runTestCoverage(ctx context.Context, opts *scanner.Scan
 
 	frameworks := make(map[string]bool)
 
-	filepath.Walk(opts.RepoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(opts.RepoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			// Skip common non-test directories
 			if info != nil && info.IsDir() {
@@ -681,10 +681,10 @@ func parseCoverageReport(path string) float64 {
 		lines := strings.Split(content, "\n")
 		for _, line := range lines {
 			if strings.HasPrefix(line, "LH:") {
-				fmt.Sscanf(line, "LH:%d", &lh)
+				_, _ = fmt.Sscanf(line, "LH:%d", &lh)
 			}
 			if strings.HasPrefix(line, "LF:") {
-				fmt.Sscanf(line, "LF:%d", &lf)
+				_, _ = fmt.Sscanf(line, "LF:%d", &lf)
 			}
 		}
 		if lf > 0 {

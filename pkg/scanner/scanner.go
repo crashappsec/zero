@@ -169,14 +169,6 @@ func (r *Runner) Run(ctx context.Context, repo, profile string, progress *Progre
 	})
 }
 
-
-func getInt(m map[string]interface{}, key string) int {
-	if v, ok := m[key].(float64); ok {
-		return int(v)
-	}
-	return 0
-}
-
 // EstimateTime returns estimated scan time in seconds based on file count
 func EstimateTime(scanner string, fileCount int) int {
 	switch scanner {

@@ -523,7 +523,7 @@ func (s *MicroserviceScanner) detectGRPCCommunication(ctx context.Context, repoP
 
 	seen := make(map[string]bool)
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
@@ -612,7 +612,7 @@ func (s *MicroserviceScanner) detectMessageQueues(ctx context.Context, repoPath 
 
 	seen := make(map[string]bool)
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}

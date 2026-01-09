@@ -163,7 +163,7 @@ func (w *Watcher) buildState() map[string]fileState {
 	state := make(map[string]fileState)
 
 	for _, basePath := range w.config.Paths {
-		filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
+		_ = filepath.Walk(basePath, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
 				return nil
 			}

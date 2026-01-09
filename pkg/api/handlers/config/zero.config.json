@@ -1,0 +1,20 @@
+{
+  "_version": "",
+  "settings": {
+    "default_profile": "imported",
+    "storage_path": "",
+    "parallel_repos": 0,
+    "parallel_scanners": 0,
+    "scanner_timeout_seconds": 0,
+    "cache_ttl_hours": 0
+  },
+  "profiles": {
+    "imported": {
+      "name": "imported",
+      "description": "",
+      "scanners": [
+        "code-security"
+      ]
+    }
+  }
+}

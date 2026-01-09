@@ -193,6 +193,6 @@ func SeverityToCycloneDX(severity string) string {
 // CWEToInt converts a CWE string (e.g., "CWE-79") to an integer
 func CWEToInt(cwe string) int {
 	var id int
-	fmt.Sscanf(cwe, "CWE-%d", &id)
+	_, _ = fmt.Sscanf(cwe, "CWE-%d", &id)
 	return id
 }

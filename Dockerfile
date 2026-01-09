@@ -4,7 +4,7 @@
 # ============================================
 # Stage 1: Build Go binary
 # ============================================
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /build
 
@@ -52,9 +52,9 @@ RUN apk add --no-cache \
     ca-certificates \
     tzdata
 
-# Create non-root user
-RUN addgroup -g 1000 zero && \
-    adduser -u 1000 -G zero -s /bin/sh -D zero
+# Create non-root user (use different GID/UID to avoid conflicts with node user)
+RUN addgroup -g 10000 zero && \
+    adduser -u 10000 -G zero -s /bin/sh -D zero
 
 # Copy Go binary
 COPY --from=builder /build/zero /usr/local/bin/zero

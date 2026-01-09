@@ -148,7 +148,7 @@ func (s *IaCSecretsScanner) findIaCFiles(repoPath string) []string {
 		"docker-compose.*", // Docker Compose
 	}
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}

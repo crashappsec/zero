@@ -480,7 +480,7 @@ func (s *Status) outputJSON(projects []*Project) error {
 
 func countFiles(path string) int {
 	count := 0
-	filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -494,7 +494,7 @@ func countFiles(path string) int {
 
 func getDirSize(path string) int64 {
 	var size int64
-	filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}

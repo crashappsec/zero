@@ -332,7 +332,7 @@ var cryptoConfigExtensions = map[string]bool{
 func scanForWeakCiphers(repoPath string) []CipherFinding {
 	var findings []CipherFinding
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			if info != nil && info.IsDir() {
 				name := info.Name()
@@ -551,7 +551,7 @@ func scanForHardcodedKeys(repoPath string, cfg KeysConfig) []KeyFinding {
 		}
 	}
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			if info != nil && info.IsDir() {
 				name := info.Name()
@@ -743,7 +743,7 @@ var weakRandomPatterns = []struct {
 func scanForWeakRandom(repoPath string) []RandomFinding {
 	var findings []RandomFinding
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			if info != nil && info.IsDir() {
 				name := info.Name()
@@ -992,7 +992,7 @@ func scanForTLSIssues(repoPath string, cfg TLSConfig) []TLSFinding {
 		}
 	}
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			if info != nil && info.IsDir() {
 				name := info.Name()
@@ -1117,7 +1117,7 @@ var certExtensions = map[string]bool{
 func findCertificates(repoPath string) []string {
 	var certs []string
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}

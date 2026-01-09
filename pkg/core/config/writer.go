@@ -36,7 +36,7 @@ func (c *Config) Save() error {
 
 	// Write atomically using temp file
 	tmpPath := configPath + ".tmp"
-	if err := os.WriteFile(tmpPath, data, 0644); err != nil {
+	if err := os.WriteFile(tmpPath, data, 0600); err != nil {
 		return fmt.Errorf("writing temp config: %w", err)
 	}
 

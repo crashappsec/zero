@@ -42,7 +42,7 @@ Quick Start:
 	Run: func(cmd *cobra.Command, args []string) {
 		printBanner()
 		fmt.Println()
-		cmd.Help()
+		_ = cmd.Help()
 	},
 }
 

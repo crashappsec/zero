@@ -99,7 +99,7 @@ func (s *SystemInfo) getRAGStats() (string, error) {
 		// Count files
 		catPath := filepath.Join(s.ragLoader.RAGPath(), cat)
 		fileCount := 0
-		filepath.Walk(catPath, func(path string, info os.FileInfo, err error) error {
+		_ = filepath.Walk(catPath, func(path string, info os.FileInfo, err error) error {
 			if err == nil && !info.IsDir() {
 				fileCount++
 			}

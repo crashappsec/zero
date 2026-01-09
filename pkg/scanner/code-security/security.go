@@ -206,8 +206,8 @@ func (s *CodeSecurityScanner) Run(ctx context.Context, opts *scanner.ScanOptions
 
 	scanResult := scanner.NewScanResult(Name, Version, start)
 	scanResult.Repository = opts.RepoPath
-	scanResult.SetSummary(result.Summary)
-	scanResult.SetFindings(result.Findings)
+	_ = scanResult.SetSummary(result.Summary)
+	_ = scanResult.SetFindings(result.Findings)
 
 	// Build metadata with features_run and git_history_security results
 	metadata := map[string]interface{}{
@@ -216,7 +216,7 @@ func (s *CodeSecurityScanner) Run(ctx context.Context, opts *scanner.ScanOptions
 	if result.GitHistorySecurity != nil {
 		metadata["git_history_security"] = result.GitHistorySecurity
 	}
-	scanResult.SetMetadata(metadata)
+	_ = scanResult.SetMetadata(metadata)
 
 	if opts.OutputDir != "" {
 		if err := os.MkdirAll(opts.OutputDir, 0755); err != nil {

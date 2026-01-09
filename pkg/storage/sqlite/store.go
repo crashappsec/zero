@@ -199,10 +199,11 @@ func (s *Store) DeleteProject(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Delete in order due to foreign keys
-	tables := []string{"secrets", "vulnerabilities", "scanner_results", "scans", "findings_summary", "projects"}
+	// Note: scanner_results has ON DELETE CASCADE from scans, so it will be deleted automatically
+	tables := []string{"secrets", "vulnerabilities", "scans", "findings_summary", "projects"}
 	for _, table := range tables {
 		var query string
 		if table == "projects" {
@@ -384,17 +385,19 @@ func (s *Store) GetAggregateStats(ctx context.Context) (*storage.AggregateStats,
 	if err != nil {
 		return nil, fmt.Errorf("querying freshness counts: %w", err)
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var level string
 		var count int
 		if err := rows.Scan(&level, &count); err != nil {
-			rows.Close()
 			return nil, fmt.Errorf("scanning freshness row: %w", err)
 		}
 		stats.FreshnessCounts[level] = count
 		stats.TotalProjects += count
 	}
-	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating freshness rows: %w", err)
+	}
 
 	// Aggregate findings
 	aggQuery := `SELECT
@@ -430,7 +433,7 @@ func (s *Store) UpsertVulnerabilities(ctx context.Context, projectID string, vul
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Delete existing vulnerabilities for this project
 	if _, err := tx.ExecContext(ctx, "DELETE FROM vulnerabilities WHERE project_id = ?", projectID); err != nil {
@@ -488,6 +491,7 @@ func (s *Store) GetVulnerabilities(ctx context.Context, opts storage.VulnOptions
 	}
 
 	// Get results
+	// #nosec G202 -- SQL concatenation is safe here; all values are parameterized via args
 	selectQuery := `SELECT id, project_id, vuln_id, package, version, severity, title, description, fix_version, source, scanner ` + baseQuery
 	selectQuery += " ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END"
 
@@ -532,7 +536,7 @@ func (s *Store) UpsertSecrets(ctx context.Context, projectID string, secrets []*
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Delete existing secrets for this project
 	if _, err := tx.ExecContext(ctx, "DELETE FROM secrets WHERE project_id = ?", projectID); err != nil {
@@ -589,6 +593,7 @@ func (s *Store) GetSecrets(ctx context.Context, opts storage.SecretOptions) ([]*
 	}
 
 	// Get results
+	// #nosec G202 -- SQL concatenation is safe here; all values are parameterized via args
 	selectQuery := `SELECT id, project_id, file, line, type, severity, description, redacted_match ` + baseQuery
 	selectQuery += " ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END"
 

@@ -32,7 +32,7 @@ func WriteJSON(path string, v interface{}) error {
 		return fmt.Errorf("creating directory %s: %w", dir, err)
 	}
 
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("writing %s: %w", path, err)
 	}
 	return nil

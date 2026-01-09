@@ -387,10 +387,8 @@ func (s *GitHistorySecurityScanner) ScanRepository(repoPath string) (*GitHistory
 		return result, fmt.Errorf("shallow clone detected: git history scanning requires full history")
 	}
 
-	// Parse gitignore
-	if err := s.parseGitignore(repoPath); err != nil {
-		// Continue without gitignore rules if file doesn't exist
-	}
+	// Parse gitignore (continue without gitignore rules if file doesn't exist)
+	_ = s.parseGitignore(repoPath)
 
 	// Open repository
 	repo, err := git.PlainOpen(repoPath)
@@ -415,7 +413,7 @@ func (s *GitHistorySecurityScanner) ScanRepository(repoPath string) (*GitHistory
 	if err == nil {
 		headTree, err := headCommit.Tree()
 		if err == nil {
-			headTree.Files().ForEach(func(f *object.File) error {
+			_ = headTree.Files().ForEach(func(f *object.File) error {
 				currentFiles[f.Name] = true
 				return nil
 			})
@@ -467,7 +465,7 @@ func (s *GitHistorySecurityScanner) ScanRepository(repoPath string) (*GitHistory
 		}
 
 		// Scan all files in this commit
-		tree.Files().ForEach(func(f *object.File) error {
+		_ = tree.Files().ForEach(func(f *object.File) error {
 			path := f.Name
 
 			// Check gitignore violations
