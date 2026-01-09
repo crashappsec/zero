@@ -157,7 +157,7 @@ func runOneShotQuery(runtime *agent.Runtime, projectID string) error {
 			if jsonOutputFlag {
 				toolCalls = append(toolCalls, map[string]interface{}{
 					"name":  event.ToolCall.Name,
-					"input": json.RawMessage(event.ToolCall.Input),
+					"input": event.ToolCall.Input,
 				})
 			} else if !noStreamFlag {
 				fmt.Printf("\n%s %s\n", colorize(colorCyan, "▸"), event.ToolCall.Name)
