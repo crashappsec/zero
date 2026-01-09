@@ -148,29 +148,59 @@ export function useScanProgress(jobId: string | null) {
   return { job, connected };
 }
 
-// Chat hook with tool call tracking
+// Chat stage type for UX feedback
+export type ChatStage = 'idle' | 'sending' | 'thinking' | 'tool_running' | 'responding';
+
+// Chat hook with tool call tracking and elapsed time
 export function useChat(agentId = 'zero') {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; toolCalls?: ToolCallInfo[] }[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [activeToolCalls, setActiveToolCalls] = useState<ToolCallInfo[]>([]);
+  const [stage, setStage] = useState<ChatStage>('idle');
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
 
   // Store cleanup function in a ref to avoid stale closures
   const cleanupRef = useRef<(() => void) | null>(null);
   const toolCallCounterRef = useRef(0);
   const sessionIdRef = useRef<string | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Keep sessionIdRef in sync
   useEffect(() => {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
 
+  // Elapsed time timer
+  useEffect(() => {
+    if (startTime) {
+      timerRef.current = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+      }, 100);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setElapsedTime(0);
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [startTime]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (cleanupRef.current) {
         cleanupRef.current();
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
       }
     };
   }, []);
@@ -183,11 +213,13 @@ export function useChat(agentId = 'zero') {
         cleanupRef.current = null;
       }
 
-      // Add user message
+      // Add user message immediately (optimistic UI)
       setMessages((prev) => [...prev, { role: 'user', content: message }]);
       setIsStreaming(true);
       setStreamingContent('');
       setActiveToolCalls([]);
+      setStage('sending');
+      setStartTime(Date.now());
 
       let currentToolCalls: ToolCallInfo[] = [];
       let isCancelled = false;
@@ -201,9 +233,12 @@ export function useChat(agentId = 'zero') {
 
             if (chunk.type === 'start') {
               setSessionId(chunk.session_id);
+              setStage('thinking');
             } else if (chunk.type === 'delta') {
+              setStage('responding');
               setStreamingContent((prev) => prev + (chunk.content || ''));
             } else if (chunk.type === 'tool_call') {
+              setStage('tool_running');
               // Add new tool call
               const newToolCall: ToolCallInfo = {
                 id: `tool-${Date.now()}-${toolCallCounterRef.current++}`,
@@ -238,11 +273,15 @@ export function useChat(agentId = 'zero') {
               setStreamingContent('');
               setActiveToolCalls([]);
               setIsStreaming(false);
+              setStage('idle');
+              setStartTime(null);
               cleanupRef.current = null;
               resolve();
             } else if (chunk.type === 'error') {
               setIsStreaming(false);
               setActiveToolCalls([]);
+              setStage('idle');
+              setStartTime(null);
               cleanupRef.current = null;
               reject(new Error(chunk.error));
             }
@@ -251,6 +290,8 @@ export function useChat(agentId = 'zero') {
             if (isCancelled) return;
             setIsStreaming(false);
             setActiveToolCalls([]);
+            setStage('idle');
+            setStartTime(null);
             cleanupRef.current = null;
             reject(error);
           }
@@ -277,6 +318,8 @@ export function useChat(agentId = 'zero') {
     setStreamingContent('');
     setActiveToolCalls([]);
     setIsStreaming(false);
+    setStage('idle');
+    setStartTime(null);
   }, []);
 
   return {
@@ -285,6 +328,8 @@ export function useChat(agentId = 'zero') {
     isStreaming,
     streamingContent,
     activeToolCalls,
+    stage,
+    elapsedTime,
     sendMessage,
     reset,
   };

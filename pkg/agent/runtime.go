@@ -199,11 +199,45 @@ func (r *Runtime) Chat(ctx context.Context, req *ChatRequest, callback func(Chat
 	// Get conversation history
 	messages := session.GetMessages()
 
+	// Track the assistant's response and tool calls for session history
+	var responseText strings.Builder
+	var toolCalls []ToolCall
+	var pendingToolResults []struct {
+		callID   string
+		toolName string
+		content  string
+		isError  bool
+	}
+
 	// Chat with Claude
 	err = r.llm.ChatWithTools(ctx, systemPrompt, messages, tools, toolExecutor, func(event ChatEvent) {
 		// Track token usage
 		if event.Type == "done" && event.Usage != nil {
 			session.AddTokens(event.Usage.InputTokens + event.Usage.OutputTokens)
+		}
+
+		// Collect response for session history
+		switch event.Type {
+		case "text":
+			responseText.WriteString(event.Text)
+		case "tool_call":
+			if event.ToolCall != nil {
+				toolCalls = append(toolCalls, *event.ToolCall)
+			}
+		case "tool_result":
+			if event.ToolResult != nil {
+				pendingToolResults = append(pendingToolResults, struct {
+					callID   string
+					toolName string
+					content  string
+					isError  bool
+				}{
+					callID:   event.ToolResult.ToolCallID,
+					toolName: findToolName(toolCalls, event.ToolResult.ToolCallID),
+					content:  event.ToolResult.Content,
+					isError:  event.ToolResult.IsError,
+				})
+			}
 		}
 
 		// Forward event to callback
@@ -214,7 +248,34 @@ func (r *Runtime) Chat(ctx context.Context, req *ChatRequest, callback func(Chat
 		return fmt.Errorf("chat error: %w", err)
 	}
 
+	// Save the conversation history to session
+	// Add tool calls and results in order, then the final response
+	if len(toolCalls) > 0 {
+		// Add assistant message with tool calls (may include partial text before tools)
+		session.AddAssistantMessage("", toolCalls)
+
+		// Add tool results
+		for _, tr := range pendingToolResults {
+			session.AddToolResult(tr.callID, tr.toolName, tr.content, tr.isError)
+		}
+	}
+
+	// Add the final assistant response text
+	if responseText.Len() > 0 {
+		session.AddAssistantMessage(responseText.String(), nil)
+	}
+
 	return nil
+}
+
+// findToolName finds the tool name for a given tool call ID
+func findToolName(calls []ToolCall, callID string) string {
+	for _, c := range calls {
+		if c.ID == callID {
+			return c.Name
+		}
+	}
+	return "unknown"
 }
 
 // createToolExecutor creates a tool executor for the session
