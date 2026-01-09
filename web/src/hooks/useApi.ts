@@ -156,6 +156,7 @@ export interface DelegationInfo {
   agentName: string;
   event: string;
   toolCalls: ToolCallInfo[];
+  streamingContent: string;
 }
 
 // Chat hook with tool call tracking and elapsed time
@@ -275,14 +276,14 @@ export function useChat(agentId = 'zero') {
 
               if (event === 'start') {
                 setStage('delegating');
-                setDelegation({ agentName, event, toolCalls: [] });
+                setDelegation({ agentName, event, toolCalls: [], streamingContent: '' });
               } else if (event === 'done') {
                 setDelegation(null);
                 setStage('thinking'); // Back to parent agent
               } else if (event === 'tool_call') {
                 // Track sub-agent tool calls
                 setDelegation((prev) => {
-                  if (!prev) return { agentName, event, toolCalls: [] };
+                  if (!prev) return { agentName, event, toolCalls: [], streamingContent: '' };
                   const newToolCall: ToolCallInfo = {
                     id: `delegate-tool-${Date.now()}-${toolCallCounterRef.current++}`,
                     name: chunk.tool_name || 'unknown',
@@ -306,8 +307,13 @@ export function useChat(agentId = 'zero') {
                   return { ...prev, event: 'tool_result', toolCalls: updatedCalls };
                 });
               } else if (event === 'text') {
-                // Sub-agent is responding
-                setDelegation((prev) => prev ? { ...prev, event: 'responding' } : null);
+                // Sub-agent is responding - accumulate streaming text
+                const textContent = chunk.content || '';
+                setDelegation((prev) => prev ? {
+                  ...prev,
+                  event: 'responding',
+                  streamingContent: prev.streamingContent + textContent
+                } : null);
               }
             } else if (chunk.type === 'done') {
               // Save message with tool calls

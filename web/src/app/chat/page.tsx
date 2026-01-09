@@ -446,10 +446,10 @@ function ChatPageContent({ projectId }: { projectId?: string }) {
                 {/* Delegation progress - sub-agent working */}
                 {delegation && (
                   <div className="flex gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-600">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-600">
                       <Bot className="h-4 w-4 text-white animate-pulse" />
                     </div>
-                    <div className="rounded-lg border border-purple-700 bg-purple-900/20 px-3 py-2">
+                    <div className="flex-1 rounded-lg border border-purple-700 bg-purple-900/20 px-3 py-2">
                       <div className="flex items-center gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
                         <span className="text-sm text-purple-300">
@@ -461,6 +461,12 @@ function ChatPageContent({ projectId }: { projectId?: string }) {
                           </span>
                         )}
                       </div>
+                      {/* Show sub-agent's streaming text */}
+                      {delegation.streamingContent && (
+                        <div className="mt-2 text-sm text-purple-200/80 whitespace-pre-wrap">
+                          {delegation.streamingContent}
+                        </div>
+                      )}
                       {/* Show sub-agent's tool calls */}
                       {delegation.toolCalls.length > 0 && (
                         <div className="mt-2">
