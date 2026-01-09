@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/crashappsec/zero/pkg/core/github"
 )
 
 // Runtime is the main agent execution engine
@@ -305,6 +307,8 @@ func (r *Runtime) createStreamingToolExecutor(session *Session) StreamingToolExe
 			return r.executeDelegateAgent(ctx, session, call, callback)
 		case "GetSystemInfo":
 			return r.executeGetSystemInfo(ctx, session, call)
+		case "GetBillingData":
+			return r.executeGetBillingData(ctx, session, call)
 		default:
 			return &ToolResult{
 				ToolCallID: call.ID,
@@ -933,4 +937,71 @@ func (r *Runtime) executeGetSystemInfo(ctx context.Context, session *Session, ca
 	}
 
 	return &ToolResult{ToolCallID: call.ID, Content: result}, nil
+}
+
+// executeGetBillingData executes the GetBillingData tool
+func (r *Runtime) executeGetBillingData(ctx context.Context, session *Session, call *ToolCall) (*ToolResult, error) {
+	var input struct {
+		Owner string `json:"owner"`
+		Type  string `json:"type"`
+	}
+	if err := json.Unmarshal(call.Input, &input); err != nil {
+		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Invalid input: %s", err), IsError: true}, nil
+	}
+
+	if input.Owner == "" {
+		return &ToolResult{
+			ToolCallID: call.ID,
+			Content:    "Owner is required (organization name or username)",
+			IsError:    true,
+		}, nil
+	}
+
+	if input.Type == "" {
+		return &ToolResult{
+			ToolCallID: call.ID,
+			Content:    "Type is required. Valid types: actions, packages, storage, summary",
+			IsError:    true,
+		}, nil
+	}
+
+	client := github.NewClient()
+	if !client.HasToken() {
+		return &ToolResult{
+			ToolCallID: call.ID,
+			Content:    "GitHub token not configured. Set GITHUB_TOKEN with read:org or admin:org scope to access billing data.",
+			IsError:    true,
+		}, nil
+	}
+
+	var result interface{}
+	var err error
+
+	switch input.Type {
+	case "actions":
+		result, err = client.GetOrgActionsBilling(input.Owner)
+	case "packages":
+		result, err = client.GetOrgPackagesBilling(input.Owner)
+	case "storage":
+		result, err = client.GetOrgStorageBilling(input.Owner)
+	case "summary":
+		result, err = client.GetOrgBillingSummary(input.Owner)
+	default:
+		return &ToolResult{
+			ToolCallID: call.ID,
+			Content:    fmt.Sprintf("Unknown billing type: %s. Valid types: actions, packages, storage, summary", input.Type),
+			IsError:    true,
+		}, nil
+	}
+
+	if err != nil {
+		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error fetching billing data: %s", err), IsError: true}, nil
+	}
+
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error formatting response: %s", err), IsError: true}, nil
+	}
+
+	return &ToolResult{ToolCallID: call.ID, Content: string(jsonData)}, nil
 }

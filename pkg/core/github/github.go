@@ -816,6 +816,17 @@ var ScannerRequirements = map[string]ScannerRequirement{
 		Description:    "Developer experience analysis",
 		NeedsGitHubAPI: false,
 	},
+	// Billing data access (for GetBillingData agent tool)
+	"billing": {
+		Scanner:        "billing",
+		Description:    "GitHub billing and usage data (Actions minutes, Packages storage)",
+		NeedsGitHubAPI: true,
+		NeedsOrgAccess: true,
+		RequiredScopes: []string{"read:org", "admin:org"},
+		RequiredPermissions: map[string]string{
+			"organization_administration": "read",
+		},
+	},
 }
 
 // CheckTokenPermissions analyzes a GitHub token and returns its capabilities
