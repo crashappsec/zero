@@ -73,10 +73,10 @@ var actionsPricing = map[string]float64{
 // ============================================================================
 
 // GetOrgActionsBilling fetches GitHub Actions billing for an organization
-// Requires: admin:org or read:org scope
+// Requires: admin:org scope (read:org is NOT sufficient)
 func (c *Client) GetOrgActionsBilling(org string) (*BillingActions, error) {
 	if !c.HasToken() {
-		return nil, fmt.Errorf("no GitHub token available - set GITHUB_TOKEN with read:org scope")
+		return nil, fmt.Errorf("no GitHub token available - set GITHUB_TOKEN with admin:org scope")
 	}
 
 	url := fmt.Sprintf("https://api.github.com/orgs/%s/settings/billing/actions", org)
@@ -95,10 +95,10 @@ func (c *Client) GetUserActionsBilling(username string) (*BillingActions, error)
 }
 
 // GetOrgPackagesBilling fetches GitHub Packages billing for an organization
-// Requires: admin:org or read:org scope
+// Requires: admin:org scope (read:org is NOT sufficient)
 func (c *Client) GetOrgPackagesBilling(org string) (*BillingPackages, error) {
 	if !c.HasToken() {
-		return nil, fmt.Errorf("no GitHub token available - set GITHUB_TOKEN with read:org scope")
+		return nil, fmt.Errorf("no GitHub token available - set GITHUB_TOKEN with admin:org scope")
 	}
 
 	url := fmt.Sprintf("https://api.github.com/orgs/%s/settings/billing/packages", org)
@@ -106,10 +106,10 @@ func (c *Client) GetOrgPackagesBilling(org string) (*BillingPackages, error) {
 }
 
 // GetOrgStorageBilling fetches shared storage billing for an organization
-// Requires: admin:org or read:org scope
+// Requires: admin:org scope (read:org is NOT sufficient)
 func (c *Client) GetOrgStorageBilling(org string) (*BillingStorage, error) {
 	if !c.HasToken() {
-		return nil, fmt.Errorf("no GitHub token available - set GITHUB_TOKEN with read:org scope")
+		return nil, fmt.Errorf("no GitHub token available - set GITHUB_TOKEN with admin:org scope")
 	}
 
 	url := fmt.Sprintf("https://api.github.com/orgs/%s/settings/billing/shared-storage", org)
@@ -214,13 +214,13 @@ func (c *Client) doGitHubRequest(url string) ([]byte, error) {
 	}
 
 	if resp.StatusCode == 401 {
-		return nil, fmt.Errorf("authentication failed - token may lack required scopes (need read:org or admin:org)")
+		return nil, fmt.Errorf("authentication failed - token may be expired or invalid")
 	}
 	if resp.StatusCode == 403 {
-		return nil, fmt.Errorf("access forbidden - token needs read:org or admin:org scope for billing data")
+		return nil, fmt.Errorf("access forbidden - token needs admin:org scope for billing data")
 	}
 	if resp.StatusCode == 404 {
-		return nil, fmt.Errorf("organization not found or no access to billing data")
+		return nil, fmt.Errorf("billing data not found - requires admin:org scope. Add it with: gh auth refresh -s admin:org")
 	}
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("GitHub API error (status %d): %s", resp.StatusCode, string(body))

@@ -822,9 +822,9 @@ var ScannerRequirements = map[string]ScannerRequirement{
 		Description:    "GitHub billing and usage data (Actions minutes, Packages storage)",
 		NeedsGitHubAPI: true,
 		NeedsOrgAccess: true,
-		RequiredScopes: []string{"read:org", "admin:org"},
+		RequiredScopes: []string{"admin:org"}, // read:org is NOT sufficient
 		RequiredPermissions: map[string]string{
-			"organization_administration": "read",
+			"organization_administration": "write", // Fine-grained needs write, not just read
 		},
 	},
 }
