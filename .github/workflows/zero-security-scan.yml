@@ -3,8 +3,7 @@ name: Zero Security Scan
 on:
   push:
     branches: [ main, develop ]
-  pull_request:
-    branches: [ main ]
+  # Note: Disabled on pull_request - Zero can't scan itself during CI (circular dependency)
   schedule:
     # Run daily at 2 AM UTC
     - cron: '0 2 * * *'
