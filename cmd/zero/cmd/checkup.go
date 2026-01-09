@@ -381,7 +381,7 @@ func printAccessibleRepos(gh *github.Client, tokenType string, term *terminal.Te
 		printRepoList(summary.PersonalRepos)
 	}
 
-	// Organization repos - list actual names
+	// Organization repos - list actual names with billing access status
 	for _, org := range summary.Orgs {
 		if len(org.Repos) > 0 {
 			fmt.Printf("\n  \033[1m%s\033[0m", org.Login)
@@ -393,6 +393,17 @@ func printAccessibleRepos(gh *github.Client, tokenType string, term *terminal.Te
 				fmt.Printf(" \033[2m- %s\033[0m", desc)
 			}
 			fmt.Println()
+
+			// Show role and billing access per org
+			roleDisplay := org.Role
+			if roleDisplay == "" {
+				roleDisplay = "member"
+			}
+			if org.BillingAccess {
+				fmt.Printf("    Role: %s \033[0;32m✓ billing access\033[0m\n", roleDisplay)
+			} else {
+				fmt.Printf("    Role: %s \033[2m(no billing access)\033[0m\n", roleDisplay)
+			}
 			printRepoList(org.Repos)
 		}
 	}
