@@ -69,14 +69,43 @@ const toolIcons: Record<string, React.ReactNode> = {
   GetSystemInfo: <Cpu className="h-3.5 w-3.5" />,
 };
 
+// Live elapsed time component for running tools
+function LiveElapsedTime({ startTime }: { startTime: number }) {
+  const [elapsed, setElapsed] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startTime) / 1000));
+    }, 100);
+    return () => clearInterval(timer);
+  }, [startTime]);
+
+  return (
+    <span className="ml-2 text-yellow-500 tabular-nums animate-pulse">
+      {elapsed}s
+    </span>
+  );
+}
+
 // Tool call display component
 function ToolCallsDisplay({ toolCalls, isActive }: { toolCalls: ToolCallInfo[]; isActive?: boolean }) {
-  const [expanded, setExpanded] = useState(false);
+  // Auto-expand when active to show progress
+  const [expanded, setExpanded] = useState(isActive || false);
+
+  // Auto-expand when first tool starts running
+  useEffect(() => {
+    if (isActive && toolCalls.length > 0) {
+      setExpanded(true);
+    }
+  }, [isActive, toolCalls.length]);
 
   if (toolCalls.length === 0) return null;
 
+  const runningCount = toolCalls.filter(t => t.status === 'running').length;
+  const completedCount = toolCalls.filter(t => t.status === 'complete').length;
+
   return (
-    <div className="mt-2 border-l-2 border-gray-700 pl-3">
+    <div className={`mt-2 border-l-2 pl-3 ${isActive ? 'border-yellow-500' : 'border-gray-700'}`}>
       <button
         onClick={() => setExpanded(!expanded)}
         className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-300 transition-colors"
@@ -87,9 +116,17 @@ function ToolCallsDisplay({ toolCalls, isActive }: { toolCalls: ToolCallInfo[]; 
           <ChevronRight className="h-3 w-3" />
         )}
         <span className="font-medium">
-          {isActive ? 'Running' : 'Used'} {toolCalls.length} tool{toolCalls.length > 1 ? 's' : ''}
+          {isActive ? (
+            <>
+              {runningCount > 0 && <span className="text-yellow-500">Running {runningCount}</span>}
+              {runningCount > 0 && completedCount > 0 && ' / '}
+              {completedCount > 0 && <span className="text-green-500">{completedCount} done</span>}
+            </>
+          ) : (
+            <>Used {toolCalls.length} tool{toolCalls.length > 1 ? 's' : ''}</>
+          )}
         </span>
-        {isActive && <Loader2 className="h-3 w-3 animate-spin text-green-500" />}
+        {isActive && runningCount > 0 && <Loader2 className="h-3 w-3 animate-spin text-yellow-500" />}
       </button>
 
       {expanded && (
@@ -97,7 +134,9 @@ function ToolCallsDisplay({ toolCalls, isActive }: { toolCalls: ToolCallInfo[]; 
           {toolCalls.map((tool) => (
             <div
               key={tool.id}
-              className="flex items-start gap-2 rounded bg-gray-800/50 px-2 py-1.5 text-xs"
+              className={`flex items-start gap-2 rounded px-2 py-1.5 text-xs ${
+                tool.status === 'running' ? 'bg-yellow-900/20 border border-yellow-800/50' : 'bg-gray-800/50'
+              }`}
             >
               <div className="flex items-center gap-1.5 text-gray-400">
                 {tool.status === 'running' ? (
@@ -110,7 +149,9 @@ function ToolCallsDisplay({ toolCalls, isActive }: { toolCalls: ToolCallInfo[]; 
                 {toolIcons[tool.name] || <Play className="h-3.5 w-3.5" />}
               </div>
               <div className="flex-1 min-w-0">
-                <span className="font-medium text-gray-300">{tool.name}</span>
+                <span className={`font-medium ${tool.status === 'running' ? 'text-yellow-300' : 'text-gray-300'}`}>
+                  {tool.name}
+                </span>
                 {tool.input && Object.keys(tool.input).length > 0 && (
                   <span className="ml-1.5 text-gray-500">
                     {Object.entries(tool.input)
@@ -119,7 +160,12 @@ function ToolCallsDisplay({ toolCalls, isActive }: { toolCalls: ToolCallInfo[]; 
                       .join(', ')}
                   </span>
                 )}
-                {tool.endTime && tool.startTime && (
+                {/* Live elapsed time for running tools */}
+                {tool.status === 'running' && tool.startTime && (
+                  <LiveElapsedTime startTime={tool.startTime} />
+                )}
+                {/* Final elapsed time for completed tools */}
+                {tool.status !== 'running' && tool.endTime && tool.startTime && (
                   <span className="ml-2 text-gray-600">
                     {((tool.endTime - tool.startTime) / 1000).toFixed(1)}s
                   </span>
@@ -247,6 +293,9 @@ function ChatPageContent({ projectId }: { projectId?: string }) {
     isStreaming,
     streamingContent,
     activeToolCalls,
+    stage,
+    elapsedTime,
+    delegation,
     sendMessage,
     reset,
   } = useChat(agentId);
@@ -257,7 +306,7 @@ function ChatPageContent({ projectId }: { projectId?: string }) {
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, streamingContent, activeToolCalls]);
+  }, [messages, streamingContent, activeToolCalls, delegation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -372,15 +421,58 @@ function ChatPageContent({ projectId }: { projectId?: string }) {
                     </div>
                   </div>
                 )}
-                {isStreaming && !streamingContent && activeToolCalls.length === 0 && (
+                {isStreaming && !streamingContent && activeToolCalls.length === 0 && !delegation && (
                   <div className="flex gap-3">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-600">
                       <Bot className="h-4 w-4 text-white animate-pulse" />
                     </div>
-                    <div className="flex items-center gap-1 text-gray-400">
-                      <span className="animate-bounce">.</span>
-                      <span className="animate-bounce" style={{ animationDelay: '0.1s' }}>.</span>
-                      <span className="animate-bounce" style={{ animationDelay: '0.2s' }}>.</span>
+                    <div className="flex items-center gap-2 rounded-lg border border-gray-700 bg-gray-800/50 px-3 py-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-green-500" />
+                      <span className="text-sm text-gray-300">
+                        {stage === 'sending' && 'Sending...'}
+                        {stage === 'thinking' && 'Thinking...'}
+                        {stage === 'tool_running' && 'Running tools...'}
+                        {stage === 'responding' && 'Responding...'}
+                        {stage === 'idle' && 'Processing...'}
+                      </span>
+                      {elapsedTime > 0 && (
+                        <span className="text-xs text-gray-500 tabular-nums">
+                          {elapsedTime}s
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {/* Delegation progress - sub-agent working */}
+                {delegation && (
+                  <div className="flex gap-3">
+                    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-600">
+                      <Bot className="h-4 w-4 text-white animate-pulse" />
+                    </div>
+                    <div className="flex-1 rounded-lg border border-purple-700 bg-purple-900/20 px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
+                        <span className="text-sm text-purple-300">
+                          Delegated to <span className="font-medium">{delegation.agentName}</span>
+                        </span>
+                        {elapsedTime > 0 && (
+                          <span className="text-xs text-purple-500 tabular-nums">
+                            {elapsedTime}s
+                          </span>
+                        )}
+                      </div>
+                      {/* Show sub-agent's streaming text */}
+                      {delegation.streamingContent && (
+                        <div className="mt-2 text-sm text-purple-200/80 whitespace-pre-wrap">
+                          {delegation.streamingContent}
+                        </div>
+                      )}
+                      {/* Show sub-agent's tool calls */}
+                      {delegation.toolCalls.length > 0 && (
+                        <div className="mt-2">
+                          <ToolCallsDisplay toolCalls={delegation.toolCalls} isActive />
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

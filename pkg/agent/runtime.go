@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/crashappsec/zero/pkg/core/github"
 )
 
 // Runtime is the main agent execution engine
@@ -193,17 +195,51 @@ func (r *Runtime) Chat(ctx context.Context, req *ChatRequest, callback func(Chat
 	// Get tools for this agent
 	tools := GetToolsForAgent(session.AgentID)
 
-	// Create tool executor
-	toolExecutor := r.createToolExecutor(session)
+	// Create streaming tool executor (supports DelegateAgent streaming)
+	toolExecutor := r.createStreamingToolExecutor(session)
 
 	// Get conversation history
 	messages := session.GetMessages()
 
-	// Chat with Claude
-	err = r.llm.ChatWithTools(ctx, systemPrompt, messages, tools, toolExecutor, func(event ChatEvent) {
+	// Track the assistant's response and tool calls for session history
+	var responseText strings.Builder
+	var toolCalls []ToolCall
+	var pendingToolResults []struct {
+		callID   string
+		toolName string
+		content  string
+		isError  bool
+	}
+
+	// Chat with Claude using streaming tool executor
+	err = r.llm.ChatWithStreamingTools(ctx, systemPrompt, messages, tools, toolExecutor, func(event ChatEvent) {
 		// Track token usage
 		if event.Type == "done" && event.Usage != nil {
 			session.AddTokens(event.Usage.InputTokens + event.Usage.OutputTokens)
+		}
+
+		// Collect response for session history
+		switch event.Type {
+		case "text":
+			responseText.WriteString(event.Text)
+		case "tool_call":
+			if event.ToolCall != nil {
+				toolCalls = append(toolCalls, *event.ToolCall)
+			}
+		case "tool_result":
+			if event.ToolResult != nil {
+				pendingToolResults = append(pendingToolResults, struct {
+					callID   string
+					toolName string
+					content  string
+					isError  bool
+				}{
+					callID:   event.ToolResult.ToolCallID,
+					toolName: findToolName(toolCalls, event.ToolResult.ToolCallID),
+					content:  event.ToolResult.Content,
+					isError:  event.ToolResult.IsError,
+				})
+			}
 		}
 
 		// Forward event to callback
@@ -214,12 +250,40 @@ func (r *Runtime) Chat(ctx context.Context, req *ChatRequest, callback func(Chat
 		return fmt.Errorf("chat error: %w", err)
 	}
 
+	// Save the conversation history to session
+	// Add tool calls and results in order, then the final response
+	if len(toolCalls) > 0 {
+		// Add assistant message with tool calls (may include partial text before tools)
+		session.AddAssistantMessage("", toolCalls)
+
+		// Add tool results
+		for _, tr := range pendingToolResults {
+			session.AddToolResult(tr.callID, tr.toolName, tr.content, tr.isError)
+		}
+	}
+
+	// Add the final assistant response text
+	if responseText.Len() > 0 {
+		session.AddAssistantMessage(responseText.String(), nil)
+	}
+
 	return nil
 }
 
-// createToolExecutor creates a tool executor for the session
-func (r *Runtime) createToolExecutor(session *Session) ToolExecutor {
-	return func(ctx context.Context, call *ToolCall) (*ToolResult, error) {
+// findToolName finds the tool name for a given tool call ID
+func findToolName(calls []ToolCall, callID string) string {
+	for _, c := range calls {
+		if c.ID == callID {
+			return c.Name
+		}
+	}
+	return "unknown"
+}
+
+// createStreamingToolExecutor creates a streaming tool executor for the session
+// The callback parameter allows tools like DelegateAgent to stream progress
+func (r *Runtime) createStreamingToolExecutor(session *Session) StreamingToolExecutor {
+	return func(ctx context.Context, call *ToolCall, callback func(ChatEvent)) (*ToolResult, error) {
 		switch call.Name {
 		case "Read":
 			return r.executeRead(ctx, session, call)
@@ -240,9 +304,11 @@ func (r *Runtime) createToolExecutor(session *Session) ToolExecutor {
 		case "WebFetch":
 			return r.executeWebFetch(ctx, session, call)
 		case "DelegateAgent":
-			return r.executeDelegateAgent(ctx, session, call)
+			return r.executeDelegateAgent(ctx, session, call, callback)
 		case "GetSystemInfo":
 			return r.executeGetSystemInfo(ctx, session, call)
+		case "GetBillingData":
+			return r.executeGetBillingData(ctx, session, call)
 		default:
 			return &ToolResult{
 				ToolCallID: call.ID,
@@ -690,8 +756,8 @@ func (r *Runtime) executeWebFetch(ctx context.Context, session *Session, call *T
 	}, nil
 }
 
-// executeDelegateAgent executes the DelegateAgent tool
-func (r *Runtime) executeDelegateAgent(ctx context.Context, session *Session, call *ToolCall) (*ToolResult, error) {
+// executeDelegateAgent executes the DelegateAgent tool with streaming support
+func (r *Runtime) executeDelegateAgent(ctx context.Context, session *Session, call *ToolCall, parentCallback func(ChatEvent)) (*ToolResult, error) {
 	var input struct {
 		AgentID string `json:"agent_id"`
 		Task    string `json:"task"`
@@ -700,6 +766,19 @@ func (r *Runtime) executeDelegateAgent(ctx context.Context, session *Session, ca
 	if err := json.Unmarshal(call.Input, &input); err != nil {
 		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Invalid input: %s", err), IsError: true}, nil
 	}
+
+	// Get agent info for status updates
+	agentName, _, _, _ := r.loader.GetAgentInfo(input.AgentID)
+	if agentName == "" {
+		agentName = input.AgentID
+	}
+
+	// Send delegation start event to parent
+	parentCallback(ChatEvent{
+		Type:           "delegation",
+		DelegatedAgent: agentName,
+		DelegatedEvent: "start",
+	})
 
 	// Create a new session for the delegated agent
 	delegateSession := r.sessions.Create(input.AgentID)
@@ -725,19 +804,50 @@ func (r *Runtime) executeDelegateAgent(ctx context.Context, session *Session, ca
 	// Get tools for delegate
 	tools := GetToolsForAgent(input.AgentID)
 
-	// Create tool executor for delegate
-	toolExecutor := r.createToolExecutor(delegateSession)
+	// Create streaming tool executor for delegate (supports nested delegation)
+	toolExecutor := r.createStreamingToolExecutor(delegateSession)
 
 	// Add task as user message
 	delegateSession.AddUserMessage(task)
 	messages := delegateSession.GetMessages()
 
-	// Collect response
+	// Collect response and stream events to parent
 	var response strings.Builder
-	err = r.llm.ChatWithTools(ctx, systemPrompt, messages, tools, toolExecutor, func(event ChatEvent) {
-		if event.Type == "text" {
+	err = r.llm.ChatWithStreamingTools(ctx, systemPrompt, messages, tools, toolExecutor, func(event ChatEvent) {
+		switch event.Type {
+		case "text":
 			response.WriteString(event.Text)
+			// Stream text from sub-agent to parent
+			parentCallback(ChatEvent{
+				Type:           "delegation",
+				Text:           event.Text,
+				DelegatedAgent: agentName,
+				DelegatedEvent: "text",
+			})
+		case "tool_call":
+			// Notify parent about sub-agent's tool calls
+			parentCallback(ChatEvent{
+				Type:           "delegation",
+				ToolCall:       event.ToolCall,
+				DelegatedAgent: agentName,
+				DelegatedEvent: "tool_call",
+			})
+		case "tool_result":
+			// Notify parent about sub-agent's tool results
+			parentCallback(ChatEvent{
+				Type:           "delegation",
+				ToolResult:     event.ToolResult,
+				DelegatedAgent: agentName,
+				DelegatedEvent: "tool_result",
+			})
 		}
+	})
+
+	// Send delegation end event
+	parentCallback(ChatEvent{
+		Type:           "delegation",
+		DelegatedAgent: agentName,
+		DelegatedEvent: "done",
 	})
 
 	if err != nil {
@@ -745,7 +855,6 @@ func (r *Runtime) executeDelegateAgent(ctx context.Context, session *Session, ca
 	}
 
 	// Format response with agent attribution
-	agentName, _, _, _ := r.loader.GetAgentInfo(input.AgentID)
 	return &ToolResult{
 		ToolCallID: call.ID,
 		Content:    fmt.Sprintf("**Response from %s:**\n\n%s", agentName, response.String()),
@@ -828,4 +937,71 @@ func (r *Runtime) executeGetSystemInfo(ctx context.Context, session *Session, ca
 	}
 
 	return &ToolResult{ToolCallID: call.ID, Content: result}, nil
+}
+
+// executeGetBillingData executes the GetBillingData tool
+func (r *Runtime) executeGetBillingData(ctx context.Context, session *Session, call *ToolCall) (*ToolResult, error) {
+	var input struct {
+		Owner string `json:"owner"`
+		Type  string `json:"type"`
+	}
+	if err := json.Unmarshal(call.Input, &input); err != nil {
+		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Invalid input: %s", err), IsError: true}, nil
+	}
+
+	if input.Owner == "" {
+		return &ToolResult{
+			ToolCallID: call.ID,
+			Content:    "Owner is required (organization name or username)",
+			IsError:    true,
+		}, nil
+	}
+
+	if input.Type == "" {
+		return &ToolResult{
+			ToolCallID: call.ID,
+			Content:    "Type is required. Valid types: actions, packages, storage, summary",
+			IsError:    true,
+		}, nil
+	}
+
+	client := github.NewClient()
+	if !client.HasToken() {
+		return &ToolResult{
+			ToolCallID: call.ID,
+			Content:    "GitHub token not configured. Set GITHUB_TOKEN with read:org or admin:org scope to access billing data.",
+			IsError:    true,
+		}, nil
+	}
+
+	var result interface{}
+	var err error
+
+	switch input.Type {
+	case "actions":
+		result, err = client.GetOrgActionsBilling(input.Owner)
+	case "packages":
+		result, err = client.GetOrgPackagesBilling(input.Owner)
+	case "storage":
+		result, err = client.GetOrgStorageBilling(input.Owner)
+	case "summary":
+		result, err = client.GetOrgBillingSummary(input.Owner)
+	default:
+		return &ToolResult{
+			ToolCallID: call.ID,
+			Content:    fmt.Sprintf("Unknown billing type: %s. Valid types: actions, packages, storage, summary", input.Type),
+			IsError:    true,
+		}, nil
+	}
+
+	if err != nil {
+		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error fetching billing data: %s", err), IsError: true}, nil
+	}
+
+	jsonData, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		return &ToolResult{ToolCallID: call.ID, Content: fmt.Sprintf("Error formatting response: %s", err), IsError: true}, nil
+	}
+
+	return &ToolResult{ToolCallID: call.ID, Content: string(jsonData)}, nil
 }

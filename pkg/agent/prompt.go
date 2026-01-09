@@ -67,6 +67,9 @@ func (b *PromptBuilder) BuildSystemPrompt(session *Session) (string, error) {
 	// 9. Guidelines
 	sb.WriteString(b.buildGuidelinesSection())
 
+	// 10. Agent-specific guidelines (billing transparency, etc.)
+	sb.WriteString(b.buildAgentSpecificGuidelines(agent))
+
 	return sb.String(), nil
 }
 
@@ -305,6 +308,24 @@ func (b *PromptBuilder) buildGuidelinesSection() string {
 7. **Ask for Clarification**: If the user asks about a specific project/repository but no project context is set, use ListProjects to see available projects and ASK the user which one they want to analyze. Do NOT assume or guess. List the available options and ask them to choose.
 
 `
+}
+
+// buildAgentSpecificGuidelines builds guidelines specific to certain agents
+func (b *PromptBuilder) buildAgentSpecificGuidelines(agent *AgentDefinition) string {
+	var sb strings.Builder
+
+	// Add billing data transparency for cost-related agents
+	if agent.ID == "joey" || agent.ID == "gibson" || agent.ID == "zero" {
+		sb.WriteString("## Cost Analysis Guidelines\n\n")
+		sb.WriteString("**CRITICAL: Billing Data Transparency**\n\n")
+		sb.WriteString("When asked about costs, spend, or savings, you MUST:\n\n")
+		sb.WriteString("1. **Check billing access first** — Use `GetBillingData` tool to verify access\n")
+		sb.WriteString("2. **If access granted** — Use real billing data and clearly state \"Based on actual GitHub billing data\"\n")
+		sb.WriteString("3. **If access denied** — Clearly state upfront: \"I don't have access to your actual billing data. The following numbers are **estimates** based on industry benchmarks (~$0.008/min Linux, ~$0.08/min macOS) and assumptions about workflow frequency.\"\n\n")
+		sb.WriteString("**Never present estimated costs as if they were real data. Always be transparent about the source of your numbers.**\n\n")
+	}
+
+	return sb.String()
 }
 
 // BuildDelegationPrompt builds a prompt for delegating to another agent

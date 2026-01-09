@@ -101,7 +101,7 @@ export interface ChatSession {
 }
 
 export interface StreamChunk {
-  type: 'start' | 'delta' | 'done' | 'error' | 'tool_call' | 'tool_result';
+  type: 'start' | 'delta' | 'done' | 'error' | 'tool_call' | 'tool_result' | 'delegation';
   session_id: string;
   agent_id: string;
   content?: string;
@@ -111,6 +111,9 @@ export interface StreamChunk {
   tool_input?: Record<string, unknown>;
   // Tool result fields
   is_error?: boolean;
+  // Delegation fields (sub-agent progress)
+  delegated_agent?: string;
+  delegated_event?: 'start' | 'text' | 'tool_call' | 'tool_result' | 'done';
 }
 
 // Tool call tracking for threaded display

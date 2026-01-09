@@ -285,6 +285,42 @@ func printTokenStatus(result *github.RoadmapResult, gh *github.Client, term *ter
 					result.TokenInfo.RateRemaining, result.TokenInfo.RateLimit)
 			}
 
+			// Show scopes for classic tokens
+			if result.TokenInfo.Type == "classic" && len(result.TokenInfo.Scopes) > 0 {
+				fmt.Printf("    Scopes: %s\n", strings.Join(result.TokenInfo.Scopes, ", "))
+
+				// Check billing access (requires admin:org, not just read:org)
+				hasBillingAccess := false
+				for _, scope := range result.TokenInfo.Scopes {
+					if scope == "admin:org" {
+						hasBillingAccess = true
+						break
+					}
+				}
+				if hasBillingAccess {
+					fmt.Println("    \033[0;32m✓\033[0m Billing API access available (admin:org)")
+				} else {
+					fmt.Println("    \033[0;33m⚠\033[0m Billing API access unavailable (needs admin:org scope)")
+					fmt.Println("      \033[2mAdd scope: gh auth refresh -s admin:org\033[0m")
+				}
+			}
+
+			// Show permissions for fine-grained tokens
+			if result.TokenInfo.Type == "fine-grained" && len(result.TokenInfo.Permissions) > 0 {
+				perms := make([]string, 0)
+				for perm, level := range result.TokenInfo.Permissions {
+					perms = append(perms, fmt.Sprintf("%s:%s", perm, level))
+				}
+				fmt.Printf("    Permissions: %s\n", strings.Join(perms, ", "))
+
+				// Check billing access for fine-grained
+				if level, ok := result.TokenInfo.Permissions["organization_administration"]; ok && level == "read" {
+					fmt.Println("    \033[0;32m✓\033[0m Billing API access available")
+				} else {
+					fmt.Println("    \033[0;33m⚠\033[0m Billing API access unavailable (needs organization_administration:read)")
+				}
+			}
+
 			// Warn about classic tokens
 			if result.TokenInfo.Type == "classic" {
 				fmt.Println()
@@ -345,7 +381,7 @@ func printAccessibleRepos(gh *github.Client, tokenType string, term *terminal.Te
 		printRepoList(summary.PersonalRepos)
 	}
 
-	// Organization repos - list actual names
+	// Organization repos - list actual names with billing access status
 	for _, org := range summary.Orgs {
 		if len(org.Repos) > 0 {
 			fmt.Printf("\n  \033[1m%s\033[0m", org.Login)
@@ -357,6 +393,17 @@ func printAccessibleRepos(gh *github.Client, tokenType string, term *terminal.Te
 				fmt.Printf(" \033[2m- %s\033[0m", desc)
 			}
 			fmt.Println()
+
+			// Show role and billing access per org
+			roleDisplay := org.Role
+			if roleDisplay == "" {
+				roleDisplay = "member"
+			}
+			if org.BillingAccess {
+				fmt.Printf("    Role: %s \033[0;32m✓ billing access\033[0m\n", roleDisplay)
+			} else {
+				fmt.Printf("    Role: %s \033[2m(no billing access)\033[0m\n", roleDisplay)
+			}
 			printRepoList(org.Repos)
 		}
 	}

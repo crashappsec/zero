@@ -816,6 +816,17 @@ var ScannerRequirements = map[string]ScannerRequirement{
 		Description:    "Developer experience analysis",
 		NeedsGitHubAPI: false,
 	},
+	// Billing data access (for GetBillingData agent tool)
+	"billing": {
+		Scanner:        "billing",
+		Description:    "GitHub billing and usage data (Actions minutes, Packages storage)",
+		NeedsGitHubAPI: true,
+		NeedsOrgAccess: true,
+		RequiredScopes: []string{"admin:org"}, // read:org is NOT sufficient
+		RequiredPermissions: map[string]string{
+			"organization_administration": "write", // Fine-grained needs write, not just read
+		},
+	},
 }
 
 // CheckTokenPermissions analyzes a GitHub token and returns its capabilities
@@ -1123,9 +1134,11 @@ type AccessibleRepo struct {
 
 // AccessibleOrg represents an organization the user has access to
 type AccessibleOrg struct {
-	Login       string           `json:"login"`
-	Description string           `json:"description"`
-	Repos       []AccessibleRepo `json:"repos"`
+	Login         string           `json:"login"`
+	Description   string           `json:"description"`
+	Repos         []AccessibleRepo `json:"repos"`
+	Role          string           `json:"role"`           // "admin", "member", etc.
+	BillingAccess bool             `json:"billing_access"` // true if user has billing access
 }
 
 // AccessibleRepoSummary provides a summary of accessible repos
@@ -1196,10 +1209,13 @@ func (c *Client) ListAccessibleRepos() (*AccessibleRepoSummary, error) {
 		if err := json.NewDecoder(orgsResp.Body).Decode(&orgs); err == nil {
 			for _, org := range orgs {
 				repos := c.listOrgRepos(org.Login)
+				role, billingAccess := c.getOrgMembership(org.Login, summary.User)
 				summary.Orgs = append(summary.Orgs, AccessibleOrg{
-					Login:       org.Login,
-					Description: org.Description,
-					Repos:       repos,
+					Login:         org.Login,
+					Description:   org.Description,
+					Repos:         repos,
+					Role:          role,
+					BillingAccess: billingAccess,
 				})
 				summary.TotalRepos += len(repos)
 			}
@@ -1268,4 +1284,50 @@ func (c *Client) listOrgRepos(org string) []AccessibleRepo {
 		}
 	}
 	return repos
+}
+
+// getOrgMembership returns the user's role in an organization and whether they have billing access
+func (c *Client) getOrgMembership(org, username string) (role string, billingAccess bool) {
+	// Default values if we can't determine membership
+	role = "member"
+	billingAccess = false
+
+	if !c.HasToken() {
+		return
+	}
+
+	// Query the membership API: GET /orgs/{org}/memberships/{username}
+	url := fmt.Sprintf("https://api.github.com/orgs/%s/memberships/%s", org, username)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return
+	}
+
+	req.Header.Set("Authorization", "Bearer "+c.token)
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return
+	}
+
+	var membership struct {
+		Role  string `json:"role"`  // "admin" or "member"
+		State string `json:"state"` // "active" or "pending"
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&membership); err != nil {
+		return
+	}
+
+	role = membership.Role
+	// Only organization owners/admins have billing access
+	billingAccess = membership.Role == "admin"
+
+	return
 }

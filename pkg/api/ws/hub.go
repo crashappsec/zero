@@ -280,6 +280,31 @@ func (h *Hub) HandleAgentWS(w http.ResponseWriter, r *http.Request) {
 	go client.readPump()
 }
 
+// Upgrade upgrades an HTTP connection to WebSocket
+func Upgrade(w http.ResponseWriter, r *http.Request) (*websocket.Conn, error) {
+	return upgrader.Upgrade(w, r, nil)
+}
+
+// NewClient creates a new WebSocket client
+func NewClient(hub *Hub, conn *websocket.Conn, topic string) *Client {
+	return &Client{
+		hub:   hub,
+		conn:  conn,
+		topic: topic,
+		send:  make(chan []byte, 256),
+	}
+}
+
+// WritePump is the public version of writePump
+func (c *Client) WritePump() {
+	c.writePump()
+}
+
+// ReadPump is the public version of readPump
+func (c *Client) ReadPump() {
+	c.readPump()
+}
+
 // readPump pumps messages from the WebSocket connection to the hub
 func (c *Client) readPump() {
 	defer func() {

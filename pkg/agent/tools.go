@@ -14,6 +14,7 @@ func BuiltinTools() []ToolDefinition {
 		WebFetchTool(),
 		DelegateAgentTool(),
 		GetSystemInfoTool(),
+		GetBillingDataTool(),
 	}
 }
 
@@ -317,6 +318,29 @@ func GetSystemInfoTool() ToolDefinition {
 	}
 }
 
+// GetBillingDataTool defines the GitHub billing data tool
+func GetBillingDataTool() ToolDefinition {
+	return ToolDefinition{
+		Name:        "GetBillingData",
+		Description: "Get GitHub billing and usage data for an organization or user. Returns actual Actions minutes used, storage consumption, and cost breakdown by runner type. Requires a GitHub token with read:org or admin:org scope.",
+		InputSchema: InputSchema{
+			Type: "object",
+			Properties: map[string]Property{
+				"owner": {
+					Type:        "string",
+					Description: "GitHub organization name or username",
+				},
+				"type": {
+					Type:        "string",
+					Description: "Type of billing data to retrieve",
+					Enum:        []string{"actions", "packages", "storage", "summary"},
+				},
+			},
+			Required: []string{"owner", "type"},
+		},
+	}
+}
+
 // GetToolsForAgent returns the tools available for a specific agent
 func GetToolsForAgent(agentID string) []ToolDefinition {
 	// All agents get base tools
@@ -342,6 +366,12 @@ func GetToolsForAgent(agentID string) []ToolDefinition {
 	switch agentID {
 	case "zero", "cereal", "razor", "blade", "nikon":
 		tools = append(tools, DelegateAgentTool())
+	}
+
+	// Add billing data tool for CI/CD, DevOps, and metrics specialists
+	switch agentID {
+	case "zero", "joey", "plague", "gibson":
+		tools = append(tools, GetBillingDataTool())
 	}
 
 	return tools

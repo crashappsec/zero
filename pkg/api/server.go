@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/cors"
 
 	"github.com/crashappsec/zero/pkg/api/agent"
+	"github.com/crashappsec/zero/pkg/api/banter"
 	"github.com/crashappsec/zero/pkg/api/handlers"
 	"github.com/crashappsec/zero/pkg/api/jobs"
 	"github.com/crashappsec/zero/pkg/api/ws"
@@ -24,16 +25,18 @@ import (
 
 // Server is the HTTP API server
 type Server struct {
-	cfg          *config.Config
-	zeroHome     string
-	router       chi.Router
-	hub          *ws.Hub
-	queue        *jobs.Queue
-	workerPool   *jobs.WorkerPool
-	agentHandler *agent.Handler
-	store        storage.Store
-	port         int
-	devMode      bool
+	cfg            *config.Config
+	zeroHome       string
+	router         chi.Router
+	hub            *ws.Hub
+	queue          *jobs.Queue
+	workerPool     *jobs.WorkerPool
+	agentHandler   *agent.Handler
+	banterService  *banter.Service
+	banterHandler  *banter.Handler
+	store          storage.Store
+	port           int
+	devMode        bool
 }
 
 // Options configures the server
@@ -78,6 +81,20 @@ func NewServer(opts *Options) (*Server, error) {
 		workerPool:   jobs.NewWorkerPool(queue, hub, opts.NumWorkers),
 		agentHandler: agent.NewHandler(zeroHome),
 		store:        store,
+	}
+
+	// Initialize banter service with WebSocket broadcast
+	banterService, err := banter.NewService(func(msg *banter.BanterMessage) error {
+		return hub.Broadcast("banter", ws.Message{
+			Type:    "banter",
+			Payload: msg,
+		})
+	})
+	if err != nil {
+		log.Printf("Warning: Failed to initialize banter service: %v", err)
+	} else {
+		s.banterService = banterService
+		s.banterHandler = banter.NewHandler(banterService)
 	}
 
 	s.setupRoutes()
@@ -175,6 +192,16 @@ func (s *Server) setupRoutes() {
 			r.Get("/scans/stats", scanHandler.Stats)
 			r.Get("/scans/{jobID}", scanHandler.Get)
 			r.Delete("/scans/{jobID}", scanHandler.Cancel)
+
+			// Banter endpoints (Full Personality Mode)
+			if s.banterHandler != nil {
+				r.Get("/banter/status", s.banterHandler.GetStatus)
+				r.Post("/banter/toggle", s.banterHandler.SetEnabled)
+				r.Post("/banter/generate", s.banterHandler.GenerateBanter)
+				r.Post("/banter/exchange", s.banterHandler.GenerateExchange)
+				r.Get("/banter/agents", s.banterHandler.ListAgents)
+				r.Get("/banter/agent", s.banterHandler.GetAgent)
+			}
 		})
 
 		// Agent chat endpoints (separate group with 5 min timeout for tool use)
@@ -191,8 +218,33 @@ func (s *Server) setupRoutes() {
 	// WebSocket endpoints for real-time updates
 	r.Get("/ws/scan/{jobID}", s.hub.HandleScanWS)
 	r.Get("/ws/agent", s.agentHandler.HandleWebSocket)
+	r.Get("/ws/banter", s.handleBanterWS)
 
 	s.router = r
+}
+
+// handleBanterWS handles WebSocket connections for banter updates
+func (s *Server) handleBanterWS(w http.ResponseWriter, r *http.Request) {
+	conn, err := ws.Upgrade(w, r)
+	if err != nil {
+		log.Printf("WebSocket upgrade failed: %v", err)
+		return
+	}
+
+	client := ws.NewClient(s.hub, conn, "banter")
+	s.hub.Register(client, "banter")
+
+	// Send connection confirmation
+	_ = conn.WriteJSON(ws.Message{
+		Type: "connected",
+		Payload: map[string]interface{}{
+			"topic":   "banter",
+			"enabled": s.banterService != nil && s.banterService.IsEnabled(),
+		},
+	})
+
+	go client.WritePump()
+	go client.ReadPump()
 }
 
 // Run starts the HTTP server
@@ -202,6 +254,8 @@ func (s *Server) Run(ctx context.Context) error {
 
 	// Start worker pool for scan jobs
 	s.workerPool.Start(ctx)
+
+	// Note: Banter service starts when enabled via API toggle
 
 	addr := fmt.Sprintf(":%d", s.port)
 	log.Printf("Starting Zero API server on %s", addr)
@@ -222,6 +276,9 @@ func (s *Server) Run(ctx context.Context) error {
 		<-ctx.Done()
 		log.Println("Shutting down server...")
 		s.workerPool.Stop()
+		if s.banterService != nil {
+			s.banterService.Stop()
+		}
 		if s.store != nil {
 			s.store.Close()
 		}

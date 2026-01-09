@@ -148,29 +148,68 @@ export function useScanProgress(jobId: string | null) {
   return { job, connected };
 }
 
-// Chat hook with tool call tracking
+// Chat stage type for UX feedback
+export type ChatStage = 'idle' | 'sending' | 'thinking' | 'tool_running' | 'responding' | 'delegating';
+
+// Delegation info for sub-agent progress
+export interface DelegationInfo {
+  agentName: string;
+  event: string;
+  toolCalls: ToolCallInfo[];
+  streamingContent: string;
+}
+
+// Chat hook with tool call tracking and elapsed time
 export function useChat(agentId = 'zero') {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string; toolCalls?: ToolCallInfo[] }[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamingContent, setStreamingContent] = useState('');
   const [activeToolCalls, setActiveToolCalls] = useState<ToolCallInfo[]>([]);
+  const [stage, setStage] = useState<ChatStage>('idle');
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [startTime, setStartTime] = useState<number | null>(null);
+  const [delegation, setDelegation] = useState<DelegationInfo | null>(null);
 
   // Store cleanup function in a ref to avoid stale closures
   const cleanupRef = useRef<(() => void) | null>(null);
   const toolCallCounterRef = useRef(0);
   const sessionIdRef = useRef<string | null>(null);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Keep sessionIdRef in sync
   useEffect(() => {
     sessionIdRef.current = sessionId;
   }, [sessionId]);
 
+  // Elapsed time timer
+  useEffect(() => {
+    if (startTime) {
+      timerRef.current = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - startTime) / 1000));
+      }, 100);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+      setElapsedTime(0);
+    }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [startTime]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (cleanupRef.current) {
         cleanupRef.current();
+      }
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
       }
     };
   }, []);
@@ -183,11 +222,13 @@ export function useChat(agentId = 'zero') {
         cleanupRef.current = null;
       }
 
-      // Add user message
+      // Add user message immediately (optimistic UI)
       setMessages((prev) => [...prev, { role: 'user', content: message }]);
       setIsStreaming(true);
       setStreamingContent('');
       setActiveToolCalls([]);
+      setStage('sending');
+      setStartTime(Date.now());
 
       let currentToolCalls: ToolCallInfo[] = [];
       let isCancelled = false;
@@ -201,9 +242,12 @@ export function useChat(agentId = 'zero') {
 
             if (chunk.type === 'start') {
               setSessionId(chunk.session_id);
+              setStage('thinking');
             } else if (chunk.type === 'delta') {
+              setStage('responding');
               setStreamingContent((prev) => prev + (chunk.content || ''));
             } else if (chunk.type === 'tool_call') {
+              setStage('tool_running');
               // Add new tool call
               const newToolCall: ToolCallInfo = {
                 id: `tool-${Date.now()}-${toolCallCounterRef.current++}`,
@@ -225,6 +269,52 @@ export function useChat(agentId = 'zero') {
                 };
                 setActiveToolCalls([...currentToolCalls]);
               }
+            } else if (chunk.type === 'delegation') {
+              // Handle sub-agent delegation events
+              const agentName = chunk.delegated_agent || 'Agent';
+              const event = chunk.delegated_event || 'working';
+
+              if (event === 'start') {
+                setStage('delegating');
+                setDelegation({ agentName, event, toolCalls: [], streamingContent: '' });
+              } else if (event === 'done') {
+                setDelegation(null);
+                setStage('thinking'); // Back to parent agent
+              } else if (event === 'tool_call') {
+                // Track sub-agent tool calls
+                setDelegation((prev) => {
+                  if (!prev) return { agentName, event, toolCalls: [], streamingContent: '' };
+                  const newToolCall: ToolCallInfo = {
+                    id: `delegate-tool-${Date.now()}-${toolCallCounterRef.current++}`,
+                    name: chunk.tool_name || 'unknown',
+                    input: chunk.tool_input || {},
+                    status: 'running',
+                    startTime: Date.now(),
+                  };
+                  return { ...prev, event: 'tool_call', toolCalls: [...prev.toolCalls, newToolCall] };
+                });
+              } else if (event === 'tool_result') {
+                // Mark sub-agent tool as complete
+                setDelegation((prev) => {
+                  if (!prev || prev.toolCalls.length === 0) return prev;
+                  const lastIdx = prev.toolCalls.length - 1;
+                  const updatedCalls = [...prev.toolCalls];
+                  updatedCalls[lastIdx] = {
+                    ...updatedCalls[lastIdx],
+                    status: chunk.is_error ? 'error' : 'complete',
+                    endTime: Date.now(),
+                  };
+                  return { ...prev, event: 'tool_result', toolCalls: updatedCalls };
+                });
+              } else if (event === 'text') {
+                // Sub-agent is responding - accumulate streaming text
+                const textContent = chunk.content || '';
+                setDelegation((prev) => prev ? {
+                  ...prev,
+                  event: 'responding',
+                  streamingContent: prev.streamingContent + textContent
+                } : null);
+              }
             } else if (chunk.type === 'done') {
               // Save message with tool calls
               setMessages((prev) => [
@@ -238,11 +328,15 @@ export function useChat(agentId = 'zero') {
               setStreamingContent('');
               setActiveToolCalls([]);
               setIsStreaming(false);
+              setStage('idle');
+              setStartTime(null);
               cleanupRef.current = null;
               resolve();
             } else if (chunk.type === 'error') {
               setIsStreaming(false);
               setActiveToolCalls([]);
+              setStage('idle');
+              setStartTime(null);
               cleanupRef.current = null;
               reject(new Error(chunk.error));
             }
@@ -251,6 +345,8 @@ export function useChat(agentId = 'zero') {
             if (isCancelled) return;
             setIsStreaming(false);
             setActiveToolCalls([]);
+            setStage('idle');
+            setStartTime(null);
             cleanupRef.current = null;
             reject(error);
           }
@@ -277,6 +373,9 @@ export function useChat(agentId = 'zero') {
     setStreamingContent('');
     setActiveToolCalls([]);
     setIsStreaming(false);
+    setStage('idle');
+    setStartTime(null);
+    setDelegation(null);
   }, []);
 
   return {
@@ -285,6 +384,9 @@ export function useChat(agentId = 'zero') {
     isStreaming,
     streamingContent,
     activeToolCalls,
+    stage,
+    elapsedTime,
+    delegation,
     sendMessage,
     reset,
   };

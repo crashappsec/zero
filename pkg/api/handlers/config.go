@@ -25,6 +25,10 @@ func NewConfigHandler(cfg *config.Config) *ConfigHandler {
 
 // GetSettings returns current settings
 func (h *ConfigHandler) GetSettings(w http.ResponseWriter, r *http.Request) {
+	personalityMode := h.cfg.Settings.PersonalityMode
+	if personalityMode == "" {
+		personalityMode = "minimal" // Default
+	}
 	settings := map[string]interface{}{
 		"default_profile":         h.cfg.Settings.DefaultProfile,
 		"storage_path":            h.cfg.Settings.StoragePath,
@@ -32,6 +36,7 @@ func (h *ConfigHandler) GetSettings(w http.ResponseWriter, r *http.Request) {
 		"parallel_scanners":       h.cfg.Settings.ParallelScanners,
 		"scanner_timeout_seconds": h.cfg.Settings.ScannerTimeoutSeconds,
 		"cache_ttl_hours":         h.cfg.Settings.CacheTTLHours,
+		"personality_mode":        personalityMode,
 	}
 	writeJSON(w, http.StatusOK, settings)
 }
@@ -44,6 +49,7 @@ func (h *ConfigHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 		ParallelScanners      int    `json:"parallel_scanners,omitempty"`
 		ScannerTimeoutSeconds int    `json:"scanner_timeout_seconds,omitempty"`
 		CacheTTLHours         int    `json:"cache_ttl_hours,omitempty"`
+		PersonalityMode       string `json:"personality_mode,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -66,6 +72,15 @@ func (h *ConfigHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	if req.CacheTTLHours > 0 {
 		h.cfg.Settings.CacheTTLHours = req.CacheTTLHours
+	}
+	if req.PersonalityMode != "" {
+		// Validate personality mode
+		validModes := map[string]bool{"full": true, "minimal": true, "neutral": true}
+		if !validModes[req.PersonalityMode] {
+			writeError(w, http.StatusBadRequest, "invalid personality_mode, must be 'full', 'minimal', or 'neutral'", nil)
+			return
+		}
+		h.cfg.Settings.PersonalityMode = req.PersonalityMode
 	}
 
 	if err := h.cfg.Save(); err != nil {
