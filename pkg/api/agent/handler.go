@@ -130,7 +130,7 @@ func (h *Handler) HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Send connection confirmation
-	client.sendJSON(map[string]interface{}{
+	_ = client.sendJSON(map[string]interface{}{
 		"type":       "connected",
 		"session_id": session.ID,
 		"agent_id":   session.AgentID,
@@ -468,9 +468,9 @@ func (c *wsClient) readPump(ctx context.Context, cancel context.CancelFunc) {
 	defer cancel()
 
 	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
-		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
 
@@ -492,7 +492,7 @@ func (c *wsClient) readPump(ctx context.Context, cancel context.CancelFunc) {
 		// Parse message
 		var req ChatRequest
 		if err := json.Unmarshal(message, &req); err != nil {
-			c.sendJSON(StreamChunk{
+			_ = c.sendJSON(StreamChunk{
 				Type:      "error",
 				SessionID: c.session.ID,
 				AgentID:   c.session.AgentID,
@@ -508,7 +508,7 @@ func (c *wsClient) readPump(ctx context.Context, cancel context.CancelFunc) {
 
 func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 	if req.Message == "" {
-		c.sendJSON(StreamChunk{
+		_ = c.sendJSON(StreamChunk{
 			Type:      "error",
 			SessionID: c.session.ID,
 			AgentID:   c.session.AgentID,
@@ -524,7 +524,7 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 
 	// Check runtime availability
 	if c.handler.runtime == nil || !c.handler.runtime.IsAvailable() {
-		c.sendJSON(StreamChunk{
+		_ = c.sendJSON(StreamChunk{
 			Type:      "error",
 			SessionID: c.session.ID,
 			AgentID:   c.session.AgentID,
@@ -537,7 +537,7 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 	c.session.AddMessage(RoleUser, req.Message)
 
 	// Send start event
-	c.sendJSON(StreamChunk{
+	_ = c.sendJSON(StreamChunk{
 		Type:      "start",
 		SessionID: c.session.ID,
 		AgentID:   c.session.AgentID,
@@ -557,7 +557,7 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 		switch event.Type {
 		case "text":
 			fullResponse += event.Text
-			c.sendJSON(StreamChunk{
+			_ = c.sendJSON(StreamChunk{
 				Type:      "delta",
 				SessionID: c.session.ID,
 				AgentID:   c.session.AgentID,
@@ -565,7 +565,7 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 			})
 
 		case "tool_call":
-			c.sendJSON(map[string]interface{}{
+			_ = c.sendJSON(map[string]interface{}{
 				"type":       "tool_call",
 				"session_id": c.session.ID,
 				"agent_id":   c.session.AgentID,
@@ -574,7 +574,7 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 			})
 
 		case "tool_result":
-			c.sendJSON(map[string]interface{}{
+			_ = c.sendJSON(map[string]interface{}{
 				"type":       "tool_result",
 				"session_id": c.session.ID,
 				"agent_id":   c.session.AgentID,
@@ -582,7 +582,7 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 			})
 
 		case "error":
-			c.sendJSON(StreamChunk{
+			_ = c.sendJSON(StreamChunk{
 				Type:      "error",
 				SessionID: c.session.ID,
 				AgentID:   c.session.AgentID,
@@ -592,7 +592,7 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 	})
 
 	if err != nil {
-		c.sendJSON(StreamChunk{
+		_ = c.sendJSON(StreamChunk{
 			Type:      "error",
 			SessionID: c.session.ID,
 			AgentID:   c.session.AgentID,
@@ -607,7 +607,7 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 	}
 
 	// Send done event
-	c.sendJSON(StreamChunk{
+	_ = c.sendJSON(StreamChunk{
 		Type:      "done",
 		SessionID: c.session.ID,
 		AgentID:   c.session.AgentID,
@@ -655,7 +655,7 @@ func (c *wsClient) writePump(ctx context.Context) {
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	_ = json.NewEncoder(w).Encode(data)
 }
 
 func writeError(w http.ResponseWriter, status int, message string, err error) {
@@ -665,7 +665,7 @@ func writeError(w http.ResponseWriter, status int, message string, err error) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func sendSSE(w http.ResponseWriter, flusher http.Flusher, data interface{}) {

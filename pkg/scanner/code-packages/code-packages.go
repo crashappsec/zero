@@ -286,9 +286,9 @@ func (s *SupplyChainScanner) Run(ctx context.Context, opts *scanner.ScanOptions)
 	// Create scan result
 	scanResult := scanner.NewScanResult(Name, Version, start)
 	scanResult.Repository = opts.RepoPath
-	scanResult.SetSummary(result.Summary)
-	scanResult.SetFindings(result)
-	scanResult.SetMetadata(map[string]interface{}{
+	_ = scanResult.SetSummary(result.Summary)
+	_ = scanResult.SetFindings(result)
+	_ = scanResult.SetMetadata(map[string]interface{}{
 		"features_run":    result.FeaturesRun,
 		"sbom_source":     "internal",
 		"component_count": len(componentData),
@@ -496,7 +496,7 @@ func runGeneration(ctx context.Context, opts *scanner.ScanOptions, cfg Generatio
 			// Try fallback
 			if cfg.FallbackToSyft && common.ToolExists("syft") {
 				tool = "syft"
-				common.RunCommand(ctx, "syft", "scan", "dir:"+opts.RepoPath, "-o", "cyclonedx-json="+sbomFile)
+				_, _ = common.RunCommand(ctx, "syft", "scan", "dir:"+opts.RepoPath, "-o", "cyclonedx-json="+sbomFile)
 			} else {
 				err = fmt.Errorf("cdxgen failed: %v", cmdErr)
 			}
@@ -846,7 +846,7 @@ func findLockfilesRecursive(root string) []string {
 		"__pycache__":  true,
 	}
 
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -1781,7 +1781,7 @@ func (s *SupplyChainScanner) runVulnsFeature(ctx context.Context, opts *scanner.
 				for _, sev := range vuln.Severity {
 					if sev.Type == "CVSS_V3" {
 						var score float64
-						fmt.Sscanf(sev.Score, "%f", &score)
+						_, _ = fmt.Sscanf(sev.Score, "%f", &score)
 						if score >= 9.0 {
 							severity = "critical"
 						} else if score >= 7.0 {
@@ -2961,7 +2961,7 @@ func (s *SupplyChainScanner) runDuplicatesFeature(components []ComponentData) *d
 
 func findFiles(root, name string) []string {
 	var files []string
-	filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			if info != nil && info.IsDir() {
 				n := info.Name()

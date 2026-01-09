@@ -117,7 +117,7 @@ func (m *Manager) refreshGeneratedRules(force bool) GenerateResult {
 	result.Files = files
 
 	// Save status
-	m.saveStatus("generated", &RuleStatus{
+	_ = m.saveStatus("generated", &RuleStatus{
 		Type:         "generated",
 		LastGenerate: time.Now(),
 		RuleCount:    ruleCount,
@@ -160,7 +160,7 @@ func (m *Manager) refreshCommunityRules(force bool) GenerateResult {
 	result.RuleCount = 0 // Would be populated from download
 
 	// Save status
-	m.saveStatus("community", &RuleStatus{
+	_ = m.saveStatus("community", &RuleStatus{
 		Type:         "community",
 		LastGenerate: time.Now(),
 		RuleCount:    result.RuleCount,
@@ -322,7 +322,7 @@ func (m *Manager) writeRulesFile(path string, rules []rag.SemgrepRule) error {
 		return fmt.Errorf("marshaling rules: %w", err)
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }
 
 func (m *Manager) statusPath(ruleType string) string {
@@ -355,7 +355,7 @@ func (m *Manager) saveStatus(ruleType string, status *RuleStatus) error {
 		return err
 	}
 
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }
 
 // GetStatus returns the status of all rule sources

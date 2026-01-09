@@ -415,7 +415,7 @@ func (s *GitHistorySecurityScanner) ScanRepository(repoPath string) (*GitHistory
 	if err == nil {
 		headTree, err := headCommit.Tree()
 		if err == nil {
-			headTree.Files().ForEach(func(f *object.File) error {
+			_ = headTree.Files().ForEach(func(f *object.File) error {
 				currentFiles[f.Name] = true
 				return nil
 			})
@@ -467,7 +467,7 @@ func (s *GitHistorySecurityScanner) ScanRepository(repoPath string) (*GitHistory
 		}
 
 		// Scan all files in this commit
-		tree.Files().ForEach(func(f *object.File) error {
+		_ = tree.Files().ForEach(func(f *object.File) error {
 			path := f.Name
 
 			// Check gitignore violations

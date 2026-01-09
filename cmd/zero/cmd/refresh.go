@@ -197,7 +197,7 @@ func runRefresh(cmd *cobra.Command, args []string) error {
 					Error:    errStr,
 				})
 			}
-			freshMgr.RecordScan(r.Repository, scanResults)
+			_ = freshMgr.RecordScan(r.Repository, scanResults)
 
 			term.Success("    Complete (%ds)", int(duration.Seconds()))
 			success++
@@ -273,7 +273,7 @@ func refreshRepo(ctx context.Context, term *terminal.Terminal, cfg *config.Confi
 				Error:    errStr,
 			})
 		}
-		freshMgr.RecordScan(repo, scanResults)
+		_ = freshMgr.RecordScan(repo, scanResults)
 
 		term.Divider()
 		term.Success("Refreshed %s (%ds)", repo, int(duration.Seconds()))

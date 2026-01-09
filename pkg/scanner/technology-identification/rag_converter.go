@@ -952,7 +952,7 @@ func writeYAML(path string, rules SemgrepRules) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal rules: %w", err)
 	}
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }
 
 // discoverRAGDirectories dynamically discovers all RAG subdirectories

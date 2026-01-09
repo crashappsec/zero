@@ -137,7 +137,7 @@ func (rm *RuleManager) getLatestRAGModTime() time.Time {
 	var latest time.Time
 
 	techIDPath := filepath.Join(rm.ragPath, "technology-identification")
-	filepath.Walk(techIDPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(techIDPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -155,7 +155,7 @@ func (rm *RuleManager) getLatestRAGModTime() time.Time {
 // writeTimestamp writes a timestamp file to track cache freshness
 func (rm *RuleManager) writeTimestamp() error {
 	timestampFile := filepath.Join(rm.cachePath, ".timestamp")
-	return os.WriteFile(timestampFile, []byte(time.Now().Format(time.RFC3339)), 0644)
+	return os.WriteFile(timestampFile, []byte(time.Now().Format(time.RFC3339)), 0600)
 }
 
 // countCachedRules counts the rules in the cache

@@ -104,8 +104,8 @@ func (s *OwnershipScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (
 	if err != nil {
 		result.Summary.Errors = append(result.Summary.Errors, fmt.Sprintf("opening repository: %v", err))
 		scanResult := scanner.NewScanResult(Name, "1.0.0", startTime)
-		scanResult.SetSummary(result.Summary)
-		scanResult.SetFindings(result.Findings)
+		_ = scanResult.SetSummary(result.Summary)
+		_ = scanResult.SetFindings(result.Findings)
 		return scanResult, nil
 	}
 
@@ -281,7 +281,7 @@ func (s *OwnershipScanner) analyzeOwnership(repo *git.Repository, since time.Tim
 	}
 
 	var commits []*gitobj.Commit
-	commitIter.ForEach(func(c *gitobj.Commit) error {
+	_ = commitIter.ForEach(func(c *gitobj.Commit) error {
 		if c.Author.When.After(since) {
 			commits = append(commits, c)
 		}
@@ -369,7 +369,7 @@ func (s *OwnershipScanner) analyzeOwnershipWithCompetency(repo *git.Repository, 
 	}
 
 	var commits []*gitobj.Commit
-	commitIter.ForEach(func(c *gitobj.Commit) error {
+	_ = commitIter.ForEach(func(c *gitobj.Commit) error {
 		if c.Author.When.After(since) {
 			commits = append(commits, c)
 		}
@@ -659,7 +659,7 @@ func (s *OwnershipScanner) collectHistoricalStats(repo *git.Repository) historic
 	var lastCommitTime time.Time
 	commitCount := 0
 
-	commitIter.ForEach(func(c *gitobj.Commit) error {
+	_ = commitIter.ForEach(func(c *gitobj.Commit) error {
 		commitCount++
 		contributors[c.Author.Email] = true
 

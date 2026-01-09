@@ -103,9 +103,9 @@ func (s *DevXScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*scan
 
 	scanResult := scanner.NewScanResult(Name, Version, start)
 	scanResult.Repository = opts.RepoPath
-	scanResult.SetSummary(result.Summary)
-	scanResult.SetFindings(result.Findings)
-	scanResult.SetMetadata(map[string]interface{}{
+	_ = scanResult.SetSummary(result.Summary)
+	_ = scanResult.SetFindings(result.Findings)
+	_ = scanResult.SetMetadata(map[string]interface{}{
 		"features_run": result.FeaturesRun,
 	})
 

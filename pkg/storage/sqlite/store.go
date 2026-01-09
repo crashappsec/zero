@@ -199,7 +199,7 @@ func (s *Store) DeleteProject(ctx context.Context, id string) error {
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Delete in order due to foreign keys
 	// Note: scanner_results has ON DELETE CASCADE from scans, so it will be deleted automatically
@@ -396,6 +396,9 @@ func (s *Store) GetAggregateStats(ctx context.Context) (*storage.AggregateStats,
 		stats.TotalProjects += count
 	}
 	rows.Close()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating freshness rows: %w", err)
+	}
 
 	// Aggregate findings
 	aggQuery := `SELECT
@@ -431,7 +434,7 @@ func (s *Store) UpsertVulnerabilities(ctx context.Context, projectID string, vul
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Delete existing vulnerabilities for this project
 	if _, err := tx.ExecContext(ctx, "DELETE FROM vulnerabilities WHERE project_id = ?", projectID); err != nil {
@@ -534,7 +537,7 @@ func (s *Store) UpsertSecrets(ctx context.Context, projectID string, secrets []*
 	if err != nil {
 		return fmt.Errorf("beginning transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Delete existing secrets for this project
 	if _, err := tx.ExecContext(ctx, "DELETE FROM secrets WHERE project_id = ?", projectID); err != nil {

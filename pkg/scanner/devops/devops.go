@@ -136,9 +136,9 @@ func (s *DevOpsScanner) Run(ctx context.Context, opts *scanner.ScanOptions) (*sc
 
 	scanResult := scanner.NewScanResult(Name, Version, start)
 	scanResult.Repository = opts.RepoPath
-	scanResult.SetSummary(result.Summary)
-	scanResult.SetFindings(result.Findings)
-	scanResult.SetMetadata(map[string]interface{}{
+	_ = scanResult.SetSummary(result.Summary)
+	_ = scanResult.SetFindings(result.Findings)
+	_ = scanResult.SetMetadata(map[string]interface{}{
 		"features_run": result.FeaturesRun,
 	})
 
@@ -698,7 +698,7 @@ type imageRef struct {
 func findDockerfiles(repoPath string) []string {
 	var dockerfiles []string
 
-	filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(repoPath, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -997,7 +997,7 @@ func (s *DevOpsScanner) runGitHubActions(ctx context.Context, opts *scanner.Scan
 	}
 
 	var workflows []string
-	filepath.Walk(workflowsDir, func(path string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(workflowsDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}
@@ -1176,7 +1176,7 @@ func calculateDORAMetrics(repo *git.Repository, since, until time.Time) *DORAMet
 	tags, _ := repo.Tags()
 	var deployments []Deployment
 
-	tags.ForEach(func(ref *plumbing.Reference) error {
+	_ = tags.ForEach(func(ref *plumbing.Reference) error {
 		tagName := ref.Name().Short()
 		if !releaseTagPattern.MatchString(tagName) {
 			return nil
@@ -1211,7 +1211,7 @@ func calculateDORAMetrics(repo *git.Repository, since, until time.Time) *DORAMet
 		if err == nil {
 			commitIter, _ := repo.Log(&git.LogOptions{From: ref.Hash()})
 			var commits []*object.Commit
-			commitIter.ForEach(func(c *object.Commit) error {
+			_ = commitIter.ForEach(func(c *object.Commit) error {
 				if c.Author.When.After(since) && c.Author.When.Before(until) {
 					commits = append(commits, c)
 				}
@@ -1453,7 +1453,7 @@ func getAllCommits(repo *git.Repository) ([]*object.Commit, error) {
 	}
 
 	var commits []*object.Commit
-	commitIter.ForEach(func(c *object.Commit) error {
+	_ = commitIter.ForEach(func(c *object.Commit) error {
 		commits = append(commits, c)
 		return nil
 	})
@@ -1850,7 +1850,7 @@ func analyzeBranches(repo *git.Repository) BranchInfo {
 
 	branches, err := repo.Branches()
 	if err == nil {
-		branches.ForEach(func(ref *plumbing.Reference) error {
+		_ = branches.ForEach(func(ref *plumbing.Reference) error {
 			info.TotalCount++
 			return nil
 		})
@@ -1858,7 +1858,7 @@ func analyzeBranches(repo *git.Repository) BranchInfo {
 
 	remotes, err := repo.References()
 	if err == nil {
-		remotes.ForEach(func(ref *plumbing.Reference) error {
+		_ = remotes.ForEach(func(ref *plumbing.Reference) error {
 			if ref.Name().IsRemote() {
 				info.RemoteCount++
 			}

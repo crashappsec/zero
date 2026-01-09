@@ -291,7 +291,7 @@ func (h *ProjectHandler) loadSummary(analysisPath string) *types.ProjectSummary 
 
 func countFiles(path string) int {
 	count := 0
-	filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -305,7 +305,7 @@ func countFiles(path string) int {
 
 func getDirSize(path string) int64 {
 	var size int64
-	filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(path, func(p string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -341,7 +341,7 @@ func getInt(m map[string]interface{}, key string) int {
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	_ = json.NewEncoder(w).Encode(data)
 }
 
 func writeError(w http.ResponseWriter, status int, message string, err error) {

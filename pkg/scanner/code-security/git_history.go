@@ -134,7 +134,7 @@ func (s *GitHistoryScanner) ScanRepository(repoPath string) (*GitHistoryResult, 
 
 		// If no parent (initial commit), scan all files in tree
 		if parentTree == nil {
-			commitTree.Files().ForEach(func(f *object.File) error {
+			_ = commitTree.Files().ForEach(func(f *object.File) error {
 				s.scanFileContent(f, commitInfo, &secretLocations, result)
 				return nil
 			})

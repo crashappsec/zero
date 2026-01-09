@@ -218,7 +218,7 @@ func runWatchScan(ctx context.Context, term *terminal.Terminal, cfg *config.Conf
 				Error:    errStr,
 			})
 		}
-		freshMgr.RecordScan(repoName, scanResults)
+		_ = freshMgr.RecordScan(repoName, scanResults)
 
 		term.Success("  Complete (%ds)", int(duration.Seconds()))
 

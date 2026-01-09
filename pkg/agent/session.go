@@ -350,7 +350,7 @@ func (m *SessionManager) Save(session *Session) error {
 	}
 
 	path := filepath.Join(m.persistDir, session.ID+".json")
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("writing session file: %w", err)
 	}
 

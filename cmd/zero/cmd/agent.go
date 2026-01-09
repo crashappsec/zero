@@ -180,7 +180,7 @@ func runOneShotQuery(runtime *agent.Runtime, projectID string) error {
 		}
 		enc := json.NewEncoder(os.Stdout)
 		enc.SetIndent("", "  ")
-		enc.Encode(output)
+		_ = enc.Encode(output)
 	}
 
 	return err
@@ -277,7 +277,7 @@ func handleChatEvent(event agent.ChatEvent, currentAgent string) {
 		// Show tool usage
 		name := event.ToolCall.Name
 		var inputMap map[string]interface{}
-		json.Unmarshal(event.ToolCall.Input, &inputMap)
+		_ = json.Unmarshal(event.ToolCall.Input, &inputMap)
 
 		// Format tool call display
 		fmt.Printf("\n%s %s", colorize(colorCyan, "▸"), colorize(colorCyan, name))

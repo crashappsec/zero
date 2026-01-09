@@ -52,8 +52,7 @@ func New(w io.Writer, level Level) *Logger {
 			}
 			// Shorten source path
 			if a.Key == slog.SourceKey {
-				source := a.Value.Any().(*slog.Source)
-				if source != nil {
+				if source, ok := a.Value.Any().(*slog.Source); ok && source != nil {
 					source.File = shortPath(source.File)
 				}
 			}

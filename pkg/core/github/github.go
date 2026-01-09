@@ -893,10 +893,10 @@ func (c *Client) CheckTokenPermissions() (*TokenInfo, error) {
 
 	// Get rate limit info
 	if limit := resp.Header.Get("X-RateLimit-Limit"); limit != "" {
-		fmt.Sscanf(limit, "%d", &info.RateLimit)
+		_, _ = fmt.Sscanf(limit, "%d", &info.RateLimit)
 	}
 	if remaining := resp.Header.Get("X-RateLimit-Remaining"); remaining != "" {
-		fmt.Sscanf(remaining, "%d", &info.RateRemaining)
+		_, _ = fmt.Sscanf(remaining, "%d", &info.RateRemaining)
 	}
 
 	return info, nil
