@@ -19,7 +19,6 @@ import (
 
 var (
 	feedsForce bool
-	feedsType  string
 )
 
 var feedsCmd = &cobra.Command{

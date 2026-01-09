@@ -216,7 +216,7 @@ func (h *Handler) HandleChat(w http.ResponseWriter, r *http.Request) {
 		case "tool_call":
 			toolCalls = append(toolCalls, map[string]interface{}{
 				"name":  event.ToolCall.Name,
-				"input": json.RawMessage(event.ToolCall.Input),
+				"input": event.ToolCall.Input,
 			})
 		}
 	})
@@ -322,7 +322,7 @@ func (h *Handler) HandleChatStream(w http.ResponseWriter, r *http.Request) {
 				"session_id": sessionID,
 				"agent_id":   agentID,
 				"tool_name":  event.ToolCall.Name,
-				"tool_input": json.RawMessage(event.ToolCall.Input),
+				"tool_input": event.ToolCall.Input,
 			})
 
 		case "tool_result":
@@ -570,7 +570,7 @@ func (c *wsClient) handleMessage(ctx context.Context, req ChatRequest) {
 				"session_id": c.session.ID,
 				"agent_id":   c.session.AgentID,
 				"tool_name":  event.ToolCall.Name,
-				"tool_input": json.RawMessage(event.ToolCall.Input),
+				"tool_input": event.ToolCall.Input,
 			})
 
 		case "tool_result":
