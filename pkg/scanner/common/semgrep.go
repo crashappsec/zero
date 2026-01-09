@@ -588,7 +588,7 @@ func WriteRulesYAML(path string, rules *SemgrepRuleFile) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal rules: %w", err)
 	}
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }
 
 // GenerateRulesFromRAG converts all pattern files in a RAG category to semgrep rules

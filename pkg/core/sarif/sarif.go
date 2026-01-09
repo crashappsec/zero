@@ -233,7 +233,7 @@ func (l *Log) WriteJSON(path string) error {
 	if err != nil {
 		return fmt.Errorf("marshaling SARIF: %w", err)
 	}
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0600)
 }
 
 // SeverityToLevel converts common severity strings to SARIF levels

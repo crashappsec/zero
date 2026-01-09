@@ -404,6 +404,7 @@ func (r *Runtime) executeBash(ctx context.Context, session *Session, call *ToolC
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
+	// #nosec G204 -- Command execution is intentional agent functionality; input is from LLM agent
 	cmd := exec.CommandContext(ctx, "bash", "-c", input.Command)
 
 	// Set working directory

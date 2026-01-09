@@ -249,6 +249,7 @@ func printPrerequisites(term *terminal.Terminal) []string {
 		_, err := exec.LookPath(parts[0])
 		if err == nil {
 			// Get version
+			// #nosec G204 -- Command from hardcoded prerequisites slice, not user input
 			cmd := exec.Command(parts[0], parts[1:]...)
 			output, _ := cmd.Output()
 			version := strings.TrimSpace(string(output))
@@ -606,12 +607,14 @@ func runInstallCmd(cmdStr string) error {
 
 	// Handle piped commands
 	if strings.Contains(cmdStr, "|") {
+		// #nosec G204 -- Command from hardcoded InstallCmds in tool definitions, not user input
 		cmd := exec.Command("sh", "-c", cmdStr)
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		return cmd.Run()
 	}
 
+	// #nosec G204 -- Command from hardcoded InstallCmds in tool definitions, not user input
 	cmd := exec.Command(parts[0], parts[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

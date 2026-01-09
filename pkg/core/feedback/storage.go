@@ -100,7 +100,7 @@ func (s *Storage) Save() error {
 	}
 
 	// Write to file
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("writing feedback file: %w", err)
 	}
 
@@ -193,7 +193,7 @@ func (s *Storage) ExportCSV() (string, error) {
 
 	// Write to export file
 	path := s.exportPath("csv")
-	if err := os.WriteFile(path, []byte(csv), 0644); err != nil {
+	if err := os.WriteFile(path, []byte(csv), 0600); err != nil {
 		return "", fmt.Errorf("writing CSV export: %w", err)
 	}
 
@@ -262,7 +262,7 @@ func (s *Storage) ExportJSON() (string, error) {
 	}
 
 	path := s.exportPath("json")
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return "", fmt.Errorf("writing JSON export: %w", err)
 	}
 

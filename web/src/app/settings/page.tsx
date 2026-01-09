@@ -308,7 +308,7 @@ export default function SettingsPage() {
               and code quality.
             </p>
             <p className="mt-4 text-sm text-gray-500">
-              Named after characters from the movie Hackers (1995) - "Hack the planet!"
+              Named after characters from the movie Hackers (1995) - &quot;Hack the planet!&quot;
             </p>
           </CardContent>
         </Card>

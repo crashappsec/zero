@@ -489,6 +489,7 @@ func (s *Store) GetVulnerabilities(ctx context.Context, opts storage.VulnOptions
 	}
 
 	// Get results
+	// #nosec G202 -- SQL concatenation is safe here; all values are parameterized via args
 	selectQuery := `SELECT id, project_id, vuln_id, package, version, severity, title, description, fix_version, source, scanner ` + baseQuery
 	selectQuery += " ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END"
 
@@ -590,6 +591,7 @@ func (s *Store) GetSecrets(ctx context.Context, opts storage.SecretOptions) ([]*
 	}
 
 	// Get results
+	// #nosec G202 -- SQL concatenation is safe here; all values are parameterized via args
 	selectQuery := `SELECT id, project_id, file, line, type, severity, description, redacted_match ` + baseQuery
 	selectQuery += " ORDER BY CASE severity WHEN 'critical' THEN 1 WHEN 'high' THEN 2 WHEN 'medium' THEN 3 WHEN 'low' THEN 4 ELSE 5 END"
 

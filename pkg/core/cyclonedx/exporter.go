@@ -170,7 +170,7 @@ func (e *Exporter) writeBOM(bom *BOM, filename string) error {
 	}
 
 	path := filepath.Join(e.outputDir, filename)
-	if err := os.WriteFile(path, data, 0644); err != nil {
+	if err := os.WriteFile(path, data, 0600); err != nil {
 		return fmt.Errorf("failed to write BOM: %w", err)
 	}
 
