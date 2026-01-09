@@ -1,8 +1,66 @@
-# Zero - Claude Code Configuration
+# CLAUDE.md
 
-Zero provides engineering intelligence tools and specialist AI agents for repository assessment.
-Analyzes code quality, dependencies, security, DevOps, and developer experience.
-Named after characters from the movie Hackers (1995) - "Hack the planet!"
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Zero is an engineering intelligence platform for repository analysis, written in Go with a Next.js web frontend. It provides 7 "super scanners" and 12 specialist AI agents (named after characters from the movie Hackers 1995).
+
+## Build and Development Commands
+
+```bash
+# Build the CLI
+go build -o zero ./cmd/zero
+
+# Run all tests with race detection
+go test -v -race ./...
+
+# Run a single test file
+go test -v ./pkg/scanner/code-security/...
+
+# Run a specific test
+go test -v -run TestSecretDetection ./pkg/scanner/code-security/...
+
+# Run tests with coverage
+go test -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out
+
+# Lint (uses golangci-lint)
+golangci-lint run --timeout=5m
+
+# Verify dependencies
+go mod verify
+
+# Web frontend (Next.js)
+cd web && npm ci && npm run dev      # Development server
+cd web && npm run build              # Production build
+cd web && npm run lint               # ESLint
+cd web && npm run type-check         # TypeScript check
+
+# MCP server
+cd mcp-server && npm ci && npm run build
+cd mcp-server && npm run dev         # Development with tsx
+```
+
+**Testing notes:**
+- Some integration tests skip when external tools aren't installed (Semgrep)
+- RAG-based tests skip if rules aren't generated - run `./zero feeds rag` first
+- Tests are organized by package under `pkg/`
+
+## CLI Usage
+
+```bash
+./zero hydrate owner/repo [profile]  # Clone and scan repository
+./zero hydrate owner/repo all-quick  # Fast scan with all scanners
+./zero hydrate myorg --demo          # Scan org repos, skip large ones
+./zero scan owner/repo [profile]     # Re-scan already cloned repo
+./zero status                        # Show analyzed projects
+./zero serve                         # Start web UI (localhost:3000)
+./zero feeds semgrep                 # Sync Semgrep rules
+./zero feeds rag                     # Generate rules from RAG patterns
+./zero list                          # List available scanners
+./zero checkup                       # Verify setup and external tools
+```
 
 ## Super Scanner Architecture (v4.0)
 
@@ -24,6 +82,48 @@ Zero uses **7 consolidated super scanners** with configurable features:
 - `technology-identification` scanner generates ML-BOM (Machine Learning Bill of Materials)
 - `devx` scanner depends on technology-identification for technology detection (tool vs technology sprawl)
 - Each scanner produces **one JSON output file** with all feature results
+
+## Code Architecture
+
+### Scanner Framework
+
+All scanners implement `pkg/scanner/interface.go:Scanner`:
+- `Name()` - Scanner identifier
+- `Run(ctx, opts)` - Execute scan, return `*ScanResult`
+- `Dependencies()` - Scanners that must run first (for topological sort)
+- `EstimateDuration(fileCount)` - Duration estimate
+
+The `NativeRunner` (`pkg/scanner/runner.go`) executes scanners in dependency order with parallel execution per level.
+
+### Key Packages
+
+| Package | Purpose |
+|---------|---------|
+| `cmd/zero` | CLI entry point using Cobra |
+| `pkg/scanner/*` | Scanner implementations (one dir per scanner) |
+| `pkg/core/` | Shared utilities (config, terminal, findings, languages) |
+| `pkg/workflow/` | Hydrate, automation, freshness tracking, diff |
+| `pkg/api/` | HTTP server with Chi router, WebSocket hub |
+| `pkg/storage/sqlite/` | SQLite persistence layer |
+| `pkg/mcp/` | Go-based MCP server |
+
+### Storage Layout
+
+```
+.zero/
+└── repos/owner/repo/
+    ├── repo/              # Cloned repository
+    ├── analysis/          # Scanner JSON output
+    │   ├── sbom.cdx.json
+    │   ├── code-packages.json
+    │   ├── code-security.json
+    │   └── ...
+    └── freshness.json     # Scan metadata
+```
+
+### Configuration
+
+Profiles defined in `config/zero.config.json` specify which scanners/features to run. Each scanner has features that can be enabled/disabled via `feature_overrides`.
 
 ## Orchestrator: Zero
 
