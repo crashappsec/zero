@@ -5,15 +5,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"path/filepath"
 	"syscall"
 	"time"
 
 	"github.com/crashappsec/zero/pkg/core/config"
 	"github.com/crashappsec/zero/pkg/core/feeds"
-	"github.com/crashappsec/zero/pkg/core/rag"
 	"github.com/crashappsec/zero/pkg/core/terminal"
-	techid "github.com/crashappsec/zero/pkg/scanner/technology-identification"
 	"github.com/spf13/cobra"
 )
 
@@ -26,12 +23,10 @@ var feedsCmd = &cobra.Command{
 	Short: "Manage security rules and data feeds",
 	Long: `Manage security scanning rules and external data feeds.
 
-Zero uses two sources of Semgrep rules:
-  - RAG patterns: Custom rules generated from the rag/ knowledge base
-  - Semgrep community: Official rules from semgrep.dev registry
+Zero uses Semgrep community rules for SAST (Static Application Security Testing).
+Technology detection uses native Go pattern matching for faster execution.
 
 Examples:
-  zero feeds rag               Generate rules from RAG knowledge base
   zero feeds semgrep           Sync Semgrep community rules (SAST)
   zero feeds semgrep --force   Force sync even if fresh
   zero feeds status            Show feed status`,
@@ -56,28 +51,12 @@ var feedsStatusCmd = &cobra.Command{
 	RunE:  runFeedsStatus,
 }
 
-var feedsRagCmd = &cobra.Command{
-	Use:   "rag",
-	Short: "Generate rules from RAG knowledge base",
-	Long: `Generate Semgrep rules from the RAG (Retrieval-Augmented Generation) knowledge base.
-
-This command converts patterns from the rag/ directory into Semgrep-compatible
-rules for use by Zero's custom scanners (technology detection, secrets, etc.).
-
-The RAG knowledge base contains human-readable patterns in markdown format
-that are converted to executable Semgrep YAML rules.`,
-	RunE: runFeedsRag,
-}
-
 func init() {
 	rootCmd.AddCommand(feedsCmd)
 	feedsCmd.AddCommand(feedsSemgrepCmd)
-	feedsCmd.AddCommand(feedsRagCmd)
 	feedsCmd.AddCommand(feedsStatusCmd)
 
 	feedsSemgrepCmd.Flags().BoolVar(&feedsForce, "force", false, "Force sync even if rules are fresh")
-
-	feedsRagCmd.Flags().BoolVar(&feedsForce, "force", false, "Force regenerate even if RAG unchanged")
 }
 
 func runFeedsSemgrep(cmd *cobra.Command, args []string) error {
@@ -228,94 +207,6 @@ func runFeedsStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	term.Divider()
-	return nil
-}
-
-func runFeedsRag(cmd *cobra.Command, args []string) error {
-	cfg, err := config.Load()
-	if err != nil {
-		return err
-	}
-
-	zeroHome := cfg.ZeroHome()
-	if zeroHome == "" {
-		zeroHome = ".zero"
-	}
-
-	term := terminal.New()
-
-	term.Divider()
-	term.Info("%s", term.Color(terminal.Bold, "Generating Rules from RAG Knowledge Base"))
-	term.Divider()
-
-	// Find RAG directory
-	ragPath := rag.FindRAGPath()
-	if ragPath == "" {
-		return fmt.Errorf("could not find rag/ directory")
-	}
-
-	// Output directory for generated rules
-	outputDir := filepath.Join(zeroHome, "rules", "generated")
-
-	term.Info("RAG source: %s", term.Color(terminal.Cyan, ragPath))
-	term.Info("Output dir: %s", term.Color(terminal.Cyan, outputDir))
-	term.Info("")
-
-	start := time.Now()
-
-	// Convert RAG markdown patterns to Semgrep YAML rules
-	result, err := techid.ConvertRAGToSemgrep(ragPath, outputDir)
-	if err != nil {
-		return fmt.Errorf("rule generation failed: %w", err)
-	}
-
-	duration := time.Since(start)
-
-	// Display results
-	if len(result.TechDiscovery.Rules) > 0 {
-		term.Success("  %s tech-discovery.yaml (%d rules)",
-			term.Color(terminal.Green, "✓"),
-			len(result.TechDiscovery.Rules))
-	}
-	if len(result.Secrets.Rules) > 0 {
-		term.Success("  %s secrets.yaml (%d rules)",
-			term.Color(terminal.Green, "✓"),
-			len(result.Secrets.Rules))
-	}
-	if len(result.AIML.Rules) > 0 {
-		term.Success("  %s ai-ml.yaml (%d rules)",
-			term.Color(terminal.Green, "✓"),
-			len(result.AIML.Rules))
-	}
-	if len(result.ConfigFiles.Rules) > 0 {
-		term.Success("  %s config-files.yaml (%d rules)",
-			term.Color(terminal.Green, "✓"),
-			len(result.ConfigFiles.Rules))
-	}
-	if len(result.Cryptography.Rules) > 0 {
-		term.Success("  %s cryptography.yaml (%d rules)",
-			term.Color(terminal.Green, "✓"),
-			len(result.Cryptography.Rules))
-	}
-	if len(result.DevOps.Rules) > 0 {
-		term.Success("  %s devops.yaml (%d rules)",
-			term.Color(terminal.Green, "✓"),
-			len(result.DevOps.Rules))
-	}
-	if len(result.CodeSecurity.Rules) > 0 {
-		term.Success("  %s code-security.yaml (%d rules)",
-			term.Color(terminal.Green, "✓"),
-			len(result.CodeSecurity.Rules))
-	}
-	if len(result.SupplyChain.Rules) > 0 {
-		term.Success("  %s supply-chain.yaml (%d rules)",
-			term.Color(terminal.Green, "✓"),
-			len(result.SupplyChain.Rules))
-	}
-
-	term.Divider()
-	term.Success("Generated %d rules in %s", result.TotalRules, formatDuration(duration))
-
 	return nil
 }
 

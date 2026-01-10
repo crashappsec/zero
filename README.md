@@ -24,9 +24,8 @@ go build -o zero ./cmd/zero
 # Authenticate with GitHub
 gh auth login
 
-# Initialize rules from RAG knowledge base
+# Optional: Sync Semgrep SAST rules
 ./zero feeds semgrep    # Sync Semgrep community rules
-./zero feeds rag        # Generate rules from RAG patterns
 
 # Scan a repository
 ./zero hydrate strapi/strapi
@@ -102,8 +101,7 @@ Use `/agent` in Claude Code to chat with Zero.
 ./zero status                       # Show analyzed projects
 ./zero checkup                      # Verify setup and tools
 ./zero serve                        # Start web UI
-./zero feeds rag                    # Generate rules from RAG
-./zero feeds semgrep                # Sync Semgrep rules
+./zero feeds semgrep                # Sync Semgrep SAST rules
 ./zero list                         # List available scanners
 ```
 

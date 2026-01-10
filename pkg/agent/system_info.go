@@ -514,11 +514,11 @@ func (s *SystemInfo) getRulesStatus() (string, error) {
 		}
 	}
 
-	// If no status exists, return info about how to generate
+	// If no status exists, return info about how to sync
 	if response.Generated == nil && response.Community == nil {
 		return toJSON(map[string]interface{}{
-			"message":  "No rules generated yet. Run 'zero feeds rag' to generate rules from RAG patterns.",
-			"commands": []string{"zero feeds rag", "zero feeds semgrep"},
+			"message":  "No rules synced yet. Run 'zero feeds semgrep' to sync community SAST rules.",
+			"commands": []string{"zero feeds semgrep"},
 		})
 	}
 
@@ -548,9 +548,8 @@ func (s *SystemInfo) getFeedsStatus() (string, error) {
 		return toJSON(FeedsStatusResponse{
 			Feeds: map[string]FeedStatusInfo{
 				"semgrep-rules": {Freshness: "not synced", ItemCount: 0},
-				"rag-patterns":  {Freshness: "not synced", ItemCount: 0},
 			},
-			Note: "Run 'zero feeds semgrep' and 'zero feeds rag' to sync feeds. Vulnerability data (OSV) is queried live during scans.",
+			Note: "Run 'zero feeds semgrep' to sync SAST rules. Vulnerability data (OSV) is queried live during scans.",
 		})
 	}
 

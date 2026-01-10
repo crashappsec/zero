@@ -56,9 +56,6 @@ Before scanning, sync Semgrep rules:
 ```bash
 # Sync Semgrep community rules for SAST scanning
 ./zero feeds semgrep
-
-# Generate rules from RAG knowledge base
-./zero feeds rag
 ```
 
 ### Scan a Repository

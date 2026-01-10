@@ -117,16 +117,11 @@ Before scanning, sync Semgrep rules:
 # Sync Semgrep community rules for SAST scanning (SQL injection, XSS, etc.)
 ./zero feeds semgrep
 
-# Generate rules from RAG knowledge base (Zero's custom patterns)
-./zero feeds rag
-
 # Check feed status
 ./zero feeds status
 ```
 
-Zero uses two sources of Semgrep rules:
-- **Semgrep community**: Official SAST rules from semgrep.dev (vulnerabilities, secrets)
-- **RAG patterns**: Custom rules generated from Zero's knowledge base (technology detection, etc.)
+Zero uses Semgrep community rules for SAST scanning. Technology detection uses native Go pattern matching for faster execution.
 
 ## Quick Start
 
