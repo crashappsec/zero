@@ -312,9 +312,6 @@ func TestDefaultConfig(t *testing.T) {
 	if !cfg.Governance.Enabled {
 		t.Error("Governance should be enabled by default")
 	}
-	if !cfg.Semgrep.Enabled {
-		t.Error("Semgrep should be enabled by default")
-	}
 	if !cfg.Security.CheckPickleFiles {
 		t.Error("Security.CheckPickleFiles should be enabled by default")
 	}
@@ -326,9 +323,6 @@ func TestDefaultConfig(t *testing.T) {
 func TestQuickConfig(t *testing.T) {
 	cfg := QuickConfig()
 
-	if cfg.Semgrep.Enabled {
-		t.Error("Semgrep should be disabled in quick config")
-	}
 	if cfg.Technology.ScanExtensions {
 		t.Error("Technology.ScanExtensions should be disabled in quick config")
 	}
@@ -387,9 +381,6 @@ func TestFullConfig(t *testing.T) {
 	}
 	if !cfg.Governance.Enabled {
 		t.Error("Governance should be enabled in full config")
-	}
-	if !cfg.Semgrep.Enabled {
-		t.Error("Semgrep should be enabled in full config")
 	}
 
 	// Full config specifics

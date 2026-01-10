@@ -2,8 +2,6 @@
 // Includes AI/ML security and ML-BOM generation
 package techid
 
-import "time"
-
 // FeatureConfig holds configuration for all technology identification features
 type FeatureConfig struct {
 	Technology     TechnologyDetectionConfig `json:"technology"`     // General technology detection
@@ -13,15 +11,6 @@ type FeatureConfig struct {
 	Security       SecurityConfig            `json:"security"`
 	Governance     GovernanceConfig          `json:"governance"`
 	Infrastructure InfrastructureConfig      `json:"infrastructure"` // Microservice mapping
-	Semgrep        SemgrepScanConfig         `json:"semgrep"`        // Semgrep integration
-}
-
-// SemgrepScanConfig configures semgrep integration for technology detection
-type SemgrepScanConfig struct {
-	Enabled      bool          `json:"enabled"`       // Use semgrep for detection (required)
-	RefreshRules bool          `json:"refresh_rules"` // Auto-refresh rules on each scan
-	ForceRefresh bool          `json:"force_refresh"` // Force rule refresh even if cached
-	CacheTTL     time.Duration `json:"cache_ttl"`     // How long to cache generated rules
 }
 
 // TechnologyDetectionConfig configures general technology discovery
@@ -98,12 +87,6 @@ type InfrastructureConfig struct {
 // DefaultConfig returns default feature configuration
 func DefaultConfig() FeatureConfig {
 	return FeatureConfig{
-		Semgrep: SemgrepScanConfig{
-			Enabled:      true,           // Use semgrep (required)
-			RefreshRules: true,           // Auto-refresh rules
-			ForceRefresh: false,          // Don't force, use cache if valid
-			CacheTTL:     24 * time.Hour, // Cache for 24 hours
-		},
 		Technology: TechnologyDetectionConfig{
 			Enabled:        true,
 			ScanExtensions: true,
@@ -167,13 +150,12 @@ func DefaultConfig() FeatureConfig {
 // QuickConfig returns minimal config for fast scans
 func QuickConfig() FeatureConfig {
 	cfg := DefaultConfig()
-	cfg.Semgrep.Enabled = false          // Skip semgrep for quick scans
 	cfg.Technology.ScanExtensions = false // Skip file extension scan (slow)
 	cfg.Models.QueryHuggingFace = false
 	cfg.Models.ExtractModelCards = false
 	cfg.Datasets.Enabled = false
 	cfg.Governance.Enabled = false
-	cfg.Infrastructure.Enabled = false   // Skip infrastructure for quick scans
+	cfg.Infrastructure.Enabled = false // Skip infrastructure for quick scans
 	return cfg
 }
 
@@ -192,12 +174,6 @@ func SecurityOnlyConfig() FeatureConfig {
 // FullConfig returns config with all features enabled
 func FullConfig() FeatureConfig {
 	return FeatureConfig{
-		Semgrep: SemgrepScanConfig{
-			Enabled:      true,
-			RefreshRules: true,
-			ForceRefresh: false,
-			CacheTTL:     24 * time.Hour,
-		},
 		Technology: TechnologyDetectionConfig{
 			Enabled:        true,
 			ScanExtensions: true,
