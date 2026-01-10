@@ -628,12 +628,28 @@ Mode is automatically selected based on query keywords:
 
 ## Configuration Profiles
 
-Profiles define which analyzers and features to run:
+Profiles define which analyzers and features to run. Choose based on your use case:
+
+### Use-Case Profiles (Recommended)
+
+| Profile | Use Case | Description |
+|---------|----------|-------------|
+| `security-focused` | Security | Deep security analysis - vulnerabilities, secrets, crypto, malware |
+| `engineering-health` | Engineering | Team productivity - quality, ownership, DORA metrics, DevX |
+| `compliance` | Audit | Compliance readiness - licenses, vulnerabilities, IaC controls |
+| `supply-chain` | Security | Dependency security - SBOMs, malware, provenance |
+
+### General Profiles
 
 | Profile | Analyzers | Description |
 |---------|----------|-------------|
-| `all-quick` | All 7 analyzers (limited features) | Fast analysis of everything |
-| `all-complete` | All 7 analyzers (all features) | Complete analysis |
+| `all-quick` | All 7 analyzers (limited features) | Fast initial assessment |
+| `all-complete` | All 7 analyzers (all features) | Comprehensive analysis |
+
+### Analyzer-Specific Profiles
+
+| Profile | Analyzers | Description |
+|---------|----------|-------------|
 | `code-packages` | code-packages | SBOM + package analysis |
 | `code-security` | code-security | SAST, secrets, and crypto |
 | `code-quality` | code-quality | Quality metrics |
