@@ -496,16 +496,6 @@ func (s *SystemInfo) getRulesStatus() (string, error) {
 
 	response := RulesStatusResponse{}
 
-	if status, ok := statuses["generated"]; ok {
-		response.Generated = &RuleSourceStatus{
-			LastGenerate: status.LastGenerate.Format(time.RFC3339),
-			RuleCount:    status.RuleCount,
-			SourceHash:   truncateString(status.SourceHash, 16),
-			Error:        status.Error,
-			Categories:   []string{"technology-identification", "secrets", "devops", "devops-security", "code-security", "code-quality", "architecture"},
-		}
-	}
-
 	if status, ok := statuses["community"]; ok {
 		response.Community = &RuleSourceStatus{
 			LastGenerate: status.LastGenerate.Format(time.RFC3339),
@@ -515,7 +505,7 @@ func (s *SystemInfo) getRulesStatus() (string, error) {
 	}
 
 	// If no status exists, return info about how to sync
-	if response.Generated == nil && response.Community == nil {
+	if response.Community == nil {
 		return toJSON(map[string]interface{}{
 			"message":  "No rules synced yet. Run 'zero feeds semgrep' to sync community SAST rules.",
 			"commands": []string{"zero feeds semgrep"},

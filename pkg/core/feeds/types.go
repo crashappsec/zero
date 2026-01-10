@@ -54,7 +54,6 @@ type FeedType string
 
 const (
 	FeedSemgrepRules FeedType = "semgrep-rules"
-	FeedRAGPatterns  FeedType = "rag-patterns"
 	// Note: Vulnerability data is queried LIVE via OSV.dev API during scans
 	// Pre-approved URL: https://api.osv.dev/v1/query
 )
@@ -121,9 +120,8 @@ func DefaultConfig() Config {
 	}
 }
 
-// RuleConfig configures rule generation
+// RuleConfig configures rule sources
 type RuleConfig struct {
-	GeneratedRules RuleSourceConfig `json:"generated_rules"`
 	CommunityRules RuleSourceConfig `json:"community_rules"`
 }
 
@@ -137,11 +135,6 @@ type RuleSourceConfig struct {
 // DefaultRuleConfig returns default rule configuration
 func DefaultRuleConfig() RuleConfig {
 	return RuleConfig{
-		GeneratedRules: RuleSourceConfig{
-			Enabled:   true,
-			Frequency: FreqAlways, // Always check if RAG changed (fast, local)
-			OutputDir: "rules/generated",
-		},
 		CommunityRules: RuleSourceConfig{
 			Enabled:   true,
 			Frequency: FreqWeekly, // Community rules don't change often

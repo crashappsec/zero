@@ -157,74 +157,9 @@ func TestFalsePositiveExclusion(t *testing.T) {
 	}
 }
 
-// TestTechnologyDetection tests that technology patterns detect known technologies
-func TestTechnologyDetection(t *testing.T) {
-	root := findProjectRoot()
-	if root == "" {
-		t.Skip("Could not find project root")
-	}
-
-	rulesFile := filepath.Join(root, ".zero/rules/generated/tech-discovery.yaml")
-	testDir := filepath.Join(root, "testdata/rag/tech-samples")
-
-	// Check if rules exist
-	if _, err := os.Stat(rulesFile); os.IsNotExist(err) {
-		t.Skip("Rules not generated. Run 'zero feeds rag' first")
-	}
-
-	// Check if test directory exists
-	if _, err := os.Stat(testDir); os.IsNotExist(err) {
-		t.Skip("Test fixtures not found")
-	}
-
-	// Test React detection
-	t.Run("React", func(t *testing.T) {
-		testTechDetection(t, rulesFile, filepath.Join(testDir, "react"), "react")
-	})
-
-	// Test Python/Flask detection
-	t.Run("Flask", func(t *testing.T) {
-		testTechDetection(t, rulesFile, filepath.Join(testDir, "python"), "flask")
-	})
-
-	// Test Go/Gin detection
-	t.Run("Go/Gin", func(t *testing.T) {
-		testTechDetection(t, rulesFile, filepath.Join(testDir, "go"), "gin")
-	})
-}
-
-func testTechDetection(t *testing.T, rulesFile, testDir, expectedTech string) {
-	if _, err := os.Stat(testDir); os.IsNotExist(err) {
-		t.Skipf("Test directory %s not found", testDir)
-	}
-
-	cmd := exec.Command("semgrep", "--config", rulesFile, testDir, "--json", "--quiet")
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		if _, ok := err.(*exec.ExitError); !ok {
-			t.Fatalf("Failed to run semgrep: %v", err)
-		}
-	}
-
-	var result SemgrepResult
-	if err := json.Unmarshal(output, &result); err != nil {
-		t.Fatalf("Failed to parse semgrep output: %v", err)
-	}
-
-	// Should find the expected technology
-	found := false
-	for _, finding := range result.Results {
-		if strings.Contains(strings.ToLower(finding.CheckID), expectedTech) {
-			found = true
-			t.Logf("Found %s: %s", expectedTech, finding.CheckID)
-		}
-	}
-
-	if !found {
-		t.Logf("Warning: Expected to detect %s but didn't find matching rule", expectedTech)
-		t.Logf("Found %d findings total", len(result.Results))
-	}
-}
+// Note: Technology detection tests have been moved to the technology-identification
+// package which now uses native Go pattern matching instead of Semgrep.
+// See pkg/scanner/technology-identification/pattern_loader_test.go
 
 // TestCryptographyDetection tests weak crypto pattern detection
 func TestCryptographyDetection(t *testing.T) {

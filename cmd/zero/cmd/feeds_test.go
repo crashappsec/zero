@@ -237,15 +237,12 @@ func TestRulesConfigUpdate(t *testing.T) {
 
 	// Get default config
 	cfg := mgr.GetConfig()
-	if !cfg.GeneratedRules.Enabled {
-		t.Error("Expected generated rules enabled by default")
+	if !cfg.CommunityRules.Enabled {
+		t.Error("Expected community rules enabled by default")
 	}
 
 	// Update config
 	newCfg := feeds.RuleConfig{
-		GeneratedRules: feeds.RuleSourceConfig{
-			Enabled: false,
-		},
 		CommunityRules: feeds.RuleSourceConfig{
 			Enabled: false,
 		},
@@ -254,8 +251,8 @@ func TestRulesConfigUpdate(t *testing.T) {
 
 	// Verify update
 	cfg = mgr.GetConfig()
-	if cfg.GeneratedRules.Enabled {
-		t.Error("Expected generated rules to be disabled after update")
+	if cfg.CommunityRules.Enabled {
+		t.Error("Expected community rules to be disabled after update")
 	}
 
 	// Refresh should do nothing when disabled
