@@ -70,7 +70,7 @@ func runRefresh(cmd *cobra.Command, args []string) error {
 	if profile == "" {
 		profile = cfg.Settings.DefaultProfile
 		if profile == "" {
-			profile = "standard"
+			profile = "all-quick"
 		}
 	}
 

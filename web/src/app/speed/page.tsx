@@ -30,6 +30,21 @@ interface ProjectSpeed {
     change_failure_rate: number;
     mttr: string;
     performance_level: string;
+    // PR-level metrics (Phase 3)
+    avg_pickup_hours?: number;
+    pickup_class?: string;
+    avg_review_hours?: number;
+    review_class?: string;
+    avg_merge_hours?: number;
+    merge_class?: string;
+    avg_pr_size?: number;
+    pr_size_class?: string;
+    total_prs?: number;
+    // Rework rate (DORA 2025)
+    rework_rate?: number;
+    rework_class?: string;
+    refactor_rate?: number;
+    refactor_class?: string;
   } | null;
   iac_count: number;
   container_count: number;
@@ -47,6 +62,15 @@ interface AggregateStats {
   totalProjects: number;
   totalIssues: number;
   elitePerformers: number;
+  // PR-level metrics (Phase 3)
+  avgPickupHours: number;
+  avgReviewHours: number;
+  avgMergeHours: number;
+  avgPRSize: number;
+  totalPRs: number;
+  // Rework rate (DORA 2025)
+  avgReworkRate: number;
+  avgRefactorRate: number;
 }
 
 function DORALevelBadge({ level }: { level: string }) {
@@ -127,6 +151,12 @@ function SpeedContent() {
     let totalCFR = 0;
     let cfrCount = 0;
     let totalIssues = 0;
+    // PR metrics
+    let totalPickup = 0, totalReview = 0, totalMerge = 0, totalSize = 0, totalPRs = 0;
+    let prMetricsCount = 0;
+    // Rework rate
+    let totalRework = 0, totalRefactor = 0;
+    let reworkCount = 0;
 
     filteredData.forEach((p) => {
       if (p.dora) {
@@ -135,6 +165,21 @@ function SpeedContent() {
         if (!isNaN(p.dora.change_failure_rate)) {
           totalCFR += p.dora.change_failure_rate;
           cfrCount++;
+        }
+        // Aggregate PR metrics
+        if (p.dora.total_prs && p.dora.total_prs > 0) {
+          totalPickup += p.dora.avg_pickup_hours || 0;
+          totalReview += p.dora.avg_review_hours || 0;
+          totalMerge += p.dora.avg_merge_hours || 0;
+          totalSize += p.dora.avg_pr_size || 0;
+          totalPRs += p.dora.total_prs;
+          prMetricsCount++;
+        }
+        // Aggregate rework rate
+        if (p.dora.rework_rate !== undefined) {
+          totalRework += p.dora.rework_rate;
+          totalRefactor += p.dora.refactor_rate || 0;
+          reworkCount++;
         }
       }
       totalIssues += p.iac_count + p.container_count + p.gha_count;
@@ -146,6 +191,15 @@ function SpeedContent() {
       totalProjects: filteredData.length,
       totalIssues,
       elitePerformers: doraLevels.elite,
+      // PR metrics averages
+      avgPickupHours: prMetricsCount > 0 ? totalPickup / prMetricsCount : 0,
+      avgReviewHours: prMetricsCount > 0 ? totalReview / prMetricsCount : 0,
+      avgMergeHours: prMetricsCount > 0 ? totalMerge / prMetricsCount : 0,
+      avgPRSize: prMetricsCount > 0 ? Math.round(totalSize / prMetricsCount) : 0,
+      totalPRs,
+      // Rework rate averages
+      avgReworkRate: reworkCount > 0 ? totalRework / reworkCount : 0,
+      avgRefactorRate: reworkCount > 0 ? totalRefactor / reworkCount : 0,
     };
   }, [filteredData]);
 
@@ -257,6 +311,82 @@ function SpeedContent() {
             </CardContent>
           </Card>
 
+          {/* PR Cycle Time Metrics (Phase 3 - LinearB alignment) */}
+          {stats.totalPRs > 0 && (
+            <Card>
+              <CardContent>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <GitPullRequest className="h-5 w-5 text-purple-500" />
+                    <CardTitle>PR Cycle Time Breakdown</CardTitle>
+                  </div>
+                  <Badge variant="default">{stats.totalPRs} PRs analyzed</Badge>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <BenchmarkTier
+                    value={stats.avgPickupHours.toFixed(1)}
+                    label="Pickup Time"
+                    tiers={LINEARB_BENCHMARKS.pickupTime}
+                    unit="h"
+                    lowerIsBetter={true}
+                  />
+                  <BenchmarkTier
+                    value={stats.avgReviewHours.toFixed(1)}
+                    label="Review Time"
+                    tiers={LINEARB_BENCHMARKS.reviewTime}
+                    unit="h"
+                    lowerIsBetter={true}
+                  />
+                  <BenchmarkTier
+                    value={stats.avgMergeHours.toFixed(1)}
+                    label="Merge Time"
+                    tiers={LINEARB_BENCHMARKS.mergeTime}
+                    unit="h"
+                    lowerIsBetter={true}
+                  />
+                  <BenchmarkTier
+                    value={stats.avgPRSize}
+                    label="Avg PR Size"
+                    tiers={LINEARB_BENCHMARKS.prSize}
+                    unit=" lines"
+                    lowerIsBetter={true}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Rework & Refactor Rate (DORA 2025) */}
+          {(stats.avgReworkRate > 0 || stats.avgRefactorRate > 0) && (
+            <Card>
+              <CardContent>
+                <div className="flex items-center gap-2 mb-4">
+                  <Clock className="h-5 w-5 text-orange-500" />
+                  <CardTitle>Code Churn Analysis (DORA 2025)</CardTitle>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <BenchmarkTier
+                    value={stats.avgReworkRate.toFixed(1)}
+                    label="Rework Rate"
+                    tiers={LINEARB_BENCHMARKS.reworkRate}
+                    unit="%"
+                    lowerIsBetter={true}
+                  />
+                  <BenchmarkTier
+                    value={stats.avgRefactorRate.toFixed(1)}
+                    label="Refactor Rate"
+                    tiers={LINEARB_BENCHMARKS.refactorRate}
+                    unit="%"
+                    lowerIsBetter={true}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-3">
+                  Rework: commits fixing recent changes | Refactor: commits improving existing code
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Project Details */}
           <Card>
             <CardContent>
@@ -283,26 +413,80 @@ function SpeedContent() {
                     </div>
 
                     {data.dora ? (
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <div className="p-2 bg-gray-900/50 rounded">
-                          <p className="text-xs text-gray-500">Deploy Frequency</p>
-                          <p className="text-sm font-medium text-white">{data.dora.deployment_frequency}</p>
+                      <>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="p-2 bg-gray-900/50 rounded">
+                            <p className="text-xs text-gray-500">Deploy Frequency</p>
+                            <p className="text-sm font-medium text-white">{data.dora.deployment_frequency}</p>
+                          </div>
+                          <div className="p-2 bg-gray-900/50 rounded">
+                            <p className="text-xs text-gray-500">Lead Time</p>
+                            <p className="text-sm font-medium text-white">{data.dora.lead_time}</p>
+                          </div>
+                          <div className="p-2 bg-gray-900/50 rounded">
+                            <p className="text-xs text-gray-500">Change Failure Rate</p>
+                            <p className={`text-sm font-medium ${data.dora.change_failure_rate <= 4 ? 'text-green-500' : data.dora.change_failure_rate <= 17 ? 'text-yellow-500' : 'text-red-500'}`}>
+                              {data.dora.change_failure_rate}%
+                            </p>
+                          </div>
+                          <div className="p-2 bg-gray-900/50 rounded">
+                            <p className="text-xs text-gray-500">MTTR</p>
+                            <p className="text-sm font-medium text-white">{data.dora.mttr}</p>
+                          </div>
                         </div>
-                        <div className="p-2 bg-gray-900/50 rounded">
-                          <p className="text-xs text-gray-500">Lead Time</p>
-                          <p className="text-sm font-medium text-white">{data.dora.lead_time}</p>
-                        </div>
-                        <div className="p-2 bg-gray-900/50 rounded">
-                          <p className="text-xs text-gray-500">Change Failure Rate</p>
-                          <p className={`text-sm font-medium ${data.dora.change_failure_rate <= 4 ? 'text-green-500' : data.dora.change_failure_rate <= 17 ? 'text-yellow-500' : 'text-red-500'}`}>
-                            {data.dora.change_failure_rate}%
-                          </p>
-                        </div>
-                        <div className="p-2 bg-gray-900/50 rounded">
-                          <p className="text-xs text-gray-500">MTTR</p>
-                          <p className="text-sm font-medium text-white">{data.dora.mttr}</p>
-                        </div>
-                      </div>
+
+                        {/* PR Cycle Time (if available) */}
+                        {data.dora.total_prs && data.dora.total_prs > 0 && (
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-3">
+                            <div className="p-2 bg-purple-900/20 rounded border border-purple-500/20">
+                              <p className="text-xs text-gray-500">Pickup</p>
+                              <p className={`text-sm font-medium ${data.dora.pickup_class === 'elite' ? 'text-green-500' : data.dora.pickup_class === 'good' ? 'text-blue-500' : 'text-yellow-500'}`}>
+                                {data.dora.avg_pickup_hours?.toFixed(1)}h
+                              </p>
+                            </div>
+                            <div className="p-2 bg-purple-900/20 rounded border border-purple-500/20">
+                              <p className="text-xs text-gray-500">Review</p>
+                              <p className={`text-sm font-medium ${data.dora.review_class === 'elite' ? 'text-green-500' : data.dora.review_class === 'good' ? 'text-blue-500' : 'text-yellow-500'}`}>
+                                {data.dora.avg_review_hours?.toFixed(1)}h
+                              </p>
+                            </div>
+                            <div className="p-2 bg-purple-900/20 rounded border border-purple-500/20">
+                              <p className="text-xs text-gray-500">Merge</p>
+                              <p className={`text-sm font-medium ${data.dora.merge_class === 'elite' ? 'text-green-500' : data.dora.merge_class === 'good' ? 'text-blue-500' : 'text-yellow-500'}`}>
+                                {data.dora.avg_merge_hours?.toFixed(1)}h
+                              </p>
+                            </div>
+                            <div className="p-2 bg-purple-900/20 rounded border border-purple-500/20">
+                              <p className="text-xs text-gray-500">PR Size</p>
+                              <p className={`text-sm font-medium ${data.dora.pr_size_class === 'elite' ? 'text-green-500' : data.dora.pr_size_class === 'good' ? 'text-blue-500' : 'text-yellow-500'}`}>
+                                {data.dora.avg_pr_size} lines
+                              </p>
+                            </div>
+                            <div className="p-2 bg-purple-900/20 rounded border border-purple-500/20">
+                              <p className="text-xs text-gray-500">PRs</p>
+                              <p className="text-sm font-medium text-purple-400">{data.dora.total_prs}</p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Rework Rate (if available) */}
+                        {data.dora.rework_rate !== undefined && (
+                          <div className="grid grid-cols-2 gap-3 mt-3">
+                            <div className="p-2 bg-orange-900/20 rounded border border-orange-500/20">
+                              <p className="text-xs text-gray-500">Rework Rate</p>
+                              <p className={`text-sm font-medium ${data.dora.rework_class === 'elite' ? 'text-green-500' : data.dora.rework_class === 'good' ? 'text-blue-500' : 'text-yellow-500'}`}>
+                                {data.dora.rework_rate.toFixed(1)}%
+                              </p>
+                            </div>
+                            <div className="p-2 bg-orange-900/20 rounded border border-orange-500/20">
+                              <p className="text-xs text-gray-500">Refactor Rate</p>
+                              <p className={`text-sm font-medium ${data.dora.refactor_class === 'elite' ? 'text-green-500' : data.dora.refactor_class === 'good' ? 'text-blue-500' : 'text-yellow-500'}`}>
+                                {data.dora.refactor_rate?.toFixed(1)}%
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </>
                     ) : (
                       <p className="text-sm text-gray-500">No DORA metrics available</p>
                     )}

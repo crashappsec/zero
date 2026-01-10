@@ -64,7 +64,7 @@ func runScan(cmd *cobra.Command, args []string) error {
 	var repo, org string
 	profile := cfg.Settings.DefaultProfile
 	if profile == "" {
-		profile = "standard"
+		profile = "all-quick"
 	}
 
 	// Check if target is org or repo based on presence of "/"

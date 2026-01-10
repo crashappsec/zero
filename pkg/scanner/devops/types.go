@@ -85,6 +85,21 @@ type DORASummary struct {
 	OverallClass             string  `json:"overall_class"`
 	PeriodDays               int     `json:"period_days"`
 	Error                    string  `json:"error,omitempty"`
+	// PR-level cycle time metrics (LinearB alignment)
+	AvgPickupHours float64 `json:"avg_pickup_hours,omitempty"`
+	PickupClass    string  `json:"pickup_class,omitempty"`
+	AvgReviewHours float64 `json:"avg_review_hours,omitempty"`
+	ReviewClass    string  `json:"review_class,omitempty"`
+	AvgMergeHours  float64 `json:"avg_merge_hours,omitempty"`
+	MergeClass     string  `json:"merge_class,omitempty"`
+	AvgPRSize      int     `json:"avg_pr_size,omitempty"`
+	PRSizeClass    string  `json:"pr_size_class,omitempty"`
+	TotalPRs       int     `json:"total_prs,omitempty"`
+	// Rework rate (DORA 2025)
+	ReworkRate      float64 `json:"rework_rate,omitempty"`
+	ReworkClass     string  `json:"rework_class,omitempty"`
+	RefactorRate    float64 `json:"refactor_rate,omitempty"`
+	RefactorClass   string  `json:"refactor_class,omitempty"`
 }
 
 // GitSummary contains git insights summary
@@ -168,6 +183,44 @@ type DORAMetrics struct {
 	TotalDeployments    int          `json:"total_deployments"`
 	TotalCommits        int          `json:"total_commits"`
 	Deployments         []Deployment `json:"deployments,omitempty"`
+	// PR-level cycle time metrics (LinearB alignment)
+	PRMetrics *PRMetrics `json:"pr_metrics,omitempty"`
+	// Rework rate (DORA 2025)
+	ReworkRate   float64 `json:"rework_rate,omitempty"`
+	RefactorRate float64 `json:"refactor_rate,omitempty"`
+}
+
+// PRMetrics contains PR-level cycle time breakdowns (LinearB alignment)
+type PRMetrics struct {
+	TotalPRs       int     `json:"total_prs"`
+	AvgPickupHours float64 `json:"avg_pickup_hours"` // PR opened → first review
+	AvgReviewHours float64 `json:"avg_review_hours"` // First review → approval
+	AvgMergeHours  float64 `json:"avg_merge_hours"`  // Approval → merge
+	AvgCycleHours  float64 `json:"avg_cycle_hours"`  // PR opened → merge
+	AvgPRSize      int     `json:"avg_pr_size"`      // additions + deletions
+	// Tier classifications (LinearB benchmarks)
+	PickupClass string `json:"pickup_class,omitempty"` // elite, good, fair, needs_focus
+	ReviewClass string `json:"review_class,omitempty"`
+	MergeClass  string `json:"merge_class,omitempty"`
+	PRSizeClass string `json:"pr_size_class,omitempty"`
+	// Individual PR data
+	PRs []PRCycleTime `json:"prs,omitempty"`
+}
+
+// PRCycleTime contains cycle time data for a single PR
+type PRCycleTime struct {
+	Number      int       `json:"number"`
+	Title       string    `json:"title"`
+	Author      string    `json:"author"`
+	CreatedAt   time.Time `json:"created_at"`
+	MergedAt    time.Time `json:"merged_at"`
+	PickupHours float64   `json:"pickup_hours"` // Time to first review
+	ReviewHours float64   `json:"review_hours"` // First review to approval
+	MergeHours  float64   `json:"merge_hours"`  // Approval to merge
+	CycleHours  float64   `json:"cycle_hours"`  // Total cycle time
+	Additions   int       `json:"additions"`
+	Deletions   int       `json:"deletions"`
+	Size        int       `json:"size"` // additions + deletions
 }
 
 // Deployment represents a release/deployment

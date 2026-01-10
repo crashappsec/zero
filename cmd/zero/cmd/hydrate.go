@@ -82,7 +82,7 @@ func runHydrate(cmd *cobra.Command, args []string) error {
 
 	profile := cfg.Settings.DefaultProfile
 	if profile == "" {
-		profile = "standard"
+		profile = "all-quick"
 	}
 
 	// Check if target is org or repo based on presence of "/"

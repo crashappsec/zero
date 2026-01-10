@@ -72,9 +72,6 @@
       "description": "Onboarding, tooling sprawl, workflow analysis",
       "scanners": ["technology-identification", "developer-experience"]
     },
-
-    "_comment_use_case_profiles": "Use-case focused profiles for common scenarios",
-
     "security-focused": {
       "name": "Security Focused",
       "description": "Deep security and supply chain analysis - vulnerabilities, secrets, crypto, malware detection",
