@@ -181,13 +181,28 @@ select * from zero.scanner_summary
 
 ---
 
-## Explore
+## Engineering Intelligence
+
+<BigLink url="/engineering-health">📈 View Engineering Health Dashboard</BigLink>
+
+Explore your repository across six dimensions of engineering health:
 
 <Grid cols=3>
-  <BigLink url="/security">Security</BigLink>
-  <BigLink url="/dependencies">Dependencies</BigLink>
-  <BigLink url="/supply-chain">Supply Chain</BigLink>
-  <BigLink url="/devops">DevOps</BigLink>
-  <BigLink url="/quality">Quality & Ownership</BigLink>
-  <BigLink url="/ai-security">AI/ML</BigLink>
+  <BigLink url="/security">🔒 Security</BigLink>
+  <BigLink url="/supply-chain">📦 Supply Chain</BigLink>
+  <BigLink url="/quality">📊 Quality</BigLink>
+  <BigLink url="/devops">⚙️ DevOps</BigLink>
+  <BigLink url="/ai-security">🤖 Technology</BigLink>
+  <BigLink url="/team">👥 Team</BigLink>
 </Grid>
+
+### Dimension Guide
+
+| Dimension | Focus | Key Metrics |
+|-----------|-------|-------------|
+| **Security** | Code vulnerabilities, secrets, cryptography | SAST findings, exposed secrets, weak crypto |
+| **Supply Chain** | Dependencies, SBOMs, package health | Vulnerabilities, malcontent, licenses |
+| **Quality** | Code health, tech debt, test coverage | Complexity, documentation, test coverage |
+| **DevOps** | Infrastructure, CI/CD, deployment | IaC security, DORA metrics, containers |
+| **Technology** | Stack detection, AI/ML analysis | Frameworks, ML models, AI governance |
+| **Team** | Ownership, contributor health | Bus factor, code ownership, activity |

@@ -271,7 +271,8 @@ Files that should be removed from git history using BFG or git-filter-repo:
 
 ---
 
-<Grid cols=2>
+<Grid cols=3>
   <BigLink url="/">Back to Dashboard</BigLink>
-  <BigLink url="/dependencies">Dependencies & SBOM</BigLink>
+  <BigLink url="/supply-chain">Supply Chain</BigLink>
+  <BigLink url="/engineering-health">Engineering Health</BigLink>
 </Grid>

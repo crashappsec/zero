@@ -1,15 +1,46 @@
 ---
-title: AI/ML
+title: Technology
 sidebar_position: 6
 ---
 
-# AI/ML
+# Technology Stack
 
 <Alert status="info">
-Machine learning models, AI frameworks, and ML-BOM (Machine Learning Bill of Materials).
+Technology detection, stack analysis, ML models, and AI framework identification.
 </Alert>
 
-## AI Security Findings
+## Detected Technologies
+
+```sql technologies
+select * from zero.technologies
+```
+
+{#if technologies.length > 0}
+
+<DataTable
+  data={technologies}
+  search=true
+  rows=20
+>
+  <Column id=name title="Technology"/>
+  <Column id=category title="Category"/>
+  <Column id=confidence title="Confidence"/>
+  <Column id=version title="Version"/>
+</DataTable>
+
+{:else}
+
+<Alert status="info">
+No technologies detected.
+</Alert>
+
+{/if}
+
+---
+
+## AI/ML Analysis
+
+### AI Security Findings
 
 ```sql ai_security
 select * from zero.ai_security
@@ -106,31 +137,10 @@ No ML frameworks detected.
 
 {/if}
 
-## Technologies
-
-```sql technologies
-select * from zero.technologies
-```
-
-{#if technologies.length > 0}
-
-<DataTable
-  data={technologies}
-  search=true
-  rows=15
->
-  <Column id=name title="Technology"/>
-  <Column id=category title="Category"/>
-  <Column id=confidence title="Confidence"/>
-  <Column id=version title="Version"/>
-</DataTable>
-
-{/if}
-
 ---
 
 <Grid cols=3>
   <BigLink url="/">Back to Dashboard</BigLink>
-  <BigLink url="/security">Security</BigLink>
-  <BigLink url="/quality">Code Quality</BigLink>
+  <BigLink url="/quality">Quality</BigLink>
+  <BigLink url="/team">Team</BigLink>
 </Grid>
