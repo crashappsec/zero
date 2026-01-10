@@ -269,7 +269,7 @@ Scanner results are stored in `.zero/repos/<owner>/<repo>/analysis/`:
 // code-packages.json
 {
   "scanner": "code-packages",
-  "version": "4.0.0",
+  "version": "6.0.0",
   "timestamp": "2026-01-04T10:30:00Z",
   "summary": {
     "total_vulnerabilities": 12,
