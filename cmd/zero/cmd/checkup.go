@@ -75,7 +75,7 @@ var prerequisites = []ToolInstaller{
 	},
 	{
 		Name:        "node",
-		Description: "Node.js runtime (required for Evidence reports)",
+		Description: "Node.js runtime (required for web UI and cdxgen)",
 		CheckCmd:    "node --version",
 		InstallCmds: []string{
 			"brew install node",
