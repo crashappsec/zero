@@ -61,23 +61,18 @@ zero hydrate expressjs/express --profile quick
 ### Generate Reports
 
 ```bash
-# Generate and view report (starts HTTP server, press Ctrl+C to stop)
+# Generate aggregated markdown report (stdout)
 zero report expressjs/express
 
-# Generate without opening browser
-zero report expressjs/express --open=false
+# Generate report for specific category
+zero report expressjs/express --category security
 
-# Force regenerate
-zero report expressjs/express --regenerate
+# Output to file
+zero report expressjs/express --output report.md
 
-# Start dev server for live exploration (hot reload)
-docker run -v ~/.zero:/home/zero/.zero \
-  -p 3000:3000 \
-  ghcr.io/crashappsec/zero report expressjs/express --serve
-# Then open http://localhost:3000
+# Generate report for specific analyzer
+zero report expressjs/express --analyzer code-security
 ```
-
-**Note:** Reports require an HTTP server to render (JavaScript loads data). The `zero report` command automatically starts a local server and opens your browser.
 
 ### Agent Mode (Interactive)
 
@@ -112,8 +107,7 @@ All scan data is stored in `~/.zero` on your host machine:
 │   └── expressjs/
 │       └── express/
 │           ├── repo/           # Cloned repository
-│           ├── analysis/       # Scanner JSON output
-│           └── report/         # Generated HTML report
+│           └── analysis/       # Analyzer JSON output
 └── config/                     # Configuration files
 ```
 
@@ -164,13 +158,13 @@ jobs:
         run: |
           docker run \
             -v ~/.zero:/home/zero/.zero \
-            ghcr.io/crashappsec/zero report .
+            ghcr.io/crashappsec/zero report . --output report.md
 
       - name: Upload Report
         uses: actions/upload-artifact@v4
         with:
           name: security-report
-          path: ~/.zero/repos/*/report/
+          path: report.md
 ```
 
 ### GitLab CI
@@ -180,10 +174,10 @@ security-scan:
   image: ghcr.io/crashappsec/zero:latest
   script:
     - zero hydrate $CI_PROJECT_PATH
-    - zero report $CI_PROJECT_PATH
+    - zero report $CI_PROJECT_PATH --output report.md
   artifacts:
     paths:
-      - ~/.zero/repos/*/report/
+      - report.md
 ```
 
 ## Troubleshooting
@@ -204,14 +198,6 @@ For private repositories, set your GitHub token:
 ```bash
 export GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 docker run -e GITHUB_TOKEN ...
-```
-
-### Report Server Not Accessible
-
-When using `--serve`, expose port 3000:
-
-```bash
-docker run -p 3000:3000 ... report owner/repo --serve
 ```
 
 ## Image Tags

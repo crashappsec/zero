@@ -73,7 +73,7 @@ Before scanning, sync Semgrep rules:
 # Check scan status
 ./zero status
 
-# Generate interactive report
+# Generate markdown report
 ./zero report strapi/strapi
 ```
 
@@ -129,7 +129,7 @@ Zero includes 12 specialist agents named after characters from Hackers (1995):
 | **Blade** | Blade | Compliance, SOC 2, ISO 27001 |
 | **Phreak** | Phantom Phreak | Legal, licenses, privacy |
 | **Acid** | Acid Burn | Frontend, React, TypeScript |
-| **Dade** | Dade Murphy | Backend, APIs, databases |
+| **Flu Shot** | Flu Shot | Backend, APIs, databases |
 | **Nikon** | Lord Nikon | Architecture, system design |
 | **Joey** | Joey | CI/CD, build optimization |
 | **Plague** | The Plague | DevOps, Kubernetes, IaC |

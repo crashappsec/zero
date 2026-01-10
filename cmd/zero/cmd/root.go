@@ -32,7 +32,8 @@ Quick Start:
   zero hydrate owner/repo           Clone and scan a repository
   zero hydrate --org myorg          Clone and scan all org repos
   zero status                       Show analyzed projects
-  zero report owner/repo            Generate analysis report`,
+  zero serve                        Start the web UI
+  zero report owner/repo            Generate markdown report`,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if noColor {
 			os.Setenv("NO_COLOR", "1")

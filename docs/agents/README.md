@@ -19,7 +19,7 @@ Zero's specialist agents are AI personas that analyze repositories from differen
 │   BLADE (Compliance)       PHREAK (Legal)           NIKON (Architecture)    │
 │   └── SOC 2, ISO 27001     └── Licenses, privacy    └── System design       │
 │                                                                              │
-│   ACID (Frontend)          DADE (Backend)           PLAGUE (DevOps)         │
+│   ACID (Frontend)          FLU SHOT (Backend)       PLAGUE (DevOps)         │
 │   └── React, TypeScript    └── APIs, databases      └── K8s, infrastructure │
 │                                                                              │
 │   JOEY (Build)             GIBSON (Metrics)         HAL (AI/ML)             │
@@ -39,7 +39,7 @@ Zero's specialist agents are AI personas that analyze repositories from differen
 | `blade` | Blade | Compliance, SOC 2, ISO 27001 | code-security.json, code-packages.json, devops.json |
 | `phreak` | Phantom Phreak | Legal, licenses, privacy | code-packages.json (licenses) |
 | `acid` | Acid Burn | Frontend, React, TypeScript | technology-identification.json, code-security.json |
-| `dade` | Dade Murphy | Backend, APIs, databases | technology-identification.json, code-security.json |
+| `flushot` | Flu Shot | Backend, APIs, databases | technology-identification.json, code-security.json |
 | `nikon` | Lord Nikon | Architecture, system design | technology-identification.json, code-packages.json |
 | `joey` | Joey | CI/CD, build optimization | devops.json (github_actions) |
 | `plague` | The Plague | DevOps, Kubernetes, IaC | devops.json (iac, containers) |
@@ -175,12 +175,8 @@ Here's what we found...
 
 **Role:** Analyzes dependencies for vulnerabilities, malicious code, and supply chain risks.
 
-**Required Scanners:**
-- `package-sbom` - Dependency enumeration
-- `package-vulns` - CVE detection
-- `package-health` - Abandonment risk
-- `package-malcontent` - Malware detection
-- `licenses` - License compliance
+**Required Analyzer:**
+- `code-packages` (features: generation, vulns, health, malcontent, licenses)
 
 **Investigation Triggers:**
 - Critical/high severity CVEs
@@ -207,10 +203,8 @@ Task(
 
 **Role:** Static application security testing (SAST), secret detection, attack surface analysis.
 
-**Required Scanners:**
-- `code-vulns` - SAST findings
-- `code-secrets` - Secret detection
-- `tech-discovery` - Technology context
+**Required Analyzer:**
+- `code-security` (features: vulns, secrets, api)
 
 **Detected Issues:**
 - SQL injection
@@ -239,12 +233,8 @@ Task(
 
 **Role:** Analyzes cryptographic security, TLS configurations, key management.
 
-**Required Scanners:**
-- `code-crypto (ciphers)` - Weak cipher detection
-- `code-crypto (keys)` - Hardcoded keys
-- `code-crypto (random)` - Insecure RNG
-- `code-crypto (tls)` - TLS misconfiguration
-- `code-secrets` - Additional context
+**Required Analyzer:**
+- `code-security` (features: ciphers, keys, random, tls, certificates)
 
 **Detected Issues:**
 - DES, 3DES, RC4, Blowfish
@@ -273,11 +263,10 @@ Task(
 
 **Role:** Compliance assessment against frameworks like SOC 2, ISO 27001, PCI-DSS.
 
-**Required Scanners:**
-- `code-vulns` - Security baseline
-- `licenses` - License compliance
-- `iac-security` - Infrastructure controls
-- `package-sbom` - Dependency inventory
+**Required Analyzers:**
+- `code-security` (features: vulns, secrets)
+- `code-packages` (features: licenses, generation)
+- `devops` (features: iac, containers)
 
 **Frameworks:**
 - SOC 2 Trust Service Criteria
@@ -304,9 +293,8 @@ Task(
 
 **Role:** License compatibility analysis, data privacy assessment, legal risk evaluation.
 
-**Required Scanners:**
-- `licenses` - SPDX license data
-- `package-sbom` - Dependency tree
+**Required Analyzer:**
+- `code-packages` (features: licenses, generation)
 
 **Expertise:**
 - License compatibility (MIT, Apache, GPL, etc.)
@@ -346,9 +334,8 @@ Task(
 
 **Role:** Infrastructure security, Kubernetes, IaC analysis, container security.
 
-**Required Scanners:**
-- `iac-security` - Terraform, CloudFormation
-- `container-security` - Docker, images
+**Required Analyzer:**
+- `devops` (features: iac, containers, github_actions)
 
 **Example:**
 ```
@@ -365,16 +352,13 @@ Task(
 Each agent requires specific scanner data. Ensure scanners have run before invoking:
 
 ```bash
-# Run all scanners (quick mode)
-./zero hydrate owner/repo
+# Run all analyzers (quick mode)
+./zero hydrate owner/repo all-quick
 
-# Run security-focused scanners
+# Run security-focused analyzer
 ./zero hydrate owner/repo code-security
 
-# Run crypto-specific scanners
-./zero hydrate owner/repo code-crypto
-
-# Run all scanners with full features
+# Run all analyzers with full features
 ./zero hydrate owner/repo all-complete
 ```
 

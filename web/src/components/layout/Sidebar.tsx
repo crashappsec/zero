@@ -11,12 +11,10 @@ import {
   Bot,
   Package,
   Shield,
-  Key,
   BarChart3,
   Server,
   Cpu,
   Users,
-  Sparkles,
   ChevronDown,
   Scan,
 } from 'lucide-react';
@@ -34,16 +32,14 @@ interface NavGroup {
   defaultOpen?: boolean;
 }
 
-// Scanner navigation - aligned with existing pages
-const scannerNavigation: NavItem[] = [
-  { name: 'Dependencies', href: '/dependencies', icon: Package },
-  { name: 'Vulnerabilities', href: '/vulnerabilities', icon: Shield },
-  { name: 'Secrets', href: '/secrets', icon: Key },
-  { name: 'Code Quality', href: '/quality', icon: BarChart3 },
+// 6 Dimensions of Engineering Intelligence
+const dimensionNavigation: NavItem[] = [
+  { name: 'Security', href: '/security', icon: Shield },
+  { name: 'Supply Chain', href: '/supply-chain', icon: Package },
+  { name: 'Quality', href: '/quality', icon: BarChart3 },
   { name: 'DevOps', href: '/devops', icon: Server },
   { name: 'Technology', href: '/technology', icon: Cpu },
-  { name: 'Code Ownership', href: '/ownership', icon: Users },
-  { name: 'Developer Experience', href: '/devx', icon: Sparkles },
+  { name: 'Team', href: '/team', icon: Users },
 ];
 
 // Management navigation
@@ -61,8 +57,8 @@ const navigationGroups: NavGroup[] = [
     defaultOpen: true,
   },
   {
-    title: 'Scanners',
-    items: scannerNavigation,
+    title: 'Engineering Intelligence',
+    items: dimensionNavigation,
     defaultOpen: true,
   },
   {

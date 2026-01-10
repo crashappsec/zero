@@ -371,62 +371,39 @@ Run `zero status` to see freshness indicators for all hydrated projects.
 
 ## Reports
 
-Zero generates interactive HTML reports using [Evidence](https://evidence.dev).
+Zero generates markdown reports from analysis data.
 
 ### Generating Reports
 
 ```bash
-# Generate and open report (starts HTTP server, press Ctrl+C to stop)
+# Generate report for a specific analyzer
+zero report expressjs/express --analyzer code-security
+
+# Generate aggregated report across all analyzers
 zero report expressjs/express
 
-# Force regenerate
-zero report expressjs/express --regenerate
+# Generate report for a specific category (6 dimensions)
+zero report expressjs/express --category security
+zero report expressjs/express --category supply-chain
+zero report expressjs/express --category quality
+zero report expressjs/express --category devops
+zero report expressjs/express --category technology
+zero report expressjs/express --category team
 
-# Generate without opening browser
-zero report expressjs/express --open=false
-
-# Start live dev server (hot reload for editing)
-zero report expressjs/express --serve
+# Output to file
+zero report expressjs/express --output report.md
 ```
 
-**Note:** Reports require HTTP to render properly (JavaScript loads data via fetch). The `zero report` command automatically starts a local HTTP server and opens your browser. Press Ctrl+C to stop the server when done viewing.
+### Report Categories (6 Dimensions of Engineering Intelligence)
 
-### Report Pages
-
-| Page | Description | Data Sources |
-|------|-------------|--------------|
-| **Overview** | Engineering insights with key metrics | All scanners |
-| **Security** | Vulnerabilities, secrets, crypto issues | code-security, code-crypto |
-| **Dependencies** | Package inventory, license distribution | sbom, package-analysis |
-| **Supply Chain** | Malcontent detection, package health | package-analysis |
-| **DevOps** | DORA metrics, IaC, GitHub Actions, containers | devops |
-| **Quality & Ownership** | Quality metrics, devx, technologies, ownership | code-quality, technology-identification, code-ownership, devx |
-| **AI/ML** | ML models, frameworks, datasets | technology-identification |
-
-### Report Data Sources
-
-Reports use JavaScript data sources in `reports/template/sources/zero/`:
-
-| Source | Scanner | Description |
-|--------|---------|-------------|
-| `severity_counts.js` | All | Aggregate severity counts |
-| `scanner_summary.js` | All | Per-scanner summary |
-| `vulnerabilities.js` | package-analysis, code-security | Combined vulnerabilities |
-| `secrets.js` | code-security | Detected secrets |
-| `crypto_findings.js` | code-crypto | Cryptographic issues |
-| `licenses.js` | package-analysis | License distribution |
-| `malcontent.js` | package-analysis | Supply chain threats |
-| `dora_metrics.js` | devops | DORA performance metrics |
-| `iac_findings.js` | devops | Infrastructure as Code issues |
-| `github_actions_findings.js` | devops | CI/CD security |
-| `container_findings.js` | devops | Container security |
-| `technologies.js` | technology-identification | Detected technologies |
-| `contributors.js` | code-ownership | Top contributors |
-| `ownership_summary.js` | code-ownership | Bus factor, ownership |
-| `code_quality.js` | code-quality | Quality metrics |
-| `devx_metrics.js` | devx | Developer experience |
-| `ai_security.js` | technology-identification | AI/ML security findings |
-| `ml_models.js` | technology-identification | Detected ML models |
+| Category | Analyzers | Content |
+|----------|-----------|---------|
+| **Security** | code-security | Vulnerabilities, secrets, crypto issues |
+| **Supply Chain** | code-packages | Dependencies, licenses, malcontent, package health |
+| **Quality** | code-quality | Tech debt, complexity, test coverage |
+| **DevOps** | devops | IaC, containers, GitHub Actions, DORA metrics |
+| **Technology** | technology-identification | Stack detection, ML-BOM, AI/ML findings |
+| **Team** | code-ownership, devx | Bus factor, contributors, onboarding |
 
 ## Docker
 
@@ -452,11 +429,8 @@ zero report expressjs/express
 # Hydrate (clone + scan)
 docker run -v ~/.zero:/home/zero/.zero -e GITHUB_TOKEN ghcr.io/crashappsec/zero hydrate owner/repo
 
-# Generate report
+# Generate markdown report
 docker run -v ~/.zero:/home/zero/.zero ghcr.io/crashappsec/zero report owner/repo
-
-# Start report server
-docker run -v ~/.zero:/home/zero/.zero -p 3000:3000 ghcr.io/crashappsec/zero report owner/repo --serve
 
 # Agent mode (interactive)
 docker run -it -v ~/.zero:/home/zero/.zero -e ANTHROPIC_API_KEY ghcr.io/crashappsec/zero agent
@@ -503,23 +477,18 @@ zero/
 │   │   ├── automation/        # Watch mode
 │   │   ├── freshness/         # Staleness tracking
 │   │   └── diff/              # Scan comparison
-│   ├── reports/               # Report generation
-│   │   ├── generator.go       # Evidence.dev reports
-│   │   └── sheets/            # Google Sheets export
 │   └── mcp/                   # MCP server
-├── reports/
-│   └── template/              # Evidence report template
-│       ├── pages/             # Report pages (index, security, etc.)
-│       ├── sources/zero/      # JavaScript data sources
-│       ├── package.json       # Evidence dependencies
-│       └── evidence.config.yaml
+├── web/                       # Next.js web UI
+│   ├── src/
+│   │   ├── app/               # App router pages
+│   │   └── components/        # React components
+│   └── package.json
 ├── rag/                       # Retrieval-Augmented Generation knowledge
 │   └── technology-identification/  # Technology detection patterns
 ├── config/
 │   └── zero.config.json       # Scanner configuration
 ├── docs/
-│   ├── DOCKER.md              # Docker usage documentation
-│   └── EVIDENCE-INTEGRATION-PLAN.md  # Report system design
+│   └── DOCKER.md              # Docker usage documentation
 ├── Dockerfile                 # Docker build configuration
 └── .claude/
     ├── agents/                # Claude Code agent definitions
@@ -548,21 +517,17 @@ zero/
 
 ./zero report <repo>
          │
-         ├─► Copy Evidence template to .zero/repos/<project>/.evidence-build/
+         ├─► Read analysis JSON from .zero/repos/<project>/analysis/
          │
-         ├─► Symlink analysis JSON to sources/zero/data/
-         │
-         ├─► Run Evidence build (npm run sources && npm run build)
-         │
-         └─► Output HTML report to .zero/repos/<project>/report/
+         └─► Generate markdown report (stdout or --output file)
                   │
-                  ├─► index.html           (Executive summary)
-                  ├─► security/            (Vulnerabilities, secrets, crypto)
-                  ├─► dependencies/        (SBOM, licenses)
-                  ├─► supply-chain/        (Malcontent, package health)
-                  ├─► devops/              (DORA, IaC, containers)
-                  ├─► quality/             (Code quality, ownership)
-                  └─► ai-security/         (ML models, AI findings)
+                  ├─► Overview             (Executive summary)
+                  ├─► Security             (Vulnerabilities, secrets, crypto)
+                  ├─► Supply Chain         (Dependencies, licenses, malcontent)
+                  ├─► Quality              (Tech debt, complexity)
+                  ├─► DevOps               (DORA, IaC, containers)
+                  ├─► Technology           (Stack detection, AI/ML)
+                  └─► Team                 (Ownership, bus factor)
 
 /agent
          │
