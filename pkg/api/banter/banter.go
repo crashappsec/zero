@@ -113,7 +113,7 @@ func NewGenerator() (*Generator, error) {
 	return &Generator{
 		personalities: &p,
 		enabled:       false, // Disabled by default
-		rng:           mathrand.New(mathrand.NewSource(time.Now().UnixNano())),
+		rng:           mathrand.New(mathrand.NewSource(time.Now().UnixNano())), // #nosec G404 - used for non-cryptographic random selection only
 	}, nil
 }
 
