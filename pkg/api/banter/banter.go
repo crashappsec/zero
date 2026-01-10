@@ -3,10 +3,11 @@ package banter
 
 import (
 	"context"
+	"crypto/rand"
 	"embed"
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	mathrand "math/rand"
 	"strings"
 	"sync"
 	"time"
@@ -94,7 +95,7 @@ type Generator struct {
 	personalities *Personalities
 	enabled       bool
 	mu            sync.RWMutex
-	rng           *rand.Rand
+	rng           *mathrand.Rand
 }
 
 // NewGenerator creates a new banter generator
@@ -112,7 +113,7 @@ func NewGenerator() (*Generator, error) {
 	return &Generator{
 		personalities: &p,
 		enabled:       false, // Disabled by default
-		rng:           rand.New(rand.NewSource(time.Now().UnixNano())),
+		rng:           mathrand.New(mathrand.NewSource(time.Now().UnixNano())),
 	}, nil
 }
 
@@ -347,8 +348,12 @@ func (g *Generator) shuffleStrings(items []string) {
 func generateID() string {
 	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
 	b := make([]byte, 8)
-	for i := range b {
-		b[i] = chars[rand.Intn(len(chars))]
+	if _, err := rand.Read(b); err != nil {
+		// Fallback to timestamp-based ID if crypto/rand fails
+		return fmt.Sprintf("%x", time.Now().UnixNano())[:8]
+	}
+	for i, v := range b {
+		b[i] = chars[int(v)%len(chars)]
 	}
 	return string(b)
 }
