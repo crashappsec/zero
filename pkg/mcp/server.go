@@ -14,13 +14,34 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Constants for robustness
-const (
-	// MaxOutputSize is the maximum size of JSON output (1MB)
-	MaxOutputSize = 1024 * 1024
-	// MaxFindingsPerCategory limits findings returned per category
-	MaxFindingsPerCategory = 500
+// Default limits - can be overridden via ServerConfig
+var (
+	// DefaultMaxOutputSize is the default maximum size of JSON output (1MB)
+	DefaultMaxOutputSize = 1024 * 1024
+	// DefaultMaxFindingsPerCategory is the default limit for findings per category
+	DefaultMaxFindingsPerCategory = 500
+	// DefaultMaxFileSize is the default maximum analysis file size (50MB)
+	DefaultMaxFileSize = int64(50 * 1024 * 1024)
 )
+
+// ServerConfig holds configurable limits for the MCP server
+type ServerConfig struct {
+	// MaxOutputSize limits JSON output size in bytes (default: 1MB)
+	MaxOutputSize int
+	// MaxFindingsPerCategory limits findings returned per category (default: 500)
+	MaxFindingsPerCategory int
+	// MaxFileSize limits analysis file size in bytes (default: 50MB)
+	MaxFileSize int64
+}
+
+// DefaultServerConfig returns the default server configuration
+func DefaultServerConfig() ServerConfig {
+	return ServerConfig{
+		MaxOutputSize:          DefaultMaxOutputSize,
+		MaxFindingsPerCategory: DefaultMaxFindingsPerCategory,
+		MaxFileSize:            DefaultMaxFileSize,
+	}
+}
 
 // validProjectPattern matches valid project IDs (owner/repo format)
 // Prevents path traversal attacks
@@ -30,6 +51,7 @@ var validProjectPattern = regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9_.]*[/][a-z
 type Server struct {
 	zeroHome string
 	server   *mcp.Server
+	config   ServerConfig
 }
 
 // Project represents a hydrated project
@@ -42,14 +64,20 @@ type Project struct {
 	AvailableScans []string `json:"available_scans"`
 }
 
-// NewServer creates a new MCP server
+// NewServer creates a new MCP server with default configuration
 func NewServer(zeroHome string) *Server {
+	return NewServerWithConfig(zeroHome, DefaultServerConfig())
+}
+
+// NewServerWithConfig creates a new MCP server with custom configuration
+func NewServerWithConfig(zeroHome string, config ServerConfig) *Server {
 	if zeroHome == "" {
 		zeroHome = filepath.Join(os.Getenv("HOME"), ".zero")
 	}
 
 	s := &Server{
 		zeroHome: zeroHome,
+		config:   config,
 	}
 
 	s.server = mcp.NewServer(&mcp.Implementation{
@@ -377,6 +405,8 @@ func (s *Server) handleGetVulnerabilities(ctx context.Context, req *mcp.CallTool
 		"project": input.Project,
 	}
 
+	var warnings []string
+
 	if findings, ok := data["findings"].(map[string]interface{}); ok {
 		if vulns, ok := findings["vulns"].([]interface{}); ok {
 			// Filter by severity if specified
@@ -395,19 +425,25 @@ func (s *Server) handleGetVulnerabilities(ctx context.Context, req *mcp.CallTool
 						}
 					}
 				}
-				// Apply limit to prevent oversized responses
-				filtered = limitFindings(filtered, MaxFindingsPerCategory)
-				result["vulnerabilities"] = filtered
-				result["count"] = len(filtered)
-			} else {
-				// Apply limit to prevent oversized responses
-				limited := limitFindings(vulns, MaxFindingsPerCategory)
-				result["vulnerabilities"] = limited
-				result["count"] = len(vulns)
-				if len(vulns) > MaxFindingsPerCategory {
-					result["_truncated"] = true
-					result["_total"] = len(vulns)
+				// Apply limit with warning
+				limited, limitWarning := s.limitFindingsWithWarning(filtered, "vulnerabilities")
+				if limitWarning != nil {
+					result["_findings_warning"] = limitWarning
+					warnings = append(warnings, limitWarning["_warning"].(string))
 				}
+				result["vulnerabilities"] = limited
+				result["count"] = len(limited)
+				result["total_matching"] = len(filtered)
+			} else {
+				// Apply limit with warning
+				limited, limitWarning := s.limitFindingsWithWarning(vulns, "vulnerabilities")
+				if limitWarning != nil {
+					result["_findings_warning"] = limitWarning
+					warnings = append(warnings, limitWarning["_warning"].(string))
+				}
+				result["vulnerabilities"] = limited
+				result["count"] = len(limited)
+				result["total"] = len(vulns)
 			}
 		} else {
 			result["vulnerabilities"] = []interface{}{}
@@ -419,9 +455,16 @@ func (s *Server) handleGetVulnerabilities(ctx context.Context, req *mcp.CallTool
 		result["_note"] = "No findings section in analysis data"
 	}
 
-	output, err := safeJSONMarshal(result)
+	if len(warnings) > 0 {
+		result["_warnings"] = warnings
+	}
+
+	output, outputWarning, err := s.safeJSONMarshal(result)
 	if err != nil {
 		return nil, TextOutput{}, err
+	}
+	if outputWarning != "" {
+		// Warning already in output
 	}
 	return nil, TextOutput{Text: string(output)}, nil
 }
@@ -795,24 +838,63 @@ func validateProjectID(projectID string) error {
 }
 
 // safeJSONMarshal marshals data to JSON with size limits
+// Returns the JSON and a warning message if truncated
+func (s *Server) safeJSONMarshal(v interface{}) ([]byte, string, error) {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+	if len(data) > s.config.MaxOutputSize {
+		// Add warning to result instead of replacing it
+		warning := fmt.Sprintf("WARNING: Output truncated - size %d bytes exceeds limit of %d bytes. Use get_analysis_raw with filters or increase MaxOutputSize config.",
+			len(data), s.config.MaxOutputSize)
+		truncated := map[string]interface{}{
+			"_warning":   warning,
+			"_truncated": true,
+			"_size":      len(data),
+			"_limit":     s.config.MaxOutputSize,
+			"_hint":      "Use get_analysis_raw with specific filters, or configure larger MaxOutputSize",
+		}
+		result, _ := json.MarshalIndent(truncated, "", "  ")
+		return result, warning, nil
+	}
+	return data, "", nil
+}
+
+// limitFindingsWithWarning limits the number of findings and returns a warning if truncated
+func (s *Server) limitFindingsWithWarning(findings []interface{}, category string) ([]interface{}, map[string]interface{}) {
+	if len(findings) <= s.config.MaxFindingsPerCategory {
+		return findings, nil
+	}
+
+	warning := map[string]interface{}{
+		"_warning":        fmt.Sprintf("WARNING: %s findings truncated - showing %d of %d total. Increase MaxFindingsPerCategory config for more.", category, s.config.MaxFindingsPerCategory, len(findings)),
+		"_truncated":      true,
+		"_shown":          s.config.MaxFindingsPerCategory,
+		"_total":          len(findings),
+		"_limit":          s.config.MaxFindingsPerCategory,
+		"_category":       category,
+	}
+	return findings[:s.config.MaxFindingsPerCategory], warning
+}
+
+// Standalone version for backward compatibility in tests
 func safeJSONMarshal(v interface{}) ([]byte, error) {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal JSON: %w", err)
 	}
-	if len(data) > MaxOutputSize {
-		// Truncate and add indicator
+	if len(data) > DefaultMaxOutputSize {
 		truncated := map[string]interface{}{
+			"_warning":   fmt.Sprintf("WARNING: Output truncated - exceeded %d bytes limit", DefaultMaxOutputSize),
 			"_truncated": true,
-			"_message":   fmt.Sprintf("Output truncated (exceeded %d bytes)", MaxOutputSize),
-			"_hint":      "Use get_analysis_raw with specific filters for full data",
 		}
 		return json.MarshalIndent(truncated, "", "  ")
 	}
 	return data, nil
 }
 
-// limitFindings limits the number of findings in a slice
+// limitFindings limits the number of findings in a slice (backward compat)
 func limitFindings(findings []interface{}, limit int) []interface{} {
 	if len(findings) <= limit {
 		return findings
@@ -901,9 +983,10 @@ func (s *Server) readAnalysis(projectID, analysisType string) (map[string]interf
 		return nil, fmt.Errorf("error accessing analysis file: %w", err)
 	}
 
-	// Check file size (limit to 50MB to prevent memory issues)
-	if info.Size() > 50*1024*1024 {
-		return nil, fmt.Errorf("analysis file too large (max 50MB)")
+	// Check file size against configurable limit
+	if info.Size() > s.config.MaxFileSize {
+		return nil, fmt.Errorf("WARNING: Analysis file too large (%d bytes) - exceeds configured limit of %d bytes. Increase MaxFileSize config to read larger files",
+			info.Size(), s.config.MaxFileSize)
 	}
 
 	data, err := os.ReadFile(path)
