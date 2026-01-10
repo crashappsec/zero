@@ -1,0 +1,735 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "Technology detection patterns for Zero's native Go pattern matching",
+  "technologies": [
+    {
+      "id": "mcp",
+      "name": "Model Context Protocol",
+      "category": "ai-ml/protocols",
+      "description": "Open standard by Anthropic for AI applications to connect to external data sources and tools",
+      "homepage": "https://modelcontextprotocol.io",
+      "vendor": "Anthropic",
+      "license": "MIT",
+      "risk_level": "medium-high",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "@modelcontextprotocol/sdk", "confidence": 95},
+          {"ecosystem": "npm", "name": "@modelcontextprotocol/server", "confidence": 95},
+          {"ecosystem": "npm", "name": "@modelcontextprotocol/client", "confidence": 95},
+          {"ecosystem": "npm", "pattern": "mcp-server-*", "confidence": 90},
+          {"ecosystem": "pypi", "name": "mcp", "confidence": 95},
+          {"ecosystem": "pypi", "name": "mcp-server", "confidence": 95},
+          {"ecosystem": "pypi", "name": "mcp-client", "confidence": 95}
+        ],
+        "imports": [
+          {"language": "javascript", "pattern": "from [\"']@modelcontextprotocol", "confidence": 95},
+          {"language": "javascript", "pattern": "import.*@modelcontextprotocol", "confidence": 95},
+          {"language": "python", "pattern": "from mcp import", "confidence": 95},
+          {"language": "python", "pattern": "from mcp\\.server import", "confidence": 95},
+          {"language": "python", "pattern": "import mcp", "confidence": 90}
+        ],
+        "config_files": [
+          {"path": "mcp.json", "confidence": 95},
+          {"path": "mcp-config.json", "confidence": 95},
+          {"path": "claude_desktop_config.json", "confidence": 90},
+          {"path": ".mcp/", "confidence": 90, "is_directory": true}
+        ],
+        "file_patterns": [
+          {"pattern": "mcp-server.js", "confidence": 85},
+          {"pattern": "mcp-server.py", "confidence": 85},
+          {"pattern": "mcp_server.py", "confidence": 85}
+        ],
+        "env_vars": [
+          {"pattern": "MCP_SERVER_*", "confidence": 80},
+          {"pattern": "MCP_DEBUG", "confidence": 75},
+          {"pattern": "MCP_LOG_LEVEL", "confidence": 75}
+        ]
+      },
+      "security": {
+        "audit_points": [
+          "Review what tools/capabilities each MCP server exposes",
+          "Check what resources (files, databases) servers can access",
+          "Identify external API connections",
+          "Look for servers that execute shell commands",
+          "Verify how servers authenticate to external services"
+        ],
+        "common_vulnerabilities": [
+          "Path traversal in file servers without path validation",
+          "Command injection from unsanitized input to shell",
+          "Credential exposure in server configurations",
+          "Overprivileged access beyond what's needed"
+        ]
+      }
+    },
+    {
+      "id": "openai",
+      "name": "OpenAI API",
+      "category": "ai-ml/apis",
+      "description": "OpenAI API client for GPT models, DALL-E, and other AI services",
+      "homepage": "https://platform.openai.com",
+      "vendor": "OpenAI",
+      "risk_level": "medium",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "openai", "confidence": 95},
+          {"ecosystem": "pypi", "name": "openai", "confidence": 95},
+          {"ecosystem": "go", "name": "github.com/sashabaranov/go-openai", "confidence": 95}
+        ],
+        "imports": [
+          {"language": "javascript", "pattern": "from [\"']openai[\"']", "confidence": 95},
+          {"language": "javascript", "pattern": "import.*OpenAI.*from [\"']openai", "confidence": 95},
+          {"language": "python", "pattern": "from openai import", "confidence": 95},
+          {"language": "python", "pattern": "import openai", "confidence": 90}
+        ],
+        "env_vars": [
+          {"pattern": "OPENAI_API_KEY", "confidence": 95},
+          {"pattern": "OPENAI_ORG_ID", "confidence": 90},
+          {"pattern": "OPENAI_BASE_URL", "confidence": 85}
+        ],
+        "code_patterns": [
+          {"language": "javascript", "pattern": "new OpenAI\\(", "confidence": 90},
+          {"language": "javascript", "pattern": "openai\\.chat\\.completions", "confidence": 95},
+          {"language": "python", "pattern": "OpenAI\\(\\)", "confidence": 90},
+          {"language": "python", "pattern": "client\\.chat\\.completions\\.create", "confidence": 95}
+        ]
+      },
+      "security": {
+        "secrets": [
+          {"pattern": "sk-[a-zA-Z0-9]{48}", "name": "OpenAI API Key", "severity": "critical"}
+        ]
+      }
+    },
+    {
+      "id": "anthropic",
+      "name": "Anthropic Claude API",
+      "category": "ai-ml/apis",
+      "description": "Anthropic API client for Claude models",
+      "homepage": "https://docs.anthropic.com",
+      "vendor": "Anthropic",
+      "risk_level": "medium",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "@anthropic-ai/sdk", "confidence": 95},
+          {"ecosystem": "pypi", "name": "anthropic", "confidence": 95},
+          {"ecosystem": "go", "name": "github.com/anthropics/anthropic-sdk-go", "confidence": 95}
+        ],
+        "imports": [
+          {"language": "javascript", "pattern": "from [\"']@anthropic-ai/sdk[\"']", "confidence": 95},
+          {"language": "javascript", "pattern": "import.*Anthropic.*from [\"']@anthropic-ai", "confidence": 95},
+          {"language": "python", "pattern": "from anthropic import", "confidence": 95},
+          {"language": "python", "pattern": "import anthropic", "confidence": 90}
+        ],
+        "env_vars": [
+          {"pattern": "ANTHROPIC_API_KEY", "confidence": 95},
+          {"pattern": "CLAUDE_API_KEY", "confidence": 85}
+        ],
+        "code_patterns": [
+          {"language": "javascript", "pattern": "new Anthropic\\(", "confidence": 90},
+          {"language": "javascript", "pattern": "anthropic\\.messages\\.create", "confidence": 95},
+          {"language": "python", "pattern": "Anthropic\\(\\)", "confidence": 90},
+          {"language": "python", "pattern": "client\\.messages\\.create", "confidence": 90}
+        ]
+      },
+      "security": {
+        "secrets": [
+          {"pattern": "sk-ant-[a-zA-Z0-9-_]{95}", "name": "Anthropic API Key", "severity": "critical"}
+        ]
+      }
+    },
+    {
+      "id": "langchain",
+      "name": "LangChain",
+      "category": "ai-ml/frameworks",
+      "description": "Framework for developing applications powered by language models",
+      "homepage": "https://langchain.com",
+      "vendor": "LangChain",
+      "license": "MIT",
+      "risk_level": "medium",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "langchain", "confidence": 95},
+          {"ecosystem": "npm", "name": "@langchain/core", "confidence": 95},
+          {"ecosystem": "npm", "name": "@langchain/openai", "confidence": 95},
+          {"ecosystem": "npm", "name": "@langchain/anthropic", "confidence": 95},
+          {"ecosystem": "pypi", "name": "langchain", "confidence": 95},
+          {"ecosystem": "pypi", "name": "langchain-core", "confidence": 95},
+          {"ecosystem": "pypi", "name": "langchain-openai", "confidence": 95},
+          {"ecosystem": "pypi", "name": "langchain-anthropic", "confidence": 95}
+        ],
+        "imports": [
+          {"language": "javascript", "pattern": "from [\"']langchain", "confidence": 95},
+          {"language": "javascript", "pattern": "from [\"']@langchain/", "confidence": 95},
+          {"language": "python", "pattern": "from langchain", "confidence": 95},
+          {"language": "python", "pattern": "from langchain_", "confidence": 95}
+        ],
+        "env_vars": [
+          {"pattern": "LANGCHAIN_API_KEY", "confidence": 95},
+          {"pattern": "LANGCHAIN_TRACING_V2", "confidence": 85},
+          {"pattern": "LANGCHAIN_PROJECT", "confidence": 80}
+        ]
+      }
+    },
+    {
+      "id": "pytorch",
+      "name": "PyTorch",
+      "category": "ai-ml/frameworks",
+      "description": "Open source machine learning framework",
+      "homepage": "https://pytorch.org",
+      "vendor": "Meta",
+      "license": "BSD",
+      "risk_level": "low",
+      "detections": {
+        "packages": [
+          {"ecosystem": "pypi", "name": "torch", "confidence": 95},
+          {"ecosystem": "pypi", "name": "torchvision", "confidence": 95},
+          {"ecosystem": "pypi", "name": "torchaudio", "confidence": 95}
+        ],
+        "imports": [
+          {"language": "python", "pattern": "import torch", "confidence": 95},
+          {"language": "python", "pattern": "from torch import", "confidence": 95},
+          {"language": "python", "pattern": "from torch\\.nn import", "confidence": 95}
+        ],
+        "file_extensions": [
+          {"extension": ".pt", "confidence": 90, "description": "PyTorch model file"},
+          {"extension": ".pth", "confidence": 90, "description": "PyTorch model weights"}
+        ]
+      },
+      "security": {
+        "audit_points": [
+          "Check for pickle-based model loading (RCE risk)",
+          "Verify model provenance and integrity"
+        ]
+      }
+    },
+    {
+      "id": "tensorflow",
+      "name": "TensorFlow",
+      "category": "ai-ml/frameworks",
+      "description": "End-to-end open source platform for machine learning",
+      "homepage": "https://tensorflow.org",
+      "vendor": "Google",
+      "license": "Apache-2.0",
+      "risk_level": "low",
+      "detections": {
+        "packages": [
+          {"ecosystem": "pypi", "name": "tensorflow", "confidence": 95},
+          {"ecosystem": "pypi", "name": "tensorflow-gpu", "confidence": 95},
+          {"ecosystem": "pypi", "name": "keras", "confidence": 90}
+        ],
+        "imports": [
+          {"language": "python", "pattern": "import tensorflow", "confidence": 95},
+          {"language": "python", "pattern": "from tensorflow import", "confidence": 95},
+          {"language": "python", "pattern": "import keras", "confidence": 90}
+        ],
+        "file_extensions": [
+          {"extension": ".h5", "confidence": 85, "description": "Keras/TensorFlow model"},
+          {"extension": ".pb", "confidence": 80, "description": "TensorFlow SavedModel"},
+          {"extension": ".tflite", "confidence": 90, "description": "TensorFlow Lite model"}
+        ],
+        "config_files": [
+          {"path": "saved_model.pb", "confidence": 95}
+        ]
+      }
+    },
+    {
+      "id": "huggingface",
+      "name": "Hugging Face Transformers",
+      "category": "ai-ml/mlops",
+      "description": "State-of-the-art ML models for NLP, vision, and audio",
+      "homepage": "https://huggingface.co",
+      "vendor": "Hugging Face",
+      "license": "Apache-2.0",
+      "risk_level": "medium",
+      "detections": {
+        "packages": [
+          {"ecosystem": "pypi", "name": "transformers", "confidence": 95},
+          {"ecosystem": "pypi", "name": "datasets", "confidence": 85},
+          {"ecosystem": "pypi", "name": "huggingface-hub", "confidence": 95},
+          {"ecosystem": "pypi", "name": "accelerate", "confidence": 85},
+          {"ecosystem": "pypi", "name": "safetensors", "confidence": 90}
+        ],
+        "imports": [
+          {"language": "python", "pattern": "from transformers import", "confidence": 95},
+          {"language": "python", "pattern": "from huggingface_hub import", "confidence": 95},
+          {"language": "python", "pattern": "from datasets import", "confidence": 85}
+        ],
+        "env_vars": [
+          {"pattern": "HUGGINGFACE_TOKEN", "confidence": 95},
+          {"pattern": "HF_TOKEN", "confidence": 95},
+          {"pattern": "HF_HOME", "confidence": 80}
+        ],
+        "file_extensions": [
+          {"extension": ".safetensors", "confidence": 95, "description": "Safe model weights"}
+        ],
+        "config_files": [
+          {"path": "config.json", "content_pattern": "\"model_type\"", "confidence": 90},
+          {"path": "tokenizer_config.json", "confidence": 90}
+        ]
+      },
+      "security": {
+        "secrets": [
+          {"pattern": "hf_[a-zA-Z0-9]{34}", "name": "Hugging Face Token", "severity": "high"}
+        ]
+      }
+    },
+    {
+      "id": "chromadb",
+      "name": "ChromaDB",
+      "category": "ai-ml/vectordb",
+      "description": "Open-source embedding database for AI applications",
+      "homepage": "https://www.trychroma.com",
+      "vendor": "Chroma",
+      "license": "Apache-2.0",
+      "risk_level": "low",
+      "detections": {
+        "packages": [
+          {"ecosystem": "pypi", "name": "chromadb", "confidence": 95},
+          {"ecosystem": "npm", "name": "chromadb", "confidence": 95}
+        ],
+        "imports": [
+          {"language": "python", "pattern": "import chromadb", "confidence": 95},
+          {"language": "python", "pattern": "from chromadb import", "confidence": 95},
+          {"language": "javascript", "pattern": "from [\"']chromadb[\"']", "confidence": 95}
+        ],
+        "config_files": [
+          {"path": "chroma/", "confidence": 85, "is_directory": true}
+        ]
+      }
+    },
+    {
+      "id": "pinecone",
+      "name": "Pinecone",
+      "category": "ai-ml/vectordb",
+      "description": "Vector database for machine learning applications",
+      "homepage": "https://pinecone.io",
+      "vendor": "Pinecone",
+      "risk_level": "medium",
+      "detections": {
+        "packages": [
+          {"ecosystem": "pypi", "name": "pinecone-client", "confidence": 95},
+          {"ecosystem": "npm", "name": "@pinecone-database/pinecone", "confidence": 95}
+        ],
+        "imports": [
+          {"language": "python", "pattern": "from pinecone import", "confidence": 95},
+          {"language": "python", "pattern": "import pinecone", "confidence": 95},
+          {"language": "javascript", "pattern": "@pinecone-database/pinecone", "confidence": 95}
+        ],
+        "env_vars": [
+          {"pattern": "PINECONE_API_KEY", "confidence": 95},
+          {"pattern": "PINECONE_ENVIRONMENT", "confidence": 90}
+        ]
+      },
+      "security": {
+        "secrets": [
+          {"pattern": "pcsk_[a-zA-Z0-9]{50,}", "name": "Pinecone API Key", "severity": "high"}
+        ]
+      }
+    },
+    {
+      "id": "stripe",
+      "name": "Stripe",
+      "category": "business-tools/payment",
+      "description": "Payment processing platform",
+      "homepage": "https://stripe.com",
+      "vendor": "Stripe",
+      "risk_level": "high",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "stripe", "confidence": 95},
+          {"ecosystem": "pypi", "name": "stripe", "confidence": 95},
+          {"ecosystem": "go", "name": "github.com/stripe/stripe-go", "confidence": 95}
+        ],
+        "imports": [
+          {"language": "javascript", "pattern": "from [\"']stripe[\"']", "confidence": 95},
+          {"language": "python", "pattern": "import stripe", "confidence": 95}
+        ],
+        "env_vars": [
+          {"pattern": "STRIPE_SECRET_KEY", "confidence": 95},
+          {"pattern": "STRIPE_PUBLISHABLE_KEY", "confidence": 90},
+          {"pattern": "STRIPE_WEBHOOK_SECRET", "confidence": 90}
+        ]
+      },
+      "security": {
+        "secrets": [
+          {"pattern": "sk_live_[a-zA-Z0-9]{24,}", "name": "Stripe Live Secret Key", "severity": "critical"},
+          {"pattern": "sk_test_[a-zA-Z0-9]{24,}", "name": "Stripe Test Secret Key", "severity": "high"},
+          {"pattern": "rk_live_[a-zA-Z0-9]{24,}", "name": "Stripe Restricted Key", "severity": "critical"}
+        ],
+        "audit_points": [
+          "Verify webhook signature validation",
+          "Check for idempotency key usage",
+          "Review PCI compliance requirements"
+        ]
+      }
+    },
+    {
+      "id": "aws-sdk",
+      "name": "AWS SDK",
+      "category": "cloud-providers/aws",
+      "description": "Amazon Web Services SDK",
+      "homepage": "https://aws.amazon.com/sdk-for-javascript/",
+      "vendor": "Amazon",
+      "risk_level": "high",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "@aws-sdk/client-s3", "confidence": 95},
+          {"ecosystem": "npm", "name": "@aws-sdk/client-dynamodb", "confidence": 95},
+          {"ecosystem": "npm", "name": "@aws-sdk/client-lambda", "confidence": 95},
+          {"ecosystem": "npm", "pattern": "@aws-sdk/client-*", "confidence": 90},
+          {"ecosystem": "pypi", "name": "boto3", "confidence": 95},
+          {"ecosystem": "pypi", "name": "botocore", "confidence": 90},
+          {"ecosystem": "go", "name": "github.com/aws/aws-sdk-go-v2", "confidence": 95}
+        ],
+        "imports": [
+          {"language": "javascript", "pattern": "from [\"']@aws-sdk/", "confidence": 95},
+          {"language": "python", "pattern": "import boto3", "confidence": 95},
+          {"language": "python", "pattern": "from boto3", "confidence": 95}
+        ],
+        "env_vars": [
+          {"pattern": "AWS_ACCESS_KEY_ID", "confidence": 95},
+          {"pattern": "AWS_SECRET_ACCESS_KEY", "confidence": 95},
+          {"pattern": "AWS_REGION", "confidence": 80},
+          {"pattern": "AWS_PROFILE", "confidence": 75}
+        ],
+        "config_files": [
+          {"path": ".aws/credentials", "confidence": 95},
+          {"path": ".aws/config", "confidence": 90}
+        ]
+      },
+      "security": {
+        "secrets": [
+          {"pattern": "AKIA[0-9A-Z]{16}", "name": "AWS Access Key ID", "severity": "critical"},
+          {"pattern": "[0-9a-zA-Z/+]{40}", "name": "AWS Secret Access Key", "severity": "critical", "context_required": true}
+        ],
+        "audit_points": [
+          "Check for hardcoded credentials",
+          "Verify IAM role usage instead of access keys",
+          "Review S3 bucket policies"
+        ]
+      }
+    },
+    {
+      "id": "kubernetes",
+      "name": "Kubernetes",
+      "category": "cncf/orchestration",
+      "description": "Container orchestration platform",
+      "homepage": "https://kubernetes.io",
+      "vendor": "CNCF",
+      "license": "Apache-2.0",
+      "risk_level": "high",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "@kubernetes/client-node", "confidence": 95},
+          {"ecosystem": "pypi", "name": "kubernetes", "confidence": 95},
+          {"ecosystem": "go", "name": "k8s.io/client-go", "confidence": 95}
+        ],
+        "config_files": [
+          {"path": "kubernetes/", "confidence": 90, "is_directory": true},
+          {"path": "k8s/", "confidence": 85, "is_directory": true},
+          {"path": "deploy/", "content_pattern": "kind: Deployment", "confidence": 85}
+        ],
+        "file_patterns": [
+          {"pattern": "*-deployment.yaml", "confidence": 90},
+          {"pattern": "*-service.yaml", "confidence": 90},
+          {"pattern": "*.k8s.yaml", "confidence": 95}
+        ],
+        "code_patterns": [
+          {"language": "yaml", "pattern": "apiVersion: apps/v1", "confidence": 90},
+          {"language": "yaml", "pattern": "kind: Deployment", "confidence": 95},
+          {"language": "yaml", "pattern": "kind: Service", "confidence": 90}
+        ]
+      },
+      "security": {
+        "audit_points": [
+          "Check for privileged containers",
+          "Verify resource limits are set",
+          "Review RBAC configurations",
+          "Check for exposed secrets in manifests"
+        ]
+      }
+    },
+    {
+      "id": "docker",
+      "name": "Docker",
+      "category": "container/runtime",
+      "description": "Container platform",
+      "homepage": "https://docker.com",
+      "vendor": "Docker Inc",
+      "risk_level": "medium",
+      "detections": {
+        "config_files": [
+          {"path": "Dockerfile", "confidence": 95},
+          {"path": "docker-compose.yml", "confidence": 95},
+          {"path": "docker-compose.yaml", "confidence": 95},
+          {"path": ".dockerignore", "confidence": 85}
+        ],
+        "file_patterns": [
+          {"pattern": "Dockerfile.*", "confidence": 90},
+          {"pattern": "*.dockerfile", "confidence": 90}
+        ]
+      },
+      "security": {
+        "audit_points": [
+          "Check for latest tag usage",
+          "Verify non-root user",
+          "Review exposed ports",
+          "Check for secrets in build args"
+        ]
+      }
+    },
+    {
+      "id": "terraform",
+      "name": "Terraform",
+      "category": "iac/provisioning",
+      "description": "Infrastructure as Code tool",
+      "homepage": "https://terraform.io",
+      "vendor": "HashiCorp",
+      "license": "MPL-2.0",
+      "risk_level": "high",
+      "detections": {
+        "file_extensions": [
+          {"extension": ".tf", "confidence": 95, "description": "Terraform configuration"},
+          {"extension": ".tfvars", "confidence": 95, "description": "Terraform variables"}
+        ],
+        "config_files": [
+          {"path": "terraform.tfstate", "confidence": 95},
+          {"path": ".terraform/", "confidence": 95, "is_directory": true},
+          {"path": "main.tf", "confidence": 95},
+          {"path": "variables.tf", "confidence": 95},
+          {"path": "outputs.tf", "confidence": 95}
+        ]
+      },
+      "security": {
+        "audit_points": [
+          "Check for hardcoded secrets in .tf files",
+          "Verify state file is not committed",
+          "Review provider credentials",
+          "Check for overly permissive IAM policies"
+        ]
+      }
+    },
+    {
+      "id": "github-actions",
+      "name": "GitHub Actions",
+      "category": "ci-cd/automation",
+      "description": "GitHub's built-in CI/CD and automation platform",
+      "homepage": "https://github.com/features/actions",
+      "vendor": "GitHub",
+      "risk_level": "medium",
+      "detections": {
+        "config_files": [
+          {"path": ".github/workflows/", "confidence": 95, "is_directory": true}
+        ],
+        "file_patterns": [
+          {"pattern": ".github/workflows/*.yml", "confidence": 95},
+          {"pattern": ".github/workflows/*.yaml", "confidence": 95}
+        ],
+        "code_patterns": [
+          {"language": "yaml", "pattern": "on:\\s*(push|pull_request|workflow_dispatch)", "confidence": 90},
+          {"language": "yaml", "pattern": "runs-on:", "confidence": 85},
+          {"language": "yaml", "pattern": "uses: actions/", "confidence": 90}
+        ]
+      },
+      "security": {
+        "audit_points": [
+          "Check for unpinned action versions",
+          "Verify GITHUB_TOKEN permissions",
+          "Review secret usage in workflows",
+          "Check for command injection in run steps"
+        ]
+      }
+    },
+    {
+      "id": "react",
+      "name": "React",
+      "category": "frontend/framework",
+      "description": "JavaScript library for building user interfaces",
+      "homepage": "https://react.dev",
+      "vendor": "Meta",
+      "license": "MIT",
+      "risk_level": "low",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "react", "confidence": 95},
+          {"ecosystem": "npm", "name": "react-dom", "confidence": 95},
+          {"ecosystem": "npm", "name": "react-router", "confidence": 85},
+          {"ecosystem": "npm", "name": "react-router-dom", "confidence": 85}
+        ],
+        "imports": [
+          {"language": "javascript", "pattern": "from [\"']react[\"']", "confidence": 95},
+          {"language": "javascript", "pattern": "import React", "confidence": 95}
+        ],
+        "file_extensions": [
+          {"extension": ".jsx", "confidence": 90, "description": "React JSX file"},
+          {"extension": ".tsx", "confidence": 85, "description": "React TypeScript file"}
+        ]
+      }
+    },
+    {
+      "id": "nextjs",
+      "name": "Next.js",
+      "category": "frontend/framework",
+      "description": "React framework for production",
+      "homepage": "https://nextjs.org",
+      "vendor": "Vercel",
+      "license": "MIT",
+      "risk_level": "low",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "next", "confidence": 95}
+        ],
+        "imports": [
+          {"language": "javascript", "pattern": "from [\"']next/", "confidence": 95},
+          {"language": "javascript", "pattern": "from [\"']next[\"']", "confidence": 90}
+        ],
+        "config_files": [
+          {"path": "next.config.js", "confidence": 95},
+          {"path": "next.config.mjs", "confidence": 95},
+          {"path": "next.config.ts", "confidence": 95}
+        ]
+      }
+    },
+    {
+      "id": "express",
+      "name": "Express.js",
+      "category": "backend/framework",
+      "description": "Fast, unopinionated web framework for Node.js",
+      "homepage": "https://expressjs.com",
+      "vendor": "OpenJS Foundation",
+      "license": "MIT",
+      "risk_level": "low",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "express", "confidence": 95}
+        ],
+        "imports": [
+          {"language": "javascript", "pattern": "from [\"']express[\"']", "confidence": 95},
+          {"language": "javascript", "pattern": "require\\([\"']express[\"']\\)", "confidence": 95}
+        ],
+        "code_patterns": [
+          {"language": "javascript", "pattern": "express\\(\\)", "confidence": 90},
+          {"language": "javascript", "pattern": "app\\.listen\\(", "confidence": 80}
+        ]
+      }
+    },
+    {
+      "id": "fastapi",
+      "name": "FastAPI",
+      "category": "backend/framework",
+      "description": "Modern, fast web framework for building APIs with Python",
+      "homepage": "https://fastapi.tiangolo.com",
+      "vendor": "Tiangolo",
+      "license": "MIT",
+      "risk_level": "low",
+      "detections": {
+        "packages": [
+          {"ecosystem": "pypi", "name": "fastapi", "confidence": 95},
+          {"ecosystem": "pypi", "name": "uvicorn", "confidence": 80}
+        ],
+        "imports": [
+          {"language": "python", "pattern": "from fastapi import", "confidence": 95},
+          {"language": "python", "pattern": "import fastapi", "confidence": 95}
+        ],
+        "code_patterns": [
+          {"language": "python", "pattern": "FastAPI\\(\\)", "confidence": 95},
+          {"language": "python", "pattern": "@app\\.(get|post|put|delete|patch)\\(", "confidence": 85}
+        ]
+      }
+    },
+    {
+      "id": "postgresql",
+      "name": "PostgreSQL",
+      "category": "database/relational",
+      "description": "Open source relational database",
+      "homepage": "https://postgresql.org",
+      "vendor": "PostgreSQL Global Development Group",
+      "license": "PostgreSQL",
+      "risk_level": "medium",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "pg", "confidence": 95},
+          {"ecosystem": "npm", "name": "postgres", "confidence": 90},
+          {"ecosystem": "pypi", "name": "psycopg2", "confidence": 95},
+          {"ecosystem": "pypi", "name": "psycopg", "confidence": 95},
+          {"ecosystem": "pypi", "name": "asyncpg", "confidence": 95},
+          {"ecosystem": "go", "name": "github.com/lib/pq", "confidence": 95},
+          {"ecosystem": "go", "name": "github.com/jackc/pgx", "confidence": 95}
+        ],
+        "env_vars": [
+          {"pattern": "POSTGRES_HOST", "confidence": 90},
+          {"pattern": "POSTGRES_USER", "confidence": 90},
+          {"pattern": "POSTGRES_PASSWORD", "confidence": 95},
+          {"pattern": "POSTGRES_DB", "confidence": 90},
+          {"pattern": "DATABASE_URL", "confidence": 75}
+        ]
+      },
+      "security": {
+        "audit_points": [
+          "Check for SQL injection vulnerabilities",
+          "Verify connection string security",
+          "Review database user permissions"
+        ]
+      }
+    },
+    {
+      "id": "mongodb",
+      "name": "MongoDB",
+      "category": "database/nosql",
+      "description": "Document-oriented NoSQL database",
+      "homepage": "https://mongodb.com",
+      "vendor": "MongoDB Inc",
+      "risk_level": "medium",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "mongodb", "confidence": 95},
+          {"ecosystem": "npm", "name": "mongoose", "confidence": 95},
+          {"ecosystem": "pypi", "name": "pymongo", "confidence": 95},
+          {"ecosystem": "pypi", "name": "motor", "confidence": 90},
+          {"ecosystem": "go", "name": "go.mongodb.org/mongo-driver", "confidence": 95}
+        ],
+        "env_vars": [
+          {"pattern": "MONGODB_URI", "confidence": 95},
+          {"pattern": "MONGO_URI", "confidence": 95},
+          {"pattern": "MONGO_URL", "confidence": 90}
+        ]
+      },
+      "security": {
+        "audit_points": [
+          "Check for NoSQL injection",
+          "Verify authentication is enabled",
+          "Review database access controls"
+        ]
+      }
+    },
+    {
+      "id": "redis",
+      "name": "Redis",
+      "category": "database/cache",
+      "description": "In-memory data structure store",
+      "homepage": "https://redis.io",
+      "vendor": "Redis Ltd",
+      "risk_level": "medium",
+      "detections": {
+        "packages": [
+          {"ecosystem": "npm", "name": "redis", "confidence": 95},
+          {"ecosystem": "npm", "name": "ioredis", "confidence": 95},
+          {"ecosystem": "pypi", "name": "redis", "confidence": 95},
+          {"ecosystem": "go", "name": "github.com/redis/go-redis", "confidence": 95}
+        ],
+        "env_vars": [
+          {"pattern": "REDIS_URL", "confidence": 95},
+          {"pattern": "REDIS_HOST", "confidence": 90},
+          {"pattern": "REDIS_PASSWORD", "confidence": 95}
+        ]
+      },
+      "security": {
+        "audit_points": [
+          "Verify password authentication is enabled",
+          "Check for exposed Redis ports",
+          "Review EVAL/EVALSHA usage for code injection"
+        ]
+      }
+    }
+  ]
+}
