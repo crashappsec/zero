@@ -1810,6 +1810,10 @@ func (s *TechnologyScanner) runTechnologyFeature(ctx context.Context, repoPath, 
 		techs = append(techs, s.detectFromFileExtensions(repoPath)...)
 	}
 
+	// Additional detection from JSON pattern database
+	// This supplements hardcoded patterns with patterns.json technologies
+	techs = append(techs, s.detectFromPatternDB(repoPath, sbomPath)...)
+
 	// Deduplicate and consolidate
 	techs = s.consolidateTechnologies(techs)
 
@@ -1977,6 +1981,137 @@ func (s *TechnologyScanner) detectFromFileExtensions(repoPath string) []Technolo
 	}
 
 	return techs
+}
+
+// detectFromPatternDB uses the JSON pattern database for additional technology detection
+// This supplements the hardcoded patterns with technologies from patterns.json
+func (s *TechnologyScanner) detectFromPatternDB(repoPath, sbomPath string) []Technology {
+	var techs []Technology
+
+	patternDB, err := LoadPatterns()
+	if err != nil || patternDB == nil {
+		return techs // Fall back to hardcoded patterns only
+	}
+
+	seen := make(map[string]bool)
+
+	// 1. Detect from SBOM packages using pattern database
+	if sbomPath != "" {
+		data, err := os.ReadFile(sbomPath)
+		if err == nil {
+			var sbom struct {
+				Components []struct {
+					Name  string `json:"name"`
+					Purl  string `json:"purl"`
+					Type  string `json:"type"`
+				} `json:"components"`
+			}
+			if json.Unmarshal(data, &sbom) == nil {
+				for _, comp := range sbom.Components {
+					// Try to detect ecosystem from purl or type
+					ecosystem := detectEcosystem(comp.Purl, comp.Type)
+					if ecosystem == "" {
+						continue
+					}
+
+					matches := patternDB.MatchPackage(ecosystem, comp.Name)
+					for _, m := range matches {
+						if !seen[m.TechID] {
+							techs = append(techs, Technology{
+								Name:       m.TechName,
+								Category:   m.Category,
+								Confidence: m.Confidence,
+								Source:     "pattern-db",
+							})
+							seen[m.TechID] = true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// 2. Detect from config files using pattern database
+	for path := range patternDB.configIndex {
+		// Handle directories
+		if strings.HasSuffix(path, "/") {
+			dirPath := filepath.Join(repoPath, strings.TrimSuffix(path, "/"))
+			if info, err := os.Stat(dirPath); err == nil && info.IsDir() {
+				matches := patternDB.MatchConfigFile(path)
+				for _, m := range matches {
+					if !seen[m.TechID] {
+						techs = append(techs, Technology{
+							Name:       m.TechName,
+							Category:   m.Category,
+							Confidence: m.Confidence,
+							Source:     "pattern-db",
+						})
+						seen[m.TechID] = true
+					}
+				}
+			}
+		} else {
+			// Regular file
+			filePath := filepath.Join(repoPath, path)
+			if _, err := os.Stat(filePath); err == nil {
+				matches := patternDB.MatchConfigFile(path)
+				for _, m := range matches {
+					if !seen[m.TechID] {
+						techs = append(techs, Technology{
+							Name:       m.TechName,
+							Category:   m.Category,
+							Confidence: m.Confidence,
+							Source:     "pattern-db",
+						})
+						seen[m.TechID] = true
+					}
+				}
+			}
+		}
+	}
+
+	return techs
+}
+
+// detectEcosystem determines the package ecosystem from purl or type
+func detectEcosystem(purl, compType string) string {
+	// Try purl first (pkg:npm/..., pkg:pypi/..., etc.)
+	if strings.HasPrefix(purl, "pkg:npm/") {
+		return "npm"
+	}
+	if strings.HasPrefix(purl, "pkg:pypi/") {
+		return "pypi"
+	}
+	if strings.HasPrefix(purl, "pkg:golang/") || strings.HasPrefix(purl, "pkg:go/") {
+		return "go"
+	}
+	if strings.HasPrefix(purl, "pkg:cargo/") {
+		return "cargo"
+	}
+	if strings.HasPrefix(purl, "pkg:maven/") {
+		return "maven"
+	}
+	if strings.HasPrefix(purl, "pkg:gem/") {
+		return "gem"
+	}
+
+	// Fall back to component type
+	switch strings.ToLower(compType) {
+	case "npm":
+		return "npm"
+	case "pypi":
+		return "pypi"
+	case "golang", "go":
+		return "go"
+	case "cargo":
+		return "cargo"
+	case "maven":
+		return "maven"
+	case "gem":
+		return "gem"
+	}
+
+	return ""
 }
 
 // consolidateTechnologies deduplicates and consolidates technologies
