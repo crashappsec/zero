@@ -14,7 +14,8 @@
   "profiles": {
     "all-quick": {
       "name": "All Quick",
-      "description": "All scanners with fast defaults",
+      "description": "Fast analysis across all dimensions - good for initial assessment",
+      "use_case": "general",
       "scanners": ["code-packages", "code-security", "code-quality", "devops", "technology-identification", "code-ownership", "developer-experience"],
       "feature_overrides": {
         "code-packages": {
@@ -32,7 +33,8 @@
     },
     "all-complete": {
       "name": "All Complete",
-      "description": "All scanners with all features enabled",
+      "description": "Complete analysis with all features enabled - comprehensive but slower",
+      "use_case": "general",
       "scanners": ["code-packages", "code-security", "code-quality", "devops", "technology-identification", "code-ownership", "developer-experience"]
     },
     "code-packages": {
@@ -69,6 +71,71 @@
       "name": "Developer Experience",
       "description": "Onboarding, tooling sprawl, workflow analysis",
       "scanners": ["technology-identification", "developer-experience"]
+    },
+
+    "_comment_use_case_profiles": "Use-case focused profiles for common scenarios",
+
+    "security-focused": {
+      "name": "Security Focused",
+      "description": "Deep security and supply chain analysis - vulnerabilities, secrets, crypto, malware detection",
+      "use_case": "security",
+      "scanners": ["code-packages", "code-security"],
+      "feature_overrides": {
+        "code-packages": {
+          "malcontent": {"enabled": true},
+          "provenance": {"enabled": true},
+          "typosquats": {"enabled": true}
+        },
+        "code-security": {
+          "secrets": {"git_history_scan": {"enabled": true}}
+        }
+      }
+    },
+
+    "engineering-health": {
+      "name": "Engineering Health",
+      "description": "Team productivity and code health - quality metrics, ownership, developer experience",
+      "use_case": "engineering",
+      "scanners": ["code-quality", "code-ownership", "developer-experience", "technology-identification", "devops"],
+      "feature_overrides": {
+        "devops": {
+          "dora": {"enabled": true},
+          "git": {"enabled": true}
+        }
+      }
+    },
+
+    "compliance": {
+      "name": "Compliance & Audit",
+      "description": "Audit and compliance readiness - licenses, vulnerabilities, security controls, IaC",
+      "use_case": "compliance",
+      "scanners": ["code-packages", "code-security", "devops"],
+      "feature_overrides": {
+        "code-packages": {
+          "licenses": {"enabled": true},
+          "provenance": {"enabled": true}
+        },
+        "devops": {
+          "iac": {"enabled": true},
+          "containers": {"enabled": true}
+        }
+      }
+    },
+
+    "supply-chain": {
+      "name": "Supply Chain Security",
+      "description": "Focus on dependency security - SBOMs, vulnerabilities, malware, license compliance",
+      "use_case": "security",
+      "scanners": ["code-packages"],
+      "feature_overrides": {
+        "code-packages": {
+          "malcontent": {"enabled": true},
+          "provenance": {"enabled": true},
+          "typosquats": {"enabled": true},
+          "confusion": {"enabled": true},
+          "reachability": {"enabled": true}
+        }
+      }
     }
   }
 }

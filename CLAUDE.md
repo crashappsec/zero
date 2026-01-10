@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Zero is an engineering intelligence platform for repository analysis, written in Go with a Next.js web frontend. It provides 7 "super scanners" and 12 specialist AI agents (named after characters from the movie Hackers 1995).
+Zero is an **engineering intelligence platform** for comprehensive repository analysis, written in Go with a Next.js web frontend. It analyzes code across multiple dimensions including security, quality, supply chain, DevOps, technology stack, and team dynamics.
+
+Zero provides 7 analyzers and 12 specialist AI agents (named after characters from the movie Hackers 1995). While security is one key dimension, Zero covers the full spectrum of engineering intelligence.
 
 ## Build and Development Commands
 
@@ -50,23 +52,26 @@ cd mcp-server && npm run dev         # Development with tsx
 ## CLI Usage
 
 ```bash
-./zero hydrate owner/repo [profile]  # Clone and scan repository
-./zero hydrate owner/repo all-quick  # Fast scan with all scanners
-./zero hydrate myorg --demo          # Scan org repos, skip large ones
-./zero scan owner/repo [profile]     # Re-scan already cloned repo
+./zero hydrate owner/repo [profile]  # Clone and analyze repository
+./zero onboard owner/repo            # Alias for hydrate
+./zero cache owner/repo              # Alias for hydrate
+./zero hydrate owner/repo all-quick  # Fast analysis with all analyzers
+./zero hydrate myorg --demo          # Analyze org repos, skip large ones
+./zero scan owner/repo [profile]     # Re-analyze already cloned repo
+./zero analyze owner/repo            # Alias for scan
 ./zero status                        # Show analyzed projects
 ./zero serve                         # Start web UI (localhost:3000)
 ./zero feeds semgrep                 # Sync Semgrep rules
 ./zero feeds rag                     # Generate rules from RAG patterns
-./zero list                          # List available scanners
+./zero list                          # List available analyzers
 ./zero checkup                       # Verify setup and external tools
 ```
 
-## Super Scanner Architecture (v4.0)
+## Analyzer Architecture (v4.0)
 
-Zero uses **7 consolidated super scanners** with configurable features:
+Zero uses **7 consolidated analyzers** with configurable features. These analyzers produce JSON artifacts that MCP tools can then access:
 
-| Scanner | Features | Description |
+| Analyzer | Features | Description |
 |---------|----------|-------------|
 | **code-packages** | generation, integrity, vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | SBOM generation + package/dependency analysis |
 | **code-security** | vulns, secrets, api, ciphers, keys, random, tls, certificates | Security-focused code analysis + cryptography |
@@ -77,35 +82,36 @@ Zero uses **7 consolidated super scanners** with configurable features:
 | **devx** | onboarding, sprawl, workflow | Developer experience analysis (depends on technology-identification) |
 
 **Key architecture notes:**
-- `code-packages` scanner generates SBOM internally and produces `sbom.cdx.json` (CycloneDX format) + `code-packages.json`
-- `code-security` scanner includes all crypto features (ciphers, keys, random, tls, certificates)
-- `technology-identification` scanner generates ML-BOM (Machine Learning Bill of Materials)
-- `devx` scanner depends on technology-identification for technology detection (tool vs technology sprawl)
-- Each scanner produces **one JSON output file** with all feature results
+- `code-packages` analyzer generates SBOM internally and produces `sbom.cdx.json` (CycloneDX format) + `code-packages.json`
+- `code-security` analyzer includes all crypto features (ciphers, keys, random, tls, certificates)
+- `technology-identification` analyzer generates ML-BOM (Machine Learning Bill of Materials)
+- `devx` analyzer depends on technology-identification for technology detection (tool vs technology sprawl)
+- Each analyzer produces **one JSON output file** with all feature results
+- MCP tools provide agent access to analyzer output (not directly callable from agents)
 
 ## Code Architecture
 
-### Scanner Framework
+### Analyzer Framework
 
-All scanners implement `pkg/scanner/interface.go:Scanner`:
-- `Name()` - Scanner identifier
-- `Run(ctx, opts)` - Execute scan, return `*ScanResult`
-- `Dependencies()` - Scanners that must run first (for topological sort)
+All analyzers implement `pkg/scanner/interface.go:Scanner` (note: interface name pending rename):
+- `Name()` - Analyzer identifier
+- `Run(ctx, opts)` - Execute analysis, return `*ScanResult`
+- `Dependencies()` - Analyzers that must run first (for topological sort)
 - `EstimateDuration(fileCount)` - Duration estimate
 
-The `NativeRunner` (`pkg/scanner/runner.go`) executes scanners in dependency order with parallel execution per level.
+The `NativeRunner` (`pkg/scanner/runner.go`) executes analyzers in dependency order with parallel execution per level.
 
 ### Key Packages
 
 | Package | Purpose |
 |---------|---------|
 | `cmd/zero` | CLI entry point using Cobra |
-| `pkg/scanner/*` | Scanner implementations (one dir per scanner) |
+| `pkg/scanner/*` | Analyzer implementations (one dir per analyzer) |
 | `pkg/core/` | Shared utilities (config, terminal, findings, languages) |
 | `pkg/workflow/` | Hydrate, automation, freshness tracking, diff |
 | `pkg/api/` | HTTP server with Chi router, WebSocket hub |
 | `pkg/storage/sqlite/` | SQLite persistence layer |
-| `pkg/mcp/` | Go-based MCP server |
+| `pkg/mcp/` | Go-based MCP server with 16 tools for agent data access |
 
 ### Storage Layout
 
@@ -113,17 +119,17 @@ The `NativeRunner` (`pkg/scanner/runner.go`) executes scanners in dependency ord
 .zero/
 └── repos/owner/repo/
     ├── repo/              # Cloned repository
-    ├── analysis/          # Scanner JSON output
+    ├── analysis/          # Analyzer JSON output
     │   ├── sbom.cdx.json
     │   ├── code-packages.json
     │   ├── code-security.json
     │   └── ...
-    └── freshness.json     # Scan metadata
+    └── freshness.json     # Analysis metadata
 ```
 
 ### Configuration
 
-Profiles defined in `config/zero.config.json` specify which scanners/features to run. Each scanner has features that can be enabled/disabled via `feature_overrides`.
+Profiles defined in `config/zero.config.json` specify which analyzers/features to run. Each analyzer has features that can be enabled/disabled via `feature_overrides`.
 
 ## Orchestrator: Zero
 
@@ -132,9 +138,9 @@ Use `/agent` to enter agent mode and chat with Zero directly.
 
 ## Specialist Agents
 
-The following agents are available for specialized analysis tasks. Use the Task tool with the appropriate `subagent_type` to invoke them.
+The following agents are available for specialized engineering intelligence tasks. Use the Task tool with the appropriate `subagent_type` to invoke them.
 
-| Agent | Persona | Character | Expertise | Primary Scanner |
+| Agent | Persona | Character | Expertise | Primary Analyzer |
 |-------|---------|-----------|-----------|-----------------|
 | `cereal` | Cereal | Cereal Killer | Supply chain, vulnerabilities, malcontent | **code-packages** |
 | `razor` | Razor | Razor | Code security, SAST, secrets detection | **code-security** |
@@ -157,7 +163,7 @@ The following agents are available for specialized analysis tasks. Use the Task 
 Cereal Killer was paranoid about surveillance - perfect for watching for malware hiding in dependencies.
 Specializes in dependency vulnerability analysis, malcontent findings investigation (supply chain compromise detection), package health assessment, license compliance, and typosquatting detection.
 
-**Primary scanner:** `code-packages`
+**Primary analyzer:** `code-packages`
 **Required data:** `code-packages.json` (contains vulns, health, malcontent, licenses, etc.)
 
 **Example invocation:**
@@ -172,7 +178,7 @@ prompt: "Investigate the malcontent findings for expressjs/express. Focus on cri
 Razor cuts through code to find vulnerabilities.
 Specializes in static analysis, secret detection, code vulnerability assessment, and security code review.
 
-**Primary scanner:** `code-security`
+**Primary analyzer:** `code-security`
 **Required data:** `code-security.json` (contains vulns, secrets, api, git_history_security)
 
 #### Gill (Cryptography Specialist)
@@ -181,7 +187,7 @@ Specializes in static analysis, secret detection, code vulnerability assessment,
 Gill Bates represented the corporate establishment in Hackers - now reformed and using vast crypto knowledge to help secure implementations.
 Specializes in cryptographic security analysis, cipher review, key management, TLS configuration, and random number generation security.
 
-**Primary scanner:** `code-security` (crypto features)
+**Primary analyzer:** `code-security` (crypto features)
 **Required data:** `code-security.json` (contains ciphers, keys, random, tls, certificates)
 
 **Example invocation:**
@@ -196,7 +202,7 @@ prompt: "Analyze the cryptographic security of this repository. Focus on hardcod
 Hal - the elusive hacker who speaks in machine code and sees patterns others miss. Uses deep understanding of machine learning to secure AI systems against emerging ML supply chain threats.
 Specializes in ML model security, ML-BOM generation, AI framework analysis, LLM security, and AI governance.
 
-**Primary scanner:** `technology-identification`
+**Primary analyzer:** `technology-identification`
 **Required data:** `technology-identification.json` (contains models, frameworks, datasets, security, governance)
 
 **Example invocation:**
@@ -211,7 +217,7 @@ prompt: "Analyze the AI/ML security of this repository. Check for unsafe pickle 
 The Plague controlled all the infrastructure (we reformed him).
 Specializes in infrastructure, Kubernetes, IaC security, container security, and deployment automation.
 
-**Primary scanner:** `devops`
+**Primary analyzer:** `devops`
 **Required data:** `devops.json` (contains iac, containers, github_actions, dora, git)
 
 #### Joey (Build Engineer)
@@ -220,7 +226,7 @@ Specializes in infrastructure, Kubernetes, IaC security, container security, and
 Joey was learning the ropes - builds things, sometimes breaks them.
 Specializes in CI/CD pipelines, build optimization, caching strategies, and build security.
 
-**Primary scanner:** `devops` (github_actions feature)
+**Primary analyzer:** `devops` (github_actions feature)
 **Required data:** `devops.json`
 
 #### Gibson (Engineering Leader)
@@ -229,7 +235,7 @@ Specializes in CI/CD pipelines, build optimization, caching strategies, and buil
 The Gibson - the ultimate system that tracks everything.
 Specializes in DORA metrics analysis, team health assessment, and engineering KPIs.
 
-**Primary scanners:** `devops` (dora, git features), `code-ownership`
+**Primary analyzers:** `devops` (dora, git features), `code-ownership`
 **Required data:** `devops.json`, `code-ownership.json`
 
 #### Nikon (Software Architect)
@@ -238,7 +244,7 @@ Specializes in DORA metrics analysis, team health assessment, and engineering KP
 Lord Nikon had photographic memory - sees the big picture.
 Specializes in system design, architectural patterns, trade-offs analysis, and design review.
 
-**Primary scanner:** `technology-identification`
+**Primary analyzer:** `technology-identification`
 **Required data:** `technology-identification.json`, `code-packages.json`
 
 #### Blade (Internal Auditor)
@@ -247,7 +253,7 @@ Specializes in system design, architectural patterns, trade-offs analysis, and d
 Blade is meticulous and detail-oriented - perfect for auditing.
 Specializes in compliance assessment (SOC 2, ISO 27001), audit preparation, control testing, and policy gap analysis.
 
-**Primary scanners:** Multiple (package-analysis, code-security, devops)
+**Primary analyzers:** Multiple (package-analysis, code-security, devops)
 **Required data:** `package-analysis.json`, `code-security.json`, `devops.json`
 
 #### Phreak (General Counsel)
@@ -256,7 +262,7 @@ Specializes in compliance assessment (SOC 2, ISO 27001), audit preparation, cont
 Phantom Phreak knew the legal angles and how systems really work.
 Specializes in license compatibility analysis, data privacy assessment, and legal risk evaluation.
 
-**Primary scanner:** `package-analysis` (licenses feature)
+**Primary analyzer:** `package-analysis` (licenses feature)
 **Required data:** `package-analysis.json`
 
 #### Acid (Frontend Engineer)
@@ -265,7 +271,7 @@ Specializes in license compatibility analysis, data privacy assessment, and lega
 Acid Burn - sharp, stylish, the elite frontend hacker.
 Specializes in React, TypeScript, component architecture, accessibility (a11y), and frontend security.
 
-**Primary scanner:** `code-security`, `code-quality`
+**Primary analyzer:** `code-security`, `code-quality`
 **Required data:** `code-security.json`, `code-quality.json`
 
 #### Flu Shot (Backend Engineer)
@@ -274,7 +280,7 @@ Specializes in React, TypeScript, component architecture, accessibility (a11y), 
 Flu Shot - one of the underground hackers from the pool party scene, methodical and reliable.
 Specializes in APIs, databases, Node.js, Python, and backend architecture.
 
-**Primary scanner:** `code-security` (api feature)
+**Primary analyzer:** `code-security` (api feature)
 **Required data:** `code-security.json`
 
 ## Slash Commands
@@ -338,7 +344,7 @@ zero refresh --profile security   # Use specific scan profile
 
 #### zero feeds
 
-Manage security scanning rules:
+Manage analysis rules and knowledge bases:
 
 ```bash
 zero feeds rag               # Generate rules from RAG knowledge base
@@ -524,11 +530,11 @@ zero/
 ## Data Flow
 
 ```
-./zero hydrate <repo>
+./zero hydrate <repo>  # (aliases: onboard, cache)
          │
          ├─► Clone repository to .zero/repos/<project>/repo/
          │
-         ├─► Run super scanners, store JSON in .zero/repos/<project>/analysis/
+         ├─► Run analyzers, store JSON in .zero/repos/<project>/analysis/
          │        │
          │        ├─► code-packages.json       (14 features) + sbom.cdx.json
          │        ├─► code-security.json      (8 features, includes crypto)
@@ -622,12 +628,28 @@ Mode is automatically selected based on query keywords:
 
 ## Configuration Profiles
 
-Profiles define which scanners and features to run:
+Profiles define which analyzers and features to run. Choose based on your use case:
 
-| Profile | Scanners | Description |
+### Use-Case Profiles (Recommended)
+
+| Profile | Use Case | Description |
 |---------|----------|-------------|
-| `all-quick` | All 7 scanners (limited features) | Fast scan of everything |
-| `all-complete` | All 7 scanners (all features) | Complete analysis |
+| `security-focused` | Security | Deep security analysis - vulnerabilities, secrets, crypto, malware |
+| `engineering-health` | Engineering | Team productivity - quality, ownership, DORA metrics, DevX |
+| `compliance` | Audit | Compliance readiness - licenses, vulnerabilities, IaC controls |
+| `supply-chain` | Security | Dependency security - SBOMs, malware, provenance |
+
+### General Profiles
+
+| Profile | Analyzers | Description |
+|---------|----------|-------------|
+| `all-quick` | All 7 analyzers (limited features) | Fast initial assessment |
+| `all-complete` | All 7 analyzers (all features) | Comprehensive analysis |
+
+### Analyzer-Specific Profiles
+
+| Profile | Analyzers | Description |
+|---------|----------|-------------|
 | `code-packages` | code-packages | SBOM + package analysis |
 | `code-security` | code-security | SAST, secrets, and crypto |
 | `code-quality` | code-quality | Quality metrics |

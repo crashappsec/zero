@@ -21,22 +21,25 @@ var validTargetPattern = regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9_.]*(/[a-zA-
 var hydrateOpts hydrate.Options
 
 var hydrateCmd = &cobra.Command{
-	Use:   "hydrate <target> [profile]",
-	Short: "Clone and scan repositories",
-	Long: `Clone a repository or organization and run security scanners.
+	Use:     "hydrate <target> [profile]",
+	Aliases: []string{"onboard", "cache"},
+	Short:   "Clone and analyze repositories",
+	Long: `Clone a repository or organization and run analysis.
 
 Target can be:
   - owner/repo    Single repository (e.g., strapi/strapi)
   - org-name      GitHub organization (e.g., zero-test-org)
 
-The profile argument specifies which scanners to run. Profiles are defined
+The profile argument specifies which analyzers to run. Profiles are defined
 in the config file (config/zero.config.json).
 
+Aliases: onboard, cache
+
 Examples:
-  zero hydrate strapi/strapi              Clone and scan a single repo
+  zero hydrate strapi/strapi              Clone and analyze a single repo
+  zero onboard strapi/strapi              Same as hydrate (alias)
   zero hydrate strapi/strapi all-quick    Clone with all-quick profile
-  zero hydrate zero-test-org              Clone and scan all org repos
-  zero hydrate zero-test-org all-quick    Clone org with quick profile
+  zero hydrate zero-test-org              Clone and analyze all org repos
   zero hydrate zero-test-org --limit 10   Limit to first 10 repos
   zero hydrate zero-test-org --demo       Demo mode: skip repos > 50MB`,
 	Args: cobra.RangeArgs(1, 2),

@@ -662,6 +662,162 @@ func findSubstring(s, substr string) bool {
 	return false
 }
 
+// Tests for validation functions
+
+func TestValidateProjectID(t *testing.T) {
+	tests := []struct {
+		name      string
+		projectID string
+		wantErr   bool
+	}{
+		{"valid owner/repo", "owner/repo", false},
+		{"valid with numbers", "owner123/repo456", false},
+		{"valid with hyphens", "my-org/my-repo", false},
+		{"valid with underscores", "my_org/my_repo", false},
+		{"valid with dots", "my.org/my.repo", false},
+		{"empty", "", true},
+		{"no slash", "ownerrepo", true},
+		{"double slash", "owner//repo", true},
+		{"path traversal", "../etc/passwd", true},
+		{"path traversal in owner", "../owner/repo", true},
+		{"path traversal in repo", "owner/../repo", true},
+		{"too long", string(make([]byte, 201)), true},
+		{"just slash", "/", true},
+		{"leading slash", "/owner/repo", true},
+		{"trailing slash", "owner/repo/", true},
+		{"special chars", "owner!/repo", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateProjectID(tt.projectID)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateProjectID(%q) error = %v, wantErr %v", tt.projectID, err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSafeJSONMarshal(t *testing.T) {
+	t.Run("normal data", func(t *testing.T) {
+		data := map[string]interface{}{
+			"key": "value",
+		}
+		result, err := safeJSONMarshal(data)
+		if err != nil {
+			t.Fatalf("safeJSONMarshal failed: %v", err)
+		}
+		if len(result) == 0 {
+			t.Error("result should not be empty")
+		}
+	})
+
+	t.Run("large data truncation", func(t *testing.T) {
+		// Create data larger than MaxOutputSize
+		largeData := make([]string, 0, 50000)
+		for i := 0; i < 50000; i++ {
+			largeData = append(largeData, "this is a long string to make the data large")
+		}
+		data := map[string]interface{}{
+			"data": largeData,
+		}
+		result, err := safeJSONMarshal(data)
+		if err != nil {
+			t.Fatalf("safeJSONMarshal failed: %v", err)
+		}
+		if !containsString(string(result), "_truncated") {
+			t.Error("large data should be truncated")
+		}
+	})
+}
+
+func TestLimitFindings(t *testing.T) {
+	tests := []struct {
+		name   string
+		input  []interface{}
+		limit  int
+		wantN  int
+	}{
+		{"under limit", []interface{}{1, 2, 3}, 5, 3},
+		{"at limit", []interface{}{1, 2, 3, 4, 5}, 5, 5},
+		{"over limit", []interface{}{1, 2, 3, 4, 5, 6, 7}, 5, 5},
+		{"empty", []interface{}{}, 5, 0},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := limitFindings(tt.input, tt.limit)
+			if len(result) != tt.wantN {
+				t.Errorf("limitFindings() returned %d items, want %d", len(result), tt.wantN)
+			}
+		})
+	}
+}
+
+func TestServer_ReadAnalysis_Validation(t *testing.T) {
+	tmpDir, cleanup := setupTestZeroHome(t)
+	defer cleanup()
+
+	s := NewServer(tmpDir)
+
+	tests := []struct {
+		name         string
+		projectID    string
+		analysisType string
+		wantErr      bool
+		errContains  string
+	}{
+		{"valid", "owner1/repo1", "code-packages", false, ""},
+		{"invalid project - path traversal", "../etc/passwd", "code-packages", true, "invalid project"},
+		{"invalid project - empty", "", "code-packages", true, "project ID is required"},
+		{"invalid analysis type - uppercase", "owner1/repo1", "CODE-PACKAGES", true, "lowercase"},
+		{"invalid analysis type - special chars", "owner1/repo1", "code;packages", true, "lowercase"},
+		{"invalid analysis type - empty", "owner1/repo1", "", true, "invalid analysis type"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := s.readAnalysis(tt.projectID, tt.analysisType)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("readAnalysis() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if tt.wantErr && tt.errContains != "" && err != nil {
+				if !containsString(err.Error(), tt.errContains) {
+					t.Errorf("error %q should contain %q", err.Error(), tt.errContains)
+				}
+			}
+		})
+	}
+}
+
+func TestServer_HandleGetVulnerabilities_Validation(t *testing.T) {
+	tmpDir, cleanup := setupTestZeroHome(t)
+	defer cleanup()
+
+	s := NewServer(tmpDir)
+	ctx := context.Background()
+
+	tests := []struct {
+		name     string
+		input    VulnerabilitiesInput
+		wantErr  bool
+	}{
+		{"valid project", VulnerabilitiesInput{Project: "owner1/repo1"}, false},
+		{"valid with severity", VulnerabilitiesInput{Project: "owner1/repo1", Severity: "critical"}, false},
+		{"invalid severity", VulnerabilitiesInput{Project: "owner1/repo1", Severity: "invalid"}, true},
+		{"invalid project", VulnerabilitiesInput{Project: "../etc"}, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, _, err := s.handleGetVulnerabilities(ctx, nil, tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("handleGetVulnerabilities() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
 // Benchmarks
 
 func BenchmarkServer_GetProjects(b *testing.B) {
