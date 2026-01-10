@@ -66,6 +66,11 @@ func (c *Client) HasToken() bool {
 
 // ListOrgRepos returns repositories for an organization
 func (c *Client) ListOrgRepos(org string, limit int) ([]Repository, error) {
+	// Default to 30 if limit is 0 or negative
+	if limit <= 0 {
+		limit = 30
+	}
+
 	// Use gh CLI for simplicity and auth handling
 	args := []string{
 		"repo", "list", org,
