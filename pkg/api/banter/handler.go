@@ -44,7 +44,10 @@ func (h *Handler) SetEnabled(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GenerateBanter(w http.ResponseWriter, r *http.Request) {
 	var ctx Context
 	if r.Body != nil {
-		json.NewDecoder(r.Body).Decode(&ctx)
+		if err := json.NewDecoder(r.Body).Decode(&ctx); err != nil {
+			// Ignore decode errors for optional body, use empty context
+			ctx = Context{}
+		}
 	}
 
 	// Temporarily enable generator for on-demand generation
@@ -65,7 +68,10 @@ func (h *Handler) GenerateBanter(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GenerateExchange(w http.ResponseWriter, r *http.Request) {
 	var ctx Context
 	if r.Body != nil {
-		json.NewDecoder(r.Body).Decode(&ctx)
+		if err := json.NewDecoder(r.Body).Decode(&ctx); err != nil {
+			// Ignore decode errors for optional body, use empty context
+			ctx = Context{}
+		}
 	}
 
 	// Temporarily enable generator for on-demand generation
@@ -130,7 +136,10 @@ func (h *Handler) ListAgents(w http.ResponseWriter, r *http.Request) {
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		// Log encoding error but can't change status code after WriteHeader
+		_ = err
+	}
 }
 
 func writeError(w http.ResponseWriter, status int, message string, err error) {
@@ -140,5 +149,8 @@ func writeError(w http.ResponseWriter, status int, message string, err error) {
 	if err != nil {
 		resp["details"] = err.Error()
 	}
-	json.NewEncoder(w).Encode(resp)
+	if encErr := json.NewEncoder(w).Encode(resp); encErr != nil {
+		// Log encoding error but can't change status code after WriteHeader
+		_ = encErr
+	}
 }
