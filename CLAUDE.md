@@ -8,6 +8,39 @@ Zero is an **engineering intelligence platform** for comprehensive repository an
 
 Zero provides 7 analyzers and 12 specialist AI agents (named after characters from the movie Hackers 1995). While security is one key dimension, Zero covers the full spectrum of engineering intelligence.
 
+## Release Status & Versioning
+
+**Zero is currently in Alpha (v0.x).** This means:
+
+- APIs and CLI interfaces may change between releases
+- Features are functional but still evolving
+- Feedback and contributions are welcome
+
+### Version Scheme
+
+| Version | Stage | Description |
+|---------|-------|-------------|
+| **v0.x** | Alpha | Current development - feature-complete but evolving |
+| **v1.0** | Beta | Stable APIs, production-ready for early adopters |
+| **v2.0+** | GA | General availability with LTS support |
+
+### Current Milestones
+
+| Milestone | Focus | Status |
+|-----------|-------|--------|
+| **v0.2** | Analyzer Enhancements | PR metrics, rework rate, code quality |
+| **v0.3** | Architecture Modernization | Scanner refactoring, hybrid cache |
+| **v0.4** | Platform Features | New analyzers, web UI polish |
+
+### Priority Labels
+
+Issues use priority labels P0-P4 (lower is higher priority):
+- **P0**: Critical - blocking issues, security vulnerabilities
+- **P1**: High - important features, significant bugs
+- **P2**: Medium - enhancements, moderate improvements
+- **P3**: Low - nice-to-have, minor improvements
+- **P4**: Backlog - future consideration
+
 ## Build and Development Commands
 
 ```bash
@@ -91,7 +124,7 @@ Zero organizes analysis around **6 Pillars** aligned with industry frameworks (D
 
 All metrics support **benchmark tier visualization** (Elite/Good/Fair/Needs Focus) based on LinearB 2026 benchmarks.
 
-## Analyzer Architecture (v6.0)
+## Analyzer Architecture
 
 Zero uses **7 consolidated analyzers** with configurable features. These analyzers produce JSON artifacts that MCP tools can then access:
 
