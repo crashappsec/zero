@@ -15,38 +15,39 @@ import (
 	"golang.org/x/text/language"
 )
 
-// Category represents one of the 6 dimensions of engineering intelligence
+// Category represents one of the 6 pillars of engineering intelligence
+// Order: Productivity (Speed, Quality, Team) → Technical (Security, Supply Chain, Technology)
 type Category string
 
 const (
-	CategorySecurity    Category = "security"
-	CategorySupplyChain Category = "supply-chain"
-	CategoryQuality     Category = "quality"
-	CategoryDevOps      Category = "devops"
-	CategoryTechnology  Category = "technology"
-	CategoryTeam        Category = "team"
+	CategorySpeed       Category = "speed"        // DORA metrics, cycle time, delivery
+	CategoryQuality     Category = "quality"      // Tech debt, complexity, coverage
+	CategoryTeam        Category = "team"         // Ownership, collaboration, devx
+	CategorySecurity    Category = "security"     // Vulnerabilities, secrets, crypto
+	CategorySupplyChain Category = "supply-chain" // Dependencies, licenses, SBOM
+	CategoryTechnology  Category = "technology"   // Stack detection, AI/ML security
 )
 
-// AllCategories returns all available categories
+// AllCategories returns all available categories in framework-aligned order
 func AllCategories() []Category {
 	return []Category{
-		CategorySecurity,
-		CategorySupplyChain,
+		CategorySpeed,       // Productivity pillars first
 		CategoryQuality,
-		CategoryDevOps,
-		CategoryTechnology,
 		CategoryTeam,
+		CategorySecurity,    // Technical pillars second
+		CategorySupplyChain,
+		CategoryTechnology,
 	}
 }
 
 // CategoryAnalyzers maps categories to their analyzers
 var CategoryAnalyzers = map[Category][]string{
+	CategorySpeed:       {"devops"},
+	CategoryQuality:     {"code-quality"},
+	CategoryTeam:        {"code-ownership", "developer-experience"},
 	CategorySecurity:    {"code-security"},
 	CategorySupplyChain: {"code-packages"},
-	CategoryQuality:     {"code-quality"},
-	CategoryDevOps:      {"devops"},
 	CategoryTechnology:  {"technology-identification"},
-	CategoryTeam:        {"code-ownership", "developer-experience"},
 }
 
 // Options configures the report generator
@@ -599,12 +600,12 @@ func analyzerDisplayName(analyzer string) string {
 
 func categoryDisplayName(category Category) string {
 	names := map[Category]string{
+		CategorySpeed:       "Speed",
+		CategoryQuality:     "Quality",
+		CategoryTeam:        "Team",
 		CategorySecurity:    "Security",
 		CategorySupplyChain: "Supply Chain",
-		CategoryQuality:     "Quality",
-		CategoryDevOps:      "DevOps",
 		CategoryTechnology:  "Technology",
-		CategoryTeam:        "Team",
 	}
 	if name, ok := names[category]; ok {
 		return name
