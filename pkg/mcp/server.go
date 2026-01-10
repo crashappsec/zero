@@ -121,6 +121,36 @@ func (s *Server) registerTools() {
 		Name:        "search_findings",
 		Description: "Search across all findings for a pattern or keyword",
 	}, s.handleSearchFindings)
+
+	// get_devops_findings tool
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "get_devops_findings",
+		Description: "Get DevOps findings including IaC issues, container security, and GitHub Actions analysis",
+	}, s.handleGetDevOpsFindings)
+
+	// get_code_quality tool
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "get_code_quality",
+		Description: "Get code quality metrics including tech debt, complexity, and test coverage",
+	}, s.handleGetCodeQuality)
+
+	// get_ownership_metrics tool
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "get_ownership_metrics",
+		Description: "Get code ownership metrics including bus factor, top contributors, and orphaned code",
+	}, s.handleGetOwnershipMetrics)
+
+	// get_dora_metrics tool
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "get_dora_metrics",
+		Description: "Get DORA metrics including deployment frequency, lead time, MTTR, and change failure rate",
+	}, s.handleGetDoraMetrics)
+
+	// get_devx_analysis tool
+	mcp.AddTool(s.server, &mcp.Tool{
+		Name:        "get_devx_analysis",
+		Description: "Get developer experience analysis including onboarding friction, tool sprawl, and workflow issues",
+	}, s.handleGetDevXAnalysis)
 }
 
 // Input types for tools
@@ -426,6 +456,159 @@ func (s *Server) handleGetAnalysisRaw(ctx context.Context, req *mcp.CallToolRequ
 	return nil, TextOutput{Text: string(result)}, nil
 }
 
+func (s *Server) handleGetDevOpsFindings(ctx context.Context, req *mcp.CallToolRequest, input ProjectInput) (*mcp.CallToolResult, TextOutput, error) {
+	// DevOps findings are in the devops scanner
+	data, err := s.readAnalysis(input.Project, "devops")
+	if err != nil {
+		return nil, TextOutput{}, fmt.Errorf("no devops data for '%s'", input.Project)
+	}
+
+	result := map[string]interface{}{
+		"project": input.Project,
+	}
+
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		if iac, ok := findings["iac"]; ok {
+			result["iac_issues"] = iac
+		}
+		if containers, ok := findings["containers"]; ok {
+			result["container_issues"] = containers
+		}
+		if actions, ok := findings["github_actions"]; ok {
+			result["github_actions"] = actions
+		}
+		if git, ok := findings["git"]; ok {
+			result["git_analysis"] = git
+		}
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return nil, TextOutput{Text: string(output)}, nil
+}
+
+func (s *Server) handleGetCodeQuality(ctx context.Context, req *mcp.CallToolRequest, input ProjectInput) (*mcp.CallToolResult, TextOutput, error) {
+	// Code quality findings are in the code-quality scanner
+	data, err := s.readAnalysis(input.Project, "code-quality")
+	if err != nil {
+		return nil, TextOutput{}, fmt.Errorf("no code quality data for '%s'", input.Project)
+	}
+
+	result := map[string]interface{}{
+		"project": input.Project,
+	}
+
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		if techDebt, ok := findings["tech_debt"]; ok {
+			result["tech_debt"] = techDebt
+		}
+		if complexity, ok := findings["complexity"]; ok {
+			result["complexity"] = complexity
+		}
+		if coverage, ok := findings["test_coverage"]; ok {
+			result["test_coverage"] = coverage
+		}
+		if docs, ok := findings["documentation"]; ok {
+			result["documentation"] = docs
+		}
+	}
+
+	if summary, ok := data["summary"]; ok {
+		result["summary"] = summary
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return nil, TextOutput{Text: string(output)}, nil
+}
+
+func (s *Server) handleGetOwnershipMetrics(ctx context.Context, req *mcp.CallToolRequest, input ProjectInput) (*mcp.CallToolResult, TextOutput, error) {
+	// Ownership metrics are in the code-ownership scanner
+	data, err := s.readAnalysis(input.Project, "code-ownership")
+	if err != nil {
+		return nil, TextOutput{}, fmt.Errorf("no ownership data for '%s'", input.Project)
+	}
+
+	result := map[string]interface{}{
+		"project": input.Project,
+	}
+
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		if contributors, ok := findings["contributors"]; ok {
+			result["contributors"] = contributors
+		}
+		if busFactor, ok := findings["bus_factor"]; ok {
+			result["bus_factor"] = busFactor
+		}
+		if codeowners, ok := findings["codeowners"]; ok {
+			result["codeowners"] = codeowners
+		}
+		if orphans, ok := findings["orphans"]; ok {
+			result["orphaned_code"] = orphans
+		}
+		if churn, ok := findings["churn"]; ok {
+			result["code_churn"] = churn
+		}
+	}
+
+	if summary, ok := data["summary"]; ok {
+		result["summary"] = summary
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return nil, TextOutput{Text: string(output)}, nil
+}
+
+func (s *Server) handleGetDoraMetrics(ctx context.Context, req *mcp.CallToolRequest, input ProjectInput) (*mcp.CallToolResult, TextOutput, error) {
+	// DORA metrics are in the devops scanner under the dora feature
+	data, err := s.readAnalysis(input.Project, "devops")
+	if err != nil {
+		return nil, TextOutput{}, fmt.Errorf("no DORA metrics for '%s'", input.Project)
+	}
+
+	result := map[string]interface{}{
+		"project": input.Project,
+	}
+
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		if dora, ok := findings["dora"]; ok {
+			result["dora_metrics"] = dora
+		}
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return nil, TextOutput{Text: string(output)}, nil
+}
+
+func (s *Server) handleGetDevXAnalysis(ctx context.Context, req *mcp.CallToolRequest, input ProjectInput) (*mcp.CallToolResult, TextOutput, error) {
+	// Developer experience is in the developer-experience scanner
+	data, err := s.readAnalysis(input.Project, "developer-experience")
+	if err != nil {
+		return nil, TextOutput{}, fmt.Errorf("no developer experience data for '%s'", input.Project)
+	}
+
+	result := map[string]interface{}{
+		"project": input.Project,
+	}
+
+	if findings, ok := data["findings"].(map[string]interface{}); ok {
+		if onboarding, ok := findings["onboarding"]; ok {
+			result["onboarding"] = onboarding
+		}
+		if sprawl, ok := findings["sprawl"]; ok {
+			result["tool_sprawl"] = sprawl
+		}
+		if workflow, ok := findings["workflow"]; ok {
+			result["workflow"] = workflow
+		}
+	}
+
+	if summary, ok := data["summary"]; ok {
+		result["summary"] = summary
+	}
+
+	output, _ := json.MarshalIndent(result, "", "  ")
+	return nil, TextOutput{Text: string(output)}, nil
+}
+
 func (s *Server) handleSearchFindings(ctx context.Context, req *mcp.CallToolRequest, input SearchInput) (*mcp.CallToolResult, TextOutput, error) {
 	query := strings.ToLower(input.Query)
 	var results []map[string]interface{}
@@ -443,8 +626,8 @@ func (s *Server) handleSearchFindings(ctx context.Context, req *mcp.CallToolRequ
 		projects = filtered
 	}
 
-	// v4.0: Super scanner names
-	searchTypes := []string{"code-packages", "code-security", "technology-identification", "devops", "code-ownership"}
+	// v4.0: Super scanner names (all 7 analyzers)
+	searchTypes := []string{"code-packages", "code-security", "technology-identification", "devops", "code-ownership", "code-quality", "developer-experience"}
 	if input.Type != "" && input.Type != "all" {
 		searchTypes = []string{input.Type}
 	}
