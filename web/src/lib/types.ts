@@ -18,8 +18,9 @@ export type Project = Repo;
 
 export interface FreshnessInfo {
   level: 'fresh' | 'stale' | 'very_stale' | 'expired';
-  last_scan: string;
-  age_hours: number;
+  level_string: string;
+  age_string: string;
+  needs_refresh: boolean;
 }
 
 export interface ScannerInfo {

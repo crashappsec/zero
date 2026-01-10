@@ -28,13 +28,37 @@ import {
 
 function NewScanForm({ onStart, initialTarget = '' }: { onStart: (job: { job_id: string }) => void; initialTarget?: string }) {
   const [target, setTarget] = useState(initialTarget);
-  const [profile, setProfile] = useState('standard');
+  const [profile, setProfile] = useState('all-quick');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [filterText, setFilterText] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
 
   const { data: profilesData } = useFetch(() => api.profiles.list(), []);
+  const { data: projectsData } = useFetch(() => api.projects.list(), []);
   const profiles = profilesData?.data || [];
+  const projects = projectsData?.data || [];
+
+  // Filter projects based on input
+  const filteredProjects = filterText
+    ? projects.filter(p =>
+        p.id.toLowerCase().includes(filterText.toLowerCase()) ||
+        p.name.toLowerCase().includes(filterText.toLowerCase())
+      )
+    : projects;
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,6 +71,7 @@ function NewScanForm({ onStart, initialTarget = '' }: { onStart: (job: { job_id:
       const result = await api.scans.start(target.trim(), profile);
       onStart(result);
       setTarget('');
+      setFilterText('');
       toast.success('Scan started', `Scanning ${target.trim()}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to start scan';
@@ -57,6 +82,19 @@ function NewScanForm({ onStart, initialTarget = '' }: { onStart: (job: { job_id:
     }
   };
 
+  const handleSelectProject = (projectId: string) => {
+    setTarget(projectId);
+    setFilterText('');
+    setShowDropdown(false);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTarget(value);
+    setFilterText(value);
+    setShowDropdown(true);
+  };
+
   return (
     <Card>
       <CardTitle className="flex items-center gap-2">
@@ -65,18 +103,88 @@ function NewScanForm({ onStart, initialTarget = '' }: { onStart: (job: { job_id:
       </CardTitle>
       <CardContent className="mt-4">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+          <div className="relative" ref={dropdownRef}>
             <label className="block text-sm font-medium text-gray-300 mb-1">
               Repository
             </label>
-            <Input
-              placeholder="owner/repo or org name"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-              icon={<GitBranch className="h-4 w-4" />}
-            />
+            <div className="relative">
+              <Input
+                placeholder="owner/repo or org name"
+                value={target}
+                onChange={handleInputChange}
+                onFocus={() => setShowDropdown(true)}
+                icon={<GitBranch className="h-4 w-4" />}
+              />
+              {projects.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                >
+                  <svg className={`h-4 w-4 transition-transform ${showDropdown ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Dropdown with hydrated repos */}
+            {showDropdown && projects.length > 0 && (
+              <div className="absolute z-50 mt-1 w-full rounded-md border border-gray-700 bg-gray-800 shadow-lg max-h-64 overflow-y-auto">
+                {filteredProjects.length > 0 ? (
+                  <>
+                    <div className="px-3 py-2 text-xs font-medium text-gray-500 border-b border-gray-700">
+                      Hydrated Repositories ({filteredProjects.length})
+                    </div>
+                    {Object.entries(
+                      filteredProjects.reduce((acc, project) => {
+                        const org = project.owner || 'unknown';
+                        if (!acc[org]) acc[org] = [];
+                        acc[org].push(project);
+                        return acc;
+                      }, {} as Record<string, typeof projects>)
+                    ).map(([org, orgProjects]) => (
+                      <div key={org}>
+                        <div className="px-3 py-1.5 text-xs font-semibold text-gray-400 bg-gray-900/50">
+                          {org}
+                        </div>
+                        {orgProjects.map((project) => (
+                          <button
+                            key={project.id}
+                            type="button"
+                            onClick={() => handleSelectProject(project.id)}
+                            className="w-full px-3 py-2 text-left text-sm text-gray-200 hover:bg-gray-700/50 flex items-center justify-between"
+                          >
+                            <span className="flex items-center gap-2">
+                              <GitBranch className="h-3.5 w-3.5 text-gray-500" />
+                              {project.name}
+                            </span>
+                            {project.freshness && (
+                              <span className={`text-xs ${
+                                project.freshness.level === 'fresh' ? 'text-green-500' :
+                                project.freshness.level === 'stale' ? 'text-yellow-500' :
+                                'text-red-500'
+                              }`}>
+                                {project.freshness.age_string}
+                              </span>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </>
+                ) : filterText ? (
+                  <div className="px-3 py-4 text-center text-sm text-gray-500">
+                    No matching repos. Press Enter to scan &ldquo;{filterText}&rdquo;
+                  </div>
+                ) : null}
+              </div>
+            )}
+
             <p className="mt-1 text-xs text-gray-500">
-              Enter owner/repo (e.g., expressjs/express) or org name
+              {projects.length > 0
+                ? 'Select from hydrated repos or enter a new one'
+                : 'Enter owner/repo (e.g., expressjs/express) or org name'}
             </p>
           </div>
 
@@ -97,9 +205,9 @@ function NewScanForm({ onStart, initialTarget = '' }: { onStart: (job: { job_id:
                 ))
               ) : (
                 <>
-                  <option value="standard">standard - Standard security scan</option>
-                  <option value="quick">quick - Fast scan with essential checks</option>
-                  <option value="full">full - Comprehensive analysis</option>
+                  <option value="all-quick">all-quick - Fast analysis across all dimensions</option>
+                  <option value="all-complete">all-complete - Complete analysis with all features</option>
+                  <option value="security-focused">security-focused - Deep security analysis</option>
                 </>
               )}
             </select>

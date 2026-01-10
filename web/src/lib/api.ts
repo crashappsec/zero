@@ -125,7 +125,7 @@ export const api = {
 
   // Scans
   scans: {
-    start: (target: string, profile = 'standard', options?: { force?: boolean; depth?: number }) =>
+    start: (target: string, profile = 'all-quick', options?: { force?: boolean; depth?: number }) =>
       fetchJSON<{ job_id: string; ws_endpoint: string }>('/scans', {
         method: 'POST',
         body: JSON.stringify({ target, profile, ...options }),
