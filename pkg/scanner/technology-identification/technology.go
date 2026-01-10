@@ -21,8 +21,8 @@ import (
 	"github.com/crashappsec/zero/pkg/scanner/common"
 )
 
-// ruleLoadMessageOnce ensures we only print the rule loading message once
-var ruleLoadMessageOnce sync.Once
+// patternLoadMessageOnce ensures we only print the pattern loading message once
+var patternLoadMessageOnce sync.Once
 
 const (
 	Name        = "technology-identification"
@@ -85,66 +85,19 @@ func (s *TechnologyScanner) Run(ctx context.Context, opts *scanner.ScanOptions) 
 		}
 	}
 
-	// Step 1: Check semgrep is installed (required)
-	onStatus("Checking semgrep installation...")
-	if !HasSemgrep() {
-		return nil, fmt.Errorf("semgrep is required but not installed. Install with: pip install semgrep")
-	}
-
-	// Step 2: Refresh semgrep rules from RAG patterns
-	var ruleManager *RuleManager
-	onStatus("Loading RAG technology patterns...")
-	ruleManager = NewRuleManager(RuleManagerConfig{
-		TTL:      s.config.Semgrep.CacheTTL,
-		OnStatus: onStatus,
-	})
-	refreshResult := ruleManager.RefreshRules(ctx, s.config.Semgrep.ForceRefresh)
-	if refreshResult.Error != nil {
-		return nil, fmt.Errorf("failed to refresh semgrep rules: %w", refreshResult.Error)
-	}
-	result.FeaturesRun = append(result.FeaturesRun, "semgrep_rules")
-	result.Summary.SemgrepRulesLoaded = refreshResult.TotalRules
-
-	// Log rule loading results only once (for first repo in batch)
-	ruleLoadMessageOnce.Do(func() {
-		if refreshResult.Refreshed {
-			fmt.Printf("          ▸ Converted RAG patterns → %d semgrep rules (%d tech, %d secrets, %d AI/ML)\n",
-				refreshResult.TotalRules, refreshResult.TechRules, refreshResult.SecretRules, refreshResult.AIMLRules)
-		} else {
-			fmt.Printf("          ▸ Using cached semgrep rules (%d patterns)\n", refreshResult.TotalRules)
-		}
-	})
-
-	// Step 3: Run semgrep with generated rules
-	rulePaths := ruleManager.GetRulePaths()
-	if len(rulePaths) == 0 {
-		return nil, fmt.Errorf("no semgrep rules were generated from RAG patterns")
-	}
-	onStatus(fmt.Sprintf("Running semgrep with %d rule files...", len(rulePaths)))
-	semgrepResult := RunSemgrepWithRules(ctx, repoPath, ruleManager, onStatus)
-	if semgrepResult.Error != nil {
-		return nil, fmt.Errorf("semgrep scan failed: %w", semgrepResult.Error)
-	}
-
-	// Report semgrep results - count unique technologies from findings
-	uniqueTechs := make(map[string]bool)
-	for _, f := range semgrepResult.Findings {
-		if f.Technology != "" {
-			uniqueTechs[f.Technology] = true
-		}
-	}
-	techCount := len(uniqueTechs)
-	secretCount := len(semgrepResult.Secrets)
-	if techCount > 0 || secretCount > 0 {
-		onStatus(fmt.Sprintf("Semgrep found %d technologies, %d secrets in %.1fs",
-			techCount, secretCount, semgrepResult.Duration.Seconds()))
+	// Load native technology patterns
+	onStatus("Loading technology detection patterns...")
+	patternDB, err := LoadPatterns()
+	if err != nil {
+		onStatus(fmt.Sprintf("Warning: failed to load patterns: %v (using built-in patterns only)", err))
 	} else {
-		onStatus(fmt.Sprintf("Semgrep scan completed in %.1fs (no findings)", semgrepResult.Duration.Seconds()))
+		stats := patternDB.Stats()
+		patternLoadMessageOnce.Do(func() {
+			fmt.Printf("          ▸ Loaded %d technologies with %d patterns (native Go matching)\n",
+				stats["technologies"], stats["import_patterns"]+stats["code_patterns"])
+		})
 	}
-
-	// Merge semgrep findings into result
-	s.mergeSemgrepFindings(semgrepResult, result)
-	result.FeaturesRun = append(result.FeaturesRun, "semgrep_scan")
+	result.FeaturesRun = append(result.FeaturesRun, "pattern_loader")
 
 	// Run each enabled feature (Go-native detection)
 	if s.config.Technology.Enabled {
@@ -361,90 +314,6 @@ func inferArchitectureFamily(architecture string) string {
 		}
 	}
 	return "other"
-}
-
-// mergeSemgrepFindings merges semgrep results into the main result
-func (s *TechnologyScanner) mergeSemgrepFindings(semgrepResult *SemgrepResult, result *Result) {
-	if semgrepResult == nil {
-		return
-	}
-
-	// Count total findings
-	result.Summary.SemgrepFindings = len(semgrepResult.Findings) + len(semgrepResult.Secrets)
-
-	// Merge technology findings with file locations for inline display
-	for _, f := range semgrepResult.Findings {
-		tech := Technology{
-			Name:       f.Technology,
-			Category:   f.Category,
-			Confidence: f.Confidence,
-			Source:     "semgrep",
-			File:       f.File,
-			Line:       f.Line,
-			Match:      f.Match,
-		}
-		result.Findings.Technology = append(result.Findings.Technology, tech)
-	}
-
-	// Merge secret findings into security findings
-	for _, sf := range semgrepResult.Secrets {
-		finding := SecurityFinding{
-			ID:          sf.RuleID,
-			Category:    "api_key_exposure",
-			Severity:    sf.Severity,
-			Title:       fmt.Sprintf("Exposed %s", sf.SecretType),
-			Description: sf.Message,
-			File:        sf.File,
-			Line:        sf.Line,
-			Remediation: "Remove the secret and rotate credentials",
-		}
-		result.Findings.Security = append(result.Findings.Security, finding)
-	}
-
-	// Update technology summary with semgrep-detected technologies
-	if result.Summary.Technology == nil {
-		result.Summary.Technology = &TechnologySummary{
-			ByCategory: make(map[string]int),
-		}
-	}
-	// semgrepResult.Technologies is keyed by category -> count
-	for category, count := range semgrepResult.Technologies {
-		result.Summary.Technology.ByCategory[category] += count
-	}
-
-	// Count technologies and track frequency for top technologies
-	techCounts := make(map[string]int)
-	for _, f := range semgrepResult.Findings {
-		if f.Technology != "" {
-			techCounts[f.Technology]++
-		}
-	}
-	result.Summary.Technology.TotalTechnologies += len(techCounts)
-
-	// Get top 3 technologies by frequency
-	type techFreq struct {
-		name  string
-		count int
-	}
-	var techList []techFreq
-	for name, count := range techCounts {
-		techList = append(techList, techFreq{name, count})
-	}
-	sort.Slice(techList, func(i, j int) bool {
-		return techList[i].count > techList[j].count
-	})
-
-	// Take top 3
-	topN := 3
-	if len(techList) < topN {
-		topN = len(techList)
-	}
-	for i := 0; i < topN; i++ {
-		result.Summary.Technology.TopTechnologies = append(
-			result.Summary.Technology.TopTechnologies,
-			techList[i].name,
-		)
-	}
 }
 
 // runModelsFeature detects ML models in the repository
@@ -1941,6 +1810,10 @@ func (s *TechnologyScanner) runTechnologyFeature(ctx context.Context, repoPath, 
 		techs = append(techs, s.detectFromFileExtensions(repoPath)...)
 	}
 
+	// Additional detection from JSON pattern database
+	// This supplements hardcoded patterns with patterns.json technologies
+	techs = append(techs, s.detectFromPatternDB(repoPath, sbomPath)...)
+
 	// Deduplicate and consolidate
 	techs = s.consolidateTechnologies(techs)
 
@@ -2108,6 +1981,137 @@ func (s *TechnologyScanner) detectFromFileExtensions(repoPath string) []Technolo
 	}
 
 	return techs
+}
+
+// detectFromPatternDB uses the JSON pattern database for additional technology detection
+// This supplements the hardcoded patterns with technologies from patterns.json
+func (s *TechnologyScanner) detectFromPatternDB(repoPath, sbomPath string) []Technology {
+	var techs []Technology
+
+	patternDB, err := LoadPatterns()
+	if err != nil || patternDB == nil {
+		return techs // Fall back to hardcoded patterns only
+	}
+
+	seen := make(map[string]bool)
+
+	// 1. Detect from SBOM packages using pattern database
+	if sbomPath != "" {
+		data, err := os.ReadFile(sbomPath)
+		if err == nil {
+			var sbom struct {
+				Components []struct {
+					Name  string `json:"name"`
+					Purl  string `json:"purl"`
+					Type  string `json:"type"`
+				} `json:"components"`
+			}
+			if json.Unmarshal(data, &sbom) == nil {
+				for _, comp := range sbom.Components {
+					// Try to detect ecosystem from purl or type
+					ecosystem := detectEcosystem(comp.Purl, comp.Type)
+					if ecosystem == "" {
+						continue
+					}
+
+					matches := patternDB.MatchPackage(ecosystem, comp.Name)
+					for _, m := range matches {
+						if !seen[m.TechID] {
+							techs = append(techs, Technology{
+								Name:       m.TechName,
+								Category:   m.Category,
+								Confidence: m.Confidence,
+								Source:     "pattern-db",
+							})
+							seen[m.TechID] = true
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// 2. Detect from config files using pattern database
+	for path := range patternDB.configIndex {
+		// Handle directories
+		if strings.HasSuffix(path, "/") {
+			dirPath := filepath.Join(repoPath, strings.TrimSuffix(path, "/"))
+			if info, err := os.Stat(dirPath); err == nil && info.IsDir() {
+				matches := patternDB.MatchConfigFile(path)
+				for _, m := range matches {
+					if !seen[m.TechID] {
+						techs = append(techs, Technology{
+							Name:       m.TechName,
+							Category:   m.Category,
+							Confidence: m.Confidence,
+							Source:     "pattern-db",
+						})
+						seen[m.TechID] = true
+					}
+				}
+			}
+		} else {
+			// Regular file
+			filePath := filepath.Join(repoPath, path)
+			if _, err := os.Stat(filePath); err == nil {
+				matches := patternDB.MatchConfigFile(path)
+				for _, m := range matches {
+					if !seen[m.TechID] {
+						techs = append(techs, Technology{
+							Name:       m.TechName,
+							Category:   m.Category,
+							Confidence: m.Confidence,
+							Source:     "pattern-db",
+						})
+						seen[m.TechID] = true
+					}
+				}
+			}
+		}
+	}
+
+	return techs
+}
+
+// detectEcosystem determines the package ecosystem from purl or type
+func detectEcosystem(purl, compType string) string {
+	// Try purl first (pkg:npm/..., pkg:pypi/..., etc.)
+	if strings.HasPrefix(purl, "pkg:npm/") {
+		return "npm"
+	}
+	if strings.HasPrefix(purl, "pkg:pypi/") {
+		return "pypi"
+	}
+	if strings.HasPrefix(purl, "pkg:golang/") || strings.HasPrefix(purl, "pkg:go/") {
+		return "go"
+	}
+	if strings.HasPrefix(purl, "pkg:cargo/") {
+		return "cargo"
+	}
+	if strings.HasPrefix(purl, "pkg:maven/") {
+		return "maven"
+	}
+	if strings.HasPrefix(purl, "pkg:gem/") {
+		return "gem"
+	}
+
+	// Fall back to component type
+	switch strings.ToLower(compType) {
+	case "npm":
+		return "npm"
+	case "pypi":
+		return "pypi"
+	case "golang", "go":
+		return "go"
+	case "cargo":
+		return "cargo"
+	case "maven":
+		return "maven"
+	case "gem":
+		return "gem"
+	}
+
+	return ""
 }
 
 // consolidateTechnologies deduplicates and consolidates technologies

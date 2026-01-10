@@ -79,7 +79,6 @@ cd mcp-server && npm run dev         # Development with tsx
 
 **Testing notes:**
 - Some integration tests skip when external tools aren't installed (Semgrep)
-- RAG-based tests skip if rules aren't generated - run `./zero feeds rag` first
 - Tests are organized by package under `pkg/`
 
 ## CLI Usage
@@ -94,8 +93,7 @@ cd mcp-server && npm run dev         # Development with tsx
 ./zero analyze owner/repo            # Alias for scan
 ./zero status                        # Show analyzed projects
 ./zero serve                         # Start web UI (localhost:3000)
-./zero feeds semgrep                 # Sync Semgrep rules
-./zero feeds rag                     # Generate rules from RAG patterns
+./zero feeds semgrep                 # Sync Semgrep SAST rules
 ./zero list                          # List available analyzers
 ./zero checkup                       # Verify setup and external tools
 ```
@@ -404,8 +402,6 @@ zero refresh --profile security   # Use specific scan profile
 Manage analysis rules and knowledge bases:
 
 ```bash
-zero feeds rag               # Generate rules from RAG knowledge base
-zero feeds rag --force       # Force regenerate even if unchanged
 zero feeds semgrep           # Sync Semgrep community rules (SAST)
 zero feeds semgrep --force   # Force sync even if fresh
 zero feeds status            # Show feed sync status

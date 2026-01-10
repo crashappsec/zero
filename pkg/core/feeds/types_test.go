@@ -125,14 +125,6 @@ func TestConfigGetFeedConfig(t *testing.T) {
 func TestDefaultRuleConfig(t *testing.T) {
 	cfg := DefaultRuleConfig()
 
-	if !cfg.GeneratedRules.Enabled {
-		t.Error("Expected generated rules to be enabled")
-	}
-
-	if cfg.GeneratedRules.Frequency != FreqAlways {
-		t.Errorf("Generated rules frequency = %s, want %s", cfg.GeneratedRules.Frequency, FreqAlways)
-	}
-
 	if !cfg.CommunityRules.Enabled {
 		t.Error("Expected community rules to be enabled")
 	}

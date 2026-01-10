@@ -315,8 +315,7 @@ These phases are from the previous modernization effort and remain active:
 ./zero report owner/repo       # Generate markdown report
 ./zero report owner/repo --category security  # Category-specific report
 ./zero agent                   # Enter agent mode
-./zero feeds semgrep           # Sync Semgrep rules
-./zero feeds rag               # Generate RAG rules
+./zero feeds semgrep           # Sync Semgrep SAST rules
 ```
 
 ### Available Agents

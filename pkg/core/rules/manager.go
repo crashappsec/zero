@@ -2,8 +2,6 @@
 package rules
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -68,64 +66,13 @@ type GenerateResult struct {
 func (m *Manager) RefreshRules(force bool) ([]GenerateResult, error) {
 	var results []GenerateResult
 
-	// Check generated rules (from RAG)
-	if m.config.GeneratedRules.Enabled {
-		result := m.refreshGeneratedRules(force)
-		results = append(results, result)
-	}
-
-	// Check community rules
+	// Check community rules (Semgrep SAST rules)
 	if m.config.CommunityRules.Enabled {
 		result := m.refreshCommunityRules(force)
 		results = append(results, result)
 	}
 
 	return results, nil
-}
-
-func (m *Manager) refreshGeneratedRules(force bool) GenerateResult {
-	start := time.Now()
-	result := GenerateResult{Type: "generated"}
-
-	// Check if RAG files have changed
-	currentHash, err := m.computeRAGHash()
-	if err != nil {
-		result.Error = fmt.Sprintf("computing RAG hash: %v", err)
-		return result
-	}
-
-	// Load previous status
-	status, _ := m.loadStatus("generated")
-
-	// Skip if not forced and hash hasn't changed
-	if !force && status != nil && status.SourceHash == currentHash {
-		result.Skipped = true
-		result.Reason = "RAG files unchanged"
-		return result
-	}
-
-	// Generate rules from RAG
-	files, ruleCount, err := m.generateFromRAG()
-	if err != nil {
-		result.Error = err.Error()
-		return result
-	}
-
-	result.Success = true
-	result.Duration = time.Since(start)
-	result.RuleCount = ruleCount
-	result.Files = files
-
-	// Save status
-	_ = m.saveStatus("generated", &RuleStatus{
-		Type:         "generated",
-		LastGenerate: time.Now(),
-		RuleCount:    ruleCount,
-		SourceHash:   currentHash,
-		OutputFiles:  files,
-	})
-
-	return result
 }
 
 func (m *Manager) refreshCommunityRules(force bool) GenerateResult {
@@ -169,162 +116,6 @@ func (m *Manager) refreshCommunityRules(force bool) GenerateResult {
 	return result
 }
 
-func (m *Manager) computeRAGHash() (string, error) {
-	h := sha256.New()
-
-	// Walk relevant RAG directories and hash file contents
-	ragDirs := []string{
-		"technology-identification",
-		"devops",
-		"code-quality",
-	}
-
-	for _, dir := range ragDirs {
-		fullPath := filepath.Join(m.ragLoader.RAGPath(), dir)
-		if _, err := os.Stat(fullPath); os.IsNotExist(err) {
-			continue
-		}
-
-		err := filepath.Walk(fullPath, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return nil // Skip errors
-			}
-			if info.IsDir() {
-				return nil
-			}
-			if filepath.Ext(path) != ".md" && filepath.Ext(path) != ".json" {
-				return nil
-			}
-
-			data, err := os.ReadFile(path)
-			if err != nil {
-				return nil // Skip unreadable files
-			}
-
-			h.Write([]byte(path))
-			h.Write(data)
-			return nil
-		})
-
-		if err != nil {
-			return "", err
-		}
-	}
-
-	return hex.EncodeToString(h.Sum(nil)), nil
-}
-
-func (m *Manager) generateFromRAG() ([]string, int, error) {
-	outputDir := filepath.Join(m.zeroHome, m.config.GeneratedRules.OutputDir)
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		return nil, 0, fmt.Errorf("creating output dir: %w", err)
-	}
-
-	var files []string
-	totalRules := 0
-
-	// Load patterns from RAG categories
-	categories := []string{
-		"technology-identification",
-		"secrets",
-		"devops",
-		"devops-security",
-		"code-security",
-		"code-quality",
-		"architecture",
-	}
-
-	for _, category := range categories {
-		if !m.ragLoader.HasCategory(category) {
-			continue
-		}
-
-		result, err := m.ragLoader.LoadCategory(category)
-		if err != nil {
-			continue // Skip categories with errors
-		}
-
-		// Convert patterns to Semgrep rules
-		rules := m.patternsToSemgrepRules(result.PatternSets)
-		if len(rules) == 0 {
-			continue
-		}
-
-		// Write rules file
-		filename := fmt.Sprintf("%s.yaml", category)
-		outputPath := filepath.Join(outputDir, filename)
-
-		if err := m.writeRulesFile(outputPath, rules); err != nil {
-			continue
-		}
-
-		files = append(files, outputPath)
-		totalRules += len(rules)
-	}
-
-	return files, totalRules, nil
-}
-
-func (m *Manager) patternsToSemgrepRules(patternSets []rag.PatternSet) []rag.SemgrepRule {
-	var rules []rag.SemgrepRule
-
-	for _, ps := range patternSets {
-		for _, p := range ps.Patterns {
-			if p.Type != "semgrep" && p.Type != "regex" {
-				continue
-			}
-
-			rule := rag.SemgrepRule{
-				ID:        p.ID,
-				Message:   p.Message,
-				Severity:  normalizeSeverity(p.Severity),
-				Languages: p.Languages,
-			}
-
-			if len(rule.Languages) == 0 {
-				rule.Languages = []string{"generic"}
-			}
-
-			if p.Type == "regex" {
-				rule.Pattern = "" // Use pattern-regex instead
-				rule.Patterns = []rag.SemgrepPattern{
-					{PatternRegex: p.Pattern},
-				}
-			} else {
-				rule.Pattern = p.Pattern
-			}
-
-			rules = append(rules, rule)
-		}
-	}
-
-	return rules
-}
-
-func normalizeSeverity(sev string) string {
-	switch sev {
-	case "critical", "high":
-		return "ERROR"
-	case "medium":
-		return "WARNING"
-	case "low", "info":
-		return "INFO"
-	default:
-		return "INFO"
-	}
-}
-
-func (m *Manager) writeRulesFile(path string, rules []rag.SemgrepRule) error {
-	config := rag.SemgrepConfig{Rules: rules}
-
-	data, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return fmt.Errorf("marshaling rules: %w", err)
-	}
-
-	return os.WriteFile(path, data, 0600)
-}
-
 func (m *Manager) statusPath(ruleType string) string {
 	return filepath.Join(m.zeroHome, "cache", "rules", ruleType+"-status.json")
 }
@@ -361,10 +152,6 @@ func (m *Manager) saveStatus(ruleType string, status *RuleStatus) error {
 // GetStatus returns the status of all rule sources
 func (m *Manager) GetStatus() map[string]*RuleStatus {
 	statuses := make(map[string]*RuleStatus)
-
-	if status, err := m.loadStatus("generated"); err == nil {
-		statuses["generated"] = status
-	}
 
 	if status, err := m.loadStatus("community"); err == nil {
 		statuses["community"] = status

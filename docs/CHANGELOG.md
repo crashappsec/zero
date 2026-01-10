@@ -79,8 +79,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - **Automation Commands**
   - `zero watch` - Watch directory for changes and auto-scan
   - `zero refresh` - Refresh stale scan data
-  - `zero feeds rag` - Generate rules from RAG knowledge base
-  - `zero feeds semgrep` - Sync Semgrep community rules
+  - `zero feeds semgrep` - Sync Semgrep community SAST rules
 
 - **Freshness Tracking**: Know when scan data is stale
   - Fresh (< 24h), Stale (1-7d), Very Stale (7-30d), Expired (> 30d)
