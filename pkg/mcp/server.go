@@ -7,11 +7,24 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
+
+// Constants for robustness
+const (
+	// MaxOutputSize is the maximum size of JSON output (1MB)
+	MaxOutputSize = 1024 * 1024
+	// MaxFindingsPerCategory limits findings returned per category
+	MaxFindingsPerCategory = 500
+)
+
+// validProjectPattern matches valid project IDs (owner/repo format)
+// Prevents path traversal attacks
+var validProjectPattern = regexp.MustCompile(`^[a-zA-Z0-9][-a-zA-Z0-9_.]*[/][a-zA-Z0-9][-a-zA-Z0-9_.]*$`)
 
 // Server implements the Zero MCP server
 type Server struct {
@@ -211,6 +224,13 @@ type TextOutput struct {
 // Tool handlers - return (*CallToolResult, Output, error)
 // The SDK populates Content from the Output type automatically
 func (s *Server) handleListProjects(ctx context.Context, req *mcp.CallToolRequest, input ListProjectsInput) (*mcp.CallToolResult, TextOutput, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, TextOutput{}, ctx.Err()
+	default:
+	}
+
 	projects, err := s.getProjects()
 	if err != nil {
 		return nil, TextOutput{}, fmt.Errorf("failed to list projects: %w", err)
@@ -218,21 +238,49 @@ func (s *Server) handleListProjects(ctx context.Context, req *mcp.CallToolReques
 
 	// Filter by owner if specified
 	if input.Owner != "" {
+		// Validate owner (simple alphanumeric)
+		if len(input.Owner) > 100 {
+			return nil, TextOutput{}, fmt.Errorf("owner filter too long")
+		}
 		var filtered []Project
 		for _, p := range projects {
-			if p.Owner == input.Owner {
+			if strings.EqualFold(p.Owner, input.Owner) {
 				filtered = append(filtered, p)
 			}
 		}
 		projects = filtered
 	}
 
-	data, _ := json.MarshalIndent(projects, "", "  ")
+	result := map[string]interface{}{
+		"projects": projects,
+		"count":    len(projects),
+	}
+
+	data, err := safeJSONMarshal(result)
+	if err != nil {
+		return nil, TextOutput{}, err
+	}
 	return nil, TextOutput{Text: string(data)}, nil
 }
 
 func (s *Server) handleGetProjectSummary(ctx context.Context, req *mcp.CallToolRequest, input ProjectInput) (*mcp.CallToolResult, TextOutput, error) {
-	projects, _ := s.getProjects()
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, TextOutput{}, ctx.Err()
+	default:
+	}
+
+	// Validate project ID
+	if err := validateProjectID(input.Project); err != nil {
+		return nil, TextOutput{}, err
+	}
+
+	projects, err := s.getProjects()
+	if err != nil {
+		return nil, TextOutput{}, fmt.Errorf("failed to list projects: %w", err)
+	}
+
 	var found *Project
 	for _, p := range projects {
 		if p.ID == input.Project {
@@ -242,15 +290,15 @@ func (s *Server) handleGetProjectSummary(ctx context.Context, req *mcp.CallToolR
 	}
 
 	if found == nil {
-		return nil, TextOutput{}, fmt.Errorf("project '%s' not found", input.Project)
+		return nil, TextOutput{}, fmt.Errorf("project '%s' not found. Run 'zero hydrate %s' first", input.Project, input.Project)
 	}
 
 	summary := map[string]interface{}{
-		"project":         found.ID,
-		"available_scans": found.AvailableScans,
+		"project":           found.ID,
+		"available_analyses": found.AvailableScans,
 	}
 
-	// Add package/vuln stats from code-packages scanner (v4.0)
+	// Add package/vuln stats from code-packages analyzer (v4.0)
 	if contains(found.AvailableScans, "code-packages") {
 		if data, err := s.readAnalysis(input.Project, "code-packages"); err == nil {
 			if summ, ok := data["summary"].(map[string]interface{}); ok {
@@ -259,7 +307,7 @@ func (s *Server) handleGetProjectSummary(ctx context.Context, req *mcp.CallToolR
 		}
 	}
 
-	// Add security stats from code-security scanner (v4.0)
+	// Add security stats from code-security analyzer (v4.0)
 	if contains(found.AvailableScans, "code-security") {
 		if data, err := s.readAnalysis(input.Project, "code-security"); err == nil {
 			if summ, ok := data["summary"].(map[string]interface{}); ok {
@@ -277,15 +325,52 @@ func (s *Server) handleGetProjectSummary(ctx context.Context, req *mcp.CallToolR
 		}
 	}
 
-	result, _ := json.MarshalIndent(summary, "", "  ")
+	// Add quality stats
+	if contains(found.AvailableScans, "code-quality") {
+		if data, err := s.readAnalysis(input.Project, "code-quality"); err == nil {
+			if summ, ok := data["summary"].(map[string]interface{}); ok {
+				summary["quality"] = summ
+			}
+		}
+	}
+
+	// Add ownership stats
+	if contains(found.AvailableScans, "code-ownership") {
+		if data, err := s.readAnalysis(input.Project, "code-ownership"); err == nil {
+			if summ, ok := data["summary"].(map[string]interface{}); ok {
+				summary["ownership"] = summ
+			}
+		}
+	}
+
+	// Add devops stats
+	if contains(found.AvailableScans, "devops") {
+		if data, err := s.readAnalysis(input.Project, "devops"); err == nil {
+			if summ, ok := data["summary"].(map[string]interface{}); ok {
+				summary["devops"] = summ
+			}
+		}
+	}
+
+	result, err := safeJSONMarshal(summary)
+	if err != nil {
+		return nil, TextOutput{}, err
+	}
 	return nil, TextOutput{Text: string(result)}, nil
 }
 
 func (s *Server) handleGetVulnerabilities(ctx context.Context, req *mcp.CallToolRequest, input VulnerabilitiesInput) (*mcp.CallToolResult, TextOutput, error) {
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, TextOutput{}, ctx.Err()
+	default:
+	}
+
 	// v4.0: Vulnerabilities are in code-packages scanner under findings.vulns
 	data, err := s.readAnalysis(input.Project, "code-packages")
 	if err != nil {
-		return nil, TextOutput{}, fmt.Errorf("no vulnerability data for '%s'", input.Project)
+		return nil, TextOutput{}, fmt.Errorf("vulnerability data unavailable: %w", err)
 	}
 
 	result := map[string]interface{}{
@@ -296,6 +381,12 @@ func (s *Server) handleGetVulnerabilities(ctx context.Context, req *mcp.CallTool
 		if vulns, ok := findings["vulns"].([]interface{}); ok {
 			// Filter by severity if specified
 			if input.Severity != "" {
+				// Validate severity value
+				validSeverities := map[string]bool{"critical": true, "high": true, "medium": true, "low": true}
+				if !validSeverities[strings.ToLower(input.Severity)] {
+					return nil, TextOutput{}, fmt.Errorf("invalid severity: must be critical, high, medium, or low")
+				}
+
 				var filtered []interface{}
 				for _, v := range vulns {
 					if vm, ok := v.(map[string]interface{}); ok {
@@ -304,16 +395,34 @@ func (s *Server) handleGetVulnerabilities(ctx context.Context, req *mcp.CallTool
 						}
 					}
 				}
+				// Apply limit to prevent oversized responses
+				filtered = limitFindings(filtered, MaxFindingsPerCategory)
 				result["vulnerabilities"] = filtered
 				result["count"] = len(filtered)
 			} else {
-				result["vulnerabilities"] = vulns
+				// Apply limit to prevent oversized responses
+				limited := limitFindings(vulns, MaxFindingsPerCategory)
+				result["vulnerabilities"] = limited
 				result["count"] = len(vulns)
+				if len(vulns) > MaxFindingsPerCategory {
+					result["_truncated"] = true
+					result["_total"] = len(vulns)
+				}
 			}
+		} else {
+			result["vulnerabilities"] = []interface{}{}
+			result["count"] = 0
 		}
+	} else {
+		result["vulnerabilities"] = []interface{}{}
+		result["count"] = 0
+		result["_note"] = "No findings section in analysis data"
 	}
 
-	output, _ := json.MarshalIndent(result, "", "  ")
+	output, err := safeJSONMarshal(result)
+	if err != nil {
+		return nil, TextOutput{}, err
+	}
 	return nil, TextOutput{Text: string(output)}, nil
 }
 
@@ -666,6 +775,51 @@ func (s *Server) handleSearchFindings(ctx context.Context, req *mcp.CallToolRequ
 }
 
 // Helper functions
+
+// validateProjectID checks if a project ID is valid and safe
+func validateProjectID(projectID string) error {
+	if projectID == "" {
+		return fmt.Errorf("project ID is required")
+	}
+	if len(projectID) > 200 {
+		return fmt.Errorf("project ID too long (max 200 characters)")
+	}
+	if !validProjectPattern.MatchString(projectID) {
+		return fmt.Errorf("invalid project ID format: must be 'owner/repo'")
+	}
+	// Additional safety check for path traversal
+	if strings.Contains(projectID, "..") {
+		return fmt.Errorf("invalid project ID: path traversal not allowed")
+	}
+	return nil
+}
+
+// safeJSONMarshal marshals data to JSON with size limits
+func safeJSONMarshal(v interface{}) ([]byte, error) {
+	data, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal JSON: %w", err)
+	}
+	if len(data) > MaxOutputSize {
+		// Truncate and add indicator
+		truncated := map[string]interface{}{
+			"_truncated": true,
+			"_message":   fmt.Sprintf("Output truncated (exceeded %d bytes)", MaxOutputSize),
+			"_hint":      "Use get_analysis_raw with specific filters for full data",
+		}
+		return json.MarshalIndent(truncated, "", "  ")
+	}
+	return data, nil
+}
+
+// limitFindings limits the number of findings in a slice
+func limitFindings(findings []interface{}, limit int) []interface{} {
+	if len(findings) <= limit {
+		return findings
+	}
+	return findings[:limit]
+}
+
 func (s *Server) getProjects() ([]Project, error) {
 	var projects []Project
 	reposDir := filepath.Join(s.zeroHome, "repos")
@@ -721,15 +875,45 @@ func (s *Server) getProjects() ([]Project, error) {
 }
 
 func (s *Server) readAnalysis(projectID, analysisType string) (map[string]interface{}, error) {
+	// Validate project ID to prevent path traversal
+	if err := validateProjectID(projectID); err != nil {
+		return nil, fmt.Errorf("invalid project: %w", err)
+	}
+
+	// Validate analysis type (simple alphanumeric with hyphens)
+	if analysisType == "" || len(analysisType) > 50 {
+		return nil, fmt.Errorf("invalid analysis type")
+	}
+	for _, c := range analysisType {
+		if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-') {
+			return nil, fmt.Errorf("invalid analysis type: only lowercase letters, numbers, and hyphens allowed")
+		}
+	}
+
 	path := filepath.Join(s.zeroHome, "repos", projectID, "analysis", analysisType+".json")
+
+	// Check file exists and get info
+	info, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("analysis '%s' not found for project '%s'", analysisType, projectID)
+		}
+		return nil, fmt.Errorf("error accessing analysis file: %w", err)
+	}
+
+	// Check file size (limit to 50MB to prevent memory issues)
+	if info.Size() > 50*1024*1024 {
+		return nil, fmt.Errorf("analysis file too large (max 50MB)")
+	}
+
 	data, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error reading analysis file: %w", err)
 	}
 
 	var result map[string]interface{}
 	if err := json.Unmarshal(data, &result); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error parsing analysis JSON: %w", err)
 	}
 
 	return result, nil
