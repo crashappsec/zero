@@ -67,19 +67,43 @@ cd mcp-server && npm run dev         # Development with tsx
 ./zero checkup                       # Verify setup and external tools
 ```
 
-## Analyzer Architecture (v4.0)
+## Engineering Intelligence Framework
+
+Zero organizes analysis around **6 Pillars** aligned with industry frameworks (DORA, SPACE, LinearB):
+
+```
+┌────────────────────────────────────────────────────────────┐
+│     Productivity Pillars    │      Technical Pillars       │
+├────────────────────────────────────────────────────────────┤
+│  Speed │ Quality │  Team   │ Security │ Supply  │  Tech   │
+│ (DORA) │ (Health)│(People) │  (Risk)  │  Chain  │ (Stack) │
+└────────────────────────────────────────────────────────────┘
+```
+
+| Pillar | Primary Analyzer | Key Metrics |
+|--------|------------------|-------------|
+| **Speed** | devops | DORA metrics, cycle time, deploy frequency |
+| **Quality** | code-quality | Tech debt, complexity, test coverage |
+| **Team** | code-ownership, devx | Bus factor, ownership, onboarding |
+| **Security** | code-security | Vulnerabilities, secrets, crypto issues |
+| **Supply Chain** | code-packages | Package health, licenses, malcontent |
+| **Technology** | technology-identification | Stack detection, AI/ML security |
+
+All metrics support **benchmark tier visualization** (Elite/Good/Fair/Needs Focus) based on LinearB 2026 benchmarks.
+
+## Analyzer Architecture (v6.0)
 
 Zero uses **7 consolidated analyzers** with configurable features. These analyzers produce JSON artifacts that MCP tools can then access:
 
-| Analyzer | Features | Description |
-|---------|----------|-------------|
-| **code-packages** | generation, integrity, vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | SBOM generation + package/dependency analysis |
-| **code-security** | vulns, secrets, api, ciphers, keys, random, tls, certificates | Security-focused code analysis + cryptography |
-| **code-quality** | tech_debt, complexity, test_coverage, documentation | Code quality metrics |
-| **devops** | iac, containers, github_actions, dora, git | DevOps and CI/CD security |
-| **technology-identification** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | Technology detection and ML-BOM generation |
-| **code-ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | Code ownership analysis |
-| **devx** | onboarding, sprawl, workflow | Developer experience analysis (depends on technology-identification) |
+| Analyzer | Pillar | Features |
+|----------|--------|----------|
+| **devops** | Speed | iac, containers, github_actions, dora, git |
+| **code-quality** | Quality | tech_debt, complexity, test_coverage, documentation |
+| **code-ownership** | Team | contributors, bus_factor, codeowners, orphans, churn, patterns |
+| **devx** | Team | onboarding, sprawl, workflow |
+| **code-security** | Security | vulns, secrets, api, ciphers, keys, random, tls, certificates |
+| **code-packages** | Supply Chain | generation, integrity, vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations |
+| **technology-identification** | Technology | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure |
 
 **Key architecture notes:**
 - `code-packages` analyzer generates SBOM internally and produces `sbom.cdx.json` (CycloneDX format) + `code-packages.json`
