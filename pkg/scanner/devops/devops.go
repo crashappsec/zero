@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -1167,6 +1168,38 @@ func (s *DevOpsScanner) runDORA(ctx context.Context, opts *scanner.ScanOptions, 
 	summary.OverallClass = calculateOverallClass(metrics)
 	summary.PeriodDays = cfg.PeriodDays
 
+	// Fetch PR-level metrics if enabled (LinearB alignment)
+	if cfg.IncludePRMetrics {
+		prMetrics, err := fetchPRMetrics(opts.RepoPath, cfg, since)
+		if err == nil && prMetrics != nil {
+			metrics.PRMetrics = prMetrics
+			// Copy to summary for easy access
+			summary.AvgPickupHours = prMetrics.AvgPickupHours
+			summary.PickupClass = prMetrics.PickupClass
+			summary.AvgReviewHours = prMetrics.AvgReviewHours
+			summary.ReviewClass = prMetrics.ReviewClass
+			summary.AvgMergeHours = prMetrics.AvgMergeHours
+			summary.MergeClass = prMetrics.MergeClass
+			summary.AvgPRSize = prMetrics.AvgPRSize
+			summary.PRSizeClass = prMetrics.PRSizeClass
+			summary.TotalPRs = prMetrics.TotalPRs
+		}
+	}
+
+	// Calculate rework rate if enabled (DORA 2025)
+	if cfg.IncludeReworkRate {
+		commits, err := getAllCommits(repo)
+		if err == nil && len(commits) > 0 {
+			reworkRate, refactorRate := calculateReworkRate(commits, since)
+			metrics.ReworkRate = reworkRate
+			metrics.RefactorRate = refactorRate
+			summary.ReworkRate = reworkRate
+			summary.ReworkClass = classifyReworkRate(reworkRate)
+			summary.RefactorRate = refactorRate
+			summary.RefactorClass = classifyRefactorRate(refactorRate)
+		}
+	}
+
 	return summary, metrics
 }
 
@@ -1366,6 +1399,358 @@ func calculateOverallClass(m *DORAMetrics) string {
 		return "medium"
 	default:
 		return "low"
+	}
+}
+
+// ============================================================================
+// PR-LEVEL METRICS (LinearB alignment)
+// ============================================================================
+
+// fetchPRMetrics fetches PR cycle time data from GitHub API
+func fetchPRMetrics(repoPath string, cfg DORAConfig, since time.Time) (*PRMetrics, error) {
+	// Extract owner/repo from remote URL
+	owner, repo := extractOwnerRepo(repoPath)
+	if owner == "" || repo == "" {
+		return nil, fmt.Errorf("could not determine repository owner/name")
+	}
+
+	maxPRs := cfg.MaxPRs
+	if maxPRs == 0 {
+		maxPRs = 100
+	}
+
+	// Fetch merged PRs with timing data using gh CLI
+	args := []string{
+		"pr", "list",
+		"--repo", fmt.Sprintf("%s/%s", owner, repo),
+		"--state", "merged",
+		"--json", "number,title,author,createdAt,mergedAt,additions,deletions,reviews",
+		"--limit", fmt.Sprintf("%d", maxPRs),
+	}
+
+	cmd := exec.Command("gh", args...)
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("fetching PRs: %w", err)
+	}
+
+	var ghPRs []struct {
+		Number    int    `json:"number"`
+		Title     string `json:"title"`
+		Author    struct {
+			Login string `json:"login"`
+		} `json:"author"`
+		CreatedAt string `json:"createdAt"`
+		MergedAt  string `json:"mergedAt"`
+		Additions int    `json:"additions"`
+		Deletions int    `json:"deletions"`
+		Reviews   []struct {
+			Author struct {
+				Login string `json:"login"`
+			} `json:"author"`
+			State       string `json:"state"`
+			SubmittedAt string `json:"submittedAt"`
+		} `json:"reviews"`
+	}
+
+	if err := json.Unmarshal(out, &ghPRs); err != nil {
+		return nil, fmt.Errorf("parsing PRs: %w", err)
+	}
+
+	metrics := &PRMetrics{
+		PRs: make([]PRCycleTime, 0, len(ghPRs)),
+	}
+
+	var totalPickup, totalReview, totalMerge, totalCycle float64
+	var totalSize int
+	validPRs := 0
+
+	for _, pr := range ghPRs {
+		createdAt, err := time.Parse(time.RFC3339, pr.CreatedAt)
+		if err != nil {
+			continue
+		}
+		mergedAt, err := time.Parse(time.RFC3339, pr.MergedAt)
+		if err != nil {
+			continue
+		}
+
+		// Skip PRs outside the analysis period
+		if createdAt.Before(since) {
+			continue
+		}
+
+		prCycle := PRCycleTime{
+			Number:    pr.Number,
+			Title:     pr.Title,
+			Author:    pr.Author.Login,
+			CreatedAt: createdAt,
+			MergedAt:  mergedAt,
+			Additions: pr.Additions,
+			Deletions: pr.Deletions,
+			Size:      pr.Additions + pr.Deletions,
+		}
+
+		// Calculate cycle time components
+		var firstReviewTime, approvalTime time.Time
+
+		for _, review := range pr.Reviews {
+			submittedAt, err := time.Parse(time.RFC3339, review.SubmittedAt)
+			if err != nil {
+				continue
+			}
+
+			// First review time
+			if firstReviewTime.IsZero() || submittedAt.Before(firstReviewTime) {
+				firstReviewTime = submittedAt
+			}
+
+			// Last approval time
+			if review.State == "APPROVED" {
+				if approvalTime.IsZero() || submittedAt.After(approvalTime) {
+					approvalTime = submittedAt
+				}
+			}
+		}
+
+		// Pickup time: PR created → first review
+		if !firstReviewTime.IsZero() {
+			prCycle.PickupHours = firstReviewTime.Sub(createdAt).Hours()
+			if prCycle.PickupHours < 0 {
+				prCycle.PickupHours = 0
+			}
+		}
+
+		// Review time: first review → approval
+		if !firstReviewTime.IsZero() && !approvalTime.IsZero() && approvalTime.After(firstReviewTime) {
+			prCycle.ReviewHours = approvalTime.Sub(firstReviewTime).Hours()
+		}
+
+		// Merge time: approval → merge (or first review → merge if no approval)
+		if !approvalTime.IsZero() {
+			prCycle.MergeHours = mergedAt.Sub(approvalTime).Hours()
+			if prCycle.MergeHours < 0 {
+				prCycle.MergeHours = 0
+			}
+		} else if !firstReviewTime.IsZero() {
+			prCycle.MergeHours = mergedAt.Sub(firstReviewTime).Hours()
+			if prCycle.MergeHours < 0 {
+				prCycle.MergeHours = 0
+			}
+		}
+
+		// Total cycle time: PR created → merged
+		prCycle.CycleHours = mergedAt.Sub(createdAt).Hours()
+
+		metrics.PRs = append(metrics.PRs, prCycle)
+
+		// Accumulate for averages
+		if prCycle.PickupHours > 0 {
+			totalPickup += prCycle.PickupHours
+		}
+		totalReview += prCycle.ReviewHours
+		totalMerge += prCycle.MergeHours
+		totalCycle += prCycle.CycleHours
+		totalSize += prCycle.Size
+		validPRs++
+	}
+
+	metrics.TotalPRs = validPRs
+
+	if validPRs > 0 {
+		metrics.AvgPickupHours = totalPickup / float64(validPRs)
+		metrics.AvgReviewHours = totalReview / float64(validPRs)
+		metrics.AvgMergeHours = totalMerge / float64(validPRs)
+		metrics.AvgCycleHours = totalCycle / float64(validPRs)
+		metrics.AvgPRSize = totalSize / validPRs
+
+		// Classify into tiers (LinearB 2026 benchmarks)
+		metrics.PickupClass = classifyPickupTime(metrics.AvgPickupHours)
+		metrics.ReviewClass = classifyReviewTime(metrics.AvgReviewHours)
+		metrics.MergeClass = classifyMergeTime(metrics.AvgMergeHours)
+		metrics.PRSizeClass = classifyPRSize(metrics.AvgPRSize)
+	}
+
+	return metrics, nil
+}
+
+// extractOwnerRepo extracts owner and repo name from git remote
+func extractOwnerRepo(repoPath string) (string, string) {
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		return "", ""
+	}
+
+	remotes, err := repo.Remotes()
+	if err != nil || len(remotes) == 0 {
+		return "", ""
+	}
+
+	// Get origin remote URL
+	for _, remote := range remotes {
+		if remote.Config().Name == "origin" {
+			urls := remote.Config().URLs
+			if len(urls) > 0 {
+				return parseGitHubURL(urls[0])
+			}
+		}
+	}
+
+	// Fallback to first remote
+	urls := remotes[0].Config().URLs
+	if len(urls) > 0 {
+		return parseGitHubURL(urls[0])
+	}
+
+	return "", ""
+}
+
+// parseGitHubURL extracts owner/repo from GitHub URL
+func parseGitHubURL(url string) (string, string) {
+	// Handle various URL formats
+	// https://github.com/owner/repo.git
+	// git@github.com:owner/repo.git
+	// https://github.com/owner/repo
+
+	url = strings.TrimSuffix(url, ".git")
+
+	// SSH format
+	if strings.HasPrefix(url, "git@github.com:") {
+		parts := strings.Split(strings.TrimPrefix(url, "git@github.com:"), "/")
+		if len(parts) >= 2 {
+			return parts[0], parts[1]
+		}
+	}
+
+	// HTTPS format
+	if strings.Contains(url, "github.com/") {
+		idx := strings.Index(url, "github.com/")
+		path := url[idx+len("github.com/"):]
+		parts := strings.Split(path, "/")
+		if len(parts) >= 2 {
+			return parts[0], parts[1]
+		}
+	}
+
+	return "", ""
+}
+
+// LinearB 2026 benchmark classifications
+func classifyPickupTime(hours float64) string {
+	switch {
+	case hours < 1:
+		return "elite"
+	case hours <= 4:
+		return "good"
+	case hours <= 16:
+		return "fair"
+	default:
+		return "needs_focus"
+	}
+}
+
+func classifyReviewTime(hours float64) string {
+	switch {
+	case hours < 3:
+		return "elite"
+	case hours <= 14:
+		return "good"
+	case hours <= 24:
+		return "fair"
+	default:
+		return "needs_focus"
+	}
+}
+
+func classifyMergeTime(hours float64) string {
+	switch {
+	case hours < 1:
+		return "elite"
+	case hours <= 3:
+		return "good"
+	case hours <= 16:
+		return "fair"
+	default:
+		return "needs_focus"
+	}
+}
+
+func classifyPRSize(size int) string {
+	switch {
+	case size < 100:
+		return "elite"
+	case size <= 155:
+		return "good"
+	case size <= 228:
+		return "fair"
+	default:
+		return "needs_focus"
+	}
+}
+
+// ============================================================================
+// REWORK RATE (DORA 2025)
+// ============================================================================
+
+// calculateReworkRate analyzes commits for rework patterns
+func calculateReworkRate(commits []*object.Commit, since time.Time) (reworkRate, refactorRate float64) {
+	if len(commits) == 0 {
+		return 0, 0
+	}
+
+	var totalInPeriod, reworkCount, refactorCount int
+
+	// Patterns that indicate rework (fixing previous work)
+	reworkPatterns := regexp.MustCompile(`(?i)^(fix|hotfix|bugfix|patch|revert)[\s:\(]|fix(es|ed)?[\s:]|bug[\s:]|correct(s|ed)?[\s:]`)
+	// Patterns that indicate refactoring (restructuring without functional change)
+	refactorPatterns := regexp.MustCompile(`(?i)^refactor[\s:\(]|refactoring|cleanup|clean up|reorganize|restructure`)
+
+	for _, c := range commits {
+		if c.Author.When.Before(since) {
+			continue
+		}
+		totalInPeriod++
+
+		message := c.Message
+		if reworkPatterns.MatchString(message) {
+			reworkCount++
+		}
+		if refactorPatterns.MatchString(message) {
+			refactorCount++
+		}
+	}
+
+	if totalInPeriod > 0 {
+		reworkRate = float64(reworkCount) / float64(totalInPeriod) * 100
+		refactorRate = float64(refactorCount) / float64(totalInPeriod) * 100
+	}
+
+	return reworkRate, refactorRate
+}
+
+func classifyReworkRate(rate float64) string {
+	switch {
+	case rate < 3:
+		return "elite"
+	case rate <= 5:
+		return "good"
+	case rate <= 8:
+		return "fair"
+	default:
+		return "needs_focus"
+	}
+}
+
+func classifyRefactorRate(rate float64) string {
+	switch {
+	case rate < 11:
+		return "elite"
+	case rate <= 16:
+		return "good"
+	case rate <= 22:
+		return "fair"
+	default:
+		return "needs_focus"
 	}
 }
 

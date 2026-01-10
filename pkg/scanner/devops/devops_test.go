@@ -757,3 +757,228 @@ func TestGHAPatterns(t *testing.T) {
 		}
 	}
 }
+
+// ============================================================================
+// Phase 3: PR-Level Metrics Tests (LinearB alignment)
+// ============================================================================
+
+func TestClassifyPickupTime(t *testing.T) {
+	tests := []struct {
+		hours    float64
+		expected string
+	}{
+		{0.5, "elite"},
+		{0.9, "elite"},
+		{1.0, "good"},
+		{2.0, "good"},
+		{4.0, "good"},
+		{5.0, "fair"},
+		{10.0, "fair"},
+		{16.0, "fair"},
+		{17.0, "needs_focus"},
+		{24.0, "needs_focus"},
+		{100.0, "needs_focus"},
+	}
+
+	for _, tt := range tests {
+		got := classifyPickupTime(tt.hours)
+		if got != tt.expected {
+			t.Errorf("classifyPickupTime(%v) = %q, want %q", tt.hours, got, tt.expected)
+		}
+	}
+}
+
+func TestClassifyReviewTime(t *testing.T) {
+	tests := []struct {
+		hours    float64
+		expected string
+	}{
+		{1.0, "elite"},
+		{2.9, "elite"},
+		{3.0, "good"},
+		{10.0, "good"},
+		{14.0, "good"},
+		{15.0, "fair"},
+		{20.0, "fair"},
+		{24.0, "fair"},
+		{25.0, "needs_focus"},
+		{48.0, "needs_focus"},
+	}
+
+	for _, tt := range tests {
+		got := classifyReviewTime(tt.hours)
+		if got != tt.expected {
+			t.Errorf("classifyReviewTime(%v) = %q, want %q", tt.hours, got, tt.expected)
+		}
+	}
+}
+
+func TestClassifyMergeTime(t *testing.T) {
+	tests := []struct {
+		hours    float64
+		expected string
+	}{
+		{0.5, "elite"},
+		{0.9, "elite"},
+		{1.0, "good"},
+		{2.0, "good"},
+		{3.0, "good"},
+		{4.0, "fair"},
+		{10.0, "fair"},
+		{16.0, "fair"},
+		{17.0, "needs_focus"},
+		{24.0, "needs_focus"},
+	}
+
+	for _, tt := range tests {
+		got := classifyMergeTime(tt.hours)
+		if got != tt.expected {
+			t.Errorf("classifyMergeTime(%v) = %q, want %q", tt.hours, got, tt.expected)
+		}
+	}
+}
+
+func TestClassifyPRSize(t *testing.T) {
+	tests := []struct {
+		size     int
+		expected string
+	}{
+		{50, "elite"},
+		{99, "elite"},
+		{100, "good"},
+		{150, "good"},
+		{155, "good"},
+		{156, "fair"},
+		{200, "fair"},
+		{228, "fair"},
+		{229, "needs_focus"},
+		{500, "needs_focus"},
+	}
+
+	for _, tt := range tests {
+		got := classifyPRSize(tt.size)
+		if got != tt.expected {
+			t.Errorf("classifyPRSize(%d) = %q, want %q", tt.size, got, tt.expected)
+		}
+	}
+}
+
+// ============================================================================
+// Phase 3: Rework Rate Tests (DORA 2025)
+// ============================================================================
+
+func TestClassifyReworkRate(t *testing.T) {
+	tests := []struct {
+		rate     float64
+		expected string
+	}{
+		{0.0, "elite"},
+		{2.0, "elite"},
+		{2.9, "elite"},
+		{3.0, "good"},
+		{4.0, "good"},
+		{5.0, "good"},
+		{6.0, "fair"},
+		{7.0, "fair"},
+		{8.0, "fair"},
+		{9.0, "needs_focus"},
+		{15.0, "needs_focus"},
+	}
+
+	for _, tt := range tests {
+		got := classifyReworkRate(tt.rate)
+		if got != tt.expected {
+			t.Errorf("classifyReworkRate(%v) = %q, want %q", tt.rate, got, tt.expected)
+		}
+	}
+}
+
+func TestClassifyRefactorRate(t *testing.T) {
+	tests := []struct {
+		rate     float64
+		expected string
+	}{
+		{5.0, "elite"},
+		{10.0, "elite"},
+		{10.9, "elite"},
+		{11.0, "good"},
+		{14.0, "good"},
+		{16.0, "good"},
+		{17.0, "fair"},
+		{20.0, "fair"},
+		{22.0, "fair"},
+		{23.0, "needs_focus"},
+		{30.0, "needs_focus"},
+	}
+
+	for _, tt := range tests {
+		got := classifyRefactorRate(tt.rate)
+		if got != tt.expected {
+			t.Errorf("classifyRefactorRate(%v) = %q, want %q", tt.rate, got, tt.expected)
+		}
+	}
+}
+
+func TestParseGitHubURL(t *testing.T) {
+	tests := []struct {
+		url           string
+		expectedOwner string
+		expectedRepo  string
+	}{
+		// HTTPS format
+		{"https://github.com/owner/repo.git", "owner", "repo"},
+		{"https://github.com/owner/repo", "owner", "repo"},
+		{"https://github.com/expressjs/express.git", "expressjs", "express"},
+		// SSH format
+		{"git@github.com:owner/repo.git", "owner", "repo"},
+		{"git@github.com:owner/repo", "owner", "repo"},
+		{"git@github.com:crashappsec/zero.git", "crashappsec", "zero"},
+		// Invalid URLs
+		{"https://gitlab.com/owner/repo.git", "", ""},
+		{"not-a-url", "", ""},
+	}
+
+	for _, tt := range tests {
+		owner, repo := parseGitHubURL(tt.url)
+		if owner != tt.expectedOwner || repo != tt.expectedRepo {
+			t.Errorf("parseGitHubURL(%q) = (%q, %q), want (%q, %q)",
+				tt.url, owner, repo, tt.expectedOwner, tt.expectedRepo)
+		}
+	}
+}
+
+func TestDORAConfigPRMetrics(t *testing.T) {
+	cfg := DefaultConfig()
+
+	// Default should have PR metrics enabled
+	if !cfg.DORA.IncludePRMetrics {
+		t.Error("DORA.IncludePRMetrics should be enabled by default")
+	}
+	if cfg.DORA.MaxPRs != 100 {
+		t.Errorf("DORA.MaxPRs = %d, want 100", cfg.DORA.MaxPRs)
+	}
+	if !cfg.DORA.IncludeReworkRate {
+		t.Error("DORA.IncludeReworkRate should be enabled by default")
+	}
+
+	// Quick config should have PR metrics disabled
+	quickCfg := QuickConfig()
+	if quickCfg.DORA.IncludePRMetrics {
+		t.Error("DORA.IncludePRMetrics should be disabled in quick config")
+	}
+	if quickCfg.DORA.IncludeReworkRate {
+		t.Error("DORA.IncludeReworkRate should be disabled in quick config")
+	}
+
+	// Full config should have everything enabled
+	fullCfg := FullConfig()
+	if !fullCfg.DORA.IncludePRMetrics {
+		t.Error("DORA.IncludePRMetrics should be enabled in full config")
+	}
+	if fullCfg.DORA.MaxPRs != 200 {
+		t.Errorf("FullConfig DORA.MaxPRs = %d, want 200", fullCfg.DORA.MaxPRs)
+	}
+	if !fullCfg.DORA.IncludeReworkRate {
+		t.Error("DORA.IncludeReworkRate should be enabled in full config")
+	}
+}

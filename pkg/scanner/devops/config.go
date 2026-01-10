@@ -39,6 +39,11 @@ type GitHubActionsConfig struct {
 type DORAConfig struct {
 	Enabled    bool `json:"enabled"`
 	PeriodDays int  `json:"period_days"` // Analysis period (default 90)
+	// PR-level metrics (LinearB alignment)
+	IncludePRMetrics bool `json:"include_pr_metrics"` // Fetch PR cycle time data from GitHub API
+	MaxPRs           int  `json:"max_prs"`            // Max PRs to analyze (default 100)
+	// Rework rate (DORA 2025)
+	IncludeReworkRate bool `json:"include_rework_rate"` // Calculate rework/refactor rates
 }
 
 // GitConfig configures git insights analysis
@@ -72,8 +77,11 @@ func DefaultConfig() FeatureConfig {
 			CheckPermissions: true,
 		},
 		DORA: DORAConfig{
-			Enabled:    true,
-			PeriodDays: 90,
+			Enabled:           true,
+			PeriodDays:        90,
+			IncludePRMetrics:  true,
+			MaxPRs:            100,
+			IncludeReworkRate: true,
 		},
 		Git: GitConfig{
 			Enabled:         true,
@@ -88,9 +96,11 @@ func DefaultConfig() FeatureConfig {
 // QuickConfig returns minimal config for fast scans
 func QuickConfig() FeatureConfig {
 	cfg := DefaultConfig()
-	cfg.Containers.Enabled = false // Skip image scanning (slow)
-	cfg.Git.IncludeChurn = false   // Skip churn analysis (slow)
-	cfg.Git.IncludeAge = false     // Skip age analysis (slow)
+	cfg.Containers.Enabled = false     // Skip image scanning (slow)
+	cfg.Git.IncludeChurn = false       // Skip churn analysis (slow)
+	cfg.Git.IncludeAge = false         // Skip age analysis (slow)
+	cfg.DORA.IncludePRMetrics = false  // Skip PR metrics (requires API calls)
+	cfg.DORA.IncludeReworkRate = false // Skip rework rate (slower)
 	return cfg
 }
 
@@ -124,8 +134,11 @@ func FullConfig() FeatureConfig {
 			CheckPermissions: true,
 		},
 		DORA: DORAConfig{
-			Enabled:    true,
-			PeriodDays: 90,
+			Enabled:           true,
+			PeriodDays:        90,
+			IncludePRMetrics:  true,
+			MaxPRs:            200,
+			IncludeReworkRate: true,
 		},
 		Git: GitConfig{
 			Enabled:         true,
