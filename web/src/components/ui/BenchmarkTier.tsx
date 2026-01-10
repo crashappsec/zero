@@ -205,3 +205,51 @@ export const SUPPLY_CHAIN_BENCHMARKS = {
     fair: { max: 2, label: '1-2' },
   },
 };
+
+// Quality benchmarks (Zero-specific)
+export const QUALITY_BENCHMARKS = {
+  testCoverage: {
+    elite: { max: 80, label: '>80%' },
+    good: { max: 60, label: '60-80%' },
+    fair: { max: 40, label: '40-60%' },
+  },
+  complexity: {
+    elite: { max: 5, label: '<5' },
+    good: { max: 10, label: '5-10' },
+    fair: { max: 20, label: '10-20' },
+  },
+  techDebtScore: {
+    elite: { max: 80, label: '>80' },
+    good: { max: 60, label: '60-80' },
+    fair: { max: 40, label: '40-60' },
+  },
+  docCoverage: {
+    elite: { max: 80, label: '>80%' },
+    good: { max: 50, label: '50-80%' },
+    fair: { max: 25, label: '25-50%' },
+  },
+};
+
+// Team benchmarks (Zero-specific)
+export const TEAM_BENCHMARKS = {
+  busFactor: {
+    elite: { max: 5, label: '>5' },
+    good: { max: 3, label: '3-5' },
+    fair: { max: 2, label: '2-3' },
+  },
+  ownershipCoverage: {
+    elite: { max: 90, label: '>90%' },
+    good: { max: 70, label: '70-90%' },
+    fair: { max: 50, label: '50-70%' },
+  },
+  orphanedFiles: {
+    elite: { max: 5, label: '<5%' },
+    good: { max: 15, label: '5-15%' },
+    fair: { max: 30, label: '15-30%' },
+  },
+  contributorCount: {
+    elite: { max: 10, label: '>10' },
+    good: { max: 5, label: '5-10' },
+    fair: { max: 2, label: '2-5' },
+  },
+};

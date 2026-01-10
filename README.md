@@ -39,19 +39,27 @@ gh auth login
 
 ## What is Zero?
 
-Zero is a Go CLI that consolidates 7 "super scanners" with 45+ configurable features, integrating tools like cdxgen, osv-scanner, and semgrep for comprehensive engineering intelligence.
+Zero is a Go CLI that provides **Engineering Intelligence** through 7 analyzers with 45+ features, aligned with industry frameworks (DORA, SPACE, LinearB).
 
-### Super Scanners
+### 6 Pillars of Engineering Intelligence
 
-| Scanner | Description |
-|---------|-------------|
-| **code-packages** | SBOM generation + vulnerability, license, malware analysis |
-| **code-security** | SAST, secrets detection, cryptographic security |
-| **code-quality** | Tech debt, complexity, test coverage |
-| **devops** | IaC security, containers, GitHub Actions, DORA metrics |
-| **technology-identification** | Framework detection, ML-BOM generation |
-| **code-ownership** | Contributors, bus factor, code churn |
-| **devx** | Developer experience, tool sprawl, onboarding |
+```
+┌────────────────────────────────────────────────────────────┐
+│     Productivity Pillars    │      Technical Pillars       │
+├────────────────────────────────────────────────────────────┤
+│  Speed │ Quality │  Team   │ Security │ Supply  │  Tech   │
+│ (DORA) │ (Health)│(People) │  (Risk)  │  Chain  │ (Stack) │
+└────────────────────────────────────────────────────────────┘
+```
+
+| Pillar | Analyzer | Key Metrics |
+|--------|----------|-------------|
+| **Speed** | devops | DORA metrics, cycle time, deployment frequency |
+| **Quality** | code-quality | Tech debt, complexity, test coverage |
+| **Team** | code-ownership, devx | Bus factor, contributors, onboarding |
+| **Security** | code-security | Vulnerabilities, secrets, crypto issues |
+| **Supply Chain** | code-packages | Dependencies, licenses, malware, SBOM |
+| **Technology** | technology-identification | Stack detection, ML-BOM, AI security |
 
 ### AI Agents
 
@@ -128,4 +136,4 @@ Copyright (c) 2025 Crash Override Inc. - https://crashoverride.com
 
 ---
 
-**Status**: Alpha | **Version**: 4.1.0 | *"Hack the planet!"*
+**Status**: Alpha | **Version**: 6.0.0 | *"Hack the planet!"*

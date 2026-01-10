@@ -4,20 +4,19 @@ import { useState, useMemo, Suspense, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/Sidebar';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { BenchmarkTier, QUALITY_BENCHMARKS } from '@/components/ui/BenchmarkTier';
 import { useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
 import {
   BarChart3,
-  TrendingUp,
-  TrendingDown,
   AlertTriangle,
   CheckCircle,
   BookOpen,
   TestTube,
   Wrench,
-  Gauge,
   ChevronDown,
   ChevronRight,
+  Info,
 } from 'lucide-react';
 import { ProjectFilter } from '@/components/ui/ProjectFilter';
 
@@ -239,78 +238,41 @@ function QualityContent() {
         </div>
       ) : stats ? (
         <>
-          {/* Aggregate Stats */}
-          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-            <Card>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-600/20">
-                  <CheckCircle className="h-6 w-6 text-green-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Healthy</p>
-                  <p className="text-2xl font-bold text-green-500">{stats.healthy}</p>
-                </div>
+          {/* Benchmark Metrics */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <BenchmarkTier
+              value={stats.avgCoverage}
+              label="Test Coverage"
+              tiers={QUALITY_BENCHMARKS.testCoverage}
+              unit="%"
+              lowerIsBetter={false}
+            />
+            <BenchmarkTier
+              value={parseFloat(stats.avgComplexity)}
+              label="Avg Complexity"
+              tiers={QUALITY_BENCHMARKS.complexity}
+              lowerIsBetter={true}
+            />
+            <BenchmarkTier
+              value={stats.avgScore}
+              label="Quality Score"
+              tiers={QUALITY_BENCHMARKS.techDebtScore}
+              lowerIsBetter={false}
+            />
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-400">Project Health</span>
               </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-600/20">
-                  <AlertTriangle className="h-6 w-6 text-yellow-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Needs Work</p>
-                  <p className="text-2xl font-bold text-yellow-500">{stats.needsAttention}</p>
-                </div>
+              <div className="flex gap-2 text-sm">
+                <span className="text-green-500">{stats.healthy} healthy</span>
+                <span className="text-gray-500">|</span>
+                <span className="text-yellow-500">{stats.needsAttention} needs work</span>
+                <span className="text-gray-500">|</span>
+                <span className="text-red-500">{stats.atRisk} at risk</span>
               </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-600/20">
-                  <AlertTriangle className="h-6 w-6 text-red-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">At Risk</p>
-                  <p className="text-2xl font-bold text-red-500">{stats.atRisk}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-600/20">
-                  <Gauge className="h-6 w-6 text-indigo-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Avg Score</p>
-                  <p className="text-2xl font-bold text-white">{stats.avgScore}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-600/20">
-                  <TestTube className="h-6 w-6 text-blue-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Avg Coverage</p>
-                  <p className="text-2xl font-bold text-white">{stats.avgCoverage}%</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card>
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-600/20">
-                  <TrendingUp className="h-6 w-6 text-orange-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-400">Avg Complexity</p>
-                  <p className="text-2xl font-bold text-white">{stats.avgComplexity}</p>
-                </div>
-              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                {stats.projectsAnalyzed} projects analyzed
+              </p>
             </Card>
           </div>
 

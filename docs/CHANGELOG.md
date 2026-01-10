@@ -12,6 +12,48 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [6.0.0] - 2026-01-10
+
+### Added
+
+- **Engineering Intelligence Framework**: 6-pillar organization aligned with DORA, SPACE, LinearB
+  - Speed (DORA metrics), Quality (code health), Team (people), Security (risk), Supply Chain (dependencies), Technology (stack)
+  - Benchmark tiers: Elite, Good, Fair, Needs Focus based on LinearB 2026 benchmarks
+  - Pillar-to-analyzer mapping for all 7 super scanners
+
+- **Benchmark Visualization**: BenchmarkTier component across all pillar pages
+  - Visual tier indicators with color coding (green/blue/yellow/red)
+  - LinearB 2026 benchmark thresholds for all metrics
+  - Security, Supply Chain, Quality, and Team benchmark configurations
+
+- **Web UI Reorganization**
+  - Sidebar navigation reordered: Speed, Quality, Team, Security, Supply Chain, Technology
+  - New Speed page combining DORA metrics with LinearB benchmarks
+  - Benchmark tier cards on all pillar pages
+
+- **Finding Validation System**: Comprehensive suppression and validation
+  - SARIF-format suppression files per project
+  - Reasons: false_positive, wont_fix, acceptable_risk, test_code
+  - Global and path-specific suppression rules
+  - CLI commands: `zero validate add`, `zero validate remove`, `zero validate list`
+
+- **Markdown Reports**: CLI-generated reports by category
+  - `zero report <repo>` generates markdown reports
+  - Category-specific: `--category security|supply-chain|quality|speed`
+
+### Changed
+
+- Removed Evidence.dev dependency (legacy report system)
+- Updated all documentation to v6.0 framework
+- Agent pillar assignments for domain clarity
+
+### Fixed
+
+- BenchmarkTier component handles all metric types (higher/lower is better)
+- Consistent tier thresholds across web UI and reports
+
+---
+
 ## [4.0.0] - 2026-01-07
 
 ### Added

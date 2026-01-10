@@ -91,19 +91,40 @@ Before scanning, sync Semgrep rules:
 
 In Claude Code, use the `/agent` slash command to chat with Zero and the specialist agents.
 
-## Super Scanners (v4.0)
+## Engineering Intelligence Framework (v6.0)
 
-Zero uses 7 consolidated super scanners:
+Zero organizes analysis around **6 Pillars** aligned with industry frameworks (DORA, SPACE, LinearB):
 
-| Scanner | Description |
-|---------|-------------|
-| `code-packages` | SBOM generation + dependency analysis (vulns, licenses, malcontent, health) |
-| `code-security` | SAST, secrets, API security, cryptography |
-| `code-quality` | Tech debt, complexity, test coverage, documentation |
-| `devops` | IaC security, containers, GitHub Actions, DORA metrics |
-| `technology-identification` | Technology detection, ML-BOM generation |
-| `code-ownership` | Contributors, bus factor, CODEOWNERS, code churn |
-| `developer-experience` | Onboarding friction, tool sprawl, workflow |
+```
+┌────────────────────────────────────────────────────────────┐
+│     Productivity Pillars    │      Technical Pillars       │
+├────────────────────────────────────────────────────────────┤
+│  Speed │ Quality │  Team   │ Security │ Supply  │  Tech   │
+│ (DORA) │ (Health)│(People) │  (Risk)  │  Chain  │ (Stack) │
+└────────────────────────────────────────────────────────────┘
+```
+
+### Pillar → Analyzer Mapping
+
+| Pillar | Analyzer | Key Metrics |
+|--------|----------|-------------|
+| **Speed** | devops | DORA metrics, cycle time, deployment frequency |
+| **Quality** | code-quality | Tech debt, complexity, test coverage |
+| **Team** | code-ownership, devx | Bus factor, contributors, onboarding |
+| **Security** | code-security | Vulnerabilities, secrets, crypto issues |
+| **Supply Chain** | code-packages | Dependencies, licenses, malware, SBOM |
+| **Technology** | technology-identification | Stack detection, ML-BOM, AI security |
+
+### Benchmark Tiers
+
+All metrics are classified against LinearB 2026 benchmarks:
+
+| Tier | Description |
+|------|-------------|
+| **Elite** | Top 25% performers |
+| **Good** | Above average |
+| **Fair** | Average |
+| **Needs Focus** | Below average |
 
 ## Scan Profiles
 

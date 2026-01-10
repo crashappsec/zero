@@ -1,20 +1,21 @@
 'use client';
 
-import { useState, useMemo, Suspense, useEffect } from 'react';
+import { useState, Suspense, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/Sidebar';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge, SeverityBadge } from '@/components/ui/Badge';
+import { BenchmarkTier, SECURITY_BENCHMARKS } from '@/components/ui/BenchmarkTier';
 import { useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
-import type { Vulnerability, Secret, Project } from '@/lib/types';
+import type { Vulnerability, Secret } from '@/lib/types';
 import { ProjectFilter } from '@/components/ui/ProjectFilter';
 import {
   Shield,
   Key,
   Lock,
   AlertTriangle,
-  ExternalLink,
   ChevronRight,
+  Info,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -134,23 +135,36 @@ function SecurityContent() {
         </div>
       ) : (
         <>
-          {/* Overview Stats */}
+          {/* Benchmark Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="text-center">
-              <p className="text-3xl font-bold text-red-500">{totalCritical}</p>
-              <p className="text-sm text-gray-400">Critical Issues</p>
-            </Card>
-            <Card className="text-center">
-              <p className="text-3xl font-bold text-orange-500">{totalHigh}</p>
-              <p className="text-sm text-gray-400">High Severity</p>
-            </Card>
-            <Card className="text-center">
-              <p className="text-3xl font-bold text-blue-500">{stats.vulnerabilities.total}</p>
-              <p className="text-sm text-gray-400">Vulnerabilities</p>
-            </Card>
-            <Card className="text-center">
-              <p className="text-3xl font-bold text-yellow-500">{stats.secrets.total}</p>
-              <p className="text-sm text-gray-400">Secrets</p>
+            <BenchmarkTier
+              value={totalCritical}
+              label="Critical Issues"
+              tiers={SECURITY_BENCHMARKS.criticalVulns}
+              lowerIsBetter={true}
+            />
+            <BenchmarkTier
+              value={totalHigh}
+              label="High Severity"
+              tiers={SECURITY_BENCHMARKS.highVulns}
+              lowerIsBetter={true}
+            />
+            <BenchmarkTier
+              value={stats.secrets.total}
+              label="Secrets Exposed"
+              tiers={SECURITY_BENCHMARKS.secretsExposed}
+              lowerIsBetter={true}
+            />
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-400">Total Findings</span>
+              </div>
+              <p className="text-2xl font-bold text-blue-500">
+                {stats.vulnerabilities.total + stats.secrets.total}
+              </p>
+              <p className="text-xs text-gray-500 mt-2">
+                {stats.vulnerabilities.total} vulns, {stats.secrets.total} secrets
+              </p>
             </Card>
           </div>
 

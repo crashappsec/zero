@@ -4,9 +4,9 @@ import { useState, Suspense, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/Sidebar';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { BenchmarkTier, TEAM_BENCHMARKS } from '@/components/ui/BenchmarkTier';
 import { useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
-import type { Project } from '@/lib/types';
 import { ProjectFilter } from '@/components/ui/ProjectFilter';
 import {
   Users,
@@ -15,8 +15,7 @@ import {
   TrendingUp,
   ChevronRight,
   GitCommit,
-  UserMinus,
-  Clock,
+  Info,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -176,23 +175,34 @@ function TeamContent() {
         </div>
       ) : (
         <>
-          {/* Overview Stats */}
+          {/* Benchmark Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="text-center">
-              <p className="text-3xl font-bold text-purple-500">{stats.totalContributors}</p>
-              <p className="text-sm text-gray-400">Contributors</p>
-            </Card>
-            <Card className="text-center">
-              <p className={`text-3xl font-bold ${busFactorColor}`}>{stats.busFactor}</p>
-              <p className="text-sm text-gray-400">Bus Factor</p>
-            </Card>
-            <Card className="text-center">
-              <p className="text-3xl font-bold text-orange-500">{stats.orphanedFiles}</p>
-              <p className="text-sm text-gray-400">Orphaned Files</p>
-            </Card>
-            <Card className="text-center">
-              <p className="text-3xl font-bold text-blue-500">{stats.lastCommitDays}</p>
-              <p className="text-sm text-gray-400">Days Since Commit</p>
+            <BenchmarkTier
+              value={stats.busFactor}
+              label="Bus Factor"
+              tiers={TEAM_BENCHMARKS.busFactor}
+              lowerIsBetter={false}
+            />
+            <BenchmarkTier
+              value={stats.totalContributors}
+              label="Contributors"
+              tiers={TEAM_BENCHMARKS.contributorCount}
+              lowerIsBetter={false}
+            />
+            <BenchmarkTier
+              value={stats.orphanedFiles}
+              label="Orphaned Files"
+              tiers={TEAM_BENCHMARKS.orphanedFiles}
+              lowerIsBetter={true}
+            />
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-400">Activity</span>
+              </div>
+              <p className="text-2xl font-bold text-blue-500">{stats.lastCommitDays}</p>
+              <p className="text-xs text-gray-500 mt-2">
+                days since last commit
+              </p>
             </Card>
           </div>
 

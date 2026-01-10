@@ -168,16 +168,16 @@ All metrics are classified into four performance tiers:
 | Remove Evidence.dev (legacy) | ✅ Complete | - |
 | Add markdown report generator | ✅ Complete | - |
 
-### Phase 2: Benchmark Visualization (P0) - In Progress
-**Status:** 🔄 In Progress
+### Phase 2: Benchmark Visualization (P0)
+**Status:** ✅ Complete
 
 | Task | Status | Issue |
 |------|--------|-------|
-| Add benchmark tiers to Security page | ⏳ Pending | [#55](https://github.com/crashappsec/zero/issues/55) |
-| Add benchmark tiers to Supply Chain page | ⏳ Pending | [#55](https://github.com/crashappsec/zero/issues/55) |
-| Add benchmark tiers to Quality page | ⏳ Pending | [#55](https://github.com/crashappsec/zero/issues/55) |
-| Add benchmark tiers to Team page | ⏳ Pending | [#55](https://github.com/crashappsec/zero/issues/55) |
-| Add benchmark reference footer to all pillar pages | ⏳ Pending | [#55](https://github.com/crashappsec/zero/issues/55) |
+| Add benchmark tiers to Security page | ✅ Complete | [#55](https://github.com/crashappsec/zero/issues/55) |
+| Add benchmark tiers to Supply Chain page | ✅ Complete | [#55](https://github.com/crashappsec/zero/issues/55) |
+| Add benchmark tiers to Quality page | ✅ Complete | [#55](https://github.com/crashappsec/zero/issues/55) |
+| Add benchmark tiers to Team page | ✅ Complete | [#55](https://github.com/crashappsec/zero/issues/55) |
+| Update documentation to v6.0 | ✅ Complete | - |
 
 ### Phase 3: PR-Level Metrics (P1)
 **Status:** Planned

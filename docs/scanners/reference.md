@@ -1,6 +1,19 @@
 # Scanner Reference
 
-Complete reference for Zero's 7 super scanners (v4.0). Each scanner provides multiple features that can be individually enabled or disabled.
+Complete reference for Zero's 7 super scanners (v6.0). Each scanner provides multiple features that can be individually enabled or disabled, organized around the **6-Pillar Engineering Intelligence Framework**.
+
+## Engineering Intelligence Framework
+
+Scanners are mapped to pillars aligned with DORA, SPACE, and LinearB frameworks:
+
+| Pillar | Scanner | Key Metrics |
+|--------|---------|-------------|
+| **Speed** | devops | DORA metrics, cycle time, deployment frequency |
+| **Quality** | code-quality | Tech debt, complexity, test coverage |
+| **Team** | code-ownership, devx | Bus factor, contributors, onboarding |
+| **Security** | code-security | Vulnerabilities, secrets, crypto issues |
+| **Supply Chain** | code-packages | Package health, licenses, malware |
+| **Technology** | technology-identification | Stack detection, ML-BOM, AI security |
 
 ## Architecture Overview
 
@@ -21,15 +34,15 @@ The `code-packages` scanner generates the SBOM as **source of truth**. All other
 
 ## Super Scanners
 
-| Scanner | Features | Output | Docs |
-|---------|----------|--------|------|
-| **code-packages** | generation, integrity, vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | `code-packages.json` + `sbom.cdx.json` | [code-packages.md](code-packages.md) |
-| **code-security** | vulns, secrets, api, ciphers, keys, random, tls, certificates | `code-security.json` | [code-security.md](code-security.md) |
-| **code-quality** | tech_debt, complexity, test_coverage, documentation | `code-quality.json` | [code-quality.md](quality.md) |
-| **devops** | iac, containers, github_actions, dora, git | `devops.json` | [devops.md](devops.md) |
-| **technology-identification** | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | `technology-identification.json` | [technology-identification.md](technology.md) |
-| **code-ownership** | contributors, bus_factor, codeowners, orphans, churn, patterns | `code-ownership.json` | [code-ownership.md](ownership.md) |
-| **devx** | onboarding, sprawl, workflow | `devx.json` | [devx.md](devx.md) |
+| Scanner | Pillar | Features | Output |
+|---------|--------|----------|--------|
+| **code-packages** | Supply Chain | generation, integrity, vulns, health, licenses, malcontent, confusion, typosquats, deprecations, duplicates, reachability, provenance, bundle, recommendations | `code-packages.json` + `sbom.cdx.json` |
+| **code-security** | Security | vulns, secrets, api, ciphers, keys, random, tls, certificates | `code-security.json` |
+| **code-quality** | Quality | tech_debt, complexity, test_coverage, documentation | `code-quality.json` |
+| **devops** | Speed | iac, containers, github_actions, dora, git | `devops.json` |
+| **technology-identification** | Technology | detection, models, frameworks, datasets, ai_security, ai_governance, infrastructure | `technology-identification.json` |
+| **code-ownership** | Team | contributors, bus_factor, codeowners, orphans, churn, patterns | `code-ownership.json` |
+| **devx** | Team | onboarding, sprawl, workflow | `devx.json` |
 
 ## Quick Reference
 

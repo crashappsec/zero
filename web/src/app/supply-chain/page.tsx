@@ -4,18 +4,16 @@ import { useState, Suspense, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/Sidebar';
 import { Card, CardTitle, CardContent } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import { BenchmarkTier, SUPPLY_CHAIN_BENCHMARKS } from '@/components/ui/BenchmarkTier';
 import { useFetch } from '@/hooks/useApi';
 import { api } from '@/lib/api';
-import type { Project } from '@/lib/types';
 import { ProjectFilter } from '@/components/ui/ProjectFilter';
 import {
   Package,
   AlertTriangle,
-  CheckCircle,
   FileText,
   ChevronRight,
-  TrendingUp,
-  TrendingDown,
+  Info,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -148,30 +146,36 @@ function SupplyChainContent() {
         </div>
       ) : (
         <>
-          {/* Overview Stats */}
+          {/* Benchmark Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card className="text-center">
-              <p className="text-3xl font-bold text-blue-500">{stats.totalPackages}</p>
-              <p className="text-sm text-gray-400">Total Packages</p>
-            </Card>
-            <Card className="text-center">
-              <div className="flex items-center justify-center gap-2">
-                <p className="text-3xl font-bold text-green-500">{healthScore}%</p>
-                {healthScore >= 80 ? (
-                  <TrendingUp className="h-5 w-5 text-green-500" />
-                ) : (
-                  <TrendingDown className="h-5 w-5 text-red-500" />
-                )}
+            <BenchmarkTier
+              value={healthScore}
+              label="Package Health"
+              tiers={SUPPLY_CHAIN_BENCHMARKS.packageHealth}
+              unit="%"
+              lowerIsBetter={false}
+            />
+            <BenchmarkTier
+              value={stats.totalPackages > 0 ? Math.round((stats.vulnerablePackages / stats.totalPackages) * 100) : 0}
+              label="Vulnerable Deps"
+              tiers={SUPPLY_CHAIN_BENCHMARKS.vulnerableDeps}
+              unit="%"
+              lowerIsBetter={true}
+            />
+            <BenchmarkTier
+              value={stats.criticalVulns + stats.highVulns}
+              label="Critical + High Vulns"
+              tiers={SUPPLY_CHAIN_BENCHMARKS.licenseViolations}
+              lowerIsBetter={true}
+            />
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-400">Total Packages</span>
               </div>
-              <p className="text-sm text-gray-400">Health Score</p>
-            </Card>
-            <Card className="text-center">
-              <p className="text-3xl font-bold text-red-500">{stats.vulnerablePackages}</p>
-              <p className="text-sm text-gray-400">Vulnerable</p>
-            </Card>
-            <Card className="text-center">
-              <p className="text-3xl font-bold text-purple-500">{stats.licenses.size}</p>
-              <p className="text-sm text-gray-400">License Types</p>
+              <p className="text-2xl font-bold text-blue-500">{stats.totalPackages}</p>
+              <p className="text-xs text-gray-500 mt-2">
+                {stats.licenses.size} license types
+              </p>
             </Card>
           </div>
 
