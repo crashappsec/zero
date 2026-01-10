@@ -107,7 +107,7 @@ order by
   end
 ```
 
-<Grid cols=2>
+<Grid cols=3>
 <BarChart
   data={iac_by_severity}
   x=severity
@@ -213,7 +213,8 @@ select category, count(*) as count from zero.github_actions_findings group by ca
 
 ---
 
-<Grid cols=2>
+<Grid cols=3>
   <BigLink url="/">Back to Dashboard</BigLink>
-  <BigLink url="/quality">Code Quality</BigLink>
+  <BigLink url="/quality">Quality</BigLink>
+  <BigLink url="/team">Team</BigLink>
 </Grid>

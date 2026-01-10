@@ -70,7 +70,7 @@ group by severity
 order by case severity when 'critical' then 1 when 'high' then 2 when 'medium' then 3 else 4 end
 ```
 
-<Grid cols=2>
+<Grid cols=3>
 <BarChart
   data={malcontent_by_severity}
   x=severity
@@ -145,7 +145,8 @@ Packages sorted by health score (lowest first). Consider updating or replacing u
 
 ---
 
-<Grid cols=2>
+<Grid cols=3>
   <BigLink url="/">Back to Dashboard</BigLink>
-  <BigLink url="/dependencies">Dependencies & SBOM</BigLink>
+  <BigLink url="/dependencies">Dependencies</BigLink>
+  <BigLink url="/security">Security</BigLink>
 </Grid>

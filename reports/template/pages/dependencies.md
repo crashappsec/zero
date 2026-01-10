@@ -115,7 +115,7 @@ order by
 
 {#if licenses.length > 0}
 
-<Grid cols=2>
+<Grid cols=3>
 <BarChart
   data={licenses}
   x=license
@@ -162,7 +162,8 @@ order by
 
 ---
 
-<Grid cols=2>
+<Grid cols=3>
   <BigLink url="/">Back to Dashboard</BigLink>
-  <BigLink url="/supply-chain">Supply Chain Security</BigLink>
+  <BigLink url="/supply-chain">Supply Chain</BigLink>
+  <BigLink url="/security">Security</BigLink>
 </Grid>
