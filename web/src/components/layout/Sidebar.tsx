@@ -32,14 +32,15 @@ interface NavGroup {
   defaultOpen?: boolean;
 }
 
-// 6 Dimensions of Engineering Intelligence
+// 6 Pillars of Engineering Intelligence
+// Order: Productivity (Speed, Quality, Team) → Technical (Security, Supply Chain, Technology)
 const dimensionNavigation: NavItem[] = [
-  { name: 'Security', href: '/security', icon: Shield },
-  { name: 'Supply Chain', href: '/supply-chain', icon: Package },
-  { name: 'Quality', href: '/quality', icon: BarChart3 },
-  { name: 'DevOps', href: '/devops', icon: Server },
-  { name: 'Technology', href: '/technology', icon: Cpu },
-  { name: 'Team', href: '/team', icon: Users },
+  { name: 'Speed', href: '/speed', icon: Server },        // DORA metrics, cycle time, delivery
+  { name: 'Quality', href: '/quality', icon: BarChart3 }, // Code health, tech debt, coverage
+  { name: 'Team', href: '/team', icon: Users },           // Ownership, collaboration, devx
+  { name: 'Security', href: '/security', icon: Shield },  // Vulnerabilities, secrets, crypto
+  { name: 'Supply Chain', href: '/supply-chain', icon: Package }, // Dependencies, licenses, SBOM
+  { name: 'Technology', href: '/technology', icon: Cpu }, // Stack, AI/ML, architecture
 ];
 
 // Management navigation

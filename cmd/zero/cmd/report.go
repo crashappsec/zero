@@ -20,21 +20,25 @@ var reportCmd = &cobra.Command{
 	Long: `Generate markdown reports from analysis data.
 
 Reports can be generated for:
-  - All categories (default): Comprehensive engineering intelligence report
-  - Specific category: --category security|supply-chain|quality|devops|technology|team
+  - All pillars (default): Comprehensive engineering intelligence report
+  - Specific pillar: --category speed|quality|team|security|supply-chain|technology
   - Specific analyzer: --analyzer code-security|code-packages|devops|etc.
 
-The 6 Dimensions of Engineering Intelligence:
+The 6 Pillars of Engineering Intelligence:
+  Productivity Pillars:
+  - Speed:        DORA metrics, cycle time, delivery performance
+  - Quality:      Tech debt, complexity, test coverage
+  - Team:         Code ownership, bus factor, onboarding
+
+  Technical Pillars:
   - Security:     Vulnerabilities, secrets, cryptographic issues
   - Supply Chain: Dependencies, licenses, malcontent, package health
-  - Quality:      Tech debt, complexity, test coverage
-  - DevOps:       DORA metrics, IaC, containers, GitHub Actions
   - Technology:   Stack detection, ML-BOM, AI/ML findings
-  - Team:         Code ownership, bus factor, contributors
 
 Examples:
   zero report expressjs/express                      # Full report to stdout
   zero report expressjs/express --output report.md  # Save to file
+  zero report expressjs/express --category speed    # Speed/DORA report only
   zero report expressjs/express --category security # Security report only
   zero report expressjs/express --analyzer devops   # DevOps analyzer only`,
 	Args: cobra.ExactArgs(1),
@@ -44,7 +48,7 @@ Examples:
 func init() {
 	rootCmd.AddCommand(reportCmd)
 
-	reportCmd.Flags().StringVarP(&reportOpts.Category, "category", "c", "", "Report category (security, supply-chain, quality, devops, technology, team)")
+	reportCmd.Flags().StringVarP(&reportOpts.Category, "category", "c", "", "Report pillar (speed, quality, team, security, supply-chain, technology)")
 	reportCmd.Flags().StringVarP(&reportOpts.Analyzer, "analyzer", "a", "", "Specific analyzer to report on")
 	reportCmd.Flags().StringVarP(&reportOpts.Output, "output", "o", "", "Output file path (default: stdout)")
 }
@@ -65,7 +69,7 @@ func runReport(cmd *cobra.Command, args []string) error {
 			}
 		}
 		if !valid {
-			return fmt.Errorf("invalid category: %s (valid: security, supply-chain, quality, devops, technology, team)", reportOpts.Category)
+			return fmt.Errorf("invalid category: %s (valid: speed, quality, team, security, supply-chain, technology)", reportOpts.Category)
 		}
 	}
 
