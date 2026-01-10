@@ -53,7 +53,7 @@ func DefaultConfig() *Config {
 	cfg := &Config{
 		Version: "1.0",
 		Settings: Settings{
-			DefaultProfile:        "standard",
+			DefaultProfile:        "all-quick",
 			StoragePath:           ".zero",
 			ParallelRepos:         1,
 			ParallelScanners:      4,

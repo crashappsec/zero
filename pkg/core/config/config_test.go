@@ -14,8 +14,8 @@ func TestDefaultConfig(t *testing.T) {
 		t.Errorf("expected version 1.0, got %s", cfg.Version)
 	}
 
-	if cfg.Settings.DefaultProfile != "standard" {
-		t.Errorf("expected default profile 'standard', got %s", cfg.Settings.DefaultProfile)
+	if cfg.Settings.DefaultProfile != "all-quick" {
+		t.Errorf("expected default profile 'all-quick', got %s", cfg.Settings.DefaultProfile)
 	}
 
 	if cfg.Settings.StoragePath != ".zero" {

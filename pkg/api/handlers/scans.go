@@ -108,7 +108,7 @@ func (h *ScanHandler) Start(w http.ResponseWriter, r *http.Request) {
 
 	// Default profile
 	if req.Profile == "" {
-		req.Profile = "standard"
+		req.Profile = "all-quick"
 	}
 
 	// Generate job ID
