@@ -172,19 +172,27 @@ func (w *Worker) executeJob(ctx context.Context, job *Job) {
 // setupProgressHook hooks into the hydrate runner for real-time progress
 func (w *Worker) setupProgressHook(job *Job, h *hydrate.Hydrate) {
 	var mu sync.Mutex
+	scannerNames := make(map[string]bool)  // Track unique scanner names
 	scannerCount := 0
-	completedCount := 0
+	completedThisRepo := 0                  // Track completion within current repo cycle
 	startTimes := make(map[string]time.Time)
 
 	h.SetProgressCallback(func(scannerName string, status scanner.Status, summary string) {
 		mu.Lock()
 		defer mu.Unlock()
 
-		// Track scanner start time
+		// Track scanner start time and unique scanner names
 		if status == scanner.StatusRunning {
-			if _, exists := startTimes[scannerName]; !exists {
-				startTimes[scannerName] = time.Now()
+			// First time seeing this scanner name - record it
+			if !scannerNames[scannerName] {
+				scannerNames[scannerName] = true
 				scannerCount++
+			}
+			// Reset start time for this scanner (new repo cycle)
+			startTimes[scannerName] = time.Now()
+			// If this is the first scanner of a new repo, reset completion count
+			if completedThisRepo >= scannerCount && scannerCount > 0 {
+				completedThisRepo = 0
 			}
 		}
 
@@ -196,13 +204,14 @@ func (w *Worker) setupProgressHook(job *Job, h *hydrate.Hydrate) {
 
 		// Update job progress
 		job.Progress.UpdateScanner(scannerName, status, summary, duration)
-		job.Progress.SetScannerProgress(scannerName, completedCount, scannerCount)
 
-		// Track completion
+		// Track completion within current repo
 		if status == scanner.StatusComplete || status == scanner.StatusFailed || status == scanner.StatusSkipped {
-			completedCount++
-			job.Progress.SetScannerProgress(scannerName, completedCount, scannerCount)
+			completedThisRepo++
 		}
+
+		// Set progress: show completion within current repo cycle
+		job.Progress.SetScannerProgress(scannerName, completedThisRepo, scannerCount)
 
 		// Broadcast to WebSocket clients
 		w.broadcastScannerProgress(job.ID, scannerName, status, summary, duration)
